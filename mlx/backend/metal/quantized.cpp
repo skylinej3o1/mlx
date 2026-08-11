@@ -1,5 +1,7 @@
 // Copyright © 2023-2024 Apple Inc.
 
+#include <cstdlib>
+
 #include "mlx/backend/common/broadcasting.h"
 #include "mlx/backend/common/compiled.h"
 #include "mlx/backend/gpu/copy.h"
@@ -251,16 +253,32 @@ void qmv(
   int bn = 8;
   int bk = 32;
   MTL::Size group_dims(bk, 2, 1);
-  MTL::Size grid_dims(M, (N + bn - 1) / bn, B);
 
   std::string kname;
   kname.reserve(64);
   std::string type_string = get_type_string(x.dtype());
   bool fast = N % bn == 0 && K % 512 == 0;
 
+  bool fast_m3 =
+      std::getenv("MLX_QMV_FAST_M3") != nullptr &&
+      mode == "affine" &&
+      bits == 6 &&
+      group_size == 64 &&
+      M == 3 &&
+      B == 1 &&
+      x.dtype() == float16 &&
+      fast;
+
+  MTL::Size grid_dims(
+      fast_m3 ? 1 : M,
+      (N + bn - 1) / bn,
+      B);
+
   concatenate(
       kname,
-      mode + (fast ? "_qmv_fast_" : "_qmv_"),
+      mode +
+          (fast_m3 ? "_qmv_fast_m3_" :
+           fast ? "_qmv_fast_" : "_qmv_"),
       type_string,
       "_gs_",
       group_size,
@@ -270,7 +288,8 @@ void qmv(
   auto kernel = get_quantized_kernel_wrapped(
       d,
       kname,
-      (fast ? "qmv_fast" : "qmv"),
+      (fast_m3 ? "qmv_fast_m3" :
+       fast ? "qmv_fast" : "qmv"),
       mode,
       type_string,
       group_size,

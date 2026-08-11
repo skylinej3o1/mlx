@@ -179,4 +179,8 @@
   instantiate_quantized_groups(6) \
   instantiate_quantized_groups(8)
 
+
+instantiate_quantized_batched(
+    affine_qmv_fast_m3, float16_t, 64, 6, 0)
+
 instantiate_quantized_all() // clang-format on
