@@ -861,8 +861,8 @@ METAL_FUNC void qmv_fast_m3_impl(
 
   static_assert(bits == 6, "qmv_fast_m3 is Q6-only");
 
-  constexpr int num_simdgroups = 2;
-  constexpr int results_per_simdgroup = 4;
+  constexpr int num_simdgroups = 4;
+  constexpr int results_per_simdgroup = 2;
   constexpr int packs_per_thread = 2;
   constexpr int pack_factor = 4;
   constexpr int bytes_per_pack = 3;

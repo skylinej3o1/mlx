@@ -252,8 +252,6 @@ void qmv(
 
   int bn = 8;
   int bk = 32;
-  MTL::Size group_dims(bk, 2, 1);
-
   std::string kname;
   kname.reserve(64);
   std::string type_string = get_type_string(x.dtype());
@@ -268,6 +266,8 @@ void qmv(
       B == 1 &&
       x.dtype() == float16 &&
       fast;
+
+  MTL::Size group_dims(bk, fast_m3 ? 4 : 2, 1);
 
   MTL::Size grid_dims(
       fast_m3 ? 1 : M,
