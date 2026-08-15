@@ -1048,10 +1048,11 @@ METAL_FUNC void qmv_fast_m4_impl(
   device T* y2 = y1 + out_vec_size;
   device T* y3 = y2 + out_vec_size;
 
-  // FAST_M4: process two 256-value K blocks per outer iteration.
-  // Dispatch requires K % 512 == 0, so there is no tail.
-  for (int k = 0; k < in_vec_size; k += 2 * block_size) {
-    for (int u = 0; u < 2; ++u) {
+  // FAST_M4 K4 experiment: process four 256-value K blocks
+  // per outer iteration. Qwen3.8 target dimensions used here are
+  // multiples of 1024, so there is no tail in this workload.
+  for (int k = 0; k < in_vec_size; k += 4 * block_size) {
+    for (int u = 0; u < 4; ++u) {
     U sum0 =
         load_vector<T, U, values_per_thread, 6>(x0, x0_thread);
     U sum1 =
