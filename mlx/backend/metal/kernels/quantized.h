@@ -976,6 +976,117 @@ METAL_FUNC void qmv_fast_m3_impl(
   }
 }
 
+
+// FAST_M4 experiment: evaluate one Q6 weight field at a time across
+// all four vectors. This shares mask/decode work while keeping only
+// one decoded weight scalar live at once.
+template <typename U>
+inline void qdot_q6_8_m4_shared(
+    uint8_t w0,
+    uint8_t w1,
+    uint8_t w2,
+    uint8_t w3,
+    uint8_t w4,
+    uint8_t w5,
+    const thread U* x0,
+    const thread U* x1,
+    const thread U* x2,
+    const thread U* x3,
+    U scale,
+    U bias,
+    U sum0,
+    U sum1,
+    U sum2,
+    U sum3,
+    thread U& out0,
+    thread U& out1,
+    thread U& out2,
+    thread U& out3) {
+
+  U a0 = 0;
+  U a1 = 0;
+  U a2 = 0;
+  U a3 = 0;
+  U q;
+
+  q = (w0 & 0x3f);
+  a0 += q * x0[0];
+  a1 += q * x1[0];
+  a2 += q * x2[0];
+  a3 += q * x3[0];
+
+  q = (w0 & 0xc0);
+  a0 += q * x0[1];
+  a1 += q * x1[1];
+  a2 += q * x2[1];
+  a3 += q * x3[1];
+
+  q = (w1 & 0x0f);
+  a0 += q * (x0[1] * 256.0f);
+  a1 += q * (x1[1] * 256.0f);
+  a2 += q * (x2[1] * 256.0f);
+  a3 += q * (x3[1] * 256.0f);
+
+  q = (w1 & 0xf0);
+  a0 += q * x0[2];
+  a1 += q * x1[2];
+  a2 += q * x2[2];
+  a3 += q * x3[2];
+
+  q = (w2 & 0x03);
+  a0 += q * (x0[2] * 256.0f);
+  a1 += q * (x1[2] * 256.0f);
+  a2 += q * (x2[2] * 256.0f);
+  a3 += q * (x3[2] * 256.0f);
+
+  q = (w2 & 0xfc);
+  a0 += q * x0[3];
+  a1 += q * x1[3];
+  a2 += q * x2[3];
+  a3 += q * x3[3];
+
+  q = (w3 & 0x3f);
+  a0 += q * x0[4];
+  a1 += q * x1[4];
+  a2 += q * x2[4];
+  a3 += q * x3[4];
+
+  q = (w3 & 0xc0);
+  a0 += q * x0[5];
+  a1 += q * x1[5];
+  a2 += q * x2[5];
+  a3 += q * x3[5];
+
+  q = (w4 & 0x0f);
+  a0 += q * (x0[5] * 256.0f);
+  a1 += q * (x1[5] * 256.0f);
+  a2 += q * (x2[5] * 256.0f);
+  a3 += q * (x3[5] * 256.0f);
+
+  q = (w4 & 0xf0);
+  a0 += q * x0[6];
+  a1 += q * x1[6];
+  a2 += q * x2[6];
+  a3 += q * x3[6];
+
+  q = (w5 & 0x03);
+  a0 += q * (x0[6] * 256.0f);
+  a1 += q * (x1[6] * 256.0f);
+  a2 += q * (x2[6] * 256.0f);
+  a3 += q * (x3[6] * 256.0f);
+
+  q = (w5 & 0xfc);
+  a0 += q * x0[7];
+  a1 += q * x1[7];
+  a2 += q * x2[7];
+  a3 += q * x3[7];
+
+  out0 += scale * a0 + sum0 * bias;
+  out1 += scale * a1 + sum1 * bias;
+  out2 += scale * a2 + sum2 * bias;
+  out3 += scale * a3 + sum3 * bias;
+}
+
 template <typename T, int group_size, int bits>
 METAL_FUNC void qmv_fast_m4_impl(
     const device uint32_t* w,
@@ -1082,21 +1193,12 @@ METAL_FUNC void qmv_fast_m4_impl(
       uint8_t w4 = wl[4];
       uint8_t w5 = wl[5];
 
-      result0[row] += qdot_q6_8_m3<U>(
+      qdot_q6_8_m4_shared<U>(
           w0, w1, w2, w3, w4, w5,
-          x0_thread, scale, bias, sum0);
-
-      result1[row] += qdot_q6_8_m3<U>(
-          w0, w1, w2, w3, w4, w5,
-          x1_thread, scale, bias, sum1);
-
-      result2[row] += qdot_q6_8_m3<U>(
-          w0, w1, w2, w3, w4, w5,
-          x2_thread, scale, bias, sum2);
-
-      result3[row] += qdot_q6_8_m3<U>(
-          w0, w1, w2, w3, w4, w5,
-          x3_thread, scale, bias, sum3);
+          x0_thread, x1_thread, x2_thread, x3_thread,
+          scale, bias,
+          sum0, sum1, sum2, sum3,
+          result0[row], result1[row], result2[row], result3[row]);
     }
 
     ws += block_size * bytes_per_pack / pack_factor;
