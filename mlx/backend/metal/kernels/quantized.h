@@ -977,6 +977,152 @@ METAL_FUNC void qmv_fast_m3_impl(
 }
 
 template <typename T, int group_size, int bits>
+METAL_FUNC void qmv_fast_m4_impl(
+    const device uint32_t* w,
+    const device T* scales,
+    const device T* biases,
+    const device T* x,
+    device T* y,
+    const constant int& in_vec_size,
+    const constant int& out_vec_size,
+    uint3 tid [[threadgroup_position_in_grid]],
+    uint simd_gid [[simdgroup_index_in_threadgroup]],
+    uint simd_lid [[thread_index_in_simdgroup]]) {
+
+  static_assert(bits == 6, "qmv_fast_m4 is Q6-only");
+
+  constexpr int num_simdgroups = 4;
+  constexpr int results_per_simdgroup = 2;
+  constexpr int packs_per_thread = 2;
+  constexpr int pack_factor = 4;
+  constexpr int bytes_per_pack = 3;
+  constexpr int values_per_thread = 8;
+  constexpr int block_size = values_per_thread * SIMD_SIZE;
+  constexpr int scale_step_per_thread = group_size / values_per_thread;
+
+  typedef float U;
+
+  thread U x0_thread[values_per_thread];
+  thread U x1_thread[values_per_thread];
+  thread U x2_thread[values_per_thread];
+  thread U x3_thread[values_per_thread];
+
+  thread U result0[results_per_simdgroup] = {0};
+  thread U result1[results_per_simdgroup] = {0};
+  thread U result2[results_per_simdgroup] = {0};
+  thread U result3[results_per_simdgroup] = {0};
+
+  const int in_vec_size_w =
+      in_vec_size * bytes_per_pack / pack_factor;
+  const int in_vec_size_g =
+      in_vec_size / group_size;
+
+  const int out_row =
+      tid.y * (num_simdgroups * results_per_simdgroup) +
+      simd_gid * results_per_simdgroup;
+
+  const device uint8_t* ws =
+      (const device uint8_t*)w +
+      out_row * in_vec_size_w +
+      simd_lid * packs_per_thread * bytes_per_pack;
+
+  scales +=
+      out_row * in_vec_size_g +
+      simd_lid / scale_step_per_thread;
+
+  biases +=
+      out_row * in_vec_size_g +
+      simd_lid / scale_step_per_thread;
+
+  const device T* x0 =
+      x + simd_lid * values_per_thread;
+  const device T* x1 =
+      x0 + in_vec_size;
+  const device T* x2 =
+      x1 + in_vec_size;
+  const device T* x3 =
+      x2 + in_vec_size;
+
+  device T* y0 = y + out_row;
+  device T* y1 = y0 + out_vec_size;
+  device T* y2 = y1 + out_vec_size;
+  device T* y3 = y2 + out_vec_size;
+
+  for (int k = 0; k < in_vec_size; k += block_size) {
+    U sum0 =
+        load_vector<T, U, values_per_thread, 6>(x0, x0_thread);
+    U sum1 =
+        load_vector<T, U, values_per_thread, 6>(x1, x1_thread);
+    U sum2 =
+        load_vector<T, U, values_per_thread, 6>(x2, x2_thread);
+    U sum3 =
+        load_vector<T, U, values_per_thread, 6>(x3, x3_thread);
+
+    for (int row = 0; row < results_per_simdgroup; row++) {
+      const device uint8_t* wl =
+          ws + row * in_vec_size_w;
+
+      const device T* sl =
+          scales + row * in_vec_size_g;
+      const device T* bl =
+          biases + row * in_vec_size_g;
+
+      U scale = sl[0];
+      U bias = bl[0];
+
+      // Load one packed Q6 chunk once, reuse it across all four vectors.
+      uint8_t w0 = wl[0];
+      uint8_t w1 = wl[1];
+      uint8_t w2 = wl[2];
+      uint8_t w3 = wl[3];
+      uint8_t w4 = wl[4];
+      uint8_t w5 = wl[5];
+
+      result0[row] += qdot_q6_8_m3<U>(
+          w0, w1, w2, w3, w4, w5,
+          x0_thread, scale, bias, sum0);
+
+      result1[row] += qdot_q6_8_m3<U>(
+          w0, w1, w2, w3, w4, w5,
+          x1_thread, scale, bias, sum1);
+
+      result2[row] += qdot_q6_8_m3<U>(
+          w0, w1, w2, w3, w4, w5,
+          x2_thread, scale, bias, sum2);
+
+      result3[row] += qdot_q6_8_m3<U>(
+          w0, w1, w2, w3, w4, w5,
+          x3_thread, scale, bias, sum3);
+    }
+
+    ws += block_size * bytes_per_pack / pack_factor;
+    scales += block_size / group_size;
+    biases += block_size / group_size;
+
+    x0 += block_size;
+    x1 += block_size;
+    x2 += block_size;
+    x3 += block_size;
+  }
+
+  for (int row = 0; row < results_per_simdgroup; row++) {
+    result0[row] = simd_sum(result0[row]);
+    result1[row] = simd_sum(result1[row]);
+    result2[row] = simd_sum(result2[row]);
+    result3[row] = simd_sum(result3[row]);
+
+    if (simd_lid == 0) {
+      y0[row] = static_cast<T>(result0[row]);
+      y1[row] = static_cast<T>(result1[row]);
+      y2[row] = static_cast<T>(result2[row]);
+      y3[row] = static_cast<T>(result3[row]);
+    }
+  }
+}
+
+
+
+template <typename T, int group_size, int bits>
 METAL_FUNC void qmv_impl(
     const device uint32_t* w,
     const device T* scales,
@@ -1828,6 +1974,40 @@ template <typename T, int group_size, int bits, bool batched>
     uint simd_lid [[thread_index_in_simdgroup]]) {
 
   qmv_fast_m3_impl<T, group_size, bits>(
+      w,
+      scales,
+      biases,
+      x,
+      y,
+      in_vec_size,
+      out_vec_size,
+      tid,
+      simd_gid,
+      simd_lid);
+}
+
+template <typename T, int group_size, int bits, bool batched>
+[[kernel]] void affine_qmv_fast_m4(
+    const device uint32_t* w [[buffer(0)]],
+    const device T* scales [[buffer(1)]],
+    const device T* biases [[buffer(2)]],
+    const device T* x [[buffer(3)]],
+    device T* y [[buffer(4)]],
+    const constant int& in_vec_size [[buffer(5)]],
+    const constant int& out_vec_size [[buffer(6)]],
+    const constant int& x_batch_ndims [[buffer(7)]],
+    const constant int* x_shape [[buffer(8)]],
+    const constant int64_t* x_strides [[buffer(9)]],
+    const constant int& w_batch_ndims [[buffer(10)]],
+    const constant int* w_shape [[buffer(11)]],
+    const constant int64_t* w_strides [[buffer(12)]],
+    const constant int64_t* s_strides [[buffer(13)]],
+    const constant int64_t* b_strides [[buffer(14)]],
+    uint3 tid [[threadgroup_position_in_grid]],
+    uint simd_gid [[simdgroup_index_in_threadgroup]],
+    uint simd_lid [[thread_index_in_simdgroup]]) {
+
+  qmv_fast_m4_impl<T, group_size, bits>(
       w,
       scales,
       biases,

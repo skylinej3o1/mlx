@@ -267,10 +267,22 @@ void qmv(
       x.dtype() == float16 &&
       fast;
 
-  MTL::Size group_dims(bk, fast_m3 ? 4 : 2, 1);
+  bool fast_m4 =
+      std::getenv("MLX_QMV_FAST_M4") != nullptr &&
+      mode == "affine" &&
+      bits == 6 &&
+      group_size == 64 &&
+      M == 4 &&
+      B == 1 &&
+      x.dtype() == float16 &&
+      fast;
+
+  bool fast_small_m = fast_m3 || fast_m4;
+
+  MTL::Size group_dims(bk, fast_small_m ? 4 : 2, 1);
 
   MTL::Size grid_dims(
-      fast_m3 ? 1 : M,
+      fast_small_m ? 1 : M,
       (N + bn - 1) / bn,
       B);
 
@@ -278,6 +290,7 @@ void qmv(
       kname,
       mode +
           (fast_m3 ? "_qmv_fast_m3_" :
+           fast_m4 ? "_qmv_fast_m4_" :
            fast ? "_qmv_fast_" : "_qmv_"),
       type_string,
       "_gs_",
@@ -289,6 +302,7 @@ void qmv(
       d,
       kname,
       (fast_m3 ? "qmv_fast_m3" :
+       fast_m4 ? "qmv_fast_m4" :
        fast ? "qmv_fast" : "qmv"),
       mode,
       type_string,
