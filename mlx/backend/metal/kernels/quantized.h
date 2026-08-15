@@ -1048,7 +1048,10 @@ METAL_FUNC void qmv_fast_m4_impl(
   device T* y2 = y1 + out_vec_size;
   device T* y3 = y2 + out_vec_size;
 
-  for (int k = 0; k < in_vec_size; k += block_size) {
+  // FAST_M4: process two 256-value K blocks per outer iteration.
+  // Dispatch requires K % 512 == 0, so there is no tail.
+  for (int k = 0; k < in_vec_size; k += 2 * block_size) {
+    for (int u = 0; u < 2; ++u) {
     U sum0 =
         load_vector<T, U, values_per_thread, 6>(x0, x0_thread);
     U sum1 =
@@ -1103,6 +1106,7 @@ METAL_FUNC void qmv_fast_m4_impl(
     x1 += block_size;
     x2 += block_size;
     x3 += block_size;
+    }
   }
 
   for (int row = 0; row < results_per_simdgroup; row++) {
