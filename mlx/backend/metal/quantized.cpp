@@ -257,6 +257,125 @@ void qmv(
   std::string type_string = get_type_string(x.dtype());
   bool fast = N % bn == 0 && K % 512 == 0;
 
+  // Experimental M=5 split path:
+  //   rows 0..3 -> existing exact FAST_M4 / RAWX kernel
+  //   row  4    -> existing generic fast QMV kernel
+  //
+  // This changes dispatch only. It introduces no new Q6 arithmetic.
+  bool fast_m5_split =
+      std::getenv("MLX_QMV_FAST_M5_SPLIT") != nullptr &&
+      mode == "affine" &&
+      bits == 6 &&
+      group_size == 64 &&
+      M == 5 &&
+      B == 1 &&
+      x.dtype() == float16 &&
+      out.dtype() == float16 &&
+      fast &&
+      K % 1024 == 0;
+
+  if (fast_m5_split) {
+    auto& compute_encoder = metal::get_command_encoder(s);
+
+    // ------------------------------------------------------------
+    // Rows 0..3: existing FAST_M4 RAWX kernel.
+    // ------------------------------------------------------------
+    std::string m4_kname;
+    m4_kname.reserve(64);
+    concatenate(
+        m4_kname,
+        mode + "_qmv_fast_m4_",
+        type_string,
+        "_gs_",
+        group_size,
+        "_b_",
+        bits,
+        "_batch_0");
+
+    auto m4_kernel = get_quantized_kernel_wrapped(
+        d,
+        m4_kname,
+        "qmv_fast_m4",
+        mode,
+        type_string,
+        group_size,
+        bits,
+        false);
+
+    compute_encoder.set_compute_pipeline_state(m4_kernel);
+
+    int c = 0;
+    compute_encoder.set_input_array(w, c++);
+    compute_encoder.set_input_array(scales, c++);
+    if (biases) {
+      compute_encoder.set_input_array(*biases, c++);
+    }
+    compute_encoder.set_input_array(x, c++);
+    compute_encoder.set_output_array(out, c++);
+    compute_encoder.set_bytes(K, c++);
+    compute_encoder.set_bytes(N, c++);
+    add_strides_and_shapes(
+        compute_encoder, true, x, w, scales, biases, c);
+
+    compute_encoder.dispatch_threadgroups(
+        MTL::Size(1, (N + bn - 1) / bn, 1),
+        MTL::Size(bk, 4, 1));
+
+    // ------------------------------------------------------------
+    // Row 4: existing generic fast QMV kernel.
+    //
+    // CommandEncoder offsets are byte offsets. Offset both x and y
+    // so this one-row dispatch sees row 4 as its row zero.
+    // ------------------------------------------------------------
+    std::string m1_kname;
+    m1_kname.reserve(64);
+    concatenate(
+        m1_kname,
+        mode + "_qmv_fast_",
+        type_string,
+        "_gs_",
+        group_size,
+        "_b_",
+        bits,
+        "_batch_0");
+
+    auto m1_kernel = get_quantized_kernel_wrapped(
+        d,
+        m1_kname,
+        "qmv_fast",
+        mode,
+        type_string,
+        group_size,
+        bits,
+        false);
+
+    compute_encoder.set_compute_pipeline_state(m1_kernel);
+
+    const int64_t x_tail_offset =
+        static_cast<int64_t>(4) * K * size_of(x.dtype());
+    const int64_t y_tail_offset =
+        static_cast<int64_t>(4) * N * size_of(out.dtype());
+
+    c = 0;
+    compute_encoder.set_input_array(w, c++);
+    compute_encoder.set_input_array(scales, c++);
+    if (biases) {
+      compute_encoder.set_input_array(*biases, c++);
+    }
+    compute_encoder.set_input_array(x, c++, x_tail_offset);
+    compute_encoder.set_output_array(out, c++, y_tail_offset);
+    compute_encoder.set_bytes(K, c++);
+    compute_encoder.set_bytes(N, c++);
+    add_strides_and_shapes(
+        compute_encoder, true, x, w, scales, biases, c);
+
+    compute_encoder.dispatch_threadgroups(
+        MTL::Size(1, (N + bn - 1) / bn, 1),
+        MTL::Size(bk, 2, 1));
+
+    return;
+  }
+
   bool fast_m3 =
       std::getenv("MLX_QMV_FAST_M3") != nullptr &&
       mode == "affine" &&
