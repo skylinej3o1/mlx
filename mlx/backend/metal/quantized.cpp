@@ -540,6 +540,16 @@ void qmv(
       fast &&
       !(fast_m4_skip_n48 && N == 48);
 
+  bool fast_m4_fixed_gate =
+      fast_m4 &&
+      K == 5120 &&
+      N == 17408;
+
+  bool fast_m4_fixed_down =
+      fast_m4 &&
+      K == 17408 &&
+      N == 5120;
+
   bool fast_small_m = fast_m3 || fast_m4;
 
   MTL::Size group_dims(bk, fast_small_m ? 4 : 2, 1);
@@ -554,6 +564,8 @@ void qmv(
       mode +
           (fast_fc_m1_rawx ? "_qmv_fast_m1_rawx_" :
            fast_m3 ? "_qmv_fast_m3_" :
+           fast_m4_fixed_gate ? "_qmv_fast_m4_fixed_gate_" :
+           fast_m4_fixed_down ? "_qmv_fast_m4_fixed_down_" :
            fast_m4 ? "_qmv_fast_m4_" :
            fast ? "_qmv_fast_" : "_qmv_"),
       type_string,
@@ -567,6 +579,8 @@ void qmv(
       kname,
       (fast_fc_m1_rawx ? "qmv_fast_m1_rawx" :
        fast_m3 ? "qmv_fast_m3" :
+       fast_m4_fixed_gate ? "qmv_fast_m4_fixed_gate" :
+       fast_m4_fixed_down ? "qmv_fast_m4_fixed_down" :
        fast_m4 ? "qmv_fast_m4" :
        fast ? "qmv_fast" : "qmv"),
       mode,
