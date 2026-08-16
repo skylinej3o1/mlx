@@ -211,6 +211,12 @@ instantiate_quantized_batched(
     affine_qmv_fast_m4_fixed_down, float16_t, 64, 6, 0)
 
 instantiate_quantized_batched(
+    affine_qmv_fast_m4_fixed_gdn_qkv, float16_t, 64, 6, 0)
+
+instantiate_quantized_batched(
+    affine_qmv_fast_m4_fixed_attn_q, float16_t, 64, 6, 0)
+
+instantiate_quantized_batched(
     affine_qmv_fast_m4, float16_t, 64, 6, 0)
 
 instantiate_quantized_all() // clang-format on

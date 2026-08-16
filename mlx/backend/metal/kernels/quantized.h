@@ -2985,6 +2985,84 @@ template <typename T, int group_size, int bits, bool batched>
 
 
 template <typename T, int group_size, int bits, bool batched>
+[[kernel]] void affine_qmv_fast_m4_fixed_gdn_qkv(
+    const device uint32_t* w [[buffer(0)]],
+    const device T* scales [[buffer(1)]],
+    const device T* biases [[buffer(2)]],
+    const device T* x [[buffer(3)]],
+    device T* y [[buffer(4)]],
+    const constant int& in_vec_size [[buffer(5)]],
+    const constant int& out_vec_size [[buffer(6)]],
+    const constant int& x_batch_ndims [[buffer(7)]],
+    const constant int* x_shape [[buffer(8)]],
+    const constant int64_t* x_strides [[buffer(9)]],
+    const constant int& w_batch_ndims [[buffer(10)]],
+    const constant int* w_shape [[buffer(11)]],
+    const constant int64_t* w_strides [[buffer(12)]],
+    const constant int64_t* s_strides [[buffer(13)]],
+    const constant int64_t* b_strides [[buffer(14)]],
+    uint3 tid [[threadgroup_position_in_grid]],
+    uint simd_gid [[simdgroup_index_in_threadgroup]],
+    uint simd_lid [[thread_index_in_simdgroup]]) {
+
+  qmv_fast_m4_fixed_impl<
+      T,
+      group_size,
+      bits,
+      4,
+      2,
+      5120,
+      10240>(
+          w,
+          scales,
+          biases,
+          x,
+          y,
+          tid,
+          simd_gid,
+          simd_lid);
+}
+
+template <typename T, int group_size, int bits, bool batched>
+[[kernel]] void affine_qmv_fast_m4_fixed_attn_q(
+    const device uint32_t* w [[buffer(0)]],
+    const device T* scales [[buffer(1)]],
+    const device T* biases [[buffer(2)]],
+    const device T* x [[buffer(3)]],
+    device T* y [[buffer(4)]],
+    const constant int& in_vec_size [[buffer(5)]],
+    const constant int& out_vec_size [[buffer(6)]],
+    const constant int& x_batch_ndims [[buffer(7)]],
+    const constant int* x_shape [[buffer(8)]],
+    const constant int64_t* x_strides [[buffer(9)]],
+    const constant int& w_batch_ndims [[buffer(10)]],
+    const constant int* w_shape [[buffer(11)]],
+    const constant int64_t* w_strides [[buffer(12)]],
+    const constant int64_t* s_strides [[buffer(13)]],
+    const constant int64_t* b_strides [[buffer(14)]],
+    uint3 tid [[threadgroup_position_in_grid]],
+    uint simd_gid [[simdgroup_index_in_threadgroup]],
+    uint simd_lid [[thread_index_in_simdgroup]]) {
+
+  qmv_fast_m4_fixed_impl<
+      T,
+      group_size,
+      bits,
+      4,
+      2,
+      5120,
+      12288>(
+          w,
+          scales,
+          biases,
+          x,
+          y,
+          tid,
+          simd_gid,
+          simd_lid);
+}
+
+template <typename T, int group_size, int bits, bool batched>
 [[kernel]] void affine_qmv_fast_m4(
     const device uint32_t* w [[buffer(0)]],
     const device T* scales [[buffer(1)]],
