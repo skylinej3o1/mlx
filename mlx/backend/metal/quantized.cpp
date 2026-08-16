@@ -257,6 +257,133 @@ void qmv(
   std::string type_string = get_type_string(x.dtype());
   bool fast = N % bn == 0 && K % 512 == 0;
 
+  // Fixed-shape FC M1 geometry experiment.
+  //
+  // Env values:
+  //   sg1r8
+  //   sg4r2
+  //   sg1r16
+  //   sg2r8
+  //   sg4r4
+  //   sg8r2
+  const char* fc_m1_tile_env =
+      std::getenv("MLX_QMV_FC_M1_TILE");
+
+  bool fc_m1_tile_shape =
+      fc_m1_tile_env != nullptr &&
+      mode == "affine" &&
+      bits == 6 &&
+      group_size == 64 &&
+      M == 1 &&
+      N == 5120 &&
+      K == 10240 &&
+      B == 1 &&
+      x.dtype() == float16 &&
+      out.dtype() == float16 &&
+      fast;
+
+  if (fc_m1_tile_shape) {
+    std::string tile(fc_m1_tile_env);
+
+    std::string base;
+    int simdgroups = 0;
+    int rows_per_simd = 0;
+
+    if (tile == "sg1r8") {
+      base = "qmv_fast_fc_m1_sg1r8";
+      simdgroups = 1;
+      rows_per_simd = 8;
+    } else if (tile == "sg4r2") {
+      base = "qmv_fast_fc_m1_sg4r2";
+      simdgroups = 4;
+      rows_per_simd = 2;
+    } else if (tile == "sg1r16") {
+      base = "qmv_fast_fc_m1_sg1r16";
+      simdgroups = 1;
+      rows_per_simd = 16;
+    } else if (tile == "sg2r8") {
+      base = "qmv_fast_fc_m1_sg2r8";
+      simdgroups = 2;
+      rows_per_simd = 8;
+    } else if (tile == "sg4r4") {
+      base = "qmv_fast_fc_m1_sg4r4";
+      simdgroups = 4;
+      rows_per_simd = 4;
+    } else if (tile == "sg8r2") {
+      base = "qmv_fast_fc_m1_sg8r2";
+      simdgroups = 8;
+      rows_per_simd = 2;
+    }
+
+    if (!base.empty()) {
+      std::string fc_kname;
+      concatenate(
+          fc_kname,
+          mode + "_" + base + "_",
+          type_string,
+          "_gs_",
+          group_size,
+          "_b_",
+          bits,
+          "_batch_0");
+
+      auto kernel =
+          get_quantized_kernel_wrapped(
+              d,
+              fc_kname,
+              base,
+              mode,
+              type_string,
+              group_size,
+              bits,
+              false);
+
+      auto& compute_encoder =
+          metal::get_command_encoder(s);
+
+      compute_encoder.set_compute_pipeline_state(kernel);
+
+      int c = 0;
+
+      compute_encoder.set_input_array(w, c++);
+      compute_encoder.set_input_array(scales, c++);
+
+      if (biases) {
+        compute_encoder.set_input_array(*biases, c++);
+      }
+
+      compute_encoder.set_input_array(x, c++);
+      compute_encoder.set_output_array(out, c++);
+
+      compute_encoder.set_bytes(K, c++);
+      compute_encoder.set_bytes(N, c++);
+
+      add_strides_and_shapes(
+          compute_encoder,
+          true,
+          x,
+          w,
+          scales,
+          biases,
+          c);
+
+      int rows_per_tg =
+          simdgroups * rows_per_simd;
+
+      compute_encoder.dispatch_threadgroups(
+          MTL::Size(
+              1,
+              (N + rows_per_tg - 1) / rows_per_tg,
+              1),
+          MTL::Size(
+              bk,
+              simdgroups,
+              1));
+
+      return;
+    }
+  }
+
   // Experimental M=5 split path:
   //   rows 0..3 -> existing exact FAST_M4 / RAWX kernel
   //   row  4    -> existing generic fast QMV kernel
@@ -376,6 +503,19 @@ void qmv(
     return;
   }
 
+  bool fast_fc_m1_rawx =
+      std::getenv("MLX_QMV_FC_M1_RAWX") != nullptr &&
+      mode == "affine" &&
+      bits == 6 &&
+      group_size == 64 &&
+      M == 1 &&
+      N == 5120 &&
+      K == 10240 &&
+      B == 1 &&
+      x.dtype() == float16 &&
+      out.dtype() == float16 &&
+      fast;
+
   bool fast_m3 =
       std::getenv("MLX_QMV_FAST_M3") != nullptr &&
       mode == "affine" &&
@@ -386,6 +526,9 @@ void qmv(
       x.dtype() == float16 &&
       fast;
 
+  bool fast_m4_skip_n48 =
+      std::getenv("MLX_QMV_FAST_M4_SKIP_N48") != nullptr;
+
   bool fast_m4 =
       std::getenv("MLX_QMV_FAST_M4") != nullptr &&
       mode == "affine" &&
@@ -394,7 +537,8 @@ void qmv(
       M == 4 &&
       B == 1 &&
       x.dtype() == float16 &&
-      fast;
+      fast &&
+      !(fast_m4_skip_n48 && N == 48);
 
   bool fast_small_m = fast_m3 || fast_m4;
 
@@ -408,7 +552,8 @@ void qmv(
   concatenate(
       kname,
       mode +
-          (fast_m3 ? "_qmv_fast_m3_" :
+          (fast_fc_m1_rawx ? "_qmv_fast_m1_rawx_" :
+           fast_m3 ? "_qmv_fast_m3_" :
            fast_m4 ? "_qmv_fast_m4_" :
            fast ? "_qmv_fast_" : "_qmv_"),
       type_string,
@@ -420,7 +565,8 @@ void qmv(
   auto kernel = get_quantized_kernel_wrapped(
       d,
       kname,
-      (fast_m3 ? "qmv_fast_m3" :
+      (fast_fc_m1_rawx ? "qmv_fast_m1_rawx" :
+       fast_m3 ? "qmv_fast_m3" :
        fast_m4 ? "qmv_fast_m4" :
        fast ? "qmv_fast" : "qmv"),
       mode,

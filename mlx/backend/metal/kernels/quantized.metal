@@ -181,6 +181,27 @@
 
 
 instantiate_quantized_batched(
+    affine_qmv_fast_fc_m1_sg1r8, float16_t, 64, 6, 0)
+
+instantiate_quantized_batched(
+    affine_qmv_fast_fc_m1_sg4r2, float16_t, 64, 6, 0)
+
+instantiate_quantized_batched(
+    affine_qmv_fast_fc_m1_sg1r16, float16_t, 64, 6, 0)
+
+instantiate_quantized_batched(
+    affine_qmv_fast_fc_m1_sg2r8, float16_t, 64, 6, 0)
+
+instantiate_quantized_batched(
+    affine_qmv_fast_fc_m1_sg4r4, float16_t, 64, 6, 0)
+
+instantiate_quantized_batched(
+    affine_qmv_fast_fc_m1_sg8r2, float16_t, 64, 6, 0)
+
+instantiate_quantized_batched(
+    affine_qmv_fast_m1_rawx, float16_t, 64, 6, 0)
+
+instantiate_quantized_batched(
     affine_qmv_fast_m3, float16_t, 64, 6, 0)
 
 instantiate_quantized_batched(
