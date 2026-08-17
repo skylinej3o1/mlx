@@ -1,0 +1,98 @@
+Loading target ONCE...
+Loading canonical MTP drafter ONCE...
+
+P38E live head: <function Qwen3_5MTPDraftModel.bind.<locals>.q6_g32_head at 0x10de5e2a0>
+  q6_b     (248320, 160) mlx.core.float16
+  q6_s     (248320, 160) mlx.core.float16
+  q6_w     (248320, 960) mlx.core.uint32
+
+Building Q5/G32 search head from: QuantizedLinear(input_dims=5120, output_dims=248320, bias=False, group_size=64, bits=8, mode=affine)
+[P41E] Q5 ready: weight= (248320, 800) scales= (248320, 160)
+
+========================================================================
+WARM CERTIFIED P38E Q6/G32
+========================================================================
+stock     WARM:  28.520 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+
+========================================================================
+WARM P41E Q5-TOP2 -> Q6-JURY
+========================================================================
+jury      WARM:  28.666 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+P41E LIVE EXACT: True
+jury calls: 414
+jury     TRACE:  28.635 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+========================================================================
+P41E — 3 PAIRED RUNS
+========================================================================
+
+--------------- PAIR 01 stock -> jury ---------------
+stock        1:  28.556 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+jury         1:  28.653 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 01: Q6=28.556 | JURY=28.653 | delta=+0.096 tok/s | +0.337%
+
+--------------- PAIR 02 jury -> stock ---------------
+jury         2:  28.596 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+stock        2:  28.571 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+PAIR 02: Q6=28.571 | JURY=28.596 | delta=+0.024 tok/s | +0.085%
+
+--------------- PAIR 03 stock -> jury ---------------
+stock        3:  28.549 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+jury         3:  28.542 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 03: Q6=28.549 | JURY=28.542 | delta=-0.007 tok/s | -0.025%
+
+--------------- PAIR 04 jury -> stock ---------------
+jury         4:  28.672 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+stock        4:  28.519 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+PAIR 04: Q6=28.519 | JURY=28.672 | delta=+0.153 tok/s | +0.536%
+
+--------------- PAIR 05 stock -> jury ---------------
+stock        5:  28.546 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+jury         5:  28.632 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 05: Q6=28.546 | JURY=28.632 | delta=+0.086 tok/s | +0.302%
+
+--------------- PAIR 06 jury -> stock ---------------
+jury         6:  28.641 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+stock        6:  28.517 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+PAIR 06: Q6=28.517 | JURY=28.641 | delta=+0.124 tok/s | +0.434%
+
+--------------- PAIR 07 stock -> jury ---------------
+stock        7:  28.589 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+jury         7:  28.630 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 07: Q6=28.589 | JURY=28.630 | delta=+0.042 tok/s | +0.145%
+
+--------------- PAIR 08 jury -> stock ---------------
+jury         8:  28.635 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+stock        8:  28.547 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+PAIR 08: Q6=28.547 | JURY=28.635 | delta=+0.088 tok/s | +0.310%
+
+--------------- PAIR 09 stock -> jury ---------------
+stock        9:  28.547 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+jury         9:  28.659 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 09: Q6=28.547 | JURY=28.659 | delta=+0.111 tok/s | +0.389%
+
+--------------- PAIR 10 jury -> stock ---------------
+jury        10:  28.630 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+stock       10:  28.527 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+PAIR 10: Q6=28.527 | JURY=28.630 | delta=+0.103 tok/s | +0.362%
+
+========================================================================
+SUMMARY
+========================================================================
+Q6:    28.556 28.571 28.549 28.519 28.546 28.517 28.589 28.547 28.547 28.527
+JURY:  28.653 28.596 28.542 28.672 28.632 28.641 28.630 28.635 28.659 28.630
+
+Q6 mean:   28.546963
+jury mean: 28.628993
+
+paired deltas: +0.096 +0.024 -0.007 +0.153 +0.086 +0.124 +0.042 +0.088 +0.111 +0.103
+paired %:     +0.337% +0.085% -0.025% +0.536% +0.302% +0.434% +0.145% +0.310% +0.389% +0.362%
+
+mean paired speedup:    +0.2874%
+median paired speedup:  +0.3235%
+jury pair wins:         9/10
+
+BEHAVIORAL CERTIFICATION: PASS
+
+P41E DONE
