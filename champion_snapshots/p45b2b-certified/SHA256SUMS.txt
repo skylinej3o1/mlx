@@ -1,0 +1,7 @@
+1cd550f2f8427e0c146c2980a70843f63f3c130574952906684a00251a840656  champion_snapshots/p45b2b-certified/p45b2a2-q6x4-half-sum-results.json
+c7fdfcda2d5dd2e418071cebd5f9015358e766c58d29fac6eb72d511cfff434a  champion_snapshots/p45b2b-certified/p45b2b-direct-b3-vs-gpu-bypass-10pair-rerun.log
+4ac1e3fdb90285304d6fb8a562691d65b50201e3973ec779b3b5f090dc59e866  champion_snapshots/p45b2b-certified/p45b2b-direct-b3-vs-gpu-bypass-10pair.log
+f7af5bbe90aab82d5da40227d7759ecc27f8c0d225c1ea8435e3b830b0882311  champion_snapshots/p45b2b-certified/p45b2b-direct-b3-vs-gpu-bypass-10pair.py
+7cfa3c088b5792d6c6a125c75d6272bf93adb58edb2063becc4dc977788ef1dc  champion_snapshots/p45b2b-certified/p45b2b-direct-b3-vs-gpu-bypass-scout.py
+6af9490929c4b3100ddde4979f7fe04385c05ad79441fe7b8aeb53f716bee1fe  champion_snapshots/p45b2b-certified/p45b2b-gpu-policy-robustness-results.json
+acff4e86ba4016266a764acfbfbd0da43220c8289165931cba5c6e83f7011c08  champion_snapshots/p45b2b-certified/p45b2b-gpu-policy-robustness.py

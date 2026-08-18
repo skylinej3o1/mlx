@@ -1,0 +1,108 @@
+Loading target ONCE...
+Loading canonical MTP drafter ONCE...
+
+P38E live head: <function Qwen3_5MTPDraftModel.bind.<locals>.q6_g32_head at 0x111f264b0>
+  q6_b     (248320, 160) mlx.core.float16
+  q6_s     (248320, 160) mlx.core.float16
+  q6_w     (248320, 960) mlx.core.uint32
+
+Building P44B3 Q4/G64 + P45B2B GPU BYPASS from: QuantizedLinear(input_dims=5120, output_dims=248320, bias=False, group_size=64, bits=8, mode=affine)
+[P44B3] Q4/G64: weight= (248320, 640) scales= (248320, 80)
+[P45B2B] GPU BYPASS: weight= (248320, 640) scales= (248320, 40)
+
+========================================================================
+WARM CANONICAL STOCK REFERENCE
+========================================================================
+stock     WARM:  28.324 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+
+========================================================================
+WARM P44B3 — Q4/G64
+========================================================================
+p44b3_q4g64  WARM:  28.048 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+========================================================================
+WARM P45B2B — GPU BYPASS
+========================================================================
+p45b2b_gpu  WARM:  28.300 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+========================================================================
+TRACE / POST-JIT
+========================================================================
+p44b3_q4g64 TRACE:  28.033 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p45b2b_gpu TRACE:  28.381 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+========================================================================
+P45B2B — 3 PAIRED RUNS: Q4/G64 vs GPU BYPASS
+========================================================================
+
+--------------- PAIR 01 p44b3_q4g64 -> p45b2b_gpu ---------------
+p44b3_q4g64     1:  28.174 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p45b2b_gpu     1:  28.261 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 01: P44B3=28.174 | P45B2B=28.261 | delta=+0.086 tok/s | +0.307%
+
+--------------- PAIR 02 p45b2b_gpu -> p44b3_q4g64 ---------------
+p45b2b_gpu     2:  28.315 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64     2:  28.036 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 02: P44B3=28.036 | P45B2B=28.315 | delta=+0.279 tok/s | +0.996%
+
+--------------- PAIR 03 p44b3_q4g64 -> p45b2b_gpu ---------------
+p44b3_q4g64     3:  28.042 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p45b2b_gpu     3:  28.373 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 03: P44B3=28.042 | P45B2B=28.373 | delta=+0.331 tok/s | +1.180%
+
+--------------- PAIR 04 p45b2b_gpu -> p44b3_q4g64 ---------------
+p45b2b_gpu     4:  28.332 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64     4:  28.010 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 04: P44B3=28.010 | P45B2B=28.332 | delta=+0.322 tok/s | +1.149%
+
+--------------- PAIR 05 p44b3_q4g64 -> p45b2b_gpu ---------------
+p44b3_q4g64     5:  28.129 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p45b2b_gpu     5:  28.329 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 05: P44B3=28.129 | P45B2B=28.329 | delta=+0.201 tok/s | +0.713%
+
+--------------- PAIR 06 p45b2b_gpu -> p44b3_q4g64 ---------------
+p45b2b_gpu     6:  28.279 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64     6:  28.037 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 06: P44B3=28.037 | P45B2B=28.279 | delta=+0.242 tok/s | +0.862%
+
+--------------- PAIR 07 p44b3_q4g64 -> p45b2b_gpu ---------------
+p44b3_q4g64     7:  28.022 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p45b2b_gpu     7:  28.237 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 07: P44B3=28.022 | P45B2B=28.237 | delta=+0.215 tok/s | +0.769%
+
+--------------- PAIR 08 p45b2b_gpu -> p44b3_q4g64 ---------------
+p45b2b_gpu     8:  28.279 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64     8:  28.017 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 08: P44B3=28.017 | P45B2B=28.279 | delta=+0.262 tok/s | +0.934%
+
+--------------- PAIR 09 p44b3_q4g64 -> p45b2b_gpu ---------------
+p44b3_q4g64     9:  27.972 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p45b2b_gpu     9:  28.229 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 09: P44B3=27.972 | P45B2B=28.229 | delta=+0.257 tok/s | +0.919%
+
+--------------- PAIR 10 p45b2b_gpu -> p44b3_q4g64 ---------------
+p45b2b_gpu    10:  28.256 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64    10:  28.001 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 10: P44B3=28.001 | P45B2B=28.256 | delta=+0.255 tok/s | +0.909%
+
+========================================================================
+P45B2B SUMMARY
+========================================================================
+P44B3 Q4/G64: 28.174 28.036 28.042 28.010 28.129 28.037 28.022 28.017 27.972 28.001
+P45B2B GPU BYPASS: 28.261 28.315 28.373 28.332 28.329 28.279 28.237 28.279 28.229 28.256
+
+P44B3 mean: 28.043989
+P45B2B mean: 28.288928
+
+paired deltas: +0.086 +0.279 +0.331 +0.322 +0.201 +0.242 +0.215 +0.262 +0.257 +0.255
+paired %: +0.307% +0.996% +1.180% +1.149% +0.713% +0.862% +0.769% +0.934% +0.919% +0.909%
+
+mean paired speedup: +0.8738%
+median paired speedup: +0.9142%
+P45B2B pair wins: 10/10
+
+BEHAVIORAL CERTIFICATION: PASS
+PROMOTION SPEED GATE: PASS
+
+P45B2B GPU policy: no host-synchronized counters
+P45B2B DONE
