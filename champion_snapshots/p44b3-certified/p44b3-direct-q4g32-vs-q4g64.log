@@ -1,0 +1,107 @@
+Loading target ONCE...
+Loading canonical MTP drafter ONCE...
+
+P38E live head: <function Qwen3_5MTPDraftModel.bind.<locals>.q6_g32_head at 0x11009e350>
+  q6_b     (248320, 160) mlx.core.float16
+  q6_s     (248320, 160) mlx.core.float16
+  q6_w     (248320, 960) mlx.core.uint32
+
+Building P44B2 Q4/G32 + P44B3 Q4/G64 from: QuantizedLinear(input_dims=5120, output_dims=248320, bias=False, group_size=64, bits=8, mode=affine)
+[P44B2] Q4/G32: weight= (248320, 640) scales= (248320, 160)
+[P44B3] Q4/G64: weight= (248320, 640) scales= (248320, 80)
+
+========================================================================
+WARM CANONICAL STOCK REFERENCE
+========================================================================
+stock     WARM:  28.536 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+
+========================================================================
+WARM P44B2 — Q4/G32
+========================================================================
+p44b2_q4g32  WARM:  29.030 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+========================================================================
+WARM P44B3 — Q4/G64
+========================================================================
+p44b3_q4g64  WARM:  29.217 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+========================================================================
+TRACE / POST-JIT
+========================================================================
+p44b2_q4g32 TRACE:  29.064 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64 TRACE:  29.212 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+========================================================================
+P44B3 — 10 PAIRED RUNS: Q4/G32 vs Q4/G64
+========================================================================
+
+--------------- PAIR 01 p44b2_q4g32 -> p44b3_q4g64 ---------------
+p44b2_q4g32     1:  29.078 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64     1:  29.256 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 01: P44B2=29.078 | P44B3=29.256 | delta=+0.177 tok/s | +0.610%
+
+--------------- PAIR 02 p44b3_q4g64 -> p44b2_q4g32 ---------------
+p44b3_q4g64     2:  29.190 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b2_q4g32     2:  29.055 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 02: P44B2=29.055 | P44B3=29.190 | delta=+0.135 tok/s | +0.465%
+
+--------------- PAIR 03 p44b2_q4g32 -> p44b3_q4g64 ---------------
+p44b2_q4g32     3:  29.070 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64     3:  29.188 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 03: P44B2=29.070 | P44B3=29.188 | delta=+0.118 tok/s | +0.405%
+
+--------------- PAIR 04 p44b3_q4g64 -> p44b2_q4g32 ---------------
+p44b3_q4g64     4:  29.171 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b2_q4g32     4:  29.056 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 04: P44B2=29.056 | P44B3=29.171 | delta=+0.115 tok/s | +0.396%
+
+--------------- PAIR 05 p44b2_q4g32 -> p44b3_q4g64 ---------------
+p44b2_q4g32     5:  29.036 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64     5:  29.213 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 05: P44B2=29.036 | P44B3=29.213 | delta=+0.177 tok/s | +0.609%
+
+--------------- PAIR 06 p44b3_q4g64 -> p44b2_q4g32 ---------------
+p44b3_q4g64     6:  29.186 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b2_q4g32     6:  29.086 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 06: P44B2=29.086 | P44B3=29.186 | delta=+0.100 tok/s | +0.343%
+
+--------------- PAIR 07 p44b2_q4g32 -> p44b3_q4g64 ---------------
+p44b2_q4g32     7:  29.071 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64     7:  29.242 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 07: P44B2=29.071 | P44B3=29.242 | delta=+0.171 tok/s | +0.589%
+
+--------------- PAIR 08 p44b3_q4g64 -> p44b2_q4g32 ---------------
+p44b3_q4g64     8:  29.170 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b2_q4g32     8:  29.053 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 08: P44B2=29.053 | P44B3=29.170 | delta=+0.118 tok/s | +0.406%
+
+--------------- PAIR 09 p44b2_q4g32 -> p44b3_q4g64 ---------------
+p44b2_q4g32     9:  29.029 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b3_q4g64     9:  29.212 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 09: P44B2=29.029 | P44B3=29.212 | delta=+0.183 tok/s | +0.631%
+
+--------------- PAIR 10 p44b3_q4g64 -> p44b2_q4g32 ---------------
+p44b3_q4g64    10:  29.186 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p44b2_q4g32    10:  29.041 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 10: P44B2=29.041 | P44B3=29.186 | delta=+0.146 tok/s | +0.501%
+
+========================================================================
+P44B3 SUMMARY
+========================================================================
+P44B2 Q4/G32: 29.078 29.055 29.070 29.056 29.036 29.086 29.071 29.053 29.029 29.041
+P44B3 Q4/G64: 29.256 29.190 29.188 29.171 29.213 29.186 29.242 29.170 29.212 29.186
+
+P44B2 mean: 29.057401
+P44B3 mean: 29.201393
+
+paired deltas: +0.177 +0.135 +0.118 +0.115 +0.177 +0.100 +0.171 +0.118 +0.183 +0.146
+paired %: +0.610% +0.465% +0.405% +0.396% +0.609% +0.343% +0.589% +0.406% +0.631% +0.501%
+
+mean paired speedup: +0.4956%
+median paired speedup: +0.4830%
+P44B3 pair wins: 10/10
+
+BEHAVIORAL CERTIFICATION: PASS
+PROMOTION SPEED GATE: PASS
+
+P44B3 DONE
