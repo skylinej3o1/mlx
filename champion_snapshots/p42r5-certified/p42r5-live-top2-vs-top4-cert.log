@@ -1,0 +1,103 @@
+Loading target ONCE...
+Loading canonical MTP drafter ONCE...
+
+P38E live head: <function Qwen3_5MTPDraftModel.bind.<locals>.q6_g32_head at 0x10d95e350>
+  q6_b     (248320, 160) mlx.core.float16
+  q6_s     (248320, 160) mlx.core.float16
+  q6_w     (248320, 960) mlx.core.uint32
+
+Building Q5/G32 search head from: QuantizedLinear(input_dims=5120, output_dims=248320, bias=False, group_size=64, bits=8, mode=affine)
+[P41E] Q5 ready: weight= (248320, 800) scales= (248320, 160)
+
+========================================================================
+WARM P38E CANONICAL REFERENCE
+========================================================================
+stock     WARM:  28.577 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=0
+
+========================================================================
+WARM P42C GENERIC JURY
+========================================================================
+p42b      WARM:  28.819 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+========================================================================
+WARM P42R5 HIERARCHICAL METAL JURY
+========================================================================
+p42r5     WARM:  28.792 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+P42R5 LIVE EXACT: True
+jury calls: 414
+p42r5    TRACE:  28.786 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+
+========================================================================
+P42R5 — 10 PAIRED RUNS: P42C vs P42R5
+========================================================================
+
+--------------- PAIR 01 p42b -> p42r5 ---------------
+p42b         1:  28.834 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42r5        1:  28.790 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 01: P42C=28.834 | P42R5=28.790 | delta=-0.043 tok/s | -0.151%
+
+--------------- PAIR 02 p42r5 -> p42b ---------------
+p42r5        2:  28.828 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42b         2:  28.825 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 02: P42C=28.825 | P42R5=28.828 | delta=+0.003 tok/s | +0.009%
+
+--------------- PAIR 03 p42b -> p42r5 ---------------
+p42b         3:  28.824 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42r5        3:  28.792 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 03: P42C=28.824 | P42R5=28.792 | delta=-0.032 tok/s | -0.111%
+
+--------------- PAIR 04 p42r5 -> p42b ---------------
+p42r5        4:  28.850 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42b         4:  28.849 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 04: P42C=28.849 | P42R5=28.850 | delta=+0.001 tok/s | +0.003%
+
+--------------- PAIR 05 p42b -> p42r5 ---------------
+p42b         5:  28.854 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42r5        5:  28.799 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 05: P42C=28.854 | P42R5=28.799 | delta=-0.055 tok/s | -0.190%
+
+--------------- PAIR 06 p42r5 -> p42b ---------------
+p42r5        6:  28.806 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42b         6:  28.841 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 06: P42C=28.841 | P42R5=28.806 | delta=-0.035 tok/s | -0.122%
+
+--------------- PAIR 07 p42b -> p42r5 ---------------
+p42b         7:  28.838 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42r5        7:  28.792 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 07: P42C=28.838 | P42R5=28.792 | delta=-0.046 tok/s | -0.161%
+
+--------------- PAIR 08 p42r5 -> p42b ---------------
+p42r5        8:  28.804 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42b         8:  28.852 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 08: P42C=28.852 | P42R5=28.804 | delta=-0.048 tok/s | -0.165%
+
+--------------- PAIR 09 p42b -> p42r5 ---------------
+p42b         9:  28.839 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42r5        9:  28.784 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 09: P42C=28.839 | P42R5=28.784 | delta=-0.055 tok/s | -0.190%
+
+--------------- PAIR 10 p42r5 -> p42b ---------------
+p42r5       10:  28.768 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+p42b        10:  28.844 tok/s | rounds=138 | text=e39b478ae4a8 | traj=f7801569fbdd | jury=414
+PAIR 10: P42C=28.844 | P42R5=28.768 | delta=-0.076 tok/s | -0.263%
+
+========================================================================
+SUMMARY
+========================================================================
+P42C: 28.834 28.825 28.824 28.849 28.854 28.841 28.838 28.852 28.839 28.844
+P42R5: 28.790 28.828 28.792 28.850 28.799 28.806 28.792 28.804 28.784 28.768
+
+P42C mean: 28.840021
+P42R5 mean: 28.801384
+
+paired deltas: -0.043 +0.003 -0.032 +0.001 -0.055 -0.035 -0.046 -0.048 -0.055 -0.076
+paired %: -0.151% +0.009% -0.111% +0.003% -0.190% -0.122% -0.161% -0.165% -0.190% -0.263%
+
+mean paired speedup: -0.1340%
+median paired speedup: -0.1556%
+P42R5 pair wins: 2/10
+
+BEHAVIORAL CERTIFICATION: PASS
+
+P42R5 DONE
