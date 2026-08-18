@@ -1,0 +1,309 @@
+Loading target...
+Loading MTP drafter...
+
+Certified Q6/G32:
+  W: (248320, 960)
+  S: (248320, 160)
+  B: (248320, 160)
+
+Building Q4/G32 search head...
+Q4 ready: (248320, 640) (248320, 160)
+
+======================================================================================
+P42R1 — DISTRIBUTIONAL ROBUSTNESS BATTERY
+======================================================================================
+
+--------------------------------------------------------------------------------------
+CASE 01/30 code-ctx64
+target ctx=64 actual ctx=63
+generation: 17.176 tok/s | rounds=38 | head_calls=113 | text=ddd980cf3b39
+rank recall: top1=112/113 top2=113/113 top4=113/113 top8=113/113
+max rank=2 | P42C exact=113/113
+non-rank1 histogram: {2: 1}
+
+--------------------------------------------------------------------------------------
+CASE 02/30 reasoning-ctx64
+target ctx=64 actual ctx=63
+generation: 17.293 tok/s | rounds=36 | head_calls=108 | text=da69bec0a48a
+rank recall: top1=106/108 top2=108/108 top4=108/108 top8=108/108
+max rank=2 | P42C exact=108/108
+non-rank1 histogram: {2: 2}
+
+--------------------------------------------------------------------------------------
+CASE 03/30 prose-ctx64
+target ctx=64 actual ctx=63
+generation: 15.694 tok/s | rounds=42 | head_calls=124 | text=c59cb4e1f368
+rank recall: top1=120/124 top2=124/124 top4=124/124 top8=124/124
+max rank=2 | P42C exact=124/124
+non-rank1 histogram: {2: 4}
+
+--------------------------------------------------------------------------------------
+CASE 04/30 structured-ctx64
+target ctx=64 actual ctx=63
+generation: 15.243 tok/s | rounds=43 | head_calls=128 | text=d237ad33350c
+rank recall: top1=124/128 top2=128/128 top4=128/128 top8=128/128
+max rank=2 | P42C exact=128/128
+non-rank1 histogram: {2: 4}
+
+--------------------------------------------------------------------------------------
+CASE 05/30 dialogue-ctx64
+target ctx=64 actual ctx=63
+generation: 15.523 tok/s | rounds=42 | head_calls=126 | text=e726cd32860d
+rank recall: top1=121/126 top2=126/126 top4=126/126 top8=126/126
+max rank=2 | P42C exact=126/126
+non-rank1 histogram: {2: 5}
+
+--------------------------------------------------------------------------------------
+CASE 06/30 code-ctx256
+target ctx=256 actual ctx=255
+generation: 18.026 tok/s | rounds=36 | head_calls=107 | text=360bb29f8893
+rank recall: top1=105/107 top2=107/107 top4=107/107 top8=107/107
+max rank=2 | P42C exact=107/107
+non-rank1 histogram: {2: 2}
+
+--------------------------------------------------------------------------------------
+CASE 07/30 reasoning-ctx256
+target ctx=256 actual ctx=255
+generation: 15.459 tok/s | rounds=42 | head_calls=125 | text=89415d276e1e
+rank recall: top1=120/125 top2=123/125 top4=125/125 top8=125/125
+max rank=3 | P42C exact=125/125
+non-rank1 histogram: {2: 3, 3: 2}
+
+--------------------------------------------------------------------------------------
+CASE 08/30 prose-ctx256
+target ctx=256 actual ctx=255
+generation: 17.184 tok/s | rounds=38 | head_calls=112 | text=a402536e88c8
+rank recall: top1=110/112 top2=112/112 top4=112/112 top8=112/112
+max rank=2 | P42C exact=112/112
+non-rank1 histogram: {2: 2}
+
+--------------------------------------------------------------------------------------
+CASE 09/30 structured-ctx256
+target ctx=256 actual ctx=255
+generation: 13.950 tok/s | rounds=47 | head_calls=138 | text=e73c56e6411d
+rank recall: top1=134/138 top2=138/138 top4=138/138 top8=138/138
+max rank=2 | P42C exact=138/138
+non-rank1 histogram: {2: 4}
+
+--------------------------------------------------------------------------------------
+CASE 10/30 dialogue-ctx256
+target ctx=256 actual ctx=255
+generation: 15.018 tok/s | rounds=43 | head_calls=129 | text=a8a6b5ed035d
+rank recall: top1=127/129 top2=129/129 top4=129/129 top8=129/129
+max rank=2 | P42C exact=129/129
+non-rank1 histogram: {2: 2}
+
+--------------------------------------------------------------------------------------
+CASE 11/30 code-ctx1024
+target ctx=1024 actual ctx=1023
+generation: 17.241 tok/s | rounds=37 | head_calls=109 | text=47b45cb51335
+rank recall: top1=109/109 top2=109/109 top4=109/109 top8=109/109
+max rank=1 | P42C exact=109/109
+
+--------------------------------------------------------------------------------------
+CASE 12/30 reasoning-ctx1024
+target ctx=1024 actual ctx=1023
+generation: 11.782 tok/s | rounds=51 | head_calls=152 | text=3968c25ce1ad
+rank recall: top1=151/152 top2=151/152 top4=152/152 top8=152/152
+max rank=3 | P42C exact=152/152
+non-rank1 histogram: {3: 1}
+
+--------------------------------------------------------------------------------------
+CASE 13/30 prose-ctx1024
+target ctx=1024 actual ctx=1023
+generation: 14.585 tok/s | rounds=41 | head_calls=123 | text=8374b2334f16
+rank recall: top1=119/123 top2=123/123 top4=123/123 top8=123/123
+max rank=2 | P42C exact=123/123
+non-rank1 histogram: {2: 4}
+
+--------------------------------------------------------------------------------------
+CASE 14/30 structured-ctx1024
+target ctx=1024 actual ctx=1023
+generation: 14.009 tok/s | rounds=43 | head_calls=128 | text=199d246e3d3e
+rank recall: top1=123/128 top2=128/128 top4=128/128 top8=128/128
+max rank=2 | P42C exact=128/128
+non-rank1 histogram: {2: 5}
+
+--------------------------------------------------------------------------------------
+CASE 15/30 dialogue-ctx1024
+target ctx=1024 actual ctx=1023
+generation: 15.526 tok/s | rounds=41 | head_calls=123 | text=60ff68391555
+rank recall: top1=119/123 top2=122/123 top4=123/123 top8=123/123
+max rank=3 | P42C exact=123/123
+non-rank1 histogram: {2: 3, 3: 1}
+
+--------------------------------------------------------------------------------------
+CASE 16/30 code-ctx4096
+target ctx=4096 actual ctx=4095
+generation: 15.862 tok/s | rounds=38 | head_calls=112 | text=5b651426fd58
+rank recall: top1=111/112 top2=112/112 top4=112/112 top8=112/112
+max rank=2 | P42C exact=112/112
+non-rank1 histogram: {2: 1}
+
+--------------------------------------------------------------------------------------
+CASE 17/30 reasoning-ctx4096
+target ctx=4096 actual ctx=4095
+generation: 11.828 tok/s | rounds=51 | head_calls=151 | text=b1b76ff2eb29
+rank recall: top1=149/151 top2=151/151 top4=151/151 top8=151/151
+max rank=2 | P42C exact=151/151
+non-rank1 histogram: {2: 2}
+
+--------------------------------------------------------------------------------------
+CASE 18/30 prose-ctx4096
+target ctx=4096 actual ctx=4095
+generation: 12.981 tok/s | rounds=46 | head_calls=138 | text=1e1424bd341e
+rank recall: top1=137/138 top2=138/138 top4=138/138 top8=138/138
+max rank=2 | P42C exact=138/138
+non-rank1 histogram: {2: 1}
+
+--------------------------------------------------------------------------------------
+CASE 19/30 structured-ctx4096
+target ctx=4096 actual ctx=4095
+generation: 13.585 tok/s | rounds=44 | head_calls=132 | text=941186495c45
+rank recall: top1=131/132 top2=132/132 top4=132/132 top8=132/132
+max rank=2 | P42C exact=132/132
+non-rank1 histogram: {2: 1}
+
+--------------------------------------------------------------------------------------
+CASE 20/30 dialogue-ctx4096
+target ctx=4096 actual ctx=4095
+generation: 12.459 tok/s | rounds=48 | head_calls=144 | text=5f8741cced30
+rank recall: top1=138/144 top2=144/144 top4=144/144 top8=144/144
+max rank=2 | P42C exact=144/144
+non-rank1 histogram: {2: 6}
+
+--------------------------------------------------------------------------------------
+CASE 21/30 code-ctx8192
+target ctx=8192 actual ctx=8191
+generation: 15.506 tok/s | rounds=38 | head_calls=112 | text=5b651426fd58
+rank recall: top1=110/112 top2=112/112 top4=112/112 top8=112/112
+max rank=2 | P42C exact=112/112
+non-rank1 histogram: {2: 2}
+
+--------------------------------------------------------------------------------------
+CASE 22/30 reasoning-ctx8192
+target ctx=8192 actual ctx=8191
+generation: 11.532 tok/s | rounds=51 | head_calls=151 | text=cb7d2cc0261d
+rank recall: top1=145/151 top2=151/151 top4=151/151 top8=151/151
+max rank=2 | P42C exact=151/151
+non-rank1 histogram: {2: 6}
+
+--------------------------------------------------------------------------------------
+CASE 23/30 prose-ctx8192
+target ctx=8192 actual ctx=8191
+generation: 12.791 tok/s | rounds=46 | head_calls=136 | text=745afd980d47
+rank recall: top1=133/136 top2=135/136 top4=136/136 top8=136/136
+max rank=3 | P42C exact=136/136
+non-rank1 histogram: {2: 2, 3: 1}
+
+--------------------------------------------------------------------------------------
+CASE 24/30 structured-ctx8192
+target ctx=8192 actual ctx=8191
+generation: 12.295 tok/s | rounds=48 | head_calls=142 | text=d18e5bed49de
+rank recall: top1=141/142 top2=142/142 top4=142/142 top8=142/142
+max rank=2 | P42C exact=142/142
+non-rank1 histogram: {2: 1}
+
+--------------------------------------------------------------------------------------
+CASE 25/30 dialogue-ctx8192
+target ctx=8192 actual ctx=8191
+generation: 11.982 tok/s | rounds=49 | head_calls=146 | text=46a122c973a2
+rank recall: top1=143/146 top2=146/146 top4=146/146 top8=146/146
+max rank=2 | P42C exact=146/146
+non-rank1 histogram: {2: 3}
+
+--------------------------------------------------------------------------------------
+CASE 26/30 code-ctx16384
+target ctx=16384 actual ctx=16382
+generation: 14.531 tok/s | rounds=39 | head_calls=115 | text=5b651426fd58
+rank recall: top1=113/115 top2=115/115 top4=115/115 top8=115/115
+max rank=2 | P42C exact=115/115
+non-rank1 histogram: {2: 2}
+
+--------------------------------------------------------------------------------------
+CASE 27/30 reasoning-ctx16384
+target ctx=16384 actual ctx=16383
+generation: 11.326 tok/s | rounds=50 | head_calls=149 | text=688d426c319a
+rank recall: top1=145/149 top2=149/149 top4=149/149 top8=149/149
+max rank=2 | P42C exact=149/149
+non-rank1 histogram: {2: 4}
+
+--------------------------------------------------------------------------------------
+CASE 28/30 prose-ctx16384
+target ctx=16384 actual ctx=16382
+generation: 12.234 tok/s | rounds=46 | head_calls=138 | text=d8a8a54c7307
+rank recall: top1=135/138 top2=138/138 top4=138/138 top8=138/138
+max rank=2 | P42C exact=138/138
+non-rank1 histogram: {2: 3}
+
+--------------------------------------------------------------------------------------
+CASE 29/30 structured-ctx16384
+target ctx=16384 actual ctx=16383
+generation: 13.247 tok/s | rounds=43 | head_calls=127 | text=128be92a50f8
+rank recall: top1=126/127 top2=127/127 top4=127/127 top8=127/127
+max rank=2 | P42C exact=127/127
+non-rank1 histogram: {2: 1}
+
+--------------------------------------------------------------------------------------
+CASE 30/30 dialogue-ctx16384
+target ctx=16384 actual ctx=16383
+generation: 11.390 tok/s | rounds=50 | head_calls=148 | text=89f52558672c
+rank recall: top1=143/148 top2=148/148 top4=148/148 top8=148/148
+max rank=2 | P42C exact=148/148
+non-rank1 histogram: {2: 5}
+
+======================================================================================
+P42R1 GRAND SUMMARY
+======================================================================================
+cases: 30
+total real MTP head decisions: 3886
+
+top1        : 3800/3886 (97.786927%)
+top2        : 3881/3886 (99.871333%)
+top4        : 3886/3886 (100.000000%)
+top8        : 3886/3886 (100.000000%)
+p42_exact   : 3886/3886 (100.000000%)
+
+global rank histogram: {1: 3800, 2: 81, 3: 5}
+global max Q6-winner rank under Q5: 3
+actual P42C jury failures: 0
+
+WORST / AMBIGUOUS STATES:
+  reasoning-ctx256         call=  12 rank=  3 margin=0.01562500 Q6= 21218 P42= 21218 exact=True
+  dialogue-ctx1024         call=  37 rank=  3 margin=0.01562500 Q6=    16 P42=    16 exact=True
+  reasoning-ctx256         call=  91 rank=  3 margin=0.04687500 Q6= 31084 P42= 31084 exact=True
+  reasoning-ctx1024        call= 147 rank=  3 margin=0.15625000 Q6= 23275 P42= 23275 exact=True
+  prose-ctx8192            call=  73 rank=  3 margin=0.15625000 Q6=   314 P42=   314 exact=True
+  reasoning-ctx8192        call=  61 rank=  2 margin=0.00000000 Q6=   413 P42=   413 exact=True
+  prose-ctx8192            call=  41 rank=  2 margin=0.00000000 Q6=  1433 P42=  1433 exact=True
+  dialogue-ctx16384        call= 108 rank=  2 margin=0.00000000 Q6=   557 P42=   557 exact=True
+  prose-ctx64              call= 108 rank=  2 margin=0.01562500 Q6= 17775 P42= 17775 exact=True
+  prose-ctx1024            call=  61 rank=  2 margin=0.01562500 Q6= 12594 P42= 12594 exact=True
+  structured-ctx1024       call=  34 rank=  2 margin=0.01562500 Q6= 10695 P42= 10695 exact=True
+  dialogue-ctx4096         call=  95 rank=  2 margin=0.01562500 Q6=   440 P42=   440 exact=True
+  reasoning-ctx8192        call=  15 rank=  2 margin=0.01562500 Q6=    12 P42=    12 exact=True
+  structured-ctx8192       call=  99 rank=  2 margin=0.01562500 Q6=  2972 P42=  2972 exact=True
+  reasoning-ctx16384       call=  91 rank=  2 margin=0.01562500 Q6=   264 P42=   264 exact=True
+  reasoning-ctx64          call=   5 rank=  2 margin=0.03125000 Q6=  1532 P42=  1532 exact=True
+  prose-ctx1024            call=  36 rank=  2 margin=0.03125000 Q6= 12698 P42= 12698 exact=True
+  structured-ctx1024       call=  25 rank=  2 margin=0.03125000 Q6= 29833 P42= 29833 exact=True
+  reasoning-ctx8192        call=  10 rank=  2 margin=0.03125000 Q6=    11 P42=    11 exact=True
+  code-ctx16384            call=  26 rank=  2 margin=0.03125000 Q6= 90651 P42= 90651 exact=True
+  code-ctx8192             call=  10 rank=  2 margin=0.03906250 Q6= 23846 P42= 23846 exact=True
+  prose-ctx64              call=  98 rank=  2 margin=0.04687500 Q6=  3799 P42=  3799 exact=True
+  code-ctx256              call=  14 rank=  2 margin=0.04687500 Q6=    25 P42=    25 exact=True
+  prose-ctx256             call=  22 rank=  2 margin=0.04687500 Q6= 20858 P42= 20858 exact=True
+  prose-ctx16384           call=  18 rank=  2 margin=0.04687500 Q6=  8559 P42=  8559 exact=True
+  prose-ctx16384           call=  62 rank=  2 margin=0.04687500 Q6=    13 P42=    13 exact=True
+  prose-ctx64              call= 107 rank=  2 margin=0.06250000 Q6=   760 P42=   760 exact=True
+  prose-ctx256             call=  56 rank=  2 margin=0.06250000 Q6=  5215 P42=  5215 exact=True
+  dialogue-ctx256          call=  99 rank=  2 margin=0.06250000 Q6=  1472 P42=  1472 exact=True
+  structured-ctx1024       call= 113 rank=  2 margin=0.06250000 Q6=  2552 P42=  2552 exact=True
+
+saved: /tmp/p44b2-q4g32-robustness-results.json
+
+======================================================================================
+P42R1 VERDICT: TOP-2 NOT ROBUST ENOUGH, BUT TOP-4 COVERS ALL OBSERVED STATES.
+======================================================================================
+
+P42R1 DONE
