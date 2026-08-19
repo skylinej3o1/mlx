@@ -1,0 +1,42 @@
+P46 D5 TWO-SHAPE FIXED CERTIFIED
+
+Target: Qwen3.8-27B-MLX-6bit-FP16-Q8HEAD
+D5 actual drafted tokens: 4
+
+Certified body stack:
+  FAST_M5=1
+  FAST_M5_SKIP_N48=1
+  FAST_M5_FIXED=1
+  FAST_M5_FIXED_EXTRA=1
+  FAST_M5_FIXED_EXTRA_SKIP_1024=1
+
+Extra fixed shapes enabled:
+  5120 -> 6144
+  6144 -> 5120
+
+Extra fixed shape rejected:
+  5120 -> 1024
+
+Other certified stack:
+  Q8/G64 T5 target head 2+2+1
+  compiled VERIFY_LEN=5
+  P36 T5 attention
+  P45B2B draft/jury policy
+
+10-pair certification:
+  baseline mean   26.524079 tok/s
+  candidate mean  26.550819 tok/s
+  paired mean     +0.1008%
+  paired median   +0.1230%
+  wins            8/10
+  saved/round     +0.152 ms
+
+Exact invariants:
+  text   e39b478ae4a8
+  traj   183cd3043746
+  rounds 128
+  jury   512
+
+D4 champion:      29.316537 tok/s
+D5 vs D4:         -9.43%
+D5 needs to tie:  +10.42%
