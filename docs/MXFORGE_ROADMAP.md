@@ -4,6 +4,8 @@ This document captures the current design ideas so they do not get lost across t
 
 Companion source index: [`MXFORGE_SOURCE_CATALOG.md`](MXFORGE_SOURCE_CATALOG.md).
 
+DeepSeek V4 adaptive-runtime design: [`research/DS4_ADAPTIVE_WATERFALL.md`](research/DS4_ADAPTIVE_WATERFALL.md).
+
 ## 1. Core MXFORGE thesis
 
 Turn Apple Silicon into a model-specific inference appliance by co-designing:
@@ -16,10 +18,13 @@ Turn Apple Silicon into a model-specific inference appliance by co-designing:
 - prefix-cache and agent-session behavior
 - runtime scheduling
 - distributed topology
+- **context/workload-dependent topology, drafter, residency, and KV policy**
 
-The goal is not merely to optimize MLX defaults. The model checkpoint, quant recipe, kernels, speculative apparatus, cache policy, prompt layout, and scheduler should be optimized together for the target Mac generation and workload.
+The goal is not merely to optimize MLX defaults. The model checkpoint, quant recipe, kernels, speculative apparatus, cache policy, prompt layout, scheduler, topology, and auxiliary-model residency should be optimized together for the target Mac generation and workload.
 
-For agentic use, optimize **time-to-action / time-to-completed-task**, not only raw decode TPS. That means measuring cold prefill, warm-prefix delta prefill, cache-hit rate, tool latency, effective speculative decode, compaction cost, memory headroom, and correctness together.
+For agentic use, optimize **time-to-action / time-to-completed-task**, not only raw decode TPS. That means measuring cold prefill, warm-prefix delta prefill, cache-hit rate, tool latency, effective speculative decode, compaction cost, memory headroom, transition cost, and correctness together.
+
+For long-running sessions, the eventual runtime may deliberately change execution regime as context grows. The integration objective is an empirical phase diagram: choose the fastest certified combination that fits the current context + output reserve and repays any transition cost.
 
 ## 2. Qwen3.8-27B on M1 Max 64GB
 
@@ -155,7 +160,7 @@ Per tensor / tensor class:
 - layouts that map cleanly to the exact SIMD/threadgroup behavior of the M1 GPU
 - possible secondary representations for ANE/CPU PP only when the memory trade is justified
 
-Cross-hardware work on ROCm and Blackwell reinforces the principle: a quant format is an **execution format**, not just a storage format. Hardware-aligned blocks and selectively higher precision for critical tensors can outperform generic mixed quants even at similar bpw.
+Cross-hardware work on ROCm, Blackwell, and Dynamic 3.0-style mixed quantization reinforces the principle: a quant format is an **execution format**, not just a storage format. Hardware-aligned blocks and selectively higher precision for critical tensors can outperform generic mixed quants even at similar bpw.
 
 ### Objective
 
@@ -209,6 +214,14 @@ For speculative A/Bs:
 - compare equal-context and equal-memory configurations
 - include code-copy/refactor, tool-calling, structured output, reasoning prose, and long-context coding traffic
 
+For adaptive-runtime / topology tests also record:
+
+- weight/runtime reload time
+- KV migration / repartition / reconstruction time
+- total transition cost
+- safe memory/output reserve before and after transition
+- predicted and measured break-even future work
+
 Avoid adding percentage wins that overlap; certify whole-stack deltas from a fixed champion.
 
 ## 6. DeepSeek V4 Flash distributed path
@@ -236,6 +249,55 @@ Profile the two-node system explicitly for:
 A kernel win does not double merely because TP has two nodes; super-additive gains are only expected when the change also reduces communication/synchronization bubbles.
 
 Also treat exact prefix reuse as part of DS4 performance. A fast long-context indexer helps cold PP; avoiding unnecessary cold PP is an independent and potentially much larger win.
+
+### DeepSeek tuning ladder
+
+Do not assume full DSpark is required for maximum practical throughput.
+
+1. **Plain TP** — preserve the current ~17.5 tok/s two-M1-Max result as baseline and continue kernel/collective tuning.
+2. **Measure TP M=2..8 verification** — split local compute from wire/collective cost.
+3. **Small 0731-specific MTP** — test one/two-stage drafting first; worse acceptance can still win if drafter residency and M=2/3 verification are much cheaper.
+4. **DSpark** — test after verifier economics are improved; deepest upside is likely code/copy-heavy traffic, not every workload.
+5. **PP equivalents** — tune PP target-only, PP+MTP, and PP+DSpark separately.
+6. **Future DFlash2 / lookup** — add when a real 0731-compatible drafter exists; do not confuse DSpark GGUF internal `dflash` naming with z-lab DFlash2.
+7. **Adaptive waterfall** — after every path is individually tuned, sweep context and workload and select the measured winner per region.
+
+PR #835 is an idea mine for prefix commits, fused verify spans and block-level protocol work, but its own TP speculative result warns that repeated TP communication can erase speculative gains. The target is **wall time per accepted verified token**, not draft depth.
+
+### Adaptive context/topology waterfall
+
+The earlier four-stage hypothesis (TP+DSpark -> PP+DSpark -> TP target-only -> PP target-only) remains a useful skeleton, but final boundaries must be measured rather than assumed.
+
+Benchmark the matrix:
+
+- TP / PP
+- target-only / small MTP / deeper MTP / DSpark / future DFlash2
+- relevant KV/prefill policies
+- multiple workload classes
+- context checkpoints from short through the safe maximum
+
+Then build as many context bands as actual crossover points justify. Use hysteresis around noisy boundaries.
+
+Metal makes **same-topology drafter swaps** unusually practical because auxiliary-model reloads can be seconds-ish on the target Macs when model pages are hot. TP<->PP is a larger transition, but model reload itself may still be modest compared with the true danger: losing a huge existing KV state.
+
+A full 200K re-prefill can take many minutes at realistic PP rates, so TP<->PP switching should prioritize **KV migration/repartition/layout conversion**, not reconstruction. TensorRT-LLM's disaggregated serving is a useful reference because it documents KV cache layout transformation across different parallel strategies (including TP2 -> PP2). vLLM disaggregated prefill is another architectural reference for phase-specific parallel strategies and movable KV state. Port the concepts, not the CUDA/runtime stacks.
+
+Scheduler rule:
+
+> choose the fastest certified configuration that safely fits current context + output reserve **and whose expected future savings exceed the measured transition cost**.
+
+See [`research/DS4_ADAPTIVE_WATERFALL.md`](research/DS4_ADAPTIVE_WATERFALL.md) for the detailed phase-diagram and transition-matrix plan.
+
+### DSpark fit and Metal wired-limit caution
+
+Issue #607's two-M1-Max PP field report remains valuable for the ~10–13 tok/s PP measurements, distributed ownership bug, and transient-prefill regression. However, its reported ~51.3 GiB Metal working-set ceiling should **not** be interpreted as the physical fit limit of a 64GB M1 Max. MXFORGE should measure safe wired-limit settings, OS reserve, steady residency and transient peaks directly.
+
+DSpark is decode-only and need not remain resident during a large cold prefill. A viable policy is:
+
+1. prefill with target + KV + PP workspace;
+2. release transient prefill buffers;
+3. load/warm DSpark or the selected compact MTP for decode;
+4. unload the drafter as context/memory pressure rises and fall back to a smaller drafter or target-only path.
 
 ## 7. Future 100B+ Qwen MoE on 2 x M1 Max 64GB (speculative until release)
 
@@ -295,18 +357,30 @@ Keep this below the post-training/runtime work in priority because it is much mo
 
 Qwen3.8-27B on RTX 5070 Ti 16GB is a useful comparison platform and source of ideas.
 
-### Weight format baseline
+### Weight format baseline: Dynamic 3.0 promoted
 
-First serious baseline:
+The primary fit/quality candidate is now **Unsloth Dynamic 3.0 `UD-IQ4_XS`**, not EXL3 4.00 by default.
 
-- EXL3 4.00 bpw
-- CPU-resident input embeddings where supported
-- no vision tower for text/coding
-- LM head GPU-resident
+Current published Qwen3.8-27B GGUF sizes:
+
+- `UD-IQ4_XS`: **14.3 GB**
+- separate MTP Q4_0 sidecar: **1.37 GB**
+
+For the first 5070 Ti residency pass:
+
+- UD-IQ4_XS Dynamic 3.0
+- no MTP initially
+- no vision component for text/coding
+- CPU-resident input embeddings where supported and beneficial
+- LM head GPU-resident unless measurement shows otherwise
 - measure actual loaded VRAM rather than infer residency from checkpoint file size
-- reserve ~1.2-1.3GB VRAM for desktop/VS Code workload
+- reserve ~1.2–1.3GB VRAM for desktop/VS Code workload
 
-Also benchmark Blackwell-native NVFP4/N4_0 as a **prefill-speed** alternative. Current external results show materially better PP than conventional Q4 at similar footprint, but its published fidelity trails strong Q4/Q6 variants. It is therefore a speed/quality trade, not an automatic replacement for EXL3.
+Unsloth reports Dynamic 3.0 materially better top-tail accuracy at matched size versus its comparison set; treat that as vendor-reported until we reproduce quality on coding/agent workloads.
+
+Keep **EXL3 4.00 bpw as the CUDA speed control**, not the presumptive winner. ExLlama may still win raw decode enough to justify its larger residency, so the comparison must be same-context, same-output, same-quality-task traffic.
+
+Also benchmark Blackwell-native NVFP4/N4_0 as a **prefill-speed** alternative. Current external results show materially better PP than conventional Q4 at similar footprint, but its published fidelity trails strong Q4/Q6 variants. It is therefore a speed/quality trade, not an automatic replacement for Dynamic 3.0.
 
 ### KV ladder for ~100-128K
 
@@ -332,7 +406,7 @@ Mine FlashRT-style ideas:
 
 No MTP is required for the first long-context residency target. Once the no-MTP baseline is stable, test native MTP only if its extra workspace/draft state does not destroy the context target.
 
-Research question: can Blackwell-specific runtime/weight-layout work turn 16GB into a stable Qwen3.8-27B ~4bpw + ~110K daily / ~128K capacity appliance without sacrificing the desired quality floor?
+Research question: can Dynamic 3.0 / specialized CUDA memory-layout work turn 16GB into a stable Qwen3.8-27B ~4-bit-class + ~100–110K daily / ~128K capacity appliance without sacrificing the desired quality floor?
 
 ## 11. KV compression ideas worth tracking
 
@@ -387,9 +461,12 @@ Potential user-facing flow:
 5. select speculative engine/depth policy
 6. select PP/decode/long-context kernels
 7. configure prefix-cache/session policy
-8. emit a hardware profile + reproducible benchmark report
+8. build context/workload phase diagram and transition-cost table
+9. emit a hardware profile + reproducible benchmark report
 
 Eventually support M1 -> M2 -> M3 -> M4 -> M5 with per-machine empirical tuning rather than hard-coded assumptions.
+
+For distributed appliances, the scheduler should be allowed to select topology/speculation/residency by context band rather than forcing one static configuration for the entire session.
 
 ## 14. Immediate ordering
 
@@ -401,8 +478,8 @@ Eventually support M1 -> M2 -> M3 -> M4 -> M5 with per-machine empirical tuning 
 6. Benchmark native MTP vs DFlash2/DSpark/lookup on replayed short and long coding traffic and build a hardware-local speculation policy.
 7. Freeze hot-path shapes and begin M1-specific hardware-aware quant search, including critical-tensor precision/layout.
 8. Profile long-context degradation and choose adaptive thresholds / compaction policy.
-9. On the 5070 Ti, establish EXL3 4.00 + K5/V4-ish no-MTP residency first, then compare N4_0/FlashRT-style alternatives.
-10. Revisit two-node DeepSeek V4 and future large-MoE distribution with the same measurement methodology.
+9. On the 5070 Ti, establish **UD-IQ4_XS Dynamic 3.0** no-MTP residency first; compare EXL3 4.00 as the CUDA speed control and N4_0/FlashRT-style alternatives for prefill/memory behavior.
+10. For two-node DeepSeek V4, tune in order: plain TP -> M=2..8 verifier -> small 0731 MTP -> DSpark -> PP equivalents -> context/workload phase diagram -> TP<->PP KV migration -> adaptive waterfall.
 11. Keep KV-aware QAT and agent-orchestration experiments as separate later branches once the core runtime is stable.
 
 ---
