@@ -46,6 +46,7 @@ Status legend:
 | 28 | https://huggingface.co/unsloth/Qwen3.8-27B-GGUF | Dynamic 3.0 Qwen3.8 quants | CORE / promoted for CUDA | Current model card lists **UD-IQ4_XS at 14.3 GB** and a separate MTP Q4_0 sidecar at 1.37 GB. Unsloth reports Dynamic 3.0 >10% better top-1%-tail accuracy at matched size versus its comparison set; treat that as vendor-reported until independently reproduced. Make UD-IQ4_XS the primary 5070 Ti fit/quality candidate, with EXL3 4.00 as the speed control. |
 | 29 | https://docs.vllm.ai/en/stable/features/disagg_prefill/ | Disaggregated prefill / scheduling | ADJACENT / reference architecture | vLLM can place prefill and decode in different instances and use different parallel strategies such as TP and PP while transferring KV. Mine scheduler, cache, telemetry, prefix/chunked-prefill and serving ideas; do not replace the specialized Metal core with vLLM. |
 | 30 | https://nvidia.github.io/TensorRT-LLM/features/disagg-serving.html | KV mobility + topology transformation | ADJACENT / reference architecture | TensorRT-LLM documents KV cache transfer and **cache-layout transformation across different parallel strategies**, including a TP2 prefill -> PP2 generation example. Strong architectural precedent for MXFORGE TP<->PP KV migration without full re-prefill; port the concept, not CUDA/TensorRT. |
+| 31 | https://arxiv.org/html/2605.06241v2 | Reasoning post-training / ReasonMaxxer | CORE / promoted research | Strong evidence that, on the paper's verifiable math tasks, much RLVR benefit can be recovered by sparse steering of high-entropy branch decisions with a small LoRA rather than full online RL. Do not generalize the title to all capability learning. MXFORGE should test frozen Qwen3.8 + rank-16/32 QLoRA on automatically verified coding trajectories, comparing positive SFT, success/failure contrastive tuning, and entropy-targeted ReasonMaxxer-style updates. See `docs/research/REASONMAXXER_QLORA_REASONING.md`. |
 
 ## Dedupe / relationship map
 
@@ -78,6 +79,10 @@ Sources 12, 15-17, 23, and 28 define the current bakeoff. **UD-IQ4_XS Dynamic 3.
 
 Sources 15-17, 20-23 and 28-30 suggest a ladder rather than one universal cache mode: ordinary high-quality asymmetric K/V at normal long context; more aggressive/adaptive codecs only when capacity requires them; topology-aware cache mobility for distributed transitions; and eventually KV-aware training if the quality frontier is worth moving.
 
+### Reasoning adapters / cheap post-training
+
+Source 31 adds a new orthogonal axis: improve **behavioral branch selection** while keeping the foundation model frozen. The first MXFORGE experiment should use automatically verified coding outcomes and small QLoRA adapters, then require held-out pass@1 gains and broad-regression checks before promotion. Keep reasoning-effort prompting, adapter effects, and inference/speculation changes independently measurable because each can alter output distributions and speculative acceptance.
+
 ### Agent-system layer
 
 Sources 6, 13, 14, and 25 are not inference-engine optimizations. They may still materially change cost per completed engineering task through better state continuity, selective loading, review/repair loops, and cache-friendly prompt structure. They should be benchmarked separately from tok/s.
@@ -93,4 +98,5 @@ For every imported idea:
 - separate cold-prefill, warm-prefix delta-prefill, target-only decode, and effective speculative decode;
 - preserve failed experiments in notes so the project does not rediscover them later;
 - record transition costs for adaptive runtimes, including weight reload, KV migration/repartition, and break-even future work;
+- for reasoning-adapter experiments, keep a frozen held-out suite and report pass@1/pass@k, tool validity, token/time cost, general-task regressions, and KL/drift diagnostics;
 - treat project-authored quality/agent benchmark claims as hypotheses until independently reproduced.
