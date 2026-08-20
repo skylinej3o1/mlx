@@ -47,6 +47,7 @@ Status legend:
 | 29 | https://docs.vllm.ai/en/stable/features/disagg_prefill/ | Disaggregated prefill / scheduling | ADJACENT / reference architecture | vLLM can place prefill and decode in different instances and use different parallel strategies such as TP and PP while transferring KV. Mine scheduler, cache, telemetry, prefix/chunked-prefill and serving ideas; do not replace the specialized Metal core with vLLM. |
 | 30 | https://nvidia.github.io/TensorRT-LLM/features/disagg-serving.html | KV mobility + topology transformation | ADJACENT / reference architecture | TensorRT-LLM documents KV cache transfer and **cache-layout transformation across different parallel strategies**, including a TP2 prefill -> PP2 generation example. Strong architectural precedent for MXFORGE TP<->PP KV migration without full re-prefill; port the concept, not CUDA/TensorRT. |
 | 31 | https://arxiv.org/html/2605.06241v2 | Reasoning post-training / ReasonMaxxer | CORE / promoted research | Strong evidence that, on the paper's verifiable math tasks, much RLVR benefit can be recovered by sparse steering of high-entropy branch decisions with a small LoRA rather than full online RL. Do not generalize the title to all capability learning. MXFORGE should test frozen Qwen3.8 + rank-16/32 QLoRA on automatically verified coding trajectories, comparing positive SFT, success/failure contrastive tuning, and entropy-targeted ReasonMaxxer-style updates. See `docs/research/REASONMAXXER_QLORA_REASONING.md`. |
+| 32 | https://github.com/geodesia-ai/geodesia-kv | Adaptive mixed-precision KV | CORE / promoted research | Strong architectural lead: per-64-token-block variable precision with a monotonic `{16,8,4,2,centroid}` ladder, attention-mass/distortion allocation, and fused mixed-bit attention. Port the idea to Metal rather than the CUDA implementation. Interpret “no information loss” as no token-position eviction, not numerical losslessness. Current validation is not Qwen3.8 GDN or DeepSeek MLA and does not establish a tok/s win on our hardware. See `docs/research/GEODESIA_KV.md`. |
 
 ## Dedupe / relationship map
 
@@ -77,7 +78,7 @@ Sources 12, 15-17, 23, and 28 define the current bakeoff. **UD-IQ4_XS Dynamic 3.
 
 ### Long-context KV
 
-Sources 15-17, 20-23 and 28-30 suggest a ladder rather than one universal cache mode: ordinary high-quality asymmetric K/V at normal long context; more aggressive/adaptive codecs only when capacity requires them; topology-aware cache mobility for distributed transitions; and eventually KV-aware training if the quality frontier is worth moving.
+Sources 15-17, 20-23, 28-30, and 32 suggest a ladder rather than one universal cache mode: ordinary high-quality asymmetric K/V at normal long context; more aggressive codecs only when capacity requires them; **heterogeneous block precision that preserves recent/salient history at higher precision while monotonically demoting colder blocks**; topology-aware cache mobility for distributed transitions; and eventually KV-aware training if the quality frontier is worth moving. Geodesia-KV is an architecture lead here, not direct evidence for Qwen3.8/Metal or DS4/MLA.
 
 ### Reasoning adapters / cheap post-training
 
