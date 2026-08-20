@@ -6,6 +6,8 @@ Companion source index: [`MXFORGE_SOURCE_CATALOG.md`](MXFORGE_SOURCE_CATALOG.md)
 
 DeepSeek V4 adaptive-runtime design: [`research/DS4_ADAPTIVE_WATERFALL.md`](research/DS4_ADAPTIVE_WATERFALL.md).
 
+Adaptive mixed-precision KV research: [`research/GEODESIA_KV.md`](research/GEODESIA_KV.md).
+
 ## 1. Core MXFORGE thesis
 
 Turn Apple Silicon into a model-specific inference appliance by co-designing:
@@ -342,6 +344,23 @@ Goals:
 - compact agent state before pathological context accumulation rather than always running at the physical maximum
 - preserve prefix-cache continuity through normal agent turns
 
+### Adaptive mixed-precision KV / Geodesia-KV-inspired branch
+
+Uniform cache precision should remain the reference, not an assumption about the endpoint. Geodesia-KV provides a useful architecture lead: divide history into blocks, retain recent/salient blocks at higher precision, and monotonically demote colder blocks through a precision ladder when memory pressure justifies it.
+
+MXFORGE adaptation goals:
+
+- keep Q8 as the default/reference where it fits rather than compressing eagerly;
+- instrument attention-block importance and quantization distortion;
+- prototype a graded ladder such as Q8/Q6 -> Q4 -> Q2 for progressively colder blocks, protecting recent tokens, sinks, and empirically sensitive anchors;
+- account for Qwen3.8 GDN/recurrent state separately — ordinary attention KV compression does not shrink the whole hybrid state;
+- build a Metal-native mixed-bit attention path that consumes packed blocks directly and dequantizes inside attention rather than materializing a dense cache;
+- make resident KV bits/value distribution, free/wired memory, context length, workload class, drafter residency, and output reserve scheduler inputs;
+- re-sweep MTP/DFlash/DSpark/lookup and M=2..8 verification after any KV change because target cost and numerical behavior can shift;
+- preserve graph/dispatch performance: a memory win that forces a materially slower eager path is not automatically a system win.
+
+Do not interpret Geodesia-KV's "no information loss" wording as numerical losslessness; the transferable claim is **no token-position eviction**. Its current CUDA/vLLM implementation and short-context validation are not direct evidence for Qwen3.8/Metal or DeepSeek V4 MLA. See [`research/GEODESIA_KV.md`](research/GEODESIA_KV.md).
+
 ### Longer-term: KV-aware training
 
 The Gemma QAT cache experiments suggest a checkpoint can be trained to tolerate lower-bit KV materially better than a non-QAT checkpoint. This is **not yet evidence for Qwen3.8**, but it is a valuable future direction:
@@ -418,13 +437,18 @@ Track/experiment with:
 - asymmetric K vs V precision, generally spending more bits on K
 - TurboQuant / TCQ where they actually beat ordinary rotated codecs
 - token-wise adaptive bit allocation
+- **monotonic per-block precision demotion** so recent/salient blocks stay high precision while colder history moves down a graded ladder
+- **importance/error-budgeted allocation** rather than age alone when the instrumentation cost pays for itself
+- **fused packed mixed-bit attention** that avoids constructing a dense dequantized KV copy
 - protected anchors/recent tokens at higher precision
 - low-salience history at lower precision
 - selective pruning / semantic cache compression
 - variable-rate / low-rank cache representations
 - KV-aware QAT as a future model-training lever
 
-For any sub-Q8 cache, validate specifically on long-code editing, multi-needle retrieval, instruction retention, multi-turn agent state, tool calls, and reasoning at 32K/64K/96K/128K. Include tail-sensitive distribution metrics; perplexity alone can hide rare but operationally important failures.
+For any sub-Q8 cache, validate specifically on long-code editing, multi-needle retrieval, instruction retention, multi-turn agent state, tool calls, and reasoning at 32K/64K/96K/128K. Include tail-sensitive distribution metrics; perplexity alone can hide rare but operationally important failures. Also report resident bits/value over time, cache-conversion cost, transient memory, and any graph/dispatch penalty introduced by heterogeneous cache management.
+
+Geodesia-KV is the current primary reference for the monotonic heterogeneous-precision idea; use its CUDA/vLLM implementation as an architecture mine, not a direct portability or performance claim.
 
 ## 12. Agent/runtime layer: effective intelligence and context economics
 
@@ -477,7 +501,7 @@ For distributed appliances, the scheduler should be allowed to select topology/s
 5. Attack verifier execution: split-KV/block verification attention, GDN prework fusion, dispatch count, LM-head/MTP-module hot tensors.
 6. Benchmark native MTP vs DFlash2/DSpark/lookup on replayed short and long coding traffic and build a hardware-local speculation policy.
 7. Freeze hot-path shapes and begin M1-specific hardware-aware quant search, including critical-tensor precision/layout.
-8. Profile long-context degradation and choose adaptive thresholds / compaction policy.
+8. Profile long-context degradation and choose adaptive thresholds / compaction policy; after the core decode/speculative path is stable, prototype Geodesia-inspired mixed-precision KV only where memory pressure justifies it.
 9. On the 5070 Ti, establish **UD-IQ4_XS Dynamic 3.0** no-MTP residency first; compare EXL3 4.00 as the CUDA speed control and N4_0/FlashRT-style alternatives for prefill/memory behavior.
 10. For two-node DeepSeek V4, tune in order: plain TP -> M=2..8 verifier -> small 0731 MTP -> DSpark -> PP equivalents -> context/workload phase diagram -> TP<->PP KV migration -> adaptive waterfall.
 11. Keep KV-aware QAT and agent-orchestration experiments as separate later branches once the core runtime is stable.
