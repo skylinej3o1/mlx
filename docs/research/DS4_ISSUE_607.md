@@ -8,6 +8,21 @@ Status: **CORE / promoted**
 
 Why this matters: this is unusually close to the MXFORGE distributed target hardware: **2× MacBook Pro M1 Max 64 GB**, linked by Thunderbolt 4, running DeepSeek V4 Flash in distributed layer-split mode at 65,536 context. Treat the performance numbers as external field measurements until reproduced on our machines, but treat the failure modes as concrete certification targets.
 
+## Important correction: the 51.3 GiB ceiling was not the physical 64 GB limit
+
+Issue #607 reports a Metal working-set ceiling of about **51.3 GiB** and therefore only ~4.3 GiB of headroom above its ~47.05 GiB resident model/KV/buffer footprint. That number should **not** be interpreted as the intrinsic usable-memory ceiling of a 64 GB M1 Max.
+
+DwarfStar uses macOS `iogpu.wired_limit_mb` as the Metal wired-memory ceiling, and other DS4 field reports explicitly raise that sysctl substantially above the default/recommended working-set region (for example, a 96 GB Mac configured around 92 GB). Apple also describes `recommendedMaxWorkingSetSize` as a performance recommendation, not the machine's total unified-memory capacity.
+
+Therefore:
+
+- #607's ~4.3 GiB headroom was partly a **configured/default Metal wired-limit constraint**;
+- it is useful evidence for a transient-kernel memory regression at that limit, but **weak evidence that a 64 GB M1 Max cannot fit DSpark**;
+- our own two-M1 tests should set and record `iogpu.wired_limit_mb` deliberately, leaving enough RAM for macOS and non-Metal allocations, rather than accepting the default blindly;
+- fit testing must distinguish physical unified memory, the Metal wired ceiling, steady-state Metal residency, non-Metal process memory, and transient command-buffer working memory.
+
+Do not simply maximize the sysctl without measurement: the operating system and CPU-side runtime still need headroom. The right value is a machine-specific operating point to certify under sustained load.
+
 ## Reported configuration
 
 - 2× M1 Max 64 GB, macOS Tahoe 26
@@ -18,8 +33,8 @@ Why this matters: this is unusually close to the MXFORGE distributed target hard
 - `--ctx 65536`
 - `--dist-activation-bits 32`
 - disk KV cache enabled
-- reported Metal working-set ceiling ~51.3 GiB per machine
-- resident model + KV + buffers ~47.05 GiB, leaving only ~4.3 GiB for prefill working memory
+- reported Metal wired/working-set ceiling ~51.3 GiB per machine
+- resident model + KV + buffers ~47.05 GiB under that configuration
 
 ## Reported performance after upgrade + workarounds
 
@@ -29,7 +44,7 @@ Relative to commit `80ebbc3`, with the same prompts and Thunderbolt link:
 - summarization decode: roughly **9.6–9.7 -> 10.0 tok/s**, about **+4%**
 - coding decode: roughly **10.8–12.6 -> 11.0–13.0 tok/s**, about **+1–4%**
 
-Do not compare these layer-split DS4 numbers directly with our existing DSpark/TP result; the topology and runtime are different. Use them as proof that 2×64GB M1 Max is a viable DS4 field configuration and as a source of implementation/memory lessons.
+Do not compare these layer-split DS4 numbers directly with our existing TP result; the topology and runtime are different. Use them as proof that 2×64GB M1 Max is a viable DS4 field configuration and as a source of implementation/memory lessons.
 
 ## Failure 1 — coordinator without output head
 
@@ -51,7 +66,7 @@ The report bisected a long-prefill failure to commit `427e281`. Static planned r
 
 Reported observations:
 
-- prompts above roughly 1.4K–3K could fail on the 64GB configuration
+- prompts above roughly 1.4K–3K could fail under the report's ~51.3 GiB wired limit
 - long prompts that worked on the older build could return Metal `Insufficient Memory`
 - part of the failure range could return HTTP 200 with an empty completion, which is particularly dangerous
 - lowering `--prefill-chunk` did not fix the problem
@@ -61,9 +76,9 @@ Reported observations:
 
 The author reports a 17.5K-token prompt returning to roughly **152 tok/s prefill** with that one workaround while retaining the rest of the newer kernel improvements.
 
-### MXFORGE lesson
+### Correct interpretation
 
-**Peak transient working memory is a performance feature.** Kernel optimization can increase speed while silently reducing the usable context envelope. Our certification therefore needs to record not only steady-state RSS/residency but also maximum prompt length that survives each kernel configuration.
+This still demonstrates that **peak transient working memory is a performance feature**, but the threshold in #607 is conditional on that machine's Metal wired-memory setting. A higher safe `iogpu.wired_limit_mb` may move or eliminate the observed threshold. Our certification must therefore record the wired limit along with steady-state residency and maximum surviving prompt length.
 
 ## Related PR #835 — speculative decoding over the two-node pipeline split
 
@@ -116,23 +131,25 @@ For the current two-M1-Max branch:
 
 For every two-node DS4 candidate/champion:
 
-1. Test both coordinator and worker role-specific tensor ownership, including a coordinator that does not own the output head.
-2. Test cold prefill at multiple long prompts, not only short decode benchmarks.
-3. Record steady-state residency **and transient prefill headroom**.
-4. Sweep at least 4K / 16K / 32K / 64K-class prompt lengths where the model/context permits.
-5. Treat HTTP 200 + empty completion as a hard failure, not success.
-6. Preserve command-buffer/GPU error logs alongside benchmark telemetry.
-7. If a kernel win raises transient memory, record the added GiB explicitly.
-8. Test both nodes simultaneously under the long-prefill load; a distributed worker can fail while the coordinator remains alive.
-9. Keep toggles for suspect kernels so a speed win can be disabled selectively rather than reverting an entire optimization series.
-10. Compare topology separately: DS4 layer split / RPC versus our existing DSpark tensor-parallel path.
-11. For distributed speculation, report verify-span latency at M=2..8, accepted tokens per span, wire/collective time, and the break-even acceptance threshold.
-12. Certify code/copy-heavy and prose/reasoning traffic separately because speculation economics differ materially.
+1. Record `iogpu.wired_limit_mb` on each Mac and deliberately tune it before drawing fit conclusions.
+2. Record physical RAM, Metal wired ceiling, Metal resident bytes, CPU/non-Metal bytes, and transient prefill headroom separately.
+3. Test both coordinator and worker role-specific tensor ownership, including a coordinator that does not own the output head.
+4. Test cold prefill at multiple long prompts, not only short decode benchmarks.
+5. Sweep at least 4K / 16K / 32K / 64K-class prompt lengths where the model/context permits.
+6. Treat HTTP 200 + empty completion as a hard failure, not success.
+7. Preserve command-buffer/GPU error logs alongside benchmark telemetry.
+8. If a kernel win raises transient memory, record the added GiB explicitly.
+9. Test both nodes simultaneously under the long-prefill load; a distributed worker can fail while the coordinator remains alive.
+10. Keep toggles for suspect kernels so a speed win can be disabled selectively rather than reverting an entire optimization series.
+11. Compare topology separately: DS4 layer split / RPC versus our existing tensor-parallel path.
+12. For distributed speculation, report verify-span latency at M=2..8, accepted tokens per span, wire/collective time, and the break-even acceptance threshold.
+13. Certify code/copy-heavy and prose/reasoning traffic separately because speculation economics differ materially.
 
 ## Research questions for our two-M1-Max setup
 
-- What is the real Metal working-set ceiling and safe prefill headroom on each of our M1 Max 64GB machines?
-- Does the contiguous F16->F16 copy path or an equivalent transient-buffer pattern exist in our chosen DS4/DSpark stack?
+- What `iogpu.wired_limit_mb` value gives each 64 GB M1 Max the best stable operating envelope while leaving adequate OS/CPU headroom?
+- Once that limit is tuned, how much real headroom remains for the ~5.6 GiB DSpark support model and its runtime state?
+- Does the contiguous F16->F16 copy path or an equivalent transient-buffer pattern exist in our chosen DS4/TP stack?
 - How does our existing ~17.5 tok/s TP implementation compare with DS4 layer-split on the same quant, prompts, context, and Thunderbolt/network path?
 - Can we keep the better decode kernels while using a lower-memory prefill path only above a context threshold?
 - Should distributed runtime policy switch kernels by **available memory/context band**, just as MXFORGE switches decode/MTP policies by workload shape?
@@ -141,4 +158,4 @@ For every two-node DS4 candidate/champion:
 
 ## Priority
 
-High for the DeepSeek V4 branch. It does not change the immediate Qwen3.8 single-Mac tuning order, but it should be read before the next serious two-M1-Max DS4 tuning/certification round.
+High for the DeepSeek V4 branch. #607 should no longer be cited as evidence that 64 GB M1 Max systems inherently lack enough memory for DSpark; it remains valuable for the PP baseline, the role-ownership bug, and the transient-memory regression/certification lessons.
