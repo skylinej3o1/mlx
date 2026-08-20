@@ -1,0 +1,82 @@
+# MXFORGE research source catalog
+
+Last updated: 2026-08-19
+
+This catalog turns external notes into a deduplicated research index. It is not an endorsement of every benchmark claim. Results from Reddit posts and project-authored benchmarks are treated as leads until reproduced on the target hardware. The roadmap promotes only the ideas that appear technically relevant to MXFORGE.
+
+Status legend:
+
+- **CORE / promoted** — directly relevant and promoted into the MXFORGE roadmap.
+- **CORE / already tracked** — already represented in the roadmap; source adds implementation detail or evidence.
+- **ADJACENT / port ideas** — different hardware/runtime, but contains techniques worth translating.
+- **AGENT LAYER** — affects effective capability, context reuse, or orchestration rather than inference kernels.
+- **UNRESOLVED** — source could not be inspected reliably; retain as a pointer only.
+
+## Source inventory
+
+| # | Source | Area | Status | What to keep / MXFORGE action |
+|---|---|---|---|---|
+| 1 | https://www.reddit.com/r/LocalLLM/comments/1vsuf77/dflash2_speeds_qwen_38_27b_up_to_4_times/ | Qwen3.8 speculation | CORE / promoted | DFlash2 can beat native MTP on favorable short tasks, but real ~100K agent traffic in the same discussion shows the gap can collapse to a tie and memory overhead can reduce usable context. Benchmark MTP, DFlash2, DSpark/lookup on replayed workloads and compare at matched acceptance length, not sequential live traffic. |
+| 2 | https://huggingface.co/z-lab/Qwen3.8-27B-DFlash2 | Qwen3.8 DFlash2 drafter | CORE / promoted | Primary model card: block-diffusion drafter, coherent path selector, dynamic convs, lossless target verification. Treat as an alternate drafting engine, not a universal replacement for native MTP. |
+| 3 | https://github.com/tarruda/llama.cpp/tree/dsv4-metal-optimizations | DeepSeek V4 Metal | CORE / already tracked | Mine sparse selected-KV packing/gather, compressor/mask fusion, Q8 KV fixes, wide-head FA scheduling, and small recurrent/norm fusions for the two-Mac DS4 path. |
+| 4 | https://www.reddit.com/r/LocalLLaMA/comments/1vs7ft2/how_i_made_deepseek_v4_flash_12x_faster_on_an_m3/ | DS4 prefill + prefix cache | CORE / promoted | Two separate lessons: optimized long-context indexer kernels improve cold prefill, but exact prefix-cache reuse dwarfs that win in chat/agent use. Preserve sampled replies/tool calls byte-for-byte, expose cached-token telemetry, support session prewarming, and measure cache-hit rate. |
+| 5 | https://github.com/julianmb/q38rocm | Hardware-aligned quant + MTP | ADJACENT / port ideas | Strix Halo project demonstrates hardware-aligned block quant, high-precision critical/MTP tensors, asymmetric KV, and workload-specific speculation. Do not port ROCmFP4 literally; port the co-design method to M1/Metal. |
+| 6 | https://huggingface.co/peculiar-ragdoll/Qwen-Sharp-Chat-Templates | Prompt/template stability | AGENT LAYER / promoted | The important infrastructure idea is thinking retention / stable serialization so subsequent turns can hit the prefix cache instead of invalidating it by deleting prior thinking blocks. Benchmark exact prompt-template stability separately from the template's quality claims. |
+| 7 | https://www.yukon.org/mlxfast | Apple Qwen3.8 MTP challenge | CORE / promoted | Major signal: the leaderboard moved from roughly serial-level decode to a much higher regime, and the current leaders use a custom MTP head plus runtime/kernel work. Do not transfer leaderboard TPS directly to M1; do promote **custom MTP-head optimization/training** to a first-class workstream. |
+| 8 | https://github.com/Layr-Labs/qwen-3.8-mtp-challenge | Qwen3.8 MTP harness | CORE / promoted | Primary harness behind the challenge. The editable surface explicitly includes MTP head weights, draft schedule 0..8, runtime, and Metal kernels. Useful model for a reproducible MXFORGE MTP-head laboratory. |
+| 9 | https://www.reddit.com/r/oMLX/comments/1vrnxru/new_omlx_with_npu_released_qwen_38_27b_mtp_on_m5/ | ANE prefill | CORE / already tracked | Community evidence that ANE-assisted Qwen3.8 prefill and Lightning MTP can coexist across long contexts. Hardware is M5 Max, so use only as evidence for architecture, not M1 performance prediction. |
+| 10 | https://github.com/ARahim3/mlx-dspark | DFlash/DSpark on MLX | CORE / promoted | Especially valuable: runtime measures each machine's drafter/verify cost curves and derives a local draft cap; speculative speedup is non-monotone in quant precision. Borrow the hardware-local autotuning philosophy and benchmark DFlash2 vs native MTP on M1. |
+| 11 | https://www.reddit.com/r/LocalLLM/comments/1vsk8sb/prefilloptimized_qwen38_27b_nvfp4_quant/ | Blackwell-native quant | ADJACENT / promoted | Shows a quant format can be chosen for **prefill execution efficiency**, not just size/quality. Follow primary model below. |
+| 12 | https://huggingface.co/akopytko/Qwen3.8-27B-NVFP4-GGUF | Blackwell-native N4_0 | ADJACENT / promoted | Primary model card reports materially faster Blackwell prefill at similar 4-bit footprint, with an embedded quantized MTP head. Important 5070 Ti candidate and conceptual precedent for M1 hardware-native quant/layout design. Quality is below strong Q4/Q6 references, so speed must be weighed against fidelity. |
+| 13 | https://www.reddit.com/r/OpenSourceAI/comments/1vs0p2v/deepseek_v4_flash_went_from_6742_to_8202_with_one/ | Coding-agent orchestration | AGENT LAYER | Points to Autoprompt: plan/build/test/review/repair orchestration can raise task success substantially at the cost of more time/tokens. Keep separate from inference benchmarks. |
+| 14 | https://github.com/Spielewoy/autoprompt-skill | Coding-agent orchestration | AGENT LAYER | Primary project reports 60/89 -> 73/89 on its OpenCode Terminal-Bench 2.1 comparison; project itself notes estimated ~3x time / ~2x tokens were not retained measurements. Candidate appliance/harness experiment, not an inference optimization. |
+| 15 | https://www.reddit.com/r/LocalLLM/comments/1vsyf0k/nearly_3_longer_context_on_a_single_rtx_5090/ | Runtime memory structures | CORE / already tracked for CUDA | FlashRT-style optimized kernel/weight structures reclaim memory that can be spent on KV/context. Do not multiply our 5070 Ti context target by the headline factor; measure reclaimed VRAM under our no-MTP stack. |
+| 16 | https://github.com/flashrt-project/FlashRT | Static graphs + CUDA kernels | CORE / already tracked for CUDA | Mine static whole-forward graphs, fused kernels, direct packed-cache paths, hardware dispatch, and memory-residency discipline for the 5070 Ti comparison stack. |
+| 17 | https://anbeeld.com/articles/kv-cache-quantization-benchmarks-for-long-context | KV precision | CORE / promoted | Strong reason to test asymmetric K/V precision and tail-sensitive metrics. For the 5070 Ti, K5/V4-ish is the current capacity-balanced target, K5/V5 quality-balanced, and Q4/Q4 a capacity mode rather than automatic default. Exact codecs differ by runtime, so certify locally. |
+| 18 | https://github.com/jundot/omlx/pull/2756 | Heterogeneous Apple prefill | CORE / promoted | Dual-ANE + GPU prompt processing validates a separate PP execution architecture. Follow-ups extend Qwen3.8 and CPU+ANE+GPU work sharing. This is a major MXFORGE PP branch; decode/MTP verification should remain independently optimized. |
+| 19 | https://www.reddit.com/r/LocalLLaMA/comments/1vt0g7a/someone_apparently_cracked_dual_anegpu_prefill_on/ | ANE prefill on older Apple Silicon | CORE / promoted as evidence | Anecdotal but useful: reports a gain on M1 Pro/9B, suggesting the architecture is not M3/M5-only. Memory overhead is large. Measure M1 Max topology, optimum fraction, and resident-memory cost directly. |
+| 20 | https://anbeeld.com/articles/kv-cache-quantization-standard-vs-qat-gemma-4-31b | KV-aware QAT | CORE / long-term | Important research direction: a QAT checkpoint can be much more tolerant of low-bit KV. Not Qwen evidence, but suggests future MXFORGE training could co-optimize **weights for the intended cache codec**, potentially moving the Q4/Q5/Q6 frontier. Lower priority than post-training/runtime wins. |
+| 21 | https://www.reddit.com/r/LocalLLaMA/comments/1vrw4sz/i_pushed_qwen3827b_to_124_tps_on_a_single_request/ | Qwen3.8 verifier/speculation hot path | ADJACENT / promoted | Very high-value idea mine: draft vocabulary measured from the model's own outputs; separate calibrated quant of lm_head + MTP module; split-KV attention for multi-row verification; lower-overhead sampling; optional KVarN cache. Port the *principles* to Metal rather than the CUDA/Triton code. |
+| 22 | https://github.com/syv-ai/qwen38-27b-rtx3090 | Primary implementation for #21 | ADJACENT / promoted | Primary repo confirms the single-user stack and, importantly, documents failed experiments too. Treat lm_head/MTP module/verify attention as independent hot components and benchmark them separately. Fine-tuning its MTP head reportedly did not help there, so custom-head training needs its own Apple/Qwen challenge evidence rather than assumption. |
+| 23 | https://huggingface.co/turboderp/Qwen3.8-27B-exl3 | 5070 Ti weight format | CORE / already tracked for CUDA | 2.0-6.0 bpw branches exist; 4.00 bpw remains the first 5070 Ti quality/capacity baseline. Measure **actual loaded VRAM residency** with CPU input embeddings rather than infer it from checkpoint file size. |
+| 24 | https://x.com/0x0SojalSec/status/2089418544312381462 | Unknown | UNRESOLVED | X page did not expose retrievable content during cataloging. Keep the pointer; do not infer a claim from it. |
+| 25 | https://github.com/Tiger3807861189/J-Space-Cognition-Suite-V3.6/blob/main/README.md | Agent state / cognition protocol | AGENT LAYER | Interesting for selective workspace loading, durable external task state, verification/recovery, and avoiding context pressure. Benchmark claims are project-reported and should not be conflated with base-model capability. Potential complement to prefix-cache/context-discipline work. |
+
+## Dedupe / relationship map
+
+### Qwen3.8 speculative decoding
+
+Sources 1, 2, 7, 8, 10, 21, and 22 all point at the same deeper conclusion: the winning question is not "MTP or DFlash?" in the abstract. The runtime should choose among draft mechanisms and depths using measured target-verification cost, drafter cost, acceptance distribution, memory headroom, context length, and workload type. Custom MTP-head weights are now explicitly in scope.
+
+### Apple prompt processing
+
+Sources 4, 6, 9, 18, and 19 split the problem into two independent levers:
+
+1. **Make cold prefill faster** with specialized GPU kernels and heterogeneous ANE/GPU/CPU execution.
+2. **Make cold prefill rare** with stable prompt serialization, exact prefix reuse, session affinity, prewarming, and cache-hit telemetry.
+
+For agentic coding, the second lever can dominate the user experience.
+
+### Hardware-aware quantization
+
+Sources 5, 11, 12, 21, 22, and 23 all support quantization as an execution-layout problem, not only a bpw/quality problem. Critical tensors (LM head, embeddings, recurrent state, MTP module, attention projections) can deserve different treatment from bulk weights. The search objective must include the exact M=1 and multi-row verification shapes on the target hardware.
+
+### Long-context KV
+
+Sources 15-17, 20-23 suggest a ladder rather than one universal cache mode: ordinary high-quality asymmetric K/V at normal long context; more aggressive/adaptive codecs only when capacity requires them; and eventually KV-aware training if the quality frontier is worth moving.
+
+### Agent-system layer
+
+Sources 6, 13, 14, and 25 are not inference-engine optimizations. They may still materially change cost per completed engineering task through better state continuity, selective loading, review/repair loops, and cache-friendly prompt structure. They should be benchmarked separately from tok/s.
+
+## Research hygiene
+
+For every imported idea:
+
+- reproduce on the actual target hardware before promoting a performance number;
+- distinguish short synthetic prompts from long agent traffic;
+- replay identical prompts when comparing speculative modes;
+- log accepted tokens / verification, draft cost, context length, cache-hit rate, peak memory, and wall-clock time;
+- separate cold-prefill, warm-prefix delta-prefill, target-only decode, and effective speculative decode;
+- preserve failed experiments in notes so the project does not rediscover them later;
+- treat project-authored quality/agent benchmark claims as hypotheses until independently reproduced.
