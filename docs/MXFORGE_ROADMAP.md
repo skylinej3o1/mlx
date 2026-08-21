@@ -6,6 +6,10 @@ Companion source index: [`MXFORGE_SOURCE_CATALOG.md`](MXFORGE_SOURCE_CATALOG.md)
 
 DeepSeek V4 adaptive-runtime design: [`research/DS4_ADAPTIVE_WATERFALL.md`](research/DS4_ADAPTIVE_WATERFALL.md).
 
+DeepSeek V4 RTX 5070 Ti speculative sidecar: [`research/DS4_5070_SIDECAR.md`](research/DS4_5070_SIDECAR.md).
+
+DeepSeek V4 Micro-PCTree design: [`research/DS4_MICRO_PCTREE.md`](research/DS4_MICRO_PCTREE.md).
+
 Adaptive mixed-precision KV research: [`research/GEODESIA_KV.md`](research/GEODESIA_KV.md).
 
 ## 1. Core MXFORGE thesis
@@ -38,6 +42,15 @@ Current working direction:
 - retain high-quality weights (~6.5 bpw class) and Q8 KV where memory permits
 - benchmark context bands independently rather than assuming one runtime policy wins everywhere
 - keep target-only decode separate from effective emitted TPS with speculation
+
+### External Q6 Apple field references
+
+Fresh M4 Pro field reports reinforce that the **6-bit class is operationally fast enough to be worth optimizing**, but they are not controlled MXFORGE A/Bs:
+
+- a 6-bit M4 Pro report claims **25.9 tok/s**;
+- a separate M4 Pro 48GB report titled as **vision enabled** claims **21.6 tok/s**.
+
+Do not treat the difference as a measured vision penalty unless quant recipe, runtime, MTP depth, context, KV precision, projector placement, and prompt/output lengths are matched. Preserve both as source-catalog reference points and reproduce the equivalent Q6 path on M1 before drawing hardware conclusions.
 
 ### Adaptive speculative policy: MTP, DFlash2, DSpark, lookup
 
@@ -258,13 +271,54 @@ Do not assume full DSpark is required for maximum practical throughput.
 
 1. **Plain TP** — preserve the current ~17.5 tok/s two-M1-Max result as baseline and continue kernel/collective tuning.
 2. **Measure TP M=2..8 verification** — split local compute from wire/collective cost.
-3. **Small 0731-specific MTP** — test one/two-stage drafting first; worse acceptance can still win if drafter residency and M=2/3 verification are much cheaper.
-4. **DSpark** — test after verifier economics are improved; deepest upside is likely code/copy-heavy traffic, not every workload.
-5. **PP equivalents** — tune PP target-only, PP+MTP, and PP+DSpark separately.
-6. **Future DFlash2 / lookup** — add when a real 0731-compatible drafter exists; do not confuse DSpark GGUF internal `dflash` naming with z-lab DFlash2.
-7. **Adaptive waterfall** — after every path is individually tuned, sweep context and workload and select the measured winner per region.
+3. **Small 0731-specific MTP** — keep this as a cheap local control; worse acceptance can still win if M=2/3 verification is much cheaper.
+4. **5070 Ti compact DSpark sidecar** — make drafting cheap without consuming Mac target/KV memory; certify linear M2/M3 before wider blocks.
+5. **Micro-PCTree** — k=2 first, N=3..8, root-only/asymmetric branching; compare against linear DSpark at equal target-row budgets.
+6. **Other DSpark placements / precision controls** — compare Mac-resident or larger DSpark only if useful for acceptance/residency controls.
+7. **PP equivalents** — tune PP target-only, PP+MTP, and PP+DSpark separately.
+8. **Future DFlash2 / lookup** — add when a real 0731-compatible drafter exists; do not confuse DSpark GGUF internal `dflash` naming with z-lab DFlash2.
+9. **Adaptive waterfall** — after every path is individually tuned, sweep context and workload and select the measured winner per region.
 
 PR #835 is an idea mine for prefix commits, fused verify spans and block-level protocol work, but its own TP speculative result warns that repeated TP communication can erase speculative gains. The target is **wall time per accepted verified token**, not draft depth.
+
+PCTree adds an additional warning and opportunity: a broader tree can raise acceptance while lowering throughput because verifier cost dominates. The MXFORGE version must therefore be **tiny and verifier-cost-aware**, not a blind port of datacenter-scale tree budgets.
+
+### 5070 Ti speculative sidecar / ThriftOps Supreme
+
+The existing RTX 5070 Ti should be treated as a third heterogeneous execution device for DS4 rather than merely a separate Qwen box.
+
+Preferred role split:
+
+```text
+2 x M1 Max 64GB  -> DS4 0731 Q2/Q4 TP target + KV + authoritative verifier
+RTX 5070 Ti 16GB -> compact DSpark / future DFlash2 / parent-conditioned tree construction
+RX 6800 16GB     -> optional independent agent / embeddings / reranking / evaluation
+```
+
+A compact DSpark in the ~7.8GiB class is capacity-plausible on the 5070, but stock DSpark may borrow target embeddings/output components and target-layer features. The sidecar experiment therefore needs a self-contained drafter package or an explicit minimal feature/candidate protocol.
+
+Current 0731 implementations indicate conditioning on only a few late target feature vectors (reported [40,41,42] at hidden width 4096). Three FP16 vectors are only ~24KiB of raw feature payload, making **latency/synchronization rather than network bandwidth** the first remote-sidecar concern.
+
+The sidecar does not add its 16GB VRAM directly to Mac KV capacity. Its context benefit is that DSpark residency/workspace can live off-Mac, preserving unified memory for target state, KV, prefix cache, verifier workspace, or safety margin.
+
+Detailed plan: [`research/DS4_5070_SIDECAR.md`](research/DS4_5070_SIDECAR.md).
+
+### Micro-PCTree / parent-conditioned branching
+
+PCTree reuses DSpark's conditional/Markov stage to retain multiple parent-consistent continuations without retraining or additional heavy backbone passes. The first llama.cpp fork reported that a k3/N16 tree modestly beat linear DSpark n3 overall on its RTX 5090 test, while k4/N22 had higher acceptance but lower throughput. It also reported Qwen3.8-27B Q4 was worse under tested tree settings.
+
+For Thunderbolt TP this points to **Micro-PCTree**, not a large tree:
+
+- k=2 first;
+- N=3..8 initial node budget;
+- root / first-uncertain-parent hedging;
+- asymmetric root hedge before deeper branching;
+- equal verifier-row budget comparisons versus linear DSpark;
+- log rejection depth, alternate-parent recovery, verifier milliseconds per extra node, and committed tokens recovered.
+
+The 5070 should perform the cheap tree construction. The M1 pair spends the expensive authoritative verification budget.
+
+Detailed design: [`research/DS4_MICRO_PCTREE.md`](research/DS4_MICRO_PCTREE.md).
 
 ### Adaptive context/topology waterfall
 
@@ -273,7 +327,8 @@ The earlier four-stage hypothesis (TP+DSpark -> PP+DSpark -> TP target-only -> P
 Benchmark the matrix:
 
 - TP / PP
-- target-only / small MTP / deeper MTP / DSpark / future DFlash2
+- target-only / small MTP / linear DSpark / **Micro-PCTree** / future DFlash2
+- drafter residency: Mac / 5070 sidecar / none
 - relevant KV/prefill policies
 - multiple workload classes
 - context checkpoints from short through the safe maximum
@@ -288,6 +343,8 @@ Scheduler rule:
 
 > choose the fastest certified configuration that safely fits current context + output reserve **and whose expected future savings exceed the measured transition cost**.
 
+For tree speculation, add rejection depth, alternate-parent recovery rate, tree node budget, and incremental verifier cost as scheduler inputs. A tree is eligible only when the expected hedge value repays its extra target rows.
+
 See [`research/DS4_ADAPTIVE_WATERFALL.md`](research/DS4_ADAPTIVE_WATERFALL.md) for the detailed phase-diagram and transition-matrix plan.
 
 ### DSpark fit and Metal wired-limit caution
@@ -300,6 +357,8 @@ DSpark is decode-only and need not remain resident during a large cold prefill. 
 2. release transient prefill buffers;
 3. load/warm DSpark or the selected compact MTP for decode;
 4. unload the drafter as context/memory pressure rises and fall back to a smaller drafter or target-only path.
+
+The 5070 sidecar adds another residency option: keep DSpark entirely off-Mac so the target-only Mac memory envelope can be preserved while speculation remains available.
 
 ## 7. Future 100B+ Qwen MoE on 2 x M1 Max 64GB (speculative until release)
 
@@ -503,7 +562,7 @@ For distributed appliances, the scheduler should be allowed to select topology/s
 7. Freeze hot-path shapes and begin M1-specific hardware-aware quant search, including critical-tensor precision/layout.
 8. Profile long-context degradation and choose adaptive thresholds / compaction policy; after the core decode/speculative path is stable, prototype Geodesia-inspired mixed-precision KV only where memory pressure justifies it.
 9. On the 5070 Ti, establish **UD-IQ4_XS Dynamic 3.0** no-MTP residency first; compare EXL3 4.00 as the CUDA speed control and N4_0/FlashRT-style alternatives for prefill/memory behavior.
-10. For two-node DeepSeek V4, tune in order: plain TP -> M=2..8 verifier -> small 0731 MTP -> DSpark -> PP equivalents -> context/workload phase diagram -> TP<->PP KV migration -> adaptive waterfall.
+10. For two-node DeepSeek V4, tune in order: plain TP -> M=2..8 verifier -> compact 5070 DSpark sidecar + linear M2/M3 -> **Micro-PCTree k2/N3..N8** -> small-MTP/other drafter controls -> PP equivalents -> context/workload phase diagram -> TP<->PP KV migration -> adaptive waterfall.
 11. Keep KV-aware QAT and agent-orchestration experiments as separate later branches once the core runtime is stable.
 
 ---
