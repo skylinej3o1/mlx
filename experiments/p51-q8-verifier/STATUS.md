@@ -1138,3 +1138,78 @@ Next:
 Retune lm_head geometry specifically for true verifier M=4
 rather than continuing to assume the D2/M3 NSG8 / BN4
 geometry transfers unchanged.
+
+## P55A — True-M4 lm_head NSG sweep
+
+P55A retuned the huge-N lm_head MSG geometry specifically
+for the current certified D3/M4 verifier configuration.
+
+Frozen regular-projection policy:
+
+- 17408x5120 -> K_PARTS=2
+- 5120x10240 -> K_PARTS=2
+- 5120x6144 -> K_PARTS=1
+- 5120x12288 -> K_PARTS=2
+- 5120x17408 -> K_PARTS=1
+
+lm_head BN remained fixed at BN4.
+
+All runs retained the identical deterministic trajectory:
+
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+NSG8 controls:
+
+- 18.499 tok/s / 147.194 ms/cycle
+- 18.533 tok/s / 147.049 ms/cycle
+- 18.484 tok/s / 147.248 ms/cycle
+- 18.476 tok/s / 147.285 ms/cycle
+
+NSG2:
+
+- 18.472 tok/s
+- 147.407 ms/cycle
+- -0.24% TG versus local NSG8 controls
+- +0.286 ms/cycle
+
+Rejected.
+
+NSG4:
+
+- 18.556 tok/s
+- 146.910 ms/cycle
+- +0.26% TG versus local NSG8 controls
+- -0.239 ms/cycle
+
+Best candidate.
+
+NSG16:
+
+- 18.507 tok/s
+- 147.118 ms/cycle
+- +0.15% TG
+- -0.149 ms/cycle
+
+Positive but smaller than NSG4.
+
+Interpretation:
+
+Because all configurations preserve the identical cycle count,
+acceptance statistics, and output hash, the NSG4 result is a
+clean lm_head kernel-geometry improvement rather than a
+speculative-trajectory effect.
+
+NSG4 is the P55A winner but the approximately +0.26% effect
+is small enough to require balanced repeated certification
+before promotion.
+
+New observed real-ruler peak:
+
+- 18.556 tok/s at 29,297 prompt tokens
+
+Next:
+
+Certify NSG4 versus NSG8 with balanced repeated runs while
+holding BN4 and the complete D3/M4 projection policy fixed.
