@@ -1045,3 +1045,96 @@ Next:
 Formally certify 5120x17408 K_PARTS=1 against the P54D M4
 champion using balanced repeated runs. Promotion requires a
 stable 186-cycle trajectory and a reproducible realized TG gain.
+
+## P54F — M4 5120x17408 KP1 certification
+
+P54F formally certified the P54E 5120x17408 K_PARTS=1
+candidate on top of the P54D rescued D3/M4 baseline.
+
+BASE policy:
+
+- fixed D3 / verifier M=4
+- full ALL-MEDIUM routing
+- 5120x6144: K_PARTS=1
+- 5120x17408: default K_PARTS=2
+- other routed regular projections: K_PARTS=2
+- lm_head NSG8 / BN4
+- frozen 29,297-token ruler
+
+TEST policy additionally used:
+
+- 5120x17408: K_PARTS=1
+
+Four balanced runs per configuration.
+
+BASE:
+
+- mean 18.453 tok/s
+- SD 0.015 tok/s
+- mean 146.754 ms/cycle
+- SD 0.121 ms/cycle
+- always 187 cycles
+- always accept 325/442
+- always hash f42ac9dd2bdf9d5a
+
+KP1:
+
+- mean 18.504 tok/s
+- SD 0.028 tok/s
+- mean 147.128 ms/cycle
+- SD 0.141 ms/cycle
+- always 186 cycles
+- always accept 325/442
+- always hash 101ae2aec9793dfe
+
+Delta:
+
+- +0.28% realized TG
+- +0.374 ms/backbone-cycle
+
+Interpretation:
+
+5120x17408 K_PARTS=1 is a small but reproducible
+trajectory-driven win.
+
+The alternate reduction ordering slightly increases the cost
+of each backbone cycle, but deterministically removes one
+speculative cycle.
+
+Approximate aggregate backbone cost:
+
+- BASE: 187 * 146.754 ms = 27.443 s
+- KP1: 186 * 147.128 ms = 27.366 s
+
+The approximately 77 ms aggregate saving is consistent with
+the observed end-to-end throughput improvement.
+
+Therefore 5120x17408:1 is promoted into the D3/M4 policy.
+
+Current certified D3/M4 champion:
+
+- mean 18.504 tok/s
+- SD 0.028 tok/s
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+Current shape policy:
+
+- 17408x5120 -> K_PARTS=2
+- 5120x10240 -> K_PARTS=2
+- 5120x6144 -> K_PARTS=1
+- 5120x12288 -> K_PARTS=2
+- 5120x17408 -> K_PARTS=1
+- lm_head -> NSG8 / BN4
+
+This exceeds the P53C D2/M3 certified mean of
+18.309 tok/s by approximately 1.07%.
+
+Observed real-ruler peak remains 18.540 tok/s.
+
+Next:
+
+Retune lm_head geometry specifically for true verifier M=4
+rather than continuing to assume the D2/M3 NSG8 / BN4
+geometry transfers unchanged.
