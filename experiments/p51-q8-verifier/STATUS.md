@@ -630,3 +630,84 @@ Next phase:
 
 Reopen D3/M4 using the verifier routing and per-shape lessons
 learned from the D2/M3 optimization campaign.
+
+## P54A — D3/M4 verifier-routing transfer
+
+P54A reopened fixed D3 / verifier M=4 using the routing
+lessons learned during the D2/M3 campaign.
+
+Configuration:
+
+- fixed speculative depth D3
+- verifier M=4
+- global regular-projection K_PARTS=2
+- no shape-specific K_PARTS overrides
+- lm_head NSG8 / BN4
+- frozen 29,297-token ruler
+
+M4 shape census confirmed the same important regular
+projection families seen at M3:
+
+- 17408x5120
+- 5120x10240
+- 5120x6144
+- 5120x12288
+- 5120x17408
+
+The default route threshold only admitted:
+
+- 5120x17408
+- 5120x248320 lm_head
+
+ALL-MEDIUM additionally routed:
+
+- 17408x5120
+- 5120x10240
+- 5120x6144
+- 5120x12288
+
+DEFAULT:
+
+- 14.084 tok/s / 187.606 ms/cycle
+- 14.067 tok/s / 187.715 ms/cycle
+- mean 14.075 tok/s
+- mean 187.661 ms/cycle
+- always 187 cycles
+- always accept 325/442
+- always hash f42ac9dd2bdf9d5a
+
+ALL-MEDIUM:
+
+- 16.028 tok/s / 155.118 ms/cycle
+- 16.707 tok/s / 151.007 ms/cycle
+- mean 16.367 tok/s
+- mean 153.062 ms/cycle
+- always 197 cycles
+- always accept 315/452
+- always hash f46220cfe4923fc1
+
+Realized delta:
+
+- +16.28% TG
+- -34.599 ms/backbone-cycle
+
+Interpretation:
+
+The D2 routing strategy transfers extremely strongly to M4.
+
+ALL-MEDIUM changes the deterministic numerical/speculative
+trajectory from 187 cycles to 197 cycles and reduces acceptance,
+yet the verifier-backbone latency reduction is large enough to
+overwhelm the additional speculative cycles and increase
+end-to-end throughput by more than 16%.
+
+Therefore the historical untuned D3/M4 result is no longer a
+useful estimate of optimized D3 performance.
+
+P54A establishes ALL-MEDIUM as the M4 routing baseline for the
+next phase.
+
+Next:
+
+Perform M4 subtractive per-shape routing attribution before
+reintroducing shape-specific split-K tuning.
