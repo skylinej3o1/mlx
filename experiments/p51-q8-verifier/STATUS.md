@@ -298,3 +298,30 @@ Conclusion:
 
 P52C is rejected as noise-level. Metal appears to already optimize
 the invariant qparam loads effectively.
+
+## P52D — MSG output tile width
+
+Q8 lm_head MSG output tile width was parameterized and tested
+at fixed NSG=8.
+
+BN4 bookend mean:
+
+- 17.059 tok/s
+- 136.240 ms/cycle
+
+Alternatives:
+
+- BN2: 16.888 tok/s, 137.437 ms/cycle
+- BN8: 16.817 tok/s, 138.088 ms/cycle
+
+Relative to BN4 mean:
+
+- BN2: -1.00% TG, +1.197 ms/cycle
+- BN8: -1.42% TG, +1.848 ms/cycle
+
+Both BN2 and BN8 were slower than both BN4 bookends.
+
+Conclusion:
+
+BN4 is retained. P52D is a strong negative result for alternate
+lm_head output tile widths.

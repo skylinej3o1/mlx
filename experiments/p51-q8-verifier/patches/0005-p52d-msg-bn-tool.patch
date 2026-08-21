@@ -1,0 +1,233 @@
+--- a/omlx/patches/qwen35_verify_qmm.py
++++ b/omlx/patches/qwen35_verify_qmm.py
+@@ -67,6 +67,19 @@
+     )
+ 
+ 
++_MSG_BN = int(
++    os.environ.get(
++        "OMLX_VERIFY_MSG_BN",
++        "4",
++    )
++)
++
++if _MSG_BN not in (2, 4, 8):
++    raise RuntimeError(
++        f"invalid OMLX_VERIFY_MSG_BN={_MSG_BN!r}"
++    )
++
++
+ # Only route projections with N >= this. The vk kernels beat stock qmm on GPU
+ # time at every eligible shape, but each ``mx.fast.metal_kernel`` invocation
+ # pays more Python/dispatch overhead than the built-in fast path. With ~330
+@@ -133,16 +146,16 @@
+ # ---------------------------------------------------------------------------
+ 
+ 
+-def _fma_block(m: int, bits: int) -> str:
++def _fma_block(m: int, bits: int, bn: int = 4) -> str:
+     per = 8 if bits == 4 else 4
+     mask = "0xFu" if bits == 4 else "0xFFu"
+     shift = 4 if bits == 4 else 8
+     lines = [f"for (int ki = 0; ki < {per}; ++ki) {{"]
+-    for j in range(4):
++    for j in range(bn):
+         lines.append(
+             f"    float w{j} = float((p{j} >> (ki * {shift})) & {mask}) * s{j} + b{j};"
+         )
+-    for j in range(4):
++    for j in range(bn):
+         for r in range(m):
+             lines.append(
+                 f"    acc[{j} * {m} + {r}] += "
+@@ -152,7 +165,7 @@
+     return "\n            ".join(lines)
+ 
+ 
+-def _build_msg_kernel(m: int, bits: int, group_size: int, dtype, nsg: int):
++def _build_msg_kernel(m: int, bits: int, group_size: int, dtype, nsg: int, bn: int):
+     import mlx.core as mx
+ 
+     hoist_qparams = (
+@@ -170,6 +183,7 @@
+         group_size,
+         dtype,
+         nsg,
++        bn,
+         hoist_qparams,
+     )
+     if key in _KERNEL_CACHE:
+@@ -177,7 +191,28 @@
+ 
+     xloads = "\n            ".join(
+         f"Vec8 v{r} = xv[({r} * K + k_base) / 8];" for r in range(m)
++    )
++    q8_p_loads = "\n                    ".join(
++        f"uint32_t p{j} = "
++        f"w_q[(n0 + {j}) * (K / 4) + pair * 2 + wsel];"
++        for j in range(bn)
++    )
++
++    q8_qparams = "\n                ".join(
++        [
++            *(
++                f"float s{j} = "
++                f"float(scales[(n0 + {j}) * K_by_gs + gi]);"
++                for j in range(bn)
++            ),
++            *(
++                f"float b{j} = "
++                f"float(biases[(n0 + {j}) * K_by_gs + gi]);"
++                for j in range(bn)
++            ),
++        ]
+     )
++
+     if bits == 4:
+         pack_setup = """
+             int k_base = pack * 8;
+@@ -211,31 +246,16 @@
+                 int gi = k_base / GS;
+                 {xloads}
+ 
+-                float s0 = float(scales[(n0 + 0) * K_by_gs + gi]);
+-                float s1 = float(scales[(n0 + 1) * K_by_gs + gi]);
+-                float s2 = float(scales[(n0 + 2) * K_by_gs + gi]);
+-                float s3 = float(scales[(n0 + 3) * K_by_gs + gi]);
++                {q8_qparams}
+ 
+-                float b0 = float(biases[(n0 + 0) * K_by_gs + gi]);
+-                float b1 = float(biases[(n0 + 1) * K_by_gs + gi]);
+-                float b2 = float(biases[(n0 + 2) * K_by_gs + gi]);
+-                float b3 = float(biases[(n0 + 3) * K_by_gs + gi]);
+-
+                 _Pragma("unroll")
+                 for (int wsel = 0; wsel < 2; ++wsel) {{
+                     int koff = wsel * 4;
+ 
+-                    uint32_t p0 =
+-                        w_q[(n0 + 0) * (K / 4) + pair * 2 + wsel];
+-                    uint32_t p1 =
+-                        w_q[(n0 + 1) * (K / 4) + pair * 2 + wsel];
+-                    uint32_t p2 =
+-                        w_q[(n0 + 2) * (K / 4) + pair * 2 + wsel];
+-                    uint32_t p3 =
+-                        w_q[(n0 + 3) * (K / 4) + pair * 2 + wsel];
++                    {q8_p_loads}
+ 
+                     _Pragma("unroll")
+-                    {_fma_block(m, 8)}
++                    {_fma_block(m, 8, bn)}
+                 }}
+             }}
+             """
+@@ -250,44 +270,22 @@
+                 for (int wsel = 0; wsel < 2; ++wsel) {{
+                     int koff = wsel * 4;
+ 
+-                    uint32_t p0 =
+-                        w_q[(n0 + 0) * (K / 4) + pair * 2 + wsel];
+-                    uint32_t p1 =
+-                        w_q[(n0 + 1) * (K / 4) + pair * 2 + wsel];
+-                    uint32_t p2 =
+-                        w_q[(n0 + 2) * (K / 4) + pair * 2 + wsel];
+-                    uint32_t p3 =
+-                        w_q[(n0 + 3) * (K / 4) + pair * 2 + wsel];
++                    {q8_p_loads}
+ 
+-                    float s0 =
+-                        float(scales[(n0 + 0) * K_by_gs + gi]);
+-                    float s1 =
+-                        float(scales[(n0 + 1) * K_by_gs + gi]);
+-                    float s2 =
+-                        float(scales[(n0 + 2) * K_by_gs + gi]);
+-                    float s3 =
+-                        float(scales[(n0 + 3) * K_by_gs + gi]);
++                    {q8_qparams}
+ 
+-                    float b0 =
+-                        float(biases[(n0 + 0) * K_by_gs + gi]);
+-                    float b1 =
+-                        float(biases[(n0 + 1) * K_by_gs + gi]);
+-                    float b2 =
+-                        float(biases[(n0 + 2) * K_by_gs + gi]);
+-                    float b3 =
+-                        float(biases[(n0 + 3) * K_by_gs + gi]);
+-
+                     _Pragma("unroll")
+-                    {_fma_block(m, 8)}
++                    {_fma_block(m, 8, bn)}
+                 }}
+             }}
+             """
+ 
+-    n_acc = 4 * m
++    n_acc = bn * m
+     source = f"""
+         using namespace metal;
+         constexpr int GS = {group_size};
+         constexpr int NSG = {nsg};
++        constexpr int BN = {bn};
+         constexpr int MROWS = {m};
+ 
+         uint sg = simdgroup_index_in_threadgroup;
+@@ -298,8 +296,8 @@
+         int N = int(N_size);
+         int K_by_p = {"K / 8" if bits == 4 else "K / 8"};
+         int K_by_gs = K / GS;
+-        int n0 = (int(tg_n) * NSG + int(sg)) * 4;
+-        if (n0 + 3 >= N) {{ return; }}
++        int n0 = (int(tg_n) * NSG + int(sg)) * BN;
++        if (n0 + BN - 1 >= N) {{ return; }}
+ 
+         float acc[{n_acc}];
+         _Pragma("unroll")
+@@ -317,16 +315,20 @@
+             acc[i] = simd_sum(acc[i]);
+         }}
+ 
+-        if (lane < {n_acc}) {{
+-            int j = int(lane) / MROWS;
+-            int row = int(lane) - j * MROWS;
+-            y[row * N + n0 + j] = T(acc[int(lane)]);
++        for (
++            int oi = int(lane);
++            oi < {n_acc};
++            oi += 32
++        ) {{
++            int j = oi / MROWS;
++            int row = oi - j * MROWS;
++            y[row * N + n0 + j] = T(acc[oi]);
+         }}
+     """
+ 
+     dtype_tag = {mx.bfloat16: "bf16", mx.float16: "fp16"}.get(dtype, "unk")
+     kernel = mx.fast.metal_kernel(
+-        name=f"omlx_vk_m{m}_q{bits}_nsg{nsg}_gs{group_size}_{dtype_tag}",
++        name=f"omlx_vk_m{m}_q{bits}_bn{bn}_nsg{nsg}_gs{group_size}_{dtype_tag}",
+         input_names=["x", "w_q", "scales", "biases", "K_size", "N_size"],
+         output_names=["y"],
+         source=source,
+@@ -509,10 +511,19 @@
+     N = int(w_q.shape[0])
+     m = 3 if M == 3 else (4 if M <= 4 else 6)
+ 
+-    if N >= 100000 and N % (4 * _MSG_NSG) == 0:
++    msg_bn = _MSG_BN if bits == 8 else 4
++
++    if N >= 100000 and N % (msg_bn * _MSG_NSG) == 0:
+         xm, M0 = _pad_rows(mx, x2, m)
+-        kernel = _build_msg_kernel(m, bits, group_size, x2.dtype, _MSG_NSG)
+-        cols = 4 * _MSG_NSG
++        kernel = _build_msg_kernel(
++            m,
++            bits,
++            group_size,
++            x2.dtype,
++            _MSG_NSG,
++            msg_bn,
++        )
++        cols = msg_bn * _MSG_NSG
+         (y,) = kernel(
+             inputs=[xm, w_q, scales, biases, K, N],
+             template=[("T", x2.dtype)],
