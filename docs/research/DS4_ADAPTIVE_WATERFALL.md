@@ -290,3 +290,55 @@ The scheduler should consume these measurements just as it consumes TPS and memo
 8. Implement the adaptive waterfall only after the individual paths are tuned and certified.
 
 The waterfall is the **integration layer after path tuning**, not a substitute for tuning each path independently.
+
+## Micro-PCTree / parent-conditioned branching — promoted 2026-08-21
+
+PCTree adds a new speculative-policy dimension: instead of committing DSpark's cheap conditional/Markov stage to one linear suffix, retain a small number of parent-conditioned alternatives so an early mismatch does not automatically invalidate all later draft work.
+
+Primary sources:
+
+- https://arxiv.org/abs/2608.02123
+- https://www.reddit.com/r/LocalLLaMA/comments/1vunqoz/llamacpp_dspark_pc_tree_fork_up_to_3295_faster/
+
+The public fork provides a useful systems warning: on an RTX 5090, a k4/N22 tree reported **higher acceptance but lower throughput** than k3/N16. It also reported that Qwen3.8-27B Q4 was worse with tested k2-k4 tree settings. Therefore the headline 3.1%-29.5% paper range is not a transferable speed prediction.
+
+For the two-M1 TB4 target, treat large PCTree batches as ineligible until proven otherwise. Introduce **Micro-PCTree**:
+
+- k=2 first;
+- N=3..8 initial tree-node budget;
+- root-only / first-uncertain-parent hedging;
+- asymmetric trees before broad/deep trees;
+- equal target-row budgets when comparing against linear DSpark;
+- scheduler objective remains `ms / committed target-verified token`.
+
+The 5070 Ti speculative sidecar is the preferred place to build and score the tiny tree. The M1 pair spends the scarce resource: authoritative distributed target verification.
+
+### Updated speculative ladder
+
+For the 5070-sidecar branch, refine the earlier ladder to:
+
+1. plain TP baseline and complete M=2..8 verifier-cost curve;
+2. compact 0731 DSpark sidecar bring-up;
+3. linear DSpark M2/M3 certification;
+4. **Micro-PCTree k2/N3**;
+5. sweep N=3..8, including root-only and asymmetric shapes;
+6. small/native 0731 MTP comparison;
+7. future compatible DFlash2 / lookup candidates;
+8. scheduler integration after paired certification.
+
+This ordering is specific to the sidecar experiment and does not invalidate testing a cheap MTP path during verifier development.
+
+### Additional scheduler inputs
+
+The waterfall should now be able to consume:
+
+- rejection-depth histogram;
+- recent alternate-parent recovery rate;
+- tree shape and node count;
+- incremental verifier cost per added node;
+- committed-token gain attributable to branching;
+- sidecar RTT and tree-construction latency.
+
+A tree candidate is eligible only if its expected hedge value exceeds its additional target-row/collective cost.
+
+Detailed design: [`DS4_MICRO_PCTREE.md`](DS4_MICRO_PCTREE.md).
