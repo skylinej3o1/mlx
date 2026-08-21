@@ -356,3 +356,42 @@ Conclusion:
 
 P52E rejected. Native float4 accumulator restructuring does not
 improve this M1 Max/Q8/M3 lm_head kernel.
+
+## P52F — GS64 qparam broadcast
+
+P52F specialized the Q8 / GS64 / M3 / BN4 lm_head kernel so
+each eight-lane cohort loaded shared scale/bias parameters once
+and distributed them with simd_shuffle.
+
+Balanced warmed results:
+
+BASE:
+- 17.956 tok/s / 130.251 ms/cycle
+- 17.890 tok/s / 130.710 ms/cycle
+- 17.934 tok/s / 130.376 ms/cycle
+- mean 17.927 tok/s / 130.445 ms/cycle
+
+BCAST:
+- 17.876 tok/s / 130.869 ms/cycle
+- 17.529 tok/s / 133.126 ms/cycle
+- 17.866 tok/s / 130.937 ms/cycle
+- mean 17.757 tok/s / 131.644 ms/cycle
+
+Delta:
+- -0.95% TG
+- +1.198 ms/cycle
+
+BCAST lost all three paired comparisons.
+
+All runs retained the same 217-cycle trajectory and
+f46220cfe4923fc1 output hash.
+
+Conclusion:
+
+P52F rejected. Cached qparam loads are cheaper than the added
+lane-selection and simd_shuffle machinery on this M1 Max.
+
+The BASE trio at 17.927 tok/s is the strongest tight local
+control cluster observed so far, but it is not promoted over
+the existing cross-session certification without additional
+certification.
