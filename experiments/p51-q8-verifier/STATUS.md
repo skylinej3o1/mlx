@@ -504,3 +504,55 @@ Status:
 Do not interpret the extra accepts as proof of higher model
 quality. Different split-reduction ordering perturbs floating
 point results and can change close greedy decisions.
+
+## P53D — NSG stack on UP-KP4
+
+P53D retested lm_head MSG NSG geometry with the P53C
+5120x17408 K_PARTS=4 winner enabled.
+
+All runs retained exactly:
+
+- 214 cycles
+- accept 297/392
+- hash 101ae2aec9793dfe
+
+Therefore this sweep provides a clean kernel-cost comparison
+without speculative-trajectory differences.
+
+Results:
+
+NSG8-A:
+- 18.325 tok/s
+- 129.466 ms/cycle
+
+NSG2:
+- 17.848 tok/s
+- 132.465 ms/cycle
+
+NSG4:
+- 18.309 tok/s
+- 129.503 ms/cycle
+
+NSG8-B:
+- 18.403 tok/s
+- 128.978 ms/cycle
+
+NSG8 bookend mean:
+- 18.364 tok/s
+- 129.222 ms/cycle
+
+Relative:
+
+- NSG2: -2.81% TG, +3.243 ms/cycle
+- NSG4: -0.30% TG, +0.281 ms/cycle
+
+Conclusion:
+
+NSG8 remains the lm_head winner when stacked with UP-KP4.
+NSG2 is decisively rejected. NSG4 is slightly slower than NSG8.
+
+New observed real-29.3K peak:
+- 18.403 tok/s
+
+P53C remains the formal performance-certification set because
+P53D contains only two NSG8 bookends.
