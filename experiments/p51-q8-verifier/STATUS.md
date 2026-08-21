@@ -243,3 +243,58 @@ P51I subtractive ablation showed all three added medium routes
 contribute, with 5120x10240 the largest contributor.
 
 P51J is the current warmed steady-state Q8 routing champion.
+
+## P52A-C — lm_head MSG reconnaissance
+
+P52A re-isolated the huge lm_head custom MSG path under
+ALL-MEDIUM routing.
+
+Observed means:
+
+- custom lm_head ON: 17.676 tok/s, 131.894 ms/cycle
+- projection-only: 17.215 tok/s, 135.245 ms/cycle
+
+Mean observed lm_head benefit:
+
+- +2.67% TG
+- -3.351 ms/cycle
+
+The paired deltas were noisy, so the exact lm_head benefit is not
+yet certified.
+
+P52B varied MSG simdgroups per threadgroup.
+
+NSG8 bookend mean:
+
+- 17.666 tok/s
+- 132.037 ms/cycle
+
+Results:
+
+- NSG1: 17.051 / 136.397 ms
+- NSG2: 17.733 / 131.541 ms
+- NSG4: 17.692 / 131.717 ms
+- NSG8: 17.666 / 132.037 ms bookend mean
+- NSG16: 17.459 / 133.192 ms
+
+Conclusion:
+
+- NSG1 and NSG16 are clearly worse.
+- NSG2/4/8 form a relatively flat optimum region.
+- NSG2 is an interesting scout but not a certified winner.
+
+P52C explicitly hoisted invariant Q8 scale/bias loads outside the
+two-half wsel loop.
+
+Results:
+
+- OFF: 16.925 tok/s, 137.239 ms/cycle
+- ON:  16.936 tok/s, 137.095 ms/cycle
+- delta: +0.06% TG, -0.145 ms/cycle
+
+Pairwise signs were mixed.
+
+Conclusion:
+
+P52C is rejected as noise-level. Metal appears to already optimize
+the invariant qparam loads effectively.

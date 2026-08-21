@@ -1,0 +1,149 @@
+--- a/omlx/patches/qwen35_verify_qmm.py
++++ b/omlx/patches/qwen35_verify_qmm.py
+@@ -54,8 +54,19 @@
+ _KERNEL_CACHE: dict = {}
+ _ROUTE_ARMED = threading.local()
+ 
+-_MSG_NSG = 8  # simdgroups per threadgroup for the msg (lm_head) kernel
++_MSG_NSG = int(
++    os.environ.get(
++        "OMLX_VERIFY_MSG_NSG",
++        "8",
++    )
++)
+ 
++if _MSG_NSG not in (1, 2, 4, 8, 16):
++    raise RuntimeError(
++        f"invalid OMLX_VERIFY_MSG_NSG={_MSG_NSG!r}"
++    )
++
++
+ # Only route projections with N >= this. The vk kernels beat stock qmm on GPU
+ # time at every eligible shape, but each ``mx.fast.metal_kernel`` invocation
+ # pays more Python/dispatch overhead than the built-in fast path. With ~330
+@@ -144,7 +155,23 @@
+ def _build_msg_kernel(m: int, bits: int, group_size: int, dtype, nsg: int):
+     import mlx.core as mx
+ 
+-    key = ("msg", m, bits, group_size, dtype, nsg)
++    hoist_qparams = (
++        os.environ.get(
++            "OMLX_VERIFY_MSG_HOIST_QPARAMS",
++            "",
++        ).strip().lower()
++        in ("1", "true", "yes", "on")
++    )
++
++    key = (
++        "msg",
++        m,
++        bits,
++        group_size,
++        dtype,
++        nsg,
++        hoist_qparams,
++    )
+     if key in _KERNEL_CACHE:
+         return _KERNEL_CACHE[key]
+ 
+@@ -177,32 +204,85 @@
+         }}
+         """
+     else:
+-        body = f"""
+-        for (int pair = int(lane); pair < K_by_p; pair += 32) {{
+-            int k_base = pair * 8;
+-            int gi = k_base / GS;
+-            {xloads}
+-            _Pragma("unroll")
+-            for (int wsel = 0; wsel < 2; ++wsel) {{
+-                int koff = wsel * 4;
+-                uint32_t p0 = w_q[(n0 + 0) * (K / 4) + pair * 2 + wsel];
+-                uint32_t p1 = w_q[(n0 + 1) * (K / 4) + pair * 2 + wsel];
+-                uint32_t p2 = w_q[(n0 + 2) * (K / 4) + pair * 2 + wsel];
+-                uint32_t p3 = w_q[(n0 + 3) * (K / 4) + pair * 2 + wsel];
++        if hoist_qparams:
++            body = f"""
++            for (int pair = int(lane); pair < K_by_p; pair += 32) {{
++                int k_base = pair * 8;
++                int gi = k_base / GS;
++                {xloads}
++
+                 float s0 = float(scales[(n0 + 0) * K_by_gs + gi]);
+                 float s1 = float(scales[(n0 + 1) * K_by_gs + gi]);
+                 float s2 = float(scales[(n0 + 2) * K_by_gs + gi]);
+                 float s3 = float(scales[(n0 + 3) * K_by_gs + gi]);
++
+                 float b0 = float(biases[(n0 + 0) * K_by_gs + gi]);
+                 float b1 = float(biases[(n0 + 1) * K_by_gs + gi]);
+                 float b2 = float(biases[(n0 + 2) * K_by_gs + gi]);
+                 float b3 = float(biases[(n0 + 3) * K_by_gs + gi]);
++
+                 _Pragma("unroll")
+-                {_fma_block(m, 8)}
++                for (int wsel = 0; wsel < 2; ++wsel) {{
++                    int koff = wsel * 4;
++
++                    uint32_t p0 =
++                        w_q[(n0 + 0) * (K / 4) + pair * 2 + wsel];
++                    uint32_t p1 =
++                        w_q[(n0 + 1) * (K / 4) + pair * 2 + wsel];
++                    uint32_t p2 =
++                        w_q[(n0 + 2) * (K / 4) + pair * 2 + wsel];
++                    uint32_t p3 =
++                        w_q[(n0 + 3) * (K / 4) + pair * 2 + wsel];
++
++                    _Pragma("unroll")
++                    {_fma_block(m, 8)}
++                }}
+             }}
+-        }}
+-        """
++            """
++        else:
++            body = f"""
++            for (int pair = int(lane); pair < K_by_p; pair += 32) {{
++                int k_base = pair * 8;
++                int gi = k_base / GS;
++                {xloads}
++
++                _Pragma("unroll")
++                for (int wsel = 0; wsel < 2; ++wsel) {{
++                    int koff = wsel * 4;
++
++                    uint32_t p0 =
++                        w_q[(n0 + 0) * (K / 4) + pair * 2 + wsel];
++                    uint32_t p1 =
++                        w_q[(n0 + 1) * (K / 4) + pair * 2 + wsel];
++                    uint32_t p2 =
++                        w_q[(n0 + 2) * (K / 4) + pair * 2 + wsel];
++                    uint32_t p3 =
++                        w_q[(n0 + 3) * (K / 4) + pair * 2 + wsel];
+ 
++                    float s0 =
++                        float(scales[(n0 + 0) * K_by_gs + gi]);
++                    float s1 =
++                        float(scales[(n0 + 1) * K_by_gs + gi]);
++                    float s2 =
++                        float(scales[(n0 + 2) * K_by_gs + gi]);
++                    float s3 =
++                        float(scales[(n0 + 3) * K_by_gs + gi]);
++
++                    float b0 =
++                        float(biases[(n0 + 0) * K_by_gs + gi]);
++                    float b1 =
++                        float(biases[(n0 + 1) * K_by_gs + gi]);
++                    float b2 =
++                        float(biases[(n0 + 2) * K_by_gs + gi]);
++                    float b3 =
++                        float(biases[(n0 + 3) * K_by_gs + gi]);
++
++                    _Pragma("unroll")
++                    {_fma_block(m, 8)}
++                }}
++            }}
++            """
++
+     n_acc = 4 * m
+     source = f"""
+         using namespace metal;
