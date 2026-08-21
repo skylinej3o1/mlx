@@ -556,3 +556,77 @@ New observed real-29.3K peak:
 
 P53C remains the formal performance-certification set because
 P53D contains only two NSG8 bookends.
+
+## P53E — Remaining per-shape K-parts
+
+P53E completed the D2/M3 exact-shape K_PARTS map while keeping
+the P53C winner 5120x17408:4 enabled.
+
+Baseline configuration:
+
+- 5120x17408: K_PARTS=4
+- all other regular verifier projections: default K_PARTS=2
+- lm_head: NSG8 / BN4
+
+BASE bookends:
+
+- 18.366 tok/s / 129.230 ms/cycle
+- 18.251 tok/s / 129.900 ms/cycle
+- mean 18.309 tok/s / 129.565 ms/cycle
+- always 214 cycles
+- always accept 297/392
+- always hash 101ae2aec9793dfe
+
+Additional shape tests:
+
+5120x6144 K_PARTS=1:
+- 18.034 tok/s
+- 129.724 ms/cycle
+- -1.50% realized TG
+- +0.158 ms/cycle
+- reverted to 217-cycle / f462 trajectory
+
+5120x6144 K_PARTS=4:
+- 18.056 tok/s
+- 129.526 ms/cycle
+- -1.38% realized TG
+- -0.039 ms/cycle
+- reverted to 217-cycle / f462 trajectory
+
+5120x12288 K_PARTS=1:
+- 18.069 tok/s
+- 129.432 ms/cycle
+- -1.31% realized TG
+- -0.133 ms/cycle
+- reverted to 217-cycle / f462 trajectory
+
+5120x12288 K_PARTS=4:
+- 18.327 tok/s
+- 129.422 ms/cycle
+- +0.10% realized TG
+- -0.143 ms/cycle
+- retained 214-cycle / 101ae trajectory
+
+Conclusion:
+
+No additional shape-specific K_PARTS override is promoted.
+
+The final D2/M3 verifier K_PARTS policy remains:
+
+- 5120x17408 -> K_PARTS=4
+- all other regular projections -> K_PARTS=2
+
+P53E closes the current D2/M3 per-shape K_PARTS search.
+
+Current D2/M3 performance state:
+
+- P53C certified mean: 18.309 tok/s at 29,297 prompt tokens
+- P53C SD: 0.064 tok/s
+- deterministic trajectory: 214 cycles, accept 297/392
+- observed peak to date: 18.403 tok/s
+- lm_head geometry retained: NSG8 / BN4
+
+Next phase:
+
+Reopen D3/M4 using the verifier routing and per-shape lessons
+learned from the D2/M3 optimization campaign.
