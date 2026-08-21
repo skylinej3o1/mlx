@@ -439,3 +439,68 @@ Observed full-ruler 18 tok/s crossings:
 - EXACT2 18.029 tok/s
 
 These are observed peaks, not a new cross-session certification.
+
+## P53B/C — Shape-specific K-parts
+
+P53B introduced exact-shape K_PARTS routing for the regular
+split-K verifier kernel.
+
+Scout result of interest:
+
+5120x17408 with K_PARTS=4:
+- 18.337 tok/s
+- 129.371 ms/cycle
+- 214 cycles
+- accept 297/392
+- hash 101ae2aec9793dfe
+
+Baseline bookend:
+- 17.943 tok/s
+- 130.356 ms/cycle
+- 217 cycles
+- accept 294/392
+- hash f46220cfe4923fc1
+
+P53C then ran a balanced 4+4 certification.
+
+BASE:
+- mean 18.029 tok/s
+- SD 0.063
+- mean 129.842 ms/cycle
+- SD 0.406
+- always 217 cycles
+- always accept 294/392
+- always hash f46220cfe4923fc1
+
+UP-KP4:
+- mean 18.309 tok/s
+- SD 0.064
+- mean 129.516 ms/cycle
+- SD 0.435
+- always 214 cycles
+- always accept 297/392
+- always hash 101ae2aec9793dfe
+
+Delta:
+- +1.55% realized TG
+- -0.325 ms/cycle
+
+Observed peak:
+- 18.360 tok/s at 29,297 prompt tokens
+
+Interpretation:
+
+The realized throughput gain is highly reproducible.
+
+Most of the gain comes from the deterministic numerical-path
+change reducing speculative cycles from 217 to 214. Raw kernel
+cost improves modestly by 0.325 ms/cycle.
+
+Status:
+- performance certification: PASS
+- deterministic trajectory: PASS
+- quality/equivalence certification: pending
+
+Do not interpret the extra accepts as proof of higher model
+quality. Different split-reduction ordering perturbs floating
+point results and can change close greedy decisions.

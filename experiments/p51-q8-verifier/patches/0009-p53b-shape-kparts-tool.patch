@@ -1,0 +1,79 @@
+--- a/omlx/patches/qwen35_verify_qmm.py
++++ b/omlx/patches/qwen35_verify_qmm.py
+@@ -132,6 +132,54 @@
+ )
+ 
+ 
++def _parse_shape_kparts(raw: str):
++    out = {}
++
++    for item in raw.split(","):
++        item = item.strip()
++
++        if not item:
++            continue
++
++        if ":" not in item:
++            raise RuntimeError(
++                f"invalid verifier KPARTS shape "
++                f"{item!r}; expected KxN:KP"
++            )
++
++        shape, kp_raw = item.split(":", 1)
++
++        parts = shape.lower().split("x")
++
++        if len(parts) != 2:
++            raise RuntimeError(
++                f"invalid verifier KPARTS shape "
++                f"{shape!r}; expected KxN"
++            )
++
++        k = int(parts[0])
++        n = int(parts[1])
++        kp = int(kp_raw)
++
++        if kp not in (1, 2, 4, 8):
++            raise RuntimeError(
++                f"invalid KPARTS {kp!r} "
++                f"for shape {shape!r}"
++            )
++
++        out[(k, n)] = kp
++
++    return out
++
++
++_VERIFY_SHAPE_KPARTS = _parse_shape_kparts(
++    os.environ.get(
++        "OMLX_VERIFY_KPARTS_SHAPES",
++        "",
++    )
++)
++
++
+ def set_verify_qmm_armed(flag: bool) -> None:
+     """Arm/disarm verify-qmm routing (MTP verify forwards only)."""
+     _ROUTE_ARMED.value = bool(flag)
+@@ -542,12 +590,21 @@
+         "",
+     ).strip()
+ 
++    shape_k_parts = _VERIFY_SHAPE_KPARTS.get(
++        (K, N)
++    )
++
+     if k_parts_env:
+         k_parts = int(k_parts_env)
++
+         if k_parts not in (1, 2, 4, 8):
+             raise RuntimeError(
+                 f"invalid OMLX_VERIFY_KPARTS={k_parts!r}"
+             )
++
++    elif shape_k_parts is not None:
++        k_parts = shape_k_parts
++
+     else:
+         k_parts = 2 if N >= 4096 else 4
+     kernel = _build_ksplit_kernel(m, bits, group_size, x2.dtype, k_parts=k_parts)
