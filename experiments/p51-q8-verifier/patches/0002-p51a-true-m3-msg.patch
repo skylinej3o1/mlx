@@ -1,0 +1,11 @@
+--- a/omlx/patches/qwen35_verify_qmm.py
++++ b/omlx/patches/qwen35_verify_qmm.py
+@@ -383,7 +383,7 @@
+     M = int(x2.shape[0])
+     K = int(x2.shape[1])
+     N = int(w_q.shape[0])
+-    m = 4 if M <= 4 else 6
++    m = 3 if M == 3 else (4 if M <= 4 else 6)
+ 
+     if N >= 100000 and N % (4 * _MSG_NSG) == 0:
+         xm, M0 = _pad_rows(mx, x2, m)

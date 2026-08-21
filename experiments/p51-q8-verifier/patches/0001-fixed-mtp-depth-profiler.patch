@@ -1,0 +1,17 @@
+--- a/omlx/patches/mlx_lm_mtp/batch_generator.py
++++ b/omlx/patches/mlx_lm_mtp/batch_generator.py
+@@ -2362,7 +2362,13 @@
+         state.chain = True
+         state.depth = depth
+         state.head_clone = head_clone
+-        if depth > 1:
++        if (
++            depth > 1
++            and os.environ.get(
++                "OMLX_MTP_FIXED_DEPTH", ""
++            ).strip().lower()
++            not in ("1", "true", "yes", "on")
++        ):
+             state.controller = _DepthController(
+                 depth,
+                 marginal_ms=getattr(
