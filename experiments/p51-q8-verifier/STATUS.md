@@ -803,3 +803,85 @@ Test per-shape K_PARTS alternatives on 5120x6144 and
 5120x10240 while retaining the full ALL-MEDIUM routing set,
 looking for a reduction ordering that preserves the kernel
 savings while recovering a lower-cycle speculative trajectory.
+
+## P54C — M4 K-parts trajectory rescue
+
+P54C tested shape-specific split-K alternatives on the two
+M4 routes implicated in the P54B numerical-path interaction.
+
+Configuration:
+
+- fixed D3 / verifier M=4
+- full ALL-MEDIUM routing
+- lm_head NSG8 / BN4
+- untouched regular projections default to K_PARTS=2
+- frozen 29,297-token ruler
+
+All KP2 controls retained:
+
+- 197 cycles
+- accept 315/452
+- hash f46220cfe4923fc1
+
+The control session showed substantial system-performance drift,
+so conclusions use local sandwich comparisons rather than
+cross-session absolute throughput.
+
+5120x6144 K_PARTS=1:
+
+- 17.512 tok/s
+- 151.435 ms/cycle
+- +7.65% TG versus local control
+- -2.206 ms/cycle
+- 187 cycles
+- accept 325/442
+- hash f42ac9dd2bdf9d5a
+
+5120x6144 K_PARTS=4:
+
+- 15.978 tok/s
+- 155.528 ms/cycle
+- -1.71% TG
+- +1.869 ms/cycle
+- retained 197-cycle / f462 trajectory
+
+5120x10240 K_PARTS=1:
+
+- 16.916 tok/s
+- 154.933 ms/cycle
+- +4.25% realized TG
+- +1.291 ms/cycle
+- 187 cycles
+- accept 325/442
+- hash f42ac9dd2bdf9d5a
+
+5120x10240 K_PARTS=4:
+
+- 16.886 tok/s
+- 155.072 ms/cycle
+- +2.87% realized TG
+- +2.615 ms/cycle
+- 187 cycles
+- accept 325/442
+- hash f42ac9dd2bdf9d5a
+
+Interpretation:
+
+5120x6144 K_PARTS=1 is the strongest trajectory-rescue
+candidate.
+
+It simultaneously restores the lower-cycle 187 / f42a
+speculative trajectory and improves raw verifier cost versus
+the surrounding full-ALL-MEDIUM KP2 controls.
+
+The 5120x10240 KP1 and KP4 alternatives also recover the
+187-cycle trajectory, but both increase raw verifier
+latency, making them inferior rescue candidates.
+
+5120x6144 K_PARTS=4 is rejected.
+
+Before promoting 5120x6144:1, directly compare it against
+leaving 5120x6144 unrouted. Both configurations are expected
+to share the same 187-cycle / f42a trajectory, allowing a
+clean kernel-cost certification without speculative-path
+confounding.
