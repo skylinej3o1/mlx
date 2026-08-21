@@ -1292,3 +1292,73 @@ Next:
 
 Retune lm_head BN specifically for true verifier M=4 with
 NSG8 fixed.
+
+## P55C — True-M4 lm_head BN sweep
+
+P55C completed true-M4 lm_head geometry retuning with
+NSG8 fixed and the certified D3/M4 regular-projection policy
+unchanged.
+
+All configurations retained the identical deterministic
+trajectory:
+
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+BN4 controls:
+
+- 18.458 tok/s / 147.353 ms/cycle
+- 18.411 tok/s / 147.600 ms/cycle
+- 18.531 tok/s / 147.028 ms/cycle
+
+BN2:
+
+- 18.347 tok/s
+- 148.522 ms/cycle
+- -0.47% TG versus local BN4 controls
+- +1.045 ms/cycle
+
+Rejected.
+
+BN8:
+
+- 18.392 tok/s
+- 148.197 ms/cycle
+- -0.43% TG versus local BN4 controls
+- +0.883 ms/cycle
+
+Rejected.
+
+Conclusion:
+
+BN4 remains the true-M4 lm_head tile-width policy.
+
+Together with P55B, the current M4 lm_head geometry remains:
+
+- NSG8
+- BN4
+
+No additional lm_head geometry change is promoted.
+
+Current certified D3/M4 champion remains:
+
+- 18.504 tok/s mean
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+Current regular projection policy:
+
+- 17408x5120 -> K_PARTS=2
+- 5120x10240 -> K_PARTS=2
+- 5120x6144 -> K_PARTS=1
+- 5120x12288 -> K_PARTS=2
+- 5120x17408 -> K_PARTS=1
+
+P55 closes the inherited lm_head parameter-retuning search.
+
+Next:
+
+Reopen D4/M5 and measure routing transfer before attempting
+new M5-specific kernel specialization.
