@@ -977,3 +977,71 @@ Next:
 Transfer the remaining high-value D2 per-shape K_PARTS
 lessons onto the certified D3/M4 rescue baseline, beginning
 with 5120x17408 and 17408x5120.
+
+## P54E — D2 K-parts transfer to rescued M4
+
+P54E tested selected D2 per-shape split-K lessons on top of
+the P54D certified D3/M4 rescue configuration.
+
+Baseline:
+
+- fixed D3 / verifier M=4
+- full ALL-MEDIUM routing
+- 5120x6144: K_PARTS=1
+- remaining regular routed shapes: default K_PARTS=2
+- lm_head NSG8 / BN4
+- frozen 29,297-token ruler
+
+Baseline controls were stable:
+
+- TG range 18.422 to 18.471 tok/s
+- BPC range 146.690 to 146.915 ms/cycle
+- always 187 cycles
+- always accept 325/442
+- always hash f42ac9dd2bdf9d5a
+
+17408x5120 K_PARTS=1:
+
+- 17.476 tok/s
+- 147.766 ms/cycle
+- -5.24% TG
+- +0.917 ms/cycle
+- 196 cycles
+- accept 316/450
+- hash f46220cfe4923fc1
+
+Rejected.
+
+5120x17408 K_PARTS=1:
+
+- 18.540 tok/s
+- 146.972 ms/cycle
+- +0.50% TG
+- +0.152 ms/cycle versus local baseline
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+This candidate is trajectory-driven rather than kernel-driven.
+It slightly increases raw backbone cost per cycle but removes
+one speculative cycle, producing a small realized TG gain.
+
+5120x17408 K_PARTS=4:
+
+- 17.630 tok/s
+- 146.495 ms/cycle
+- -4.45% TG
+- -0.277 ms/cycle
+- 196 cycles
+- accept 316/450
+- hash f46220cfe4923fc1
+
+Rejected.
+
+The D2 5120x17408 KP4 winner therefore does not transfer to M4.
+
+Next:
+
+Formally certify 5120x17408 K_PARTS=1 against the P54D M4
+champion using balanced repeated runs. Promotion requires a
+stable 186-cycle trajectory and a reproducible realized TG gain.
