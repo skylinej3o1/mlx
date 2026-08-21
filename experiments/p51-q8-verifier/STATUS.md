@@ -711,3 +711,95 @@ Next:
 
 Perform M4 subtractive per-shape routing attribution before
 reintroducing shape-specific split-K tuning.
+
+## P54B — M4 subtractive routing attribution
+
+P54B performed local-sandwich subtractive attribution on
+the P54A ALL-MEDIUM D3/M4 routing baseline.
+
+Configuration:
+
+- fixed D3 / verifier M=4
+- all regular routed projections at K_PARTS=2
+- lm_head NSG8 / BN4
+- frozen 29,297-token ruler
+
+Five interleaved ALL-MEDIUM controls were exceptionally stable:
+
+- TG range: 17.561 to 17.575 tok/s
+- backbone range: 146.382 to 146.468 ms/cycle
+- always 197 cycles
+- always accept 315/452
+- always hash f46220cfe4923fc1
+
+Subtractive attribution:
+
+17408x5120 removed:
+
+- 16.466 tok/s
+- 165.841 ms/cycle
+- -6.30% TG versus local ALL-MEDIUM control
+- +19.416 ms/cycle
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+5120x10240 removed:
+
+- 17.523 tok/s
+- 154.657 ms/cycle
+- -0.29% TG
+- +8.240 ms/cycle
+- 187 cycles
+- accept 325/442
+- hash f42ac9dd2bdf9d5a
+
+5120x6144 removed:
+
+- 17.985 tok/s
+- 150.501 ms/cycle
+- +2.37% TG
+- +4.076 ms/cycle
+- 187 cycles
+- accept 325/442
+- hash f42ac9dd2bdf9d5a
+
+5120x12288 removed:
+
+- 17.227 tok/s
+- 149.393 ms/cycle
+- -1.94% TG
+- +2.957 ms/cycle
+- retained 197 cycles
+- accept 315/452
+- hash f46220cfe4923fc1
+
+Interpretation:
+
+All four additional routes reduce raw M4 verifier cost.
+
+17408x5120 is the dominant route and is indispensable.
+
+5120x12288 is also a clean keeper: removing it worsens kernel
+cost without changing the speculative trajectory.
+
+5120x10240 and 5120x6144 show a numerical-path interaction.
+Removing either returns the same 187-cycle / f42a trajectory,
+while full ALL-MEDIUM uses the 197-cycle / f462 trajectory.
+
+Therefore 5120x6144 should not yet simply be removed from the
+optimized policy. Its custom route saves approximately
+4.1 ms/cycle, but the current K_PARTS=2 reduction ordering
+participates in a trajectory change large enough to make the
+route net-negative end to end.
+
+Likewise 5120x10240 saves approximately 8.2 ms/cycle, but its
+realized TG benefit is mostly cancelled by the same trajectory
+interaction.
+
+Next:
+
+Test per-shape K_PARTS alternatives on 5120x6144 and
+5120x10240 while retaining the full ALL-MEDIUM routing set,
+looking for a reduction ordering that preserves the kernel
+savings while recovering a lower-cycle speculative trajectory.
