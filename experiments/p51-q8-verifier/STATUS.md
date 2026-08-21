@@ -1213,3 +1213,82 @@ Next:
 
 Certify NSG4 versus NSG8 with balanced repeated runs while
 holding BN4 and the complete D3/M4 projection policy fixed.
+
+## P55B — True-M4 NSG4 certification
+
+P55B formally tested the P55A NSG4 lm_head candidate against
+the retained NSG8 geometry using balanced 4+4 runs.
+
+Common configuration:
+
+- fixed D3 / verifier M=4
+- current certified regular-projection routing policy
+- 5120x6144 -> K_PARTS=1
+- 5120x17408 -> K_PARTS=1
+- lm_head BN4
+- frozen 29,297-token ruler
+
+All eight runs retained the identical deterministic trajectory:
+
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+NSG8:
+
+- mean 18.499 tok/s
+- SD 0.032 tok/s
+- mean 147.202 ms/cycle
+- SD 0.092 ms/cycle
+
+NSG4:
+
+- mean 18.460 tok/s
+- SD 0.086 tok/s
+- mean 147.328 ms/cycle
+- SD 0.326 ms/cycle
+
+Delta:
+
+- -0.21% realized TG
+- +0.126 ms/backbone-cycle
+
+Conclusion:
+
+The P55A NSG4 scout win did not reproduce under balanced
+certification.
+
+Because trajectory, acceptance, and output hash were identical,
+this is a clean kernel-geometry rejection.
+
+NSG4 is rejected.
+
+NSG8 remains the true-M4 lm_head NSG policy.
+
+The substantially higher run-to-run variance observed under
+NSG4 explains the favorable single P55A scout result.
+
+NSG16 remains unpromoted. Its P55A signal was smaller than the
+NSG4 scout signal and does not currently justify separate
+certification.
+
+Current certified D3/M4 policy remains:
+
+- 17408x5120 -> K_PARTS=2
+- 5120x10240 -> K_PARTS=2
+- 5120x6144 -> K_PARTS=1
+- 5120x12288 -> K_PARTS=2
+- 5120x17408 -> K_PARTS=1
+- lm_head -> NSG8 / BN4
+
+Certified champion remains:
+
+- 18.504 tok/s
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+Next:
+
+Retune lm_head BN specifically for true verifier M=4 with
+NSG8 fixed.
