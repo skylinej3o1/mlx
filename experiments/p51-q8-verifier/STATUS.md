@@ -885,3 +885,95 @@ leaving 5120x6144 unrouted. Both configurations are expected
 to share the same 187-cycle / f42a trajectory, allowing a
 clean kernel-cost certification without speculative-path
 confounding.
+
+## P54D — 5120x6144 KP1 route certification
+
+P54D directly certified the P54C trajectory-rescue candidate
+against leaving 5120x6144 on stock qmm.
+
+Common configuration:
+
+- fixed D3 / verifier M=4
+- 17408x5120 custom routed
+- 5120x10240 custom routed
+- 5120x12288 custom routed
+- 5120x17408 custom routed at default KP2
+- lm_head NSG8 / BN4
+- frozen 29,297-token ruler
+
+STOCK left 5120x6144 unrouted.
+
+RESCUE custom routed 5120x6144 with K_PARTS=1.
+
+Four balanced runs per configuration:
+
+STOCK:
+
+- 17.976 tok/s / 150.611 ms/cycle
+- 18.017 tok/s / 150.474 ms/cycle
+- 18.034 tok/s / 150.358 ms/cycle
+- 17.971 tok/s / 150.578 ms/cycle
+
+Mean:
+
+- 17.999 tok/s
+- SD 0.031 tok/s
+- 150.505 ms/cycle
+- SD 0.114 ms/cycle
+
+RESCUE:
+
+- 18.469 tok/s / 146.688 ms/cycle
+- 18.489 tok/s / 146.656 ms/cycle
+- 18.455 tok/s / 146.841 ms/cycle
+- 18.447 tok/s / 146.890 ms/cycle
+
+Mean:
+
+- 18.465 tok/s
+- SD 0.018 tok/s
+- 146.769 ms/cycle
+- SD 0.114 ms/cycle
+
+Delta:
+
+- +2.59% realized TG
+- -3.736 ms/backbone-cycle
+
+All eight certification runs had the identical deterministic
+trajectory:
+
+- 187 cycles
+- accept 325/442
+- hash f42ac9dd2bdf9d5a
+
+Interpretation:
+
+5120x6144 K_PARTS=1 is a clean kernel-performance win.
+
+Unlike several earlier split-K experiments, the realized
+throughput improvement is not caused by a numerical-path
+change. STOCK and RESCUE have identical cycle counts,
+acceptance statistics, and final output hashes.
+
+Therefore 5120x6144:1 is promoted into the D3/M4 verifier
+policy.
+
+Current D3/M4 champion:
+
+- mean 18.465 tok/s
+- SD 0.018 tok/s
+- mean 146.769 ms/backbone-cycle
+- 187 cycles
+- 325/442 accepts
+- hash f42ac9dd2bdf9d5a
+- observed peak 18.489 tok/s
+
+This exceeds the previous P53C D2/M3 certified mean of
+18.309 tok/s on the same frozen real ruler.
+
+Next:
+
+Transfer the remaining high-value D2 per-shape K_PARTS
+lessons onto the certified D3/M4 rescue baseline, beginning
+with 5120x17408 and 17408x5120.
