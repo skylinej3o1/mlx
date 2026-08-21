@@ -1,0 +1,340 @@
+--- a/omlx/patches/qwen35_verify_qmm.py
++++ b/omlx/patches/qwen35_verify_qmm.py
+@@ -335,8 +335,272 @@
+     )
+     _KERNEL_CACHE[key] = kernel
+     return kernel
++
++
++
++def _build_msg_q8_m3_exact_kernel(dtype, nsg: int):
++    """Exact Q8 GS64 M3 K5120 N248320 BN4 lm_head kernel."""
++    import mlx.core as mx
++
++    key = (
++        "msg_exact",
++        3,
++        8,
++        64,
++        5120,
++        248320,
++        dtype,
++        nsg,
++    )
++
++    if key in _KERNEL_CACHE:
++        return _KERNEL_CACHE[key]
++
++    source = r"""
++        using namespace metal;
++
++        constexpr int K = 5120;
++        constexpr int N = 248320;
++
++        constexpr int K_BY_P = 640;
++        constexpr int K_BY_W = 1280;
++        constexpr int K_BY_GS = 80;
++
++        constexpr int NSG = __NSG__;
++
++        uint sg =
++            simdgroup_index_in_threadgroup;
++
++        uint lane =
++            thread_index_in_simdgroup;
++
++        uint tg_n =
++            threadgroup_position_in_grid.y;
++
++        int n0 =
++            (
++                int(tg_n) * NSG
++                + int(sg)
++            ) * 4;
++
++        float acc[12];
++
++        _Pragma("unroll")
++        for (int i = 0; i < 12; ++i) {
++            acc[i] = 0.0f;
++        }
++
++        using Vec8 = vec<T, 8>;
++
++        const device Vec8 *xv =
++            (const device Vec8*)x;
++
++        for (
++            int pair = int(lane);
++            pair < K_BY_P;
++            pair += 32
++        ) {
++            /*
++             * pair is already the Vec8 index within a row.
++             * Three M=3 rows occupy exactly 640 Vec8s each.
++             */
++            Vec8 v0 = xv[pair];
++            Vec8 v1 = xv[640 + pair];
++            Vec8 v2 = xv[1280 + pair];
++
++            int gi = pair >> 3;
++
++            _Pragma("unroll")
++            for (
++                int wsel = 0;
++                wsel < 2;
++                ++wsel
++            ) {
++                int koff = wsel * 4;
++                int wi = pair * 2 + wsel;
+ 
++                uint32_t p0 =
++                    w_q[
++                        (n0 + 0) * K_BY_W
++                        + wi
++                    ];
+ 
++                uint32_t p1 =
++                    w_q[
++                        (n0 + 1) * K_BY_W
++                        + wi
++                    ];
++
++                uint32_t p2 =
++                    w_q[
++                        (n0 + 2) * K_BY_W
++                        + wi
++                    ];
++
++                uint32_t p3 =
++                    w_q[
++                        (n0 + 3) * K_BY_W
++                        + wi
++                    ];
++
++                float s0 = float(
++                    scales[
++                        (n0 + 0) * K_BY_GS
++                        + gi
++                    ]
++                );
++
++                float s1 = float(
++                    scales[
++                        (n0 + 1) * K_BY_GS
++                        + gi
++                    ]
++                );
++
++                float s2 = float(
++                    scales[
++                        (n0 + 2) * K_BY_GS
++                        + gi
++                    ]
++                );
++
++                float s3 = float(
++                    scales[
++                        (n0 + 3) * K_BY_GS
++                        + gi
++                    ]
++                );
++
++                float b0 = float(
++                    biases[
++                        (n0 + 0) * K_BY_GS
++                        + gi
++                    ]
++                );
++
++                float b1 = float(
++                    biases[
++                        (n0 + 1) * K_BY_GS
++                        + gi
++                    ]
++                );
++
++                float b2 = float(
++                    biases[
++                        (n0 + 2) * K_BY_GS
++                        + gi
++                    ]
++                );
++
++                float b3 = float(
++                    biases[
++                        (n0 + 3) * K_BY_GS
++                        + gi
++                    ]
++                );
++
++                _Pragma("unroll")
++                for (int ki = 0; ki < 4; ++ki) {
++                    int shift = ki * 8;
++
++                    float w0 =
++                        float(
++                            (p0 >> shift)
++                            & 0xFFu
++                        ) * s0 + b0;
++
++                    float w1 =
++                        float(
++                            (p1 >> shift)
++                            & 0xFFu
++                        ) * s1 + b1;
++
++                    float w2 =
++                        float(
++                            (p2 >> shift)
++                            & 0xFFu
++                        ) * s2 + b2;
++
++                    float w3 =
++                        float(
++                            (p3 >> shift)
++                            & 0xFFu
++                        ) * s3 + b3;
++
++                    int xi = ki + koff;
++
++                    float a0 = float(v0[xi]);
++                    float a1 = float(v1[xi]);
++                    float a2 = float(v2[xi]);
++
++                    acc[0] += a0 * w0;
++                    acc[1] += a1 * w0;
++                    acc[2] += a2 * w0;
++
++                    acc[3] += a0 * w1;
++                    acc[4] += a1 * w1;
++                    acc[5] += a2 * w1;
++
++                    acc[6] += a0 * w2;
++                    acc[7] += a1 * w2;
++                    acc[8] += a2 * w2;
++
++                    acc[9]  += a0 * w3;
++                    acc[10] += a1 * w3;
++                    acc[11] += a2 * w3;
++                }
++            }
++        }
++
++        _Pragma("unroll")
++        for (int i = 0; i < 12; ++i) {
++            acc[i] = simd_sum(acc[i]);
++        }
++
++        if (lane < 12) {
++            int j = int(lane) / 3;
++            int row =
++                int(lane) - j * 3;
++
++            y[
++                row * N
++                + n0
++                + j
++            ] = T(acc[int(lane)]);
++        }
++    """
++
++    source = source.replace(
++        "__NSG__",
++        str(nsg),
++    )
++
++    dtype_tag = {
++        mx.bfloat16: "bf16",
++        mx.float16: "fp16",
++    }.get(dtype, "unk")
++
++    kernel = mx.fast.metal_kernel(
++        name=(
++            f"omlx_vk_exact_m3_q8_"
++            f"k5120_n248320_"
++            f"nsg{nsg}_gs64_{dtype_tag}"
++        ),
++        input_names=[
++            "x",
++            "w_q",
++            "scales",
++            "biases",
++        ],
++        output_names=["y"],
++        source=source,
++    )
++
++    _KERNEL_CACHE[key] = kernel
++
++    return kernel
++
++
+ # ---------------------------------------------------------------------------
+ # split-K kernel — default.
+ # ---------------------------------------------------------------------------
+@@ -515,17 +779,56 @@
+ 
+     if N >= 100000 and N % (msg_bn * _MSG_NSG) == 0:
+         xm, M0 = _pad_rows(mx, x2, m)
+-        kernel = _build_msg_kernel(
+-            m,
+-            bits,
+-            group_size,
+-            x2.dtype,
+-            _MSG_NSG,
+-            msg_bn,
++        use_exact_m3 = (
++            bits == 8
++            and group_size == 64
++            and M == 3
++            and m == 3
++            and K == 5120
++            and N == 248320
++            and msg_bn == 4
++            and os.environ.get(
++                "OMLX_VERIFY_MSG_EXACT_M3",
++                "",
++            ).strip().lower()
++            in ("1", "true", "yes", "on")
+         )
++
++        if use_exact_m3:
++            kernel = _build_msg_q8_m3_exact_kernel(
++                x2.dtype,
++                _MSG_NSG,
++            )
++
++            kernel_inputs = [
++                xm,
++                w_q,
++                scales,
++                biases,
++            ]
++        else:
++            kernel = _build_msg_kernel(
++                m,
++                bits,
++                group_size,
++                x2.dtype,
++                _MSG_NSG,
++                msg_bn,
++            )
++
++            kernel_inputs = [
++                xm,
++                w_q,
++                scales,
++                biases,
++                K,
++                N,
++            ]
++
+         cols = msg_bn * _MSG_NSG
++
+         (y,) = kernel(
+-            inputs=[xm, w_q, scales, biases, K, N],
++            inputs=kernel_inputs,
+             template=[("T", x2.dtype)],
+             grid=(32 * _MSG_NSG, (N + cols - 1) // cols, 1),
+             threadgroup=(32 * _MSG_NSG, 1, 1),

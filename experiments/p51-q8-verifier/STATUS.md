@@ -395,3 +395,47 @@ The BASE trio at 17.927 tok/s is the strongest tight local
 control cluster observed so far, but it is not promoted over
 the existing cross-session certification without additional
 certification.
+
+## P53A — Exact lm_head specialization
+
+The Q8 M3 lm_head kernel was specialized to the exact hot shape:
+
+- M=3
+- K=5120
+- N=248320
+- Q8
+- GS64
+- BN4
+
+Balanced warmed results:
+
+GEN:
+- 17.853 / 130.933 ms/cycle
+- 18.040 / 129.708 ms/cycle
+- 17.974 / 130.170 ms/cycle
+- mean 17.956 / 130.270 ms/cycle
+
+EXACT:
+- 17.906 / 130.568 ms/cycle
+- 18.029 / 129.841 ms/cycle
+- 17.950 / 130.295 ms/cycle
+- mean 17.962 / 130.235 ms/cycle
+
+Delta:
+- +0.03% TG
+- -0.035 ms/cycle
+
+All runs retained 217 cycles and
+f46220cfe4923fc1 output hash.
+
+Conclusion:
+
+P53A is noise-level and rejected. Exact K/N compile-time
+specialization does not materially improve the current lm_head
+kernel.
+
+Observed full-ruler 18 tok/s crossings:
+- GEN2 18.040 tok/s
+- EXACT2 18.029 tok/s
+
+These are observed peaks, not a new cross-session certification.
