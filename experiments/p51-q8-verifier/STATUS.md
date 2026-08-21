@@ -215,3 +215,31 @@ Current routing champion:
 - default routes
 - plus exact K=17408 -> N=5120
 - 16.455 tok/s observed at real 29.3K context
+
+## P51J — Warmed routing certification
+
+Warmed paired certification at the frozen 29,297-token ruler:
+
+- default routing:
+  - mean TG 15.539 tok/s
+  - mean backbone 149.984 ms/cycle
+- ALL-MEDIUM:
+  - mean TG 16.898 tok/s
+  - mean backbone 137.409 ms/cycle
+
+Certified routing delta:
+
+- +8.74% TG
+- -8.38% backbone/cycle
+
+ALL-MEDIUM exact routes:
+
+- 17408x5120
+- 5120x10240
+- 5120x6144
+- 5120x12288
+
+P51I subtractive ablation showed all three added medium routes
+contribute, with 5120x10240 the largest contributor.
+
+P51J is the current warmed steady-state Q8 routing champion.
