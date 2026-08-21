@@ -1,0 +1,191 @@
+--- a/omlx/patches/qwen35_verify_qmm.py
++++ b/omlx/patches/qwen35_verify_qmm.py
+@@ -46,6 +46,7 @@
+ from __future__ import annotations
+ 
+ import logging
++import os
+ import threading
+ 
+ logger = logging.getLogger(__name__)
+@@ -62,6 +63,49 @@
+ # (~1.0x GPU win) costs more on the CPU than it saves; the large-N shapes are
+ # few calls with real wins (lm_head 2.6-3.3x at M=3-4).
+ _MIN_ROUTE_N = 16384
++
++_EXTRA_ROUTE_NS = frozenset(
++    int(v.strip())
++    for v in os.environ.get(
++        "OMLX_VERIFY_EXTRA_N",
++        "",
++    ).split(",")
++    if v.strip()
++)
++
++
++def _parse_extra_shapes(raw: str):
++    out = set()
++
++    for item in raw.split(","):
++        item = item.strip()
++
++        if not item:
++            continue
++
++        parts = item.lower().split("x")
++
++        if len(parts) != 2:
++            raise RuntimeError(
++                f"invalid verifier shape {item!r}; expected KxN"
++            )
++
++        out.add(
++            (
++                int(parts[0]),
++                int(parts[1]),
++            )
++        )
++
++    return frozenset(out)
++
++
++_EXTRA_ROUTE_SHAPES = _parse_extra_shapes(
++    os.environ.get(
++        "OMLX_VERIFY_EXTRA_SHAPES",
++        "",
++    )
++)
+ 
+ 
+ def set_verify_qmm_armed(flag: bool) -> None:
+@@ -402,7 +446,19 @@
+     # Small M gets a dedicated template (fewer wasted accumulators).
+     m = max(2, min(6, M))
+     xm, M0 = _pad_rows(mx, x2, m)
+-    k_parts = 2 if N >= 4096 else 4
++    k_parts_env = os.environ.get(
++        "OMLX_VERIFY_KPARTS",
++        "",
++    ).strip()
++
++    if k_parts_env:
++        k_parts = int(k_parts_env)
++        if k_parts not in (1, 2, 4, 8):
++            raise RuntimeError(
++                f"invalid OMLX_VERIFY_KPARTS={k_parts!r}"
++            )
++    else:
++        k_parts = 2 if N >= 4096 else 4
+     kernel = _build_ksplit_kernel(m, bits, group_size, x2.dtype, k_parts=k_parts)
+     (y,) = kernel(
+         inputs=[xm, w_q, scales, biases, K, N],
+@@ -428,7 +484,11 @@
+         and 3 <= int(M) <= 6
+         and int(K) % 64 == 0
+         and int(N) % 4 == 0
+-        and int(N) >= _MIN_ROUTE_N
++        and (
++            int(N) >= _MIN_ROUTE_N
++            or int(N) in _EXTRA_ROUTE_NS
++            or (int(K), int(N)) in _EXTRA_ROUTE_SHAPES
++        )
+     )
+ 
+ 
+@@ -437,8 +497,32 @@
+ # ---------------------------------------------------------------------------
+ 
+ _QL_PATCHED = False
++_P51D_SEEN_SHAPES = set()
++
++
++def _route_mode_allows(n: int) -> bool:
++    mode = os.environ.get(
++        "OMLX_VERIFY_QMM_MODE",
++        "all",
++    ).strip().lower()
+ 
++    if mode in ("", "all"):
++        return True
++    if mode == "off":
++        return False
+ 
++    huge_n = int(n) >= 100000
++
++    if mode == "lm_head":
++        return huge_n
++    if mode == "proj":
++        return not huge_n
++
++    raise RuntimeError(
++        f"invalid OMLX_VERIFY_QMM_MODE={mode!r}"
++    )
++
++
+ def apply_verify_qmm_patch() -> bool:
+     """Route verify-shaped ``nn.QuantizedLinear`` calls to the vk kernels.
+ 
+@@ -463,11 +547,63 @@
+ 
+     def patched_call(self, x):
+         if (
++            os.environ.get(
++                "OMLX_VERIFY_TRACE_SHAPES",
++                "",
++            ).strip().lower()
++            in ("1", "true", "yes", "on")
++            and _is_armed()
++            and x.ndim == 3
++            and x.shape[0] == 1
++        ):
++            m0 = int(x.shape[1])
++            k0 = int(x.shape[-1])
++            n0 = int(self.scales.shape[0])
++            bits0 = int(self.bits)
++            gs0 = int(self.group_size)
++
++            sig = (
++                m0,
++                k0,
++                n0,
++                bits0,
++                gs0,
++                str(x.dtype),
++            )
++
++            if sig not in _P51D_SEEN_SHAPES:
++                _P51D_SEEN_SHAPES.add(sig)
++
++                eligible0 = vk_eligible(
++                    m0,
++                    k0,
++                    n0,
++                    bits0,
++                    gs0,
++                    x.dtype,
++                )
++
++                logger.info(
++                    "P51D_SHAPE M=%d K=%d N=%d "
++                    "bits=%d gs=%d dtype=%s "
++                    "eligible=%s huge=%s",
++                    m0,
++                    k0,
++                    n0,
++                    bits0,
++                    gs0,
++                    x.dtype,
++                    eligible0,
++                    n0 >= 100000,
++                )
++
++        if (
+             _is_armed()
+             and x.ndim == 3
+             and x.shape[0] == 1
+             and 2 <= x.shape[1] <= 6
+             and getattr(self, "mode", "affine") == "affine"
++            and _route_mode_allows(self.scales.shape[0])
+             and vk_eligible(
+                 x.shape[1],
+                 x.shape[-1],

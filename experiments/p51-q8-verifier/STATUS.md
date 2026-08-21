@@ -129,3 +129,89 @@ Fixed D2 / verifier M=3 is the optimization target.
 
 The main bottleneck is target verifier/backbone latency, not MTP-head cost.
 Next work should characterize and optimize the M=3 verifier projection paths.
+
+## P51B-P51F routing discoveries
+
+### P51B route attribution
+
+Fixed D2 at ~29.3K:
+
+- stock verifier QMM routes off: 13.429 tok/s
+- lm_head route only: 13.747 tok/s
+- projection routes only: 14.999 tok/s
+- all custom routes: 15.608 / 15.798 tok/s bookends
+
+Custom verifier QMM routing saves roughly 24 ms/backbone-cycle versus stock.
+Most of the gain comes from ordinary projection routing.
+
+### P51C global split-K sweep
+
+K_PARTS 1/4/8 did not beat K_PARTS=2.
+The sweep also exposed transient system-performance drift.
+Keep K_PARTS=2.
+
+### P51D shape census
+
+At verifier M=3, the default N >= 16384 floor routes only:
+
+- K=5120 -> N=17408
+- K=5120 -> N=248320 (lm_head)
+
+Important excluded families include N=12288, 10240, 6144, and 5120.
+
+### P51E extra-N scout
+
+Stable baseline mean:
+
+- 15.800 tok/s
+- ~148.51 ms backbone/cycle
+
+Results:
+
+- N=12288: 15.949 tok/s
+- N=10240: 16.186 tok/s
+- N=6144: 16.033 tok/s
+- N=5120: 16.308 tok/s
+
+### P51F exact N=5120 decomposition
+
+Stable baseline mean:
+
+- 15.7695 tok/s
+- ~148.71 ms backbone/cycle
+
+K=17408 -> N=5120:
+
+- 16.455 tok/s
+- ~141.22 ms backbone/cycle
+- ~7.49 ms/cycle saved
+- +4.35% TG versus bookend baseline
+- KEEP
+
+K=6144 -> N=5120:
+
+- 16.355 tok/s alone
+- changed trajectory to 214 cycles / 2.39 tok/cycle
+
+Both N=5120 shapes:
+
+- 16.288 tok/s
+- ~142.25 ms backbone/cycle
+
+Broad N=5120 control:
+
+- 16.295 tok/s
+- ~142.23 ms backbone/cycle
+
+The exact-two-shape route and broad N=5120 control match closely,
+validating the exact-shape routing gate.
+
+Adding K=6144 -> N=5120 on top of K=17408 -> N=5120 makes the
+same f462 trajectory slower by about 1 ms/backbone-cycle.
+
+Current routing champion:
+
+- fixed D2 / verifier M=3
+- default routes
+- plus exact K=17408 -> N=5120
+- 16.455 tok/s observed at real 29.3K context
