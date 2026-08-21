@@ -1,0 +1,250 @@
+--- a/omlx/patches/qwen35_verify_qmm.py
++++ b/omlx/patches/qwen35_verify_qmm.py
+@@ -335,8 +335,206 @@
+     )
+     _KERNEL_CACHE[key] = kernel
+     return kernel
++
++
++
++def _build_msg_vec4_kernel(
++    m: int,
++    group_size: int,
++    dtype,
++    nsg: int,
++):
++    """Q8/BN4 MSG kernel using float4 accumulators across N."""
++    import mlx.core as mx
++
++    key = (
++        "msg_vec4",
++        m,
++        8,
++        group_size,
++        dtype,
++        nsg,
++    )
++
++    if key in _KERNEL_CACHE:
++        return _KERNEL_CACHE[key]
++
++    acc_decl = "\n        ".join(
++        f"float4 acc{r} = float4(0.0f);"
++        for r in range(m)
++    )
++
++    xloads = "\n            ".join(
++        f"Vec8 v{r} = xv[({r} * K + k_base) / 8];"
++        for r in range(m)
++    )
++
++    fmas = "\n                    ".join(
++        f"acc{r} += float(v{r}[ki + koff]) * wv;"
++        for r in range(m)
++    )
++
++    reductions = "\n        ".join(
++        f"""float4 sum{r} = float4(
++            simd_sum(acc{r}.x),
++            simd_sum(acc{r}.y),
++            simd_sum(acc{r}.z),
++            simd_sum(acc{r}.w)
++        );"""
++        for r in range(m)
++    )
++
++    writes = "\n            ".join(
++        f"""y[{r} * N + n0 + 0] = T(sum{r}.x);
++            y[{r} * N + n0 + 1] = T(sum{r}.y);
++            y[{r} * N + n0 + 2] = T(sum{r}.z);
++            y[{r} * N + n0 + 3] = T(sum{r}.w);"""
++        for r in range(m)
++    )
++
++    source = f"""
++        using namespace metal;
+ 
++        constexpr int GS = {group_size};
++        constexpr int NSG = {nsg};
+ 
++        uint sg = simdgroup_index_in_threadgroup;
++        uint lane = thread_index_in_simdgroup;
++        uint tg_n = threadgroup_position_in_grid.y;
++
++        int K = int(K_size);
++        int N = int(N_size);
++
++        int K_by_p = K / 8;
++        int K_by_gs = K / GS;
++
++        int n0 =
++            (int(tg_n) * NSG + int(sg)) * 4;
++
++        if (n0 + 3 >= N) {{
++            return;
++        }}
++
++        {acc_decl}
++
++        using Vec8 = vec<T, 8>;
++        const device Vec8 *xv =
++            (const device Vec8*)x;
++
++        for (
++            int pair = int(lane);
++            pair < K_by_p;
++            pair += 32
++        ) {{
++            int k_base = pair * 8;
++            int gi = k_base / GS;
++
++            {xloads}
++
++            _Pragma("unroll")
++            for (int wsel = 0; wsel < 2; ++wsel) {{
++                int koff = wsel * 4;
++                int shbase = pair * 2 + wsel;
++
++                uint32_t p0 =
++                    w_q[(n0 + 0) * (K / 4) + shbase];
++                uint32_t p1 =
++                    w_q[(n0 + 1) * (K / 4) + shbase];
++                uint32_t p2 =
++                    w_q[(n0 + 2) * (K / 4) + shbase];
++                uint32_t p3 =
++                    w_q[(n0 + 3) * (K / 4) + shbase];
++
++                float4 sv = float4(
++                    float(scales[
++                        (n0 + 0) * K_by_gs + gi
++                    ]),
++                    float(scales[
++                        (n0 + 1) * K_by_gs + gi
++                    ]),
++                    float(scales[
++                        (n0 + 2) * K_by_gs + gi
++                    ]),
++                    float(scales[
++                        (n0 + 3) * K_by_gs + gi
++                    ])
++                );
++
++                float4 bv = float4(
++                    float(biases[
++                        (n0 + 0) * K_by_gs + gi
++                    ]),
++                    float(biases[
++                        (n0 + 1) * K_by_gs + gi
++                    ]),
++                    float(biases[
++                        (n0 + 2) * K_by_gs + gi
++                    ]),
++                    float(biases[
++                        (n0 + 3) * K_by_gs + gi
++                    ])
++                );
++
++                _Pragma("unroll")
++                for (int ki = 0; ki < 4; ++ki) {{
++                    int shift = ki * 8;
++
++                    float4 qv = float4(
++                        float(
++                            (p0 >> shift) & 0xFFu
++                        ),
++                        float(
++                            (p1 >> shift) & 0xFFu
++                        ),
++                        float(
++                            (p2 >> shift) & 0xFFu
++                        ),
++                        float(
++                            (p3 >> shift) & 0xFFu
++                        )
++                    );
++
++                    float4 wv =
++                        qv * sv + bv;
++
++                    {fmas}
++                }}
++            }}
++        }}
++
++        {reductions}
++
++        if (lane == 0) {{
++            {writes}
++        }}
++    """
++
++    dtype_tag = {
++        mx.bfloat16: "bf16",
++        mx.float16: "fp16",
++    }.get(dtype, "unk")
++
++    kernel = mx.fast.metal_kernel(
++        name=(
++            f"omlx_vk_vec4_m{m}_q8_"
++            f"nsg{nsg}_gs{group_size}_{dtype_tag}"
++        ),
++        input_names=[
++            "x",
++            "w_q",
++            "scales",
++            "biases",
++            "K_size",
++            "N_size",
++        ],
++        output_names=["y"],
++        source=source,
++    )
++
++    _KERNEL_CACHE[key] = kernel
++    return kernel
++
++
+ # ---------------------------------------------------------------------------
+ # split-K kernel — default.
+ # ---------------------------------------------------------------------------
+@@ -515,14 +713,33 @@
+ 
+     if N >= 100000 and N % (msg_bn * _MSG_NSG) == 0:
+         xm, M0 = _pad_rows(mx, x2, m)
+-        kernel = _build_msg_kernel(
+-            m,
+-            bits,
+-            group_size,
+-            x2.dtype,
+-            _MSG_NSG,
+-            msg_bn,
++        use_vec4 = (
++            bits == 8
++            and msg_bn == 4
++            and os.environ.get(
++                "OMLX_VERIFY_MSG_VEC4",
++                "",
++            ).strip().lower()
++            in ("1", "true", "yes", "on")
+         )
++
++        if use_vec4:
++            kernel = _build_msg_vec4_kernel(
++                m,
++                group_size,
++                x2.dtype,
++                _MSG_NSG,
++            )
++        else:
++            kernel = _build_msg_kernel(
++                m,
++                bits,
++                group_size,
++                x2.dtype,
++                _MSG_NSG,
++                msg_bn,
++            )
++
+         cols = msg_bn * _MSG_NSG
+         (y,) = kernel(
+             inputs=[xm, w_q, scales, biases, K, N],

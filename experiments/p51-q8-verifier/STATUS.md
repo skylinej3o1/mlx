@@ -325,3 +325,34 @@ Conclusion:
 
 BN4 is retained. P52D is a strong negative result for alternate
 lm_head output tile widths.
+
+## P52E — Q8 float4 lm_head scout
+
+The BN4 Q8 MSG kernel was rewritten with float4 accumulators
+across the four output columns.
+
+Three warmed balanced runs each:
+
+Scalar:
+- 17.380 / 134.023 ms/cycle
+- 17.868 / 130.829 ms/cycle
+- 17.757 / 131.451 ms/cycle
+- mean 17.668 / 132.101 ms/cycle
+
+Vec4:
+- 17.103 / 135.987 ms/cycle
+- 17.723 / 131.646 ms/cycle
+- 17.872 / 130.765 ms/cycle
+- mean 17.566 / 132.799 ms/cycle
+
+Delta:
+- -0.58% TG
+- +0.698 ms/cycle
+
+All runs used the same 217-cycle speculative trajectory and
+f46220cfe4923fc1 output hash.
+
+Conclusion:
+
+P52E rejected. Native float4 accumulator restructuring does not
+improve this M1 Max/Q8/M3 lm_head kernel.
