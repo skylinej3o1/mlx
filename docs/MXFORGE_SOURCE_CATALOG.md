@@ -53,6 +53,7 @@ Status legend:
 | 34 | https://arxiv.org/abs/2608.02123 | PCTree paper | CORE / promoted research | Primary PCTree paper: reuses DSpark's learned conditional structure to score multiple parent-consistent continuations without retraining or extra backbone passes. Reported matched-DSpark gains vary 3.1%-29.5% on Qwen3 4B/8B/14B; at B=16 on Qwen3-4B, acceptance length rose 9.41->11.16 and AR speedup 6.14x->6.60x. For TB4 TP, port the principle, not the large verification tree. |
 | 35 | https://www.reddit.com/r/LocalLLM/comments/1vupm6p/qwen3827b_6bit_macbook_m4_pro_259_toks/ | Qwen3.8-27B 6-bit Apple field report | FIELD REPORT / lead | Fresh M4 Pro report claims **25.9 tok/s** with a tuned 6-bit Qwen3.8-27B setup. Public text confirms the author experimented with settings for a speed/quality balance, but the screenshot/config is not yet sufficient for a controlled comparison. Preserve as a Q6 Apple reference point; do not transfer it to M1 without matching quant, runtime, MTP, context and KV settings. |
 | 36 | https://www.reddit.com/r/LocalLLM/comments/1vuptie/qwen3827b_6bit_on_a_macbook_m4_pro_48_gb_vision/ | Qwen3.8-27B 6-bit Apple vision field report | UNRESOLVED | User-supplied fresh report title states **M4 Pro 48GB, 6-bit, vision enabled, 21.6 tok/s**. The page could not yet be retrieved reliably for exact runtime/MTP/KV/context details. Keep it as a pointer and do **not** infer that the 25.9->21.6 difference is a pure vision penalty until the configurations are matched. |
+| 37 | https://www.reddit.com/r/oMLX/comments/1vumbhw/experience_with_ane_on_m1_max_64gb/ | Qwen3.8-27B ANE prefill on M1 Max 64GB | CORE / promoted field evidence | Direct same-generation evidence: oQ4e-fp16-mtp on M1 Max 64GB reportedly improves PP ~134.5->198.0 tok/s at ~1K and ~139.7->171.1 tok/s at ~4K, cutting TTFT ~7.62->5.18s and ~29.34->23.95s. ~1K decode is essentially unchanged (18.4->18.3), reinforcing ANE as a prefill lever. Reported peak-memory penalty is ~9.5-9.6GB. Promote ANE+GPU cold-prefill as a near-term M1 experiment with a memory/context crossover policy. Original user share link: https://www.reddit.com/r/oMLX/s/JR5dbVaMfI. See `docs/research/QWEN38_M1_ANE_PREFILL.md`. |
 
 ## Dedupe / relationship map
 
@@ -62,12 +63,14 @@ Sources 1, 2, 7, 8, 10, 21, 22, 33, and 34 all point at the same deeper conclusi
 
 ### Apple prompt processing
 
-Sources 4, 6, 9, 18, and 19 split the problem into two independent levers:
+Sources 4, 6, 9, 18, 19, and 37 split the problem into two independent levers:
 
 1. **Make cold prefill faster** with specialized GPU kernels and heterogeneous ANE/GPU/CPU execution.
 2. **Make cold prefill rare** with stable prompt serialization, exact prefix reuse, session affinity, prewarming, and cache-hit telemetry.
 
-For agentic coding, the second lever can dominate the user experience.
+Source 37 materially strengthens the first lever because it is direct **M1 Max 64GB + Qwen3.8-27B + MTP** field evidence rather than a newer-chip extrapolation. Its ~9.5-9.6GB peak-memory penalty also makes ANE residency a scheduler decision: enable it when TTFT savings repay the memory cost, disable it when long-context/KV/output reserve matters more.
+
+For agentic coding, the second lever can still dominate the user experience because a cache hit avoids cold prefill entirely.
 
 ### Hardware-aware quantization
 
