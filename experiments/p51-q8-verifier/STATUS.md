@@ -3453,6 +3453,194 @@ higher leverage than modifying the MTP representation itself.
 Do not implement live tree speculation until this offline
 branchability scout establishes a useful confidence gate.
 
+## P65 — Selective top-2 branchability
+
+P65A tested whether the strong P63 rank-2 near-miss population
+can be selected using MTP confidence rather than modifying the
+MTP hidden representation.
+
+The exact P63E artifact and exact Q8 / GS64 shared LM head were
+replayed.
+
+Invariants reproduced:
+
+- all 442 MTP top-1 draft IDs exactly matched
+- all 44 P63 rank-2 rejection rows were exactly:
+  target token == replayed MTP top-2 token
+
+Margin definition:
+
+- MTP top-1 logit minus top-2 logit
+- smaller margin = lower MTP confidence
+
+Margin distributions:
+
+Accepted rows:
+
+- n=325
+- p10=0.89062
+- p25=2.23438
+- median=4.31250
+- p75=8.53125
+- p90=12.02813
+- mean=5.75430
+
+All rejected rows:
+
+- n=117
+- p10=0.17188
+- p25=0.62500
+- median=1.21875
+- p75=2.23438
+- p90=3.67500
+- mean=1.68864
+
+Rank-2 recoverable rejects:
+
+- n=44
+- p10=0.20937
+- p25=0.67188
+- median=1.29688
+- p75=1.89062
+- p90=3.41641
+- mean=1.61310
+
+Other rejected rows:
+
+- n=73
+- p10=0.17500
+- p25=0.60938
+- median=1.21875
+- p75=2.23438
+- p90=3.85625
+- mean=1.73416
+
+Observed discrimination:
+
+- low margin -> rank-2 recoverable:
+  AUC 0.7601
+
+- low margin -> any rejection:
+  AUC 0.8132
+
+Selective low-margin branching results:
+
+5% budget:
+
+- branch 22 / 442 rows
+- catch 5 / 44 rank-2 opportunities
+- recall 11.4%
+- branch precision 22.7%
+
+10% budget:
+
+- branch 44 rows
+- catch 9 / 44
+- recall 20.5%
+- precision 20.5%
+
+20% budget:
+
+- branch 88 rows
+- catch 18 / 44
+- recall 40.9%
+- precision 20.5%
+
+25% budget:
+
+- branch 110 rows
+- catch 22 / 44
+- recall 50.0%
+- precision 20.0%
+
+33% budget:
+
+- branch 146 rows
+- catch 32 / 44
+- recall 72.7%
+- precision 21.9%
+
+50% budget:
+
+- branch 221 rows
+- catch 38 / 44
+- recall 86.4%
+- precision 17.2%
+
+Best same-ruler F1 threshold:
+
+- branch 148 / 442 rows = 33.5%
+- catch 33 / 44
+- precision 22.3%
+- recall 75.0%
+- F1 0.3437
+- margin threshold 1.859375
+
+Interpretation:
+
+P65A establishes a real confidence signal.
+
+However, the rank-2-recoverable and other-rejection margin
+distributions are very similar, while accepted and rejected
+rows are strongly separated.
+
+Therefore the observed rank-2 AUC may be driven primarily by
+MTP rejection prediction rather than by a margin signal that
+specifically identifies target-rank-2 events.
+
+This distinction must be measured directly before implementing
+live tree speculation.
+
+Important economic correction:
+
+Simply including the MTP top-2 token at a rejection frontier does
+not itself save a verifier cycle.
+
+The ordinary greedy verifier already emits the target correction
+token when the top-1 draft mismatches.
+
+To improve throughput, an alternate top-2 branch must additionally
+provide useful continuation tokens after the corrected token.
+
+Therefore the P65A optimistic cycle-floor numbers are only loose
+upper bounds and must not be interpreted as predicted throughput.
+
+The depth location of rank-2 opportunities is important:
+
+- D1 alternate branches can potentially carry D2/D3 continuation
+- D2 alternate branches can potentially carry D3 continuation
+- D3 alternates have no remaining continuation slot under the
+  current fixed-D3 draft depth unless the tree itself extends deeper
+
+Preserved P65A artifact:
+
+p65a-top2-branchability.json
+
+SHA256:
+
+676ec6fa9d9fcfb4dbfabcef55e15e292776c38cce70b35acc9012f1eecf1509
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
+### P65B target
+
+Before any live tree implementation:
+
+1. measure low-margin discrimination for rank-2 recovery
+   specifically against other rejected rows;
+2. decompose rank-2 opportunities by D1 / D2 / D3;
+3. validate low-margin branch budgets using cycle-level
+   cross-validation;
+4. determine whether enough recoverable opportunity exists at
+   D1/D2 to justify an oracle alternate-continuation experiment.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -3532,14 +3720,14 @@ above.
 
 ### Current resume point
 
-As of the P64A checkpoint, the next phase is:
+As of the P65A checkpoint, the next phase is:
 
-**P65A — top-2 branchability / confidence-gating scout**
+**P65B — gate-structure / depth / cycle-CV diagnosis**
 
-P64A rejected global and depth-specific additive mean-residual
-correction after exact shared-LM-head replay and 5-fold
-held-out validation.
+P65A established a strong MTP confidence signal but did not yet
+show that margin specifically distinguishes target-rank-2 misses
+from other rejection types.
 
-P65A should test whether low MTP top-1/top-2 margin can
-selectively identify the 44 rank-2-recoverable rejection
-frontiers before any live tree-speculative implementation.
+P65B should resolve that ambiguity and quantify how many rank-2
+opportunities occur early enough in the D1/D2 chain to support
+useful alternate continuation.
