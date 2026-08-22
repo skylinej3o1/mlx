@@ -277,3 +277,45 @@ This branch intentionally treats heterogeneous existing hardware as an advantage
 > **do not ask one box to do everything; assign each piece of silicon the phase it executes most efficiently, and minimize the information that must cross device boundaries.**
 
 For this system, that means the Macs remain the capacity-rich Metal target cluster while the 5070 Ti becomes a low-precision speculative accelerator. The success metric is whole-system time-to-useful-token, not whether any individual device wins a conventional benchmark.
+
+## Micro-PCTree integration — promoted 2026-08-21
+
+Parent-Conditioned Drafting Trees add a new option between a linear DSpark chain and a large tree verifier. The upstream paper and first llama.cpp fork show two important facts:
+
+1. DSpark's existing Markov/conditional structure can produce parent-conditioned alternatives without retraining or another heavy backbone pass;
+2. **higher tree acceptance can still reduce throughput when the target verifier batch gets too large.**
+
+The second point is especially important for this topology because the distributed M1 target already has evidence of sharply increasing M>1 verification cost over Thunderbolt 4.
+
+Do not port a datacenter-oriented `k=3/N=16` or `k=4/N=22/32` configuration as the starting point. The MXFORGE variant is **Micro-PCTree**:
+
+- `k=2` first;
+- `N=3..8` initial search region;
+- branch at the root / first high-uncertainty parent before considering deeper branching;
+- test asymmetric trees where one alternate root child is retained but only the primary branch gets a long suffix;
+- compare linear DSpark and tree variants at **equal target-row budgets**;
+- optimize `ms / committed target-verified token`, not acceptance percentage.
+
+The 5070 Ti should construct the tree and score parent-conditioned candidates. The M1 pair remains the authoritative verifier. This preserves the key sidecar advantage: extra draft/tree work is cheap on Blackwell while the scarce resource is distributed target verification.
+
+Updated experiment order:
+
+1. plain TP baseline and M=2..8 verifier cost curve;
+2. compact self-contained DSpark on 5070;
+3. linear DSpark M2/M3 certification;
+4. **Micro-PCTree k2/N3**;
+5. sweep N=3..8 and root-only/asymmetric shapes;
+6. compare against linear speculation at equal target-row budgets;
+7. only test large trees if the measured verifier curve justifies them;
+8. integrate the winning shape into the adaptive scheduler by workload/context.
+
+Required extra telemetry:
+
+- rejection depth histogram;
+- tree shape / node count;
+- longest accepted path;
+- alternate-parent recovery count;
+- incremental verifier milliseconds per extra tree node;
+- additional committed tokens attributable to the hedge.
+
+Detailed design: [`DS4_MICRO_PCTREE.md`](DS4_MICRO_PCTREE.md).
