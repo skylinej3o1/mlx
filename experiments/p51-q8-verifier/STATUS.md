@@ -4220,6 +4220,216 @@ If a confidence gate preserves a large share of the 25 positions with
 a small node budget, proceed to P66B and measure actual async/batched
 branch-generation cost plus target verifier-layout cost.
 
+### P66A result — tree break-even envelope
+
+P66A joined the exact P63 confidence margins with the exact P65D
+true pre-verification branch outcomes.
+
+Baseline economics:
+
+- 512 output tokens
+- 186 verifier cycles
+- 2.752688 output tokens/cycle
+- 144.263 ms/backbone-cycle
+- 26832.918 ms baseline backbone work
+- each additional verified output position is worth approximately
+  52.408 ms of baseline backbone work
+
+P65D zero-overhead upper bound:
+
+- 25 correct continuation positions
+- 9.082 baseline cycle-equivalents
+- 1310.201 ms optimistic backbone value
+
+The forced-sync P65D diagnostic path implied approximately:
+
+- 10.201 ms / alternate branch node
+
+This is NOT production branch cost.
+
+It includes forced materialization and diagnostic synchronization and
+is used only as a warning/reference.
+
+Confidence-gated envelope:
+
+~10% gate:
+
+- margin <= 0.53125
+- 40 candidate parents
+- 59 alternate continuation nodes
+- 10 rank-2 events selected
+- 5 useful branches
+- 6 / 25 useful positions preserved = 24%
+- optimistic backbone value: 314.4 ms
+- combined break-even budget: 5.330 ms/node
+
+~15% gate:
+
+- margin <= 0.78125
+- 54 candidate parents
+- 82 nodes
+- 13 rank-2 events
+- 8 useful branches
+- 10 / 25 useful positions = 40%
+- optimistic value: 524.1 ms
+- combined break-even budget: 6.391 ms/node
+
+~20% gate:
+
+- margin <= 1.046875
+- 67 candidate parents
+- 100 nodes
+- 16 rank-2 events
+- 9 useful branches
+- 11 / 25 useful positions = 44%
+- optimistic value: 576.5 ms
+- combined break-even budget: 5.765 ms/node
+
+~25% gate:
+
+- margin <= 1.375
+- 84 candidate parents
+- 127 nodes
+- 20 rank-2 events
+- 13 useful branches
+- 15 / 25 useful positions = 60%
+- optimistic value: 786.1 ms
+- combined break-even budget: 6.190 ms/node
+
+~33% gate:
+
+- margin <= 1.859375
+- 114 candidate parents
+- 172 nodes
+- 29 rank-2 events
+- 19 useful branches
+- 22 / 25 useful positions = 88%
+- optimistic value: 1153.0 ms
+- combined break-even budget: 6.703 ms/node
+
+Ungated:
+
+- 341 candidate parents
+- 527 nodes
+- all 25 useful positions
+- optimistic value: 1310.2 ms
+- combined break-even budget: only 2.486 ms/node
+
+P66A signal:
+
+ASYNC_OR_BATCH_REQUIRED
+
+The forced-sync P65D branch implementation is therefore not
+economically viable.
+
+A tree can remain viable only if alternate MTP work is made
+substantially cheaper and target-tree verification also fits inside
+the residual budget.
+
+P66A's automatic rule selected the ~25% gate because it was the
+smallest gate preserving at least 60% of useful positions.
+
+A separate marginal-economics observation favors also testing ~33%:
+
+- moving 25% -> 33% adds 45 branch nodes
+- optimistic value rises by approximately 366.9 ms
+- marginal value is approximately 8.15 ms per additional node
+
+Therefore if branch cost is approximately linear and the tree is
+viable at all, the 33% policy may produce more absolute net benefit
+than the 25% policy.
+
+A static D2-only policy is also important.
+
+P65D D2 continuation:
+
+- 16 / 23 rank-2 D2 events carried the one available continuation
+- therefore 16 useful positions are structurally available at D2
+
+Branching every D2 parent would require:
+
+- 155 candidate parents
+- 155 alternate nodes
+
+Its optimistic benefit is approximately:
+
+- 838.5 ms
+- 5.41 ms/node break-even
+
+D2-only requires no dynamic confidence-gate control flow and therefore
+provides a useful simple-policy reference.
+
+Preserved P66A artifact:
+
+p66a-tree-break-even-envelope.json
+
+SHA256:
+
+0e659ffc2b5a84979be50634f64ef64053f308e453d3332cf784381fde986479
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
+### P66B target — lazy branch-generation cost
+
+P66B should NOT implement target-tree verification yet.
+
+It should isolate alternate MTP generation cost under:
+
+- ~25% frozen-ruler gate
+- ~33% frozen-ruler gate
+- static D2-only branching
+
+For the margin policies, use the exact frozen P63 selected
+cycle/depth positions as a precomputed schedule.
+
+This intentionally removes online gate/control-flow cost from the
+measurement and therefore establishes a LOWER BOUND on production
+branch-generation cost.
+
+The branch implementation must:
+
+- use detached MTP-cache clones;
+- preserve the true pre-verification semantics established by P65D;
+- avoid any new host synchronization;
+- keep top-2 and continuation IDs as lazy device arrays;
+- dispatch alternate branch work asynchronously;
+- resolve branch outputs only inside the verifier's already-existing
+  single host synchronization;
+- leave normal drafts, target verification, output, caches and
+  acceptance untouched.
+
+Benchmark against interleaved CONTROL rulers on the same server.
+
+Primary measurements:
+
+- integrated decode-window delta
+- internal telemetry delta
+- incremental ms per alternate node
+- residual target-tree-verifier budget per node
+
+If branch generation alone consumes the full P66A break-even budget,
+close the current tree implementation path.
+
+If substantial budget remains, proceed to a target-tree verifier
+layout/cost scout.
+
+Important caveat:
+
+The precomputed 25%/33% schedules bypass the production problem of
+making a margin-dependent branch decision without host synchronization.
+
+A future live dynamic gate will require a device-side conditional /
+compaction mechanism or an equivalent strategy.
+
+The D2-only result provides a useful zero-dynamic-gate alternative.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -4299,22 +4509,23 @@ above.
 
 ### Current resume point
 
-As of the P65D checkpoint, the next phase is:
+As of the P66A checkpoint, the next phase is:
 
-**P66A — tree break-even / confidence-gate envelope**
+**P66B — lazy pre-verify branch-generation cost**
 
-P65D demonstrated a genuine true pre-verification tree signal:
+P66A established that useful tree continuation is economically
+interesting only if total added branch plus target-verifier cost is
+roughly 5-7 ms per extra node or lower.
 
-- 22 / 35 early rank-2 branches carried >=1 correct continuation
-- 25 / 47 available continuation positions matched
-- 73.3% branch-signal retention versus P65C
-- 75.8% continuation-position retention versus P65C
+The forced-sync P65D implementation is too expensive.
 
-The next question is economic rather than semantic.
+P66B should benchmark a no-new-host-sync lazy alternate-MTP path under:
 
-P66A should join the exact P63 top-1/top-2 margins with P65D outcomes
-and determine how many useful continuation positions survive practical
-low-confidence branch budgets.
+- ~25% precomputed frozen-ruler gate
+- ~33% precomputed frozen-ruler gate
+- static D2-only branching
 
-Do not implement a live tree verifier until the combined MTP plus
-target-tree break-even budget is known.
+Do not widen the target verifier yet.
+
+First determine how much of the 5-7 ms/node budget is consumed by
+alternate MTP generation alone.
