@@ -1,6 +1,6 @@
 # MXFORGE research source catalog
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 This catalog turns external notes into a deduplicated research index. It is not an endorsement of every benchmark claim. Results from Reddit posts and project-authored benchmarks are treated as leads until reproduced on the target hardware. The roadmap promotes only the ideas that appear technically relevant to MXFORGE.
 
@@ -54,6 +54,9 @@ Status legend:
 | 35 | https://www.reddit.com/r/LocalLLM/comments/1vupm6p/qwen3827b_6bit_macbook_m4_pro_259_toks/ | Qwen3.8-27B 6-bit Apple field report | FIELD REPORT / lead | Fresh M4 Pro report claims **25.9 tok/s** with a tuned 6-bit Qwen3.8-27B setup. Public text confirms the author experimented with settings for a speed/quality balance, but the screenshot/config is not yet sufficient for a controlled comparison. Preserve as a Q6 Apple reference point; do not transfer it to M1 without matching quant, runtime, MTP, context and KV settings. |
 | 36 | https://www.reddit.com/r/LocalLLM/comments/1vuptie/qwen3827b_6bit_on_a_macbook_m4_pro_48_gb_vision/ | Qwen3.8-27B 6-bit Apple vision field report | UNRESOLVED | User-supplied fresh report title states **M4 Pro 48GB, 6-bit, vision enabled, 21.6 tok/s**. The page could not yet be retrieved reliably for exact runtime/MTP/KV/context details. Keep it as a pointer and do **not** infer that the 25.9->21.6 difference is a pure vision penalty until the configurations are matched. |
 | 37 | https://www.reddit.com/r/oMLX/comments/1vumbhw/experience_with_ane_on_m1_max_64gb/ | Qwen3.8-27B ANE prefill on M1 Max 64GB | CORE / promoted field evidence | Direct same-generation evidence: oQ4e-fp16-mtp on M1 Max 64GB reportedly improves PP ~134.5->198.0 tok/s at ~1K and ~139.7->171.1 tok/s at ~4K, cutting TTFT ~7.62->5.18s and ~29.34->23.95s. ~1K decode is essentially unchanged (18.4->18.3), reinforcing ANE as a prefill lever. Reported peak-memory penalty is ~9.5-9.6GB. Promote ANE+GPU cold-prefill as a near-term M1 experiment with a memory/context crossover policy. Original user share link: https://www.reddit.com/r/oMLX/s/JR5dbVaMfI. See `docs/research/QWEN38_M1_ANE_PREFILL.md`. |
+| 38 | https://x.com/AntLingAGI/status/2090847436755648939 | Ling-3.0-flash model-specific DSpark release | CORE / promoted research lead | Ant Ling announces an open `Ling-3.0-flash-dspark` trained specifically for Ling-3.0-flash. Vendor report on 4 NVIDIA Blackwell GPUs, batch 1, 1,000 requests: **1,120 tok/s**, **0.78 ms mean TPOT**, **9.95 accept length**. Preserve as proof of a strong model-specific drafter, not a transferable local speed number. See `docs/research/LING30_DSPARK.md`. |
+| 39 | https://huggingface.co/inclusionAI/Ling-3.0-flash-dspark | Ling-3.0-flash DSpark checkpoint | CORE / primary checkpoint pointer | Official draft-model location referenced by the merged llama.cpp support PR. The page was too fresh to inspect reliably through the current web index at intake, so exact parameter count, precision, residency and target-component dependencies remain to be verified before planning 5070 placement. |
+| 40 | https://github.com/ggml-org/llama.cpp/pull/27508 | Ling/BailingMoE3 DSpark runtime support | CORE / promoted implementation evidence | Merged 2026-08-22. Adds `draft-dspark` support plus **partial rollback for BailingMoE3 recurrent state**. On a DGX Spark 880-request suite, overall decode rose **44.20->55.73 tok/s (~+26%)**; coding rose **43.80->73.71 (~+68%)** with 0.5773 coding acceptance. Gains vary sharply by workload, strongly supporting adaptive speculation. Mine recurrent-state rollback semantics and the separate-drafter conversion/verification protocol for an eventual MLX/Metal port. See `docs/research/LING30_DSPARK.md`. |
 
 ## Dedupe / relationship map
 
@@ -79,6 +82,10 @@ Sources 5, 11, 12, 21, 22, 23, 28, 35, and 36 support quantization as an executi
 ### DeepSeek V4 distributed adaptive runtime
 
 Sources 3, 4, 26, 27, 29, 30, 33, and 34 support a broader design than one fixed TP/PP choice. Tune TP, PP, small-MTP, linear DSpark, **Micro-PCTree**, and target-only paths independently, then construct a context/workload phase diagram. Same-topology drafter swaps can be cheap; TP<->PP transitions require explicit KV migration/repartition economics. Datacenter disaggregated-serving systems validate phase-specific parallel strategies and movable KV state even though the Metal implementation will be custom.
+
+### Ling-3.0-flash / model-specific DSpark
+
+Sources 38-40 establish a second serious model-specific DSpark branch beyond DeepSeek. Ling is a 124B-total / ~5.1B-active hybrid KDA+MLA MoE, and current Apple conversions make the target capacity-plausible across two 64GB Macs at useful precision. The new official DSpark checkpoint plus merged llama.cpp support makes a future **2x M1 target + 5070 drafter** experiment plausible, but not yet certified: inspect drafter residency and target dependencies first. The llama.cpp requirement for partial rollback of BailingMoE3 recurrent state is a key portability constraint. The DGX Spark benchmark also shows enormous workload dependence, so Ling speculation should be scheduler-controlled rather than globally enabled.
 
 ### RTX 5070 Ti Qwen3.8
 
