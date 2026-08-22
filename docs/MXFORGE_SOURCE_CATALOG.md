@@ -57,27 +57,32 @@ Status legend:
 | 38 | https://x.com/AntLingAGI/status/2090847436755648939 | Ling-3.0-flash model-specific DSpark release | CORE / promoted research lead | Ant Ling announces an open `Ling-3.0-flash-dspark` trained specifically for Ling-3.0-flash. Vendor report on 4 NVIDIA Blackwell GPUs, batch 1, 1,000 requests: **1,120 tok/s**, **0.78 ms mean TPOT**, **9.95 accept length**. Preserve as proof of a strong model-specific drafter, not a transferable local speed number. See `docs/research/LING30_DSPARK.md`. |
 | 39 | https://huggingface.co/inclusionAI/Ling-3.0-flash-dspark | Ling-3.0-flash DSpark checkpoint | CORE / primary checkpoint pointer | Official draft-model location referenced by the merged llama.cpp support PR. The page was too fresh to inspect reliably through the current web index at intake, so exact parameter count, precision, residency and target-component dependencies remain to be verified before planning 5070 placement. |
 | 40 | https://github.com/ggml-org/llama.cpp/pull/27508 | Ling/BailingMoE3 DSpark runtime support | CORE / promoted implementation evidence | Merged 2026-08-22. Adds `draft-dspark` support plus **partial rollback for BailingMoE3 recurrent state**. On a DGX Spark 880-request suite, overall decode rose **44.20->55.73 tok/s (~+26%)**; coding rose **43.80->73.71 (~+68%)** with 0.5773 coding acceptance. Gains vary sharply by workload, strongly supporting adaptive speculation. Mine recurrent-state rollback semantics and the separate-drafter conversion/verification protocol for an eventual MLX/Metal port. See `docs/research/LING30_DSPARK.md`. |
+| 41 | https://www.reddit.com/r/LocalLLM/comments/1vv2tw5/people_running_qwen_38_27b_on_apple_silicon_whats/ | Qwen3.8-27B Apple Silicon speed survey | CORE / promoted field evidence | Fresh community thread containing several useful but non-controlled Apple datapoints. Highest-value signals: M2 Ultra 64GB `UD-Q8_K_XL` in Unsloth Studio reports **34.9 tok/s vs 27.1 tok/s for a lighter Q4 rerun**; M5 Max 128GB llama.cpp + MTP + Q8_0 reports **~28-30 tok/s from ~10K through 262K context**; M3 Ultra 96GB oQ5e + Lightning MTP + ANE prefill reports **~42.7-43.7 tg tok/s** with **310-369 pp tok/s**; M4 Pro 48GB 4-bit oMLX+DFlash2 reports ~24 tok/s. Treat as evidence that Q8 can be execution-efficient, speculation/quant must be co-designed, and long-context certification matters. See `docs/research/QWEN38_APPLE_SPEED_FIELD_REPORTS.md`. |
 
 ## Dedupe / relationship map
 
 ### Qwen3.8 speculative decoding
 
-Sources 1, 2, 7, 8, 10, 21, 22, 33, and 34 all point at the same deeper conclusion: the winning question is not "MTP or DFlash?" in the abstract. The runtime should choose among draft mechanisms, depths, and now small parent-conditioned branch shapes using measured target-verification cost, drafter cost, acceptance/rejection-depth distribution, memory headroom, context length, and workload type. Custom MTP-head weights are explicitly in scope. PCTree strengthens the rule that **higher acceptance is not automatically higher throughput**.
+Sources 1, 2, 7, 8, 10, 21, 22, 33, 34, and 41 all point at the same deeper conclusion: the winning question is not "MTP or DFlash?" in the abstract. The runtime should choose among draft mechanisms, depths, and now small parent-conditioned branch shapes using measured target-verification cost, drafter cost, acceptance/rejection-depth distribution, memory headroom, context length, quant execution characteristics, and workload type. Custom MTP-head weights are explicitly in scope. PCTree and the Apple field reports strengthen the rule that **higher acceptance or lower bpw is not automatically higher throughput**.
 
 ### Apple prompt processing
 
-Sources 4, 6, 9, 18, 19, and 37 split the problem into two independent levers:
+Sources 4, 6, 9, 18, 19, 37, and 41 split the problem into two independent levers:
 
 1. **Make cold prefill faster** with specialized GPU kernels and heterogeneous ANE/GPU/CPU execution.
 2. **Make cold prefill rare** with stable prompt serialization, exact prefix reuse, session affinity, prewarming, and cache-hit telemetry.
 
-Source 37 materially strengthens the first lever because it is direct **M1 Max 64GB + Qwen3.8-27B + MTP** field evidence rather than a newer-chip extrapolation. Its ~9.5-9.6GB peak-memory penalty also makes ANE residency a scheduler decision: enable it when TTFT savings repay the memory cost, disable it when long-context/KV/output reserve matters more.
+Source 37 materially strengthens the first lever because it is direct **M1 Max 64GB + Qwen3.8-27B + MTP** field evidence rather than a newer-chip extrapolation. Its ~9.5-9.6GB peak-memory penalty also makes ANE residency a scheduler decision: enable it when TTFT savings repay the memory cost, disable it when long-context/KV/output reserve matters more. Source 41 independently shows newer Apple hardware combining ANE prefill with Lightning MTP at high PP and decode rates, reinforcing architectural compatibility rather than transferring those numbers to M1.
 
 For agentic coding, the second lever can still dominate the user experience because a cache hit avoids cold prefill entirely.
 
 ### Hardware-aware quantization
 
-Sources 5, 11, 12, 21, 22, 23, 28, 35, and 36 support quantization as an execution-layout problem, not only a bpw/quality problem. Critical tensors (LM head, embeddings, recurrent state, MTP module, attention projections) can deserve different treatment from bulk weights. Dynamic 3.0 is another external example of spending bits non-uniformly to improve the quality/size frontier; MXFORGE adds measured target-hardware latency and verifier shape to that objective. The M4 Pro Q6 reports are field observations only and must be normalized for runtime, vision projector, MTP, context and KV before drawing architectural conclusions.
+Sources 5, 11, 12, 21, 22, 23, 28, 35, 36, and 41 support quantization as an execution-layout problem, not only a bpw/quality problem. Critical tensors (LM head, embeddings, recurrent state, MTP module, attention projections) can deserve different treatment from bulk weights. Dynamic 3.0 is another external example of spending bits non-uniformly to improve the quality/size frontier; MXFORGE adds measured target-hardware latency and verifier shape to that objective. The M2 Ultra Q8>Q4 field observation in source 41 is not a controlled comparison, but it directly supports keeping Q8 as a serious execution branch instead of assuming fewer weight bits must decode faster.
+
+### Qwen3.8 Apple speed / long-context field evidence
+
+Sources 35-37 and 41 now provide a useful community envelope across M1/M2/M3/M4/M5-class Apple Silicon. The data are heterogeneous and must not be merged into one benchmark curve, but they reinforce three project rules: **certify realistic ~30K and longer contexts; compare quants under identical runtimes and speculative settings; and judge PP/TTFT separately from decode**. Source 41's reported M5 Max Q8_0 + MTP stability through 262K is especially relevant as a long-context hypothesis to reproduce rather than a transferable performance claim.
 
 ### DeepSeek V4 distributed adaptive runtime
 
@@ -93,7 +98,7 @@ Sources 12, 15-17, 23, and 28 define the current bakeoff. **UD-IQ4_XS Dynamic 3.
 
 ### Long-context KV
 
-Sources 15-17, 20-23, 28-30, and 32 suggest a ladder rather than one universal cache mode: ordinary high-quality asymmetric K/V at normal long context; more aggressive codecs only when capacity requires them; **heterogeneous block precision that preserves recent/salient history at higher precision while monotonically demoting colder blocks**; topology-aware cache mobility for distributed transitions; and eventually KV-aware training if the quality frontier is worth moving. Geodesia-KV is an architecture lead here, not direct evidence for Qwen3.8/Metal or DS4/MLA.
+Sources 15-17, 20-23, 28-30, 32, and 41 suggest a ladder rather than one universal cache mode: ordinary high-quality asymmetric K/V at normal long context; more aggressive codecs only when capacity requires them; **heterogeneous block precision that preserves recent/salient history at higher precision while monotonically demoting colder blocks**; topology-aware cache mobility for distributed transitions; and eventually KV-aware training if the quality frontier is worth moving. Geodesia-KV is an architecture lead here, not direct evidence for Qwen3.8/Metal or DS4/MLA. Source 41 adds a field hint that Q8-class target execution can remain practical deep into long context when the runtime/speculative path is favorable.
 
 ### Reasoning adapters / cheap post-training
 
