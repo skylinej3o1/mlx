@@ -36,6 +36,14 @@ using namespace metal;
       256,                                                           \
       256)
 
+#define instantiate_sdpa_vector_gqa6_m4_hpt2_headpair(type)         \
+  instantiate_kernel(                                               \
+      "sdpa_vector_2pass_1_gqa6_m4_hpt2_headpair_" #type "_256_256", \
+      sdpa_vector_2pass_1_gqa6_m4_hpt2_headpair,                    \
+      type,                                                          \
+      256,                                                           \
+      256)
+
 #define instantiate_sdpa_vector_heads(type)      \
   instantiate_sdpa_vector(type, 64, 64)          \
   instantiate_sdpa_vector(type, 96, 96)          \
@@ -43,6 +51,7 @@ using namespace metal;
   instantiate_sdpa_vector(type, 192, 128)        \
   instantiate_sdpa_vector(type, 256, 256)        \
   instantiate_sdpa_vector_gqa6_m4_hpt2(type)     \
+  instantiate_sdpa_vector_gqa6_m4_hpt2_headpair(type) \
   instantiate_sdpa_vector_aggregation(type, 64)  \
   instantiate_sdpa_vector_aggregation(type, 96)  \
   instantiate_sdpa_vector_aggregation(type, 128) \

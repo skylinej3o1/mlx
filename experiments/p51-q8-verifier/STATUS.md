@@ -2705,3 +2705,220 @@ Next attention optimization should retain the same numerical
 discipline. Candidate geometry work should preserve each
 accumulator's arithmetic order and compare alternative HPT2
 pairings before increasing register pressure substantially.
+
+## P61 — head-paired HPT2 refinement
+
+P60 established that HPT2 K/V reuse is a major,
+bit-stable verifier-attention optimization.
+
+P61 tested whether the same HPT2 register pressure could
+be used more efficiently by changing only the pairing
+topology.
+
+### Mapping
+
+P60 ROWPAIR pairs two M4 rows belonging to the same
+query head.
+
+P61 HEADPAIR instead pairs two GQA query heads at the same
+M4 row.
+
+Both mappings retain:
+
+- HPT=2
+- 12 SIMD groups instead of the native 24
+- native 256 pass-1 blocks
+- unchanged pass-2 aggregation
+- unchanged per-accumulator token visitation order
+
+HEADPAIR additionally gives each paired accumulator the
+same causal cutoff.
+
+The experimental gate is:
+
+MLX_SDPA_GQA6_M4_HPT2_HEADPAIR=1
+
+ROWPAIR remains available through:
+
+MLX_SDPA_GQA6_M4_HPT2=1
+
+HEADPAIR takes precedence when both are requested.
+
+### P61A — exact attention microbenchmark
+
+Exact verifier geometry:
+
+- batch 1
+- q_len=4
+- 24 query heads
+- 4 KV heads
+- GQA=6
+- KV length 29,297
+- head_dim=256
+- FP16
+- causal
+- 256 pass-1 blocks
+
+Balanced results:
+
+BASE:
+
+- 2.0815 ms mean-of-bookend medians
+
+ROWPAIR:
+
+- 1.8439 ms
+- +12.88% versus BASE
+
+HEADPAIR:
+
+- 1.8189 ms
+- +14.43% versus BASE
+- +1.37% versus ROWPAIR
+
+Projected additional HEADPAIR saving versus ROWPAIR:
+
+- approximately 0.400 ms/backbone-cycle
+
+All outputs retained the exact attention hash:
+
+c37c1d739e0a90b0
+
+Therefore HEADPAIR remained bit-exact.
+
+### P61B — integrated 2+2 scout
+
+ROWPAIR:
+
+- 18.693 tok/s / 144.548 ms/cycle
+- 18.690 tok/s / 144.620 ms/cycle
+- mean 18.691 tok/s
+- mean 144.584 ms/cycle
+
+HEADPAIR:
+
+- 18.728 tok/s / 144.278 ms/cycle
+- 18.735 tok/s / 144.272 ms/cycle
+- mean 18.731 tok/s
+- mean 144.275 ms/cycle
+
+Paired delta:
+
+- +0.21% TG
+- -0.309 ms/backbone-cycle
+
+Every run retained exactly:
+
+- 186 cycles
+- accept 325/442
+- 73.5% acceptance
+- hash 101ae2aec9793dfe
+
+### P61C — balanced 4+4 certification
+
+ROWPAIR runs:
+
+- 18.700 tok/s / 144.575 ms/cycle
+- 18.696 tok/s / 144.566 ms/cycle
+- 18.669 tok/s / 144.685 ms/cycle
+- 18.681 tok/s / 144.579 ms/cycle
+
+ROWPAIR mean:
+
+- 18.686 tok/s
+- TG SD 0.014
+- 144.601 ms/backbone-cycle
+- BPC SD 0.056
+
+HEADPAIR runs:
+
+- 18.717 tok/s / 144.401 ms/cycle
+- 18.741 tok/s / 144.188 ms/cycle
+- 18.727 tok/s / 144.331 ms/cycle
+- 18.739 tok/s / 144.134 ms/cycle
+
+HEADPAIR mean:
+
+- 18.731 tok/s
+- TG SD 0.011
+- 144.263 ms/backbone-cycle
+- BPC SD 0.124
+
+Certified HEADPAIR delta versus same-session ROWPAIR:
+
+- +0.24% TG
+- -0.338 ms/backbone-cycle
+
+Across 186 cycles this removes approximately:
+
+- 62.9 ms additional target-backbone time
+
+All eight runs retained exactly:
+
+- 186 cycles
+- accept 325/442
+- 73.5% acceptance
+- hash 101ae2aec9793dfe
+
+### Champion update
+
+Previous certified P60 ROWPAIR champion:
+
+- 18.672 tok/s mean
+- 144.722 ms/backbone-cycle
+
+P61C HEADPAIR:
+
+- 18.731 tok/s mean
+- 144.263 ms/backbone-cycle
+
+P61 therefore establishes a new measured 30K champion mean:
+
+- 18.731 tok/s
+
+and replaces ROWPAIR as the preferred HPT2 mapping.
+
+### P61 conclusion
+
+The large P60 gain came primarily from reducing redundant
+K/V reads through HPT2.
+
+P61 shows that pairing query heads at the same M4 row is
+slightly more efficient than pairing adjacent M4 rows,
+without increasing HPT or register pressure.
+
+Current preferred verifier attention route:
+
+- q_len=4
+- GQA=6
+- head_dim=256
+- native 256-block two-pass topology
+- HPT2
+- same-row adjacent-query-head K/V reuse
+
+Implementation delta preserved as:
+
+experiments/p51-q8-verifier/patches/
+0013-p61-headpair-hpt2-sdpa.patch
+
+Current preferred 30K verifier stack:
+
+- fixed D3
+- verifier M=4
+- P54F QMM routing
+- lm_head NSG8 / BN4
+- P58 FP16 fused GDN verifier prework
+- native 256-block vector SDPA topology
+- P61 HEADPAIR HPT2 M4/GQA6/hd256 attention
+
+Current measured 30K champion:
+
+- 18.731 tok/s mean
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+The next attention experiment may increase HPT, but should
+continue to preserve the native 256-block reduction topology
+and exact per-accumulator arithmetic order.

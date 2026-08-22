@@ -513,6 +513,202 @@ template <typename T, int D, int V = D>
   }
 }
 
+template <typename T, int D, int V = D>
+[[kernel]] void sdpa_vector_2pass_1_gqa6_m4_hpt2_headpair(
+    const device T* queries [[buffer(0)]],
+    const device T* keys [[buffer(1)]],
+    const device T* values [[buffer(2)]],
+    device T* out [[buffer(3)]],
+    device float* sums [[buffer(4)]],
+    device float* maxs [[buffer(5)]],
+    const constant int& N [[buffer(7)]],
+    const constant size_t& k_head_stride [[buffer(8)]],
+    const constant size_t& k_seq_stride [[buffer(9)]],
+    const constant size_t& v_head_stride [[buffer(10)]],
+    const constant size_t& v_seq_stride [[buffer(11)]],
+    const constant float& scale [[buffer(12)]],
+    uint3 tidtg [[thread_position_in_threadgroup]],
+    uint3 tid [[threadgroup_position_in_grid]],
+    uint3 tpg [[threadgroups_per_grid]],
+    uint simd_lid [[thread_index_in_simdgroup]]) {
+  constexpr int BD = 32;
+  constexpr int G = 6;
+  constexpr int QL = 4;
+  constexpr int HPT = 2;
+  constexpr int COMBOS = G * QL;
+  constexpr int NSIMD = COMBOS / HPT;
+
+  constexpr int qk_per_thread = D / BD;
+  constexpr int v_per_thread = V / BD;
+
+  typedef float U;
+
+  const int kv_head_idx = tid.x;
+  const int batch_idx = tid.y;
+  const int block_idx = tid.z;
+  const int blocks = tpg.z;
+
+  const int pair_idx = tidtg.y;
+
+  // P61A head-paired mapping:
+  //
+  // pair_idx 0..11 maps to:
+  //
+  //   head_pair = 0..2
+  //   q_row     = 0..3
+  //
+  // Each SIMD group therefore computes two GQA query
+  // heads for exactly the same M4 row / causal bound.
+  const int q_row = pair_idx % QL;
+  const int head_pair = pair_idx / QL;
+
+  const int num_kv_heads = tpg.x;
+  const int num_q_heads = num_kv_heads * G;
+
+  U q[HPT][qk_per_thread];
+  U o[HPT][v_per_thread];
+
+  U max_score[HPT];
+  U sum_exp_score[HPT];
+
+  int q_head_idx[HPT];
+  int q_seq_idx[HPT];
+  int o_offset[HPT];
+
+  for (int j = 0; j < HPT; ++j) {
+    q_head_idx[j] =
+        G * kv_head_idx
+        + head_pair * HPT
+        + j;
+
+    q_seq_idx[j] = q_row;
+
+    const int q_batch_head_idx =
+        batch_idx * num_q_heads + q_head_idx[j];
+
+    o_offset[j] =
+        q_batch_head_idx * QL + q_seq_idx[j];
+
+    const device T* qp =
+        queries
+        + o_offset[j] * D
+        + simd_lid * qk_per_thread;
+
+    for (int x = 0; x < qk_per_thread; ++x) {
+      q[j][x] =
+          static_cast<U>(scale)
+          * static_cast<U>(qp[x]);
+    }
+
+    max_score[j] = Limits<U>::finite_min;
+    sum_exp_score[j] = 0;
+
+    for (int x = 0; x < v_per_thread; ++x) {
+      o[j][x] = 0;
+    }
+  }
+
+  const int kv_batch_head_idx =
+      batch_idx * num_kv_heads + kv_head_idx;
+
+  const device T* kp =
+      keys
+      + kv_batch_head_idx * k_head_stride
+      + block_idx * k_seq_stride
+      + simd_lid * qk_per_thread;
+
+  const device T* vp =
+      values
+      + kv_batch_head_idx * v_head_stride
+      + block_idx * v_seq_stride
+      + simd_lid * v_per_thread;
+
+  // Preserve the stock pass-1 token order exactly.
+  for (int i = block_idx; i < N; i += blocks) {
+    U kr[qk_per_thread];
+    U vr[v_per_thread];
+
+    for (int x = 0; x < qk_per_thread; ++x) {
+      kr[x] = static_cast<U>(kp[x]);
+    }
+
+    for (int x = 0; x < v_per_thread; ++x) {
+      vr[x] = static_cast<U>(vp[x]);
+    }
+
+    for (int j = 0; j < HPT; ++j) {
+      const bool use_key =
+          i <= (N - QL + q_seq_idx[j]);
+
+      if (use_key) {
+        U score = 0;
+
+        for (int x = 0; x < qk_per_thread; ++x) {
+          score += q[j][x] * kr[x];
+        }
+
+        score = simd_sum(score);
+
+        U new_max =
+            max(max_score[j], score);
+
+        U factor =
+            fast::exp(
+                max_score[j] - new_max
+            );
+
+        U exp_score =
+            fast::exp(
+                score - new_max
+            );
+
+        max_score[j] = new_max;
+
+        sum_exp_score[j] =
+            sum_exp_score[j] * factor
+            + exp_score;
+
+        for (int x = 0; x < v_per_thread; ++x) {
+          o[j][x] =
+              o[j][x] * factor
+              + exp_score * vr[x];
+        }
+      }
+    }
+
+    kp += blocks * int(k_seq_stride);
+    vp += blocks * int(v_seq_stride);
+  }
+
+  for (int j = 0; j < HPT; ++j) {
+    device T* op =
+        out
+        + o_offset[j] * blocks * V
+        + block_idx * V
+        + simd_lid * v_per_thread;
+
+    device float* sp =
+        sums
+        + o_offset[j] * blocks
+        + block_idx;
+
+    device float* mp =
+        maxs
+        + o_offset[j] * blocks
+        + block_idx;
+
+    if (simd_lid == 0) {
+      sp[0] = sum_exp_score[j];
+      mp[0] = max_score[j];
+    }
+
+    for (int x = 0; x < v_per_thread; ++x) {
+      op[x] =
+          static_cast<T>(o[j][x]);
+    }
+  }
+}
+
 template <typename T, int D>
 [[kernel]] void sdpa_vector_2pass_2(
     const device T* partials [[buffer(0)]],

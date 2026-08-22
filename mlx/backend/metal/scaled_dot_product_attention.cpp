@@ -429,8 +429,7 @@ void sdpa_vector_2pass(
   // Compute the necessary sizes.
   int gqa_factor = q.shape(1) / k.shape(1);
 
-  const bool use_gqa6_m4_hpt2 =
-      env::get_var("MLX_SDPA_GQA6_M4_HPT2", 0) > 0 &&
+  const bool gqa6_m4_hpt2_eligible =
       do_causal &&
       !mask &&
       !sinks &&
@@ -441,11 +440,27 @@ void sdpa_vector_2pass(
       v.shape(-1) == 256 &&
       k.shape(2) >= 8192;
 
+  const bool use_gqa6_m4_hpt2_headpair =
+      gqa6_m4_hpt2_eligible &&
+      env::get_var(
+          "MLX_SDPA_GQA6_M4_HPT2_HEADPAIR",
+          0) > 0;
+
+  const bool use_gqa6_m4_hpt2 =
+      gqa6_m4_hpt2_eligible &&
+      !use_gqa6_m4_hpt2_headpair &&
+      env::get_var(
+          "MLX_SDPA_GQA6_M4_HPT2",
+          0) > 0;
+
   // Set the kernel name.
   std::string kname;
   kname.reserve(96);
 
-  if (use_gqa6_m4_hpt2) {
+  if (use_gqa6_m4_hpt2_headpair) {
+    kname +=
+        "sdpa_vector_2pass_1_gqa6_m4_hpt2_headpair_";
+  } else if (use_gqa6_m4_hpt2) {
     kname += "sdpa_vector_2pass_1_gqa6_m4_hpt2_";
   } else {
     kname += "sdpa_vector_2pass_1_";
@@ -501,7 +516,8 @@ void sdpa_vector_2pass(
   size_t v_head_stride = v.shape(1) == 1 ? v.strides(0) : v.strides(1);
   size_t v_seq_stride = v.strides()[2];
   MTL::Size group_dims =
-      use_gqa6_m4_hpt2
+      (use_gqa6_m4_hpt2 ||
+       use_gqa6_m4_hpt2_headpair)
       ? MTL::Size(32, 12, 1)
       : MTL::Size(32, gqa_factor, q.shape(2));
 
