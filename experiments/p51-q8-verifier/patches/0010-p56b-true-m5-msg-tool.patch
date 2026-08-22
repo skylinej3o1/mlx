@@ -1,0 +1,31 @@
+--- a/omlx/patches/qwen35_verify_qmm.py
++++ b/omlx/patches/qwen35_verify_qmm.py
+@@ -557,7 +557,27 @@
+     M = int(x2.shape[0])
+     K = int(x2.shape[1])
+     N = int(w_q.shape[0])
+-    m = 3 if M == 3 else (4 if M <= 4 else 6)
++    true_m5 = (
++        os.environ.get(
++            "OMLX_VERIFY_MSG_TRUE_M5",
++            "",
++        ).strip().lower()
++        in ("1", "true", "yes", "on")
++    )
++
++    m = (
++        3
++        if M == 3
++        else (
++            4
++            if M <= 4
++            else (
++                5
++                if M == 5 and true_m5
++                else 6
++            )
++        )
++    )
+ 
+     msg_bn = _MSG_BN if bits == 8 else 4
+ 

@@ -1433,3 +1433,87 @@ all other P56A parameters fixed.
 If true-M5 does not produce a large structural reduction,
 close D4/M5 for the ~30K operating point and return to the
 D3/M4 champion.
+
+## P56B — True-M5 lm_head structural scout
+
+P56B tested a true verifier-M5 huge-N MSG template against
+the existing behavior, which pads verifier M=5 to an M6
+lm_head template.
+
+Common configuration:
+
+- fixed D4 / verifier M=5
+- ALL-MEDIUM routing
+- global regular-projection K_PARTS=2
+- no shape-specific K_PARTS overrides
+- lm_head NSG8 / BN4
+- frozen 29,297-token ruler
+
+PAD6:
+
+- 15.870 tok/s / 163.986 ms/cycle
+- 15.585 tok/s / 165.573 ms/cycle
+- mean 15.727 tok/s
+- mean 164.780 ms/cycle
+
+TRUE5:
+
+- 15.901 tok/s / 163.579 ms/cycle
+- 15.871 tok/s / 163.751 ms/cycle
+- mean 15.886 tok/s
+- mean 163.665 ms/cycle
+
+Delta:
+
+- +1.01% realized TG
+- -1.114 ms/backbone-cycle
+
+All four runs retained the identical deterministic trajectory:
+
+- 188 cycles
+- accept 324/476
+- hash f46220cfe4923fc1
+
+Interpretation:
+
+The true-M5 MSG template is a genuine kernel-side
+improvement. Removing the unused sixth lm_head row saves
+approximately 1.1 ms per backbone cycle without changing
+speculative behavior.
+
+However, the effect is far too small to make D4/M5
+competitive with the certified D3/M4 configuration at the
+~29.3K operating point.
+
+The P56B session also ran in a materially faster system state
+than P56A, so cross-session absolute throughput is not used
+for attribution.
+
+Approximately:
+
+- 1.114 ms/cycle * 188 cycles = 209 ms aggregate backbone saving
+
+This is much smaller than the remaining D4/M5 deficit.
+
+Conclusion:
+
+Close D4/M5 as a candidate for the ~30K operating point.
+
+Retain the true-M5 implementation as an experimental patch
+for future shorter-context or depth-routing work, but do not
+promote D4 as the current runtime policy.
+
+Restore active runtime to fixed D3 / verifier M=4.
+
+Current ~30K champion remains the P54F D3/M4 policy:
+
+- 18.504 tok/s certified mean
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+Next:
+
+Measure speculative-depth crossover versus context length.
+Determine where D2/M3, D3/M4, and potentially D4/M5 should
+be selected by an adaptive runtime policy.
