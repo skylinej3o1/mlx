@@ -4023,6 +4023,203 @@ Champion remains unchanged:
 - 325 / 442 drafts accepted
 - hash 101ae2aec9793dfe
 
+### P65D result — true pre-verify tree signal
+
+P65D tested the key semantic distinction left by P65C.
+
+Unlike P65C, P65D generated every alternate candidate and its
+continuation BEFORE target verification.
+
+For each D1/D2 parent:
+
+- the ordinary MTP top-1 chain remained untouched;
+- MTP top-2 was extracted from the same parent distribution;
+- the MTP cache at that exact parent depth was detached;
+- the alternate continuation was generated from the MTP's own
+  parent hidden state and cloned speculative cache;
+- target verification had not yet occurred.
+
+Only after verification were events retained where:
+
+- ordinary top-1 rejected; and
+- target correction equaled the already-generated MTP top-2.
+
+The experiment therefore measures genuine pre-verification
+tree-speculative continuation quality.
+
+Frozen trajectory remained exact:
+
+- prompt: 29297
+- completion: 512
+- cycles: 186
+- acceptance: 325 / 442 = 73.5%
+- output hash: 101ae2aec9793dfe
+
+Exactly the expected early rank-2 population was reproduced:
+
+- D1: 12
+- D2: 23
+- total: 35
+- censored: 0
+
+True pre-verify alternate continuation:
+
+D1:
+
+- +1 continuation:
+  6 / 12 = 50.0%
+
+- +2 continuation:
+  3 / 12 = 25.0%
+
+D2:
+
+- +1 continuation:
+  16 / 23 = 69.6%
+
+Combined:
+
+- branches with >=1 correct continuation:
+  22 / 35 = 62.9%
+
+- correct continuation positions:
+  25 / 47 = 53.2%
+
+- match-length histogram:
+  - 0: 13
+  - 1: 19
+  - 2: 3
+
+Comparison with P65C post-correction continuation:
+
+- P65C branches >=1:
+  30 / 35
+
+- P65D branches >=1:
+  22 / 35
+
+- branch-signal retention:
+  73.3%
+
+- P65C correct continuation positions:
+  33 / 47
+
+- P65D correct continuation positions:
+  25 / 47
+
+- continuation-position retention:
+  75.8%
+
+Conclusion:
+
+The pre-verification alternate branch retains substantial predictive
+value.
+
+The strong P65C continuation result was therefore not merely an
+artifact of target/backbone hidden state becoming available after
+verification.
+
+True tree speculation survives the semantic test.
+
+However, P65D does NOT yet establish positive runtime economics.
+
+The diagnostic implementation intentionally explored D1/D2 alternate
+branches broadly and forced their outputs to materialize for
+measurement.
+
+Observed diagnostic MTP timing:
+
+- P65D MTP-head time:
+  5635.2 ms
+
+This number must not be interpreted as optimized tree cost.
+
+The branch implementation included synchronization and observational
+instrumentation that a production lazy / batched branch path should
+avoid.
+
+More importantly, the benefit ceiling must be expressed in verified
+continuation positions rather than rank-2 event count.
+
+On this ruler:
+
+- additional correct pre-verify continuation positions:
+  25
+
+Baseline:
+
+- 512 output tokens
+- 186 cycles
+- 2.7527 output tokens/cycle
+- 144.263 ms/backbone-cycle
+
+Therefore 25 perfect additional positions correspond only to roughly:
+
+- 9.08 baseline cycle-equivalents
+- about 1.31 seconds of backbone work
+
+before paying for:
+
+- alternate MTP generation
+- confidence gating / synchronization
+- wider or branched target verification
+- cache/tree bookkeeping
+
+Thus the next phase is an economics problem.
+
+Preserved P65D artifacts:
+
+p65d-preverify-tree-continuation.json
+
+SHA256:
+
+e6a47de1edc13674cae0d472e8a497d0cee56c674e04f7bb3782bd87f1319748
+
+p65d-preverify-tree-events.jsonl
+
+SHA256:
+
+d6fbc86a43550902b2447617ee7d315b44beeff9d6a0d54a704bc290b7b4cd7e
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
+### P66A target — tree break-even envelope
+
+Before implementing a tree verifier, join:
+
+- exact P63 MTP confidence margins;
+- exact P65D pre-verification branch outcomes.
+
+For several low-margin thresholds measure:
+
+- number of D1/D2 parent positions selected;
+- D1 versus D2 selected counts;
+- required alternate MTP continuation nodes;
+- equivalent extra target tree-query nodes;
+- selected rank-2 events;
+- selected useful branches;
+- selected correct continuation positions;
+- recall of the 22 useful branches;
+- recall of the 25 useful continuation positions;
+- optimistic cycle-equivalent reduction;
+- optimistic backbone milliseconds saved;
+- maximum combined added cost per branch node that can break even.
+
+This must precede target-tree implementation.
+
+If useful continuation is too diffuse, close tree speculation.
+
+If a confidence gate preserves a large share of the 25 positions with
+a small node budget, proceed to P66B and measure actual async/batched
+branch-generation cost plus target verifier-layout cost.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -4102,23 +4299,22 @@ above.
 
 ### Current resume point
 
-As of the P65C checkpoint, the next phase is:
+As of the P65D checkpoint, the next phase is:
 
-**P65D — true pre-verify alternate-branch continuation**
+**P66A — tree break-even / confidence-gate envelope**
 
-P65C found an extremely strong post-correction continuation seam:
+P65D demonstrated a genuine true pre-verification tree signal:
 
-- 30 / 35 early rank-2 corrections carried >=1 continuation
-- 33 / 47 structurally available continuation positions matched
+- 22 / 35 early rank-2 branches carried >=1 correct continuation
+- 25 / 47 available continuation positions matched
+- 73.3% branch-signal retention versus P65C
+- 75.8% continuation-position retention versus P65C
 
-However, P65C rebuilt continuation after verification from target
-hidden rows and the known correction token.
+The next question is economic rather than semantic.
 
-P65D must generate the alternate top-2 continuation before target
-verification from the MTP's own parent hidden state and a detached
-copy of the exact speculative MTP cache.
+P66A should join the exact P63 top-1/top-2 margins with P65D outcomes
+and determine how many useful continuation positions survive practical
+low-confidence branch budgets.
 
-This will decide between:
-
-- true tree speculation, if the pre-verify branch remains strong; or
-- post-reject rescue, if only the post-correction seam remains strong.
+Do not implement a live tree verifier until the combined MTP plus
+target-tree break-even budget is known.
