@@ -1517,3 +1517,99 @@ Next:
 Measure speculative-depth crossover versus context length.
 Determine where D2/M3, D3/M4, and potentially D4/M5 should
 be selected by an adaptive runtime policy.
+
+## P57A — Real-context D2/M3 versus D3/M4 map
+
+P57A compared the certified D2/M3 and D3/M4 policies across
+nested real-context suffixes derived from the existing
+29,297-token real request.
+
+Actual server-reported prompt sizes:
+
+- 2,358 tokens
+- 4,329 tokens
+- 8,585 tokens
+- 17,259 tokens
+- 29,297 tokens
+
+D3/M4 beat D2/M3 at every sampled operating point.
+
+Results:
+
+2358 tokens:
+
+- D2: 23.671 tok/s, 189 cycles, 112.784 ms/cycle
+- D3: 24.847 tok/s, 166 cycles, 121.852 ms/cycle
+- D3 advantage: +4.97%
+
+4329 tokens:
+
+- D2: 21.019 tok/s, 210 cycles, 114.198 ms/cycle
+- D3: 24.497 tok/s, 166 cycles, 123.638 ms/cycle
+- D3 advantage: +16.55%
+
+8585 tokens:
+
+- D2: 22.151 tok/s, 192 cycles, 118.476 ms/cycle
+- D3: 22.380 tok/s, 174 cycles, 128.726 ms/cycle
+- D3 advantage: +1.03%
+
+17259 tokens:
+
+- D2: 19.930 tok/s, 201 cycles, 125.448 ms/cycle
+- D3: 23.374 tok/s, 150 cycles, 135.790 ms/cycle
+- D3 advantage: +17.28%
+
+29297 tokens:
+
+- D2: 17.457 tok/s, 214 cycles, 134.398 ms/cycle
+- D3: 18.386 tok/s, 186 cycles, 147.609 ms/cycle
+- D3 advantage: +5.32%
+
+Interpretation:
+
+No D2/D3 context-length crossover was observed.
+
+D3/M4 is the winner at every sampled real-context point and
+should remain the default speculative-depth policy.
+
+The experiment also demonstrates that context length alone
+does not determine realized speculative throughput.
+
+For example:
+
+- 8585-token D3: 174 cycles, 22.380 tok/s
+- 17259-token D3: 150 cycles, 23.374 tok/s
+
+Despite the much larger context and higher cycle cost at
+17259 tokens, much stronger speculative acceptance reduces
+the number of cycles sufficiently to make it faster.
+
+Therefore speculative trajectory / acceptance quality can
+dominate the raw context-length cost.
+
+The nested-context experiment changes both context length and
+conversation content, so these results should be interpreted
+as real-workload operating points rather than a causal
+context-length-only curve.
+
+Output equivalence:
+
+- 2358: D2 and D3 hashes matched
+- 4329: D2 and D3 hashes matched
+- 8585: D2 and D3 hashes differed
+- 17259: D2 and D3 hashes matched
+- 29297: D2 and D3 hashes matched
+
+The 8585-token point therefore remains useful as realized
+operational throughput but is not an exact-output-equivalent
+speed comparison.
+
+Next:
+
+Test D4/M5 selectively on the real-context workloads showing
+the strongest deep-D3 acceptance, particularly 4329 and
+17259 tokens.
+
+This tests whether D4 should be selected according to
+speculative acceptance regime rather than context length.
