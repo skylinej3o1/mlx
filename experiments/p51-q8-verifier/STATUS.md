@@ -3641,6 +3641,225 @@ Before any live tree implementation:
 4. determine whether enough recoverable opportunity exists at
    D1/D2 to justify an oracle alternate-continuation experiment.
 
+### P65B — Gate structure / depth / cycle-CV
+
+P65B resolved whether the P65A low-margin signal specifically
+identifies target-rank-2 misses or primarily identifies ordinary
+MTP uncertainty / rejection.
+
+All P63/P65A replay invariants remained exact:
+
+- 442 aligned draft rows
+- 186 reconstructed verifier cycles
+- depth counts:
+  - D1: 186
+  - D2: 155
+  - D3: 101
+- 325 accepted drafts
+- 117 rejected drafts
+- 44 target-rank-2 rejection frontiers
+
+Global discrimination:
+
+- low margin -> any rejection:
+  AUC 0.8132
+
+- low margin -> rank-2 versus all other rows:
+  AUC 0.7601
+
+- low margin -> rank-2 versus other rejected rows only:
+  AUC 0.4983
+
+The final comparison is decisive.
+
+Once analysis is conditioned on rejection, top-1/top-2 margin
+contains essentially no information about whether the target token
+is specifically MTP rank 2.
+
+Therefore the P65A 0.7601 AUC was primarily induced by the strong
+accepted-versus-rejected confidence separation.
+
+Margin should be interpreted as:
+
+- a useful general MTP uncertainty / rejection signal
+
+not as:
+
+- a detector that the correct token is specifically candidate #2
+
+Depth decomposition:
+
+D1:
+
+- rows: 186
+- accepted / rejected: 155 / 31
+- rank-2 recoverable: 12
+- rank-2 share of rejects: 38.7%
+- rejection AUC: 0.7982
+- rank-2 vs other-reject AUC: 0.6075
+- remaining continuation slots under fixed D3: 2
+
+D2:
+
+- rows: 155
+- accepted / rejected: 101 / 54
+- rank-2 recoverable: 23
+- rank-2 share of rejects: 42.6%
+- rejection AUC: 0.8619
+- rank-2 vs other-reject AUC: 0.5168
+- remaining continuation slots: 1
+
+D3:
+
+- rows: 101
+- accepted / rejected: 69 / 32
+- rank-2 recoverable: 9
+- rank-2 share of rejects: 28.1%
+- rejection AUC: 0.7749
+- rank-2 vs other-reject AUC: 0.3043
+- remaining continuation slots: 0
+
+Early-chain opportunity:
+
+- D1 + D2 rank-2 recoverable:
+  35 / 44 = 79.5%
+
+Structural upper bound on possible post-alternate continuation
+positions:
+
+- D1:
+  12 x 2 = 24 positions
+
+- D2:
+  23 x 1 = 23 positions
+
+- total:
+  47 continuation positions
+
+This 47-position figure is only a structural ceiling.
+
+It does NOT mean 47 tokens can be recovered and does NOT imply
+a cycle reduction.
+
+An alternate top-2 branch only becomes useful if, after inserting
+the correct target/top-2 token at the rejection frontier, the MTP
+head also predicts subsequent target token(s) correctly.
+
+Cycle-level five-fold CV confirmed that the low-margin rejection
+gate itself is stable.
+
+Aggregate CV:
+
+10% target budget:
+
+- actual branch fraction: 10.4%
+- rank-2 caught: 9 / 44
+- precision: 19.6%
+- recall: 20.5%
+
+15% target budget:
+
+- actual branch fraction: 16.1%
+- rank-2 caught: 15 / 44
+- precision: 21.1%
+- recall: 34.1%
+
+20% target budget:
+
+- actual branch fraction: 19.9%
+- rank-2 caught: 17 / 44
+- precision: 19.3%
+- recall: 38.6%
+
+25% target budget:
+
+- actual branch fraction: 25.3%
+- rank-2 caught: 23 / 44
+- precision: 20.5%
+- recall: 52.3%
+
+33% target budget:
+
+- actual branch fraction: 33.5%
+- rank-2 caught: 32 / 44
+- precision: 21.6%
+- recall: 72.7%
+
+P65B conclusion:
+
+- confidence / rejection signal: PASS
+- rank-2-specific confidence signal: REJECT
+- early D1/D2 branch opportunity: PASS
+- live tree speculation: NOT YET JUSTIFIED
+
+The candidate architecture is no longer:
+
+"branch because low margin predicts that candidate #2 is right."
+
+It is instead:
+
+"at selected low-confidence draft positions, retain a small alternate
+candidate set because rejection risk is high; alternate candidates only
+have economic value if their continued MTP branches verify beyond the
+correction token."
+
+Preserved artifact:
+
+p65b-gate-structure.json
+
+SHA256:
+
+06875be716b7e953f97a9888d2f4e7b8f31c386ed97ae4d4b992eb39c4ab1074
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
+### P65C target — observational oracle alternate continuation
+
+P65C should remain observational.
+
+At the 35 D1/D2 rejection frontiers where:
+
+- the ordinary MTP top-1 draft is wrong; and
+- the target token equals the MTP top-2 candidate;
+
+construct an alternate MTP chain using the known target/top-2 token.
+
+Measure:
+
+D1 frontier:
+
+- whether alternate-conditioned D2 equals the actual next target token
+- if yes, whether alternate-conditioned D3 also equals the following
+  target token
+
+D2 frontier:
+
+- whether alternate-conditioned D3 equals the actual next target token
+
+Primary output:
+
+- number of D1 rank-2 corrections with +1 valid continuation
+- number of D1 rank-2 corrections with +2 valid continuations
+- number of D2 rank-2 corrections with +1 valid continuation
+- distribution of total alternate branch lengths
+- resulting oracle estimate of verifier-cycle reduction potential
+
+Do not change emitted generation.
+
+Do not promote a tree implementation unless P65C demonstrates
+meaningful continuation after the alternate correction.
+
+Before implementing P65C, inspect the exact installed oMLX
+0.6.3rc2 chain/cache implementation rather than patching against
+newer upstream source.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -3720,14 +3939,19 @@ above.
 
 ### Current resume point
 
-As of the P65A checkpoint, the next phase is:
+As of the P65B checkpoint, the next phase is:
 
-**P65B — gate-structure / depth / cycle-CV diagnosis**
+**P65C — observational oracle alternate continuation**
 
-P65A established a strong MTP confidence signal but did not yet
-show that margin specifically distinguishes target-rank-2 misses
-from other rejection types.
+P65B established that MTP top-1/top-2 margin is a general
+rejection-confidence signal rather than a rank-2-specific signal.
 
-P65B should resolve that ambiguity and quantify how many rank-2
-opportunities occur early enough in the D1/D2 chain to support
-useful alternate continuation.
+However, 35 / 44 rank-2 rejection opportunities occur at D1/D2,
+leaving 47 structurally available continuation positions.
+
+P65C should condition the MTP head on the known correct top-2
+alternate at those early rejection frontiers and measure whether
+the alternate branch predicts subsequent target tokens correctly.
+
+First inspect the exact installed oMLX 0.6.3rc2 chain and MTP-cache
+implementation. Do not patch from newer upstream source blindly.
