@@ -1613,3 +1613,131 @@ the strongest deep-D3 acceptance, particularly 4329 and
 
 This tests whether D4 should be selected according to
 speculative acceptance regime rather than context length.
+
+## P57B — Acceptance-rich D4/M5 challenge
+
+P57B tested D4/M5 specifically on the two P57A real-context
+workloads that had shown unusually favorable deep-D3
+speculative acceptance.
+
+Configurations:
+
+D3:
+
+- fixed D3 / verifier M=4
+- certified M4 routing policy
+- 5120x6144 -> K_PARTS=1
+- 5120x17408 -> K_PARTS=1
+- remaining routed regular projections -> K_PARTS=2
+- lm_head NSG8 / BN4
+
+D4:
+
+- fixed D4 / verifier M=5
+- ALL-MEDIUM routing
+- global regular-projection K_PARTS=2
+- true-M5 lm_head experimental template
+- lm_head NSG8 / BN4
+
+4329-token workload:
+
+D3:
+
+- mean 21.254 tok/s
+- 181 cycles
+- mean 128.376 ms/cycle
+- accept 330/433
+- hash 695669b3bf3ea831
+
+D4:
+
+- mean 19.102 tok/s
+- 170 cycles
+- mean 145.065 ms/cycle
+- accept 343/467
+- hash 695669b3bf3ea831
+
+Delta:
+
+- D4 -10.13% realized TG
+- D4 removes 11 verifier cycles
+- D4 adds 16.689 ms/backbone-cycle
+
+17259-token workload:
+
+D3:
+
+- mean 20.625 tok/s
+- 165 cycles
+- mean 143.470 ms/cycle
+- accept 346/421
+- hash 331af8ab91273718
+
+D4:
+
+- mean 20.081 tok/s
+- 149 cycles
+- mean 159.143 ms/cycle
+- accept 364/457
+- hash 331af8ab91273718
+
+Delta:
+
+- D4 -2.64% realized TG
+- D4 removes 16 verifier cycles
+- D4 adds 15.673 ms/backbone-cycle
+
+Interpretation:
+
+D4/M5 loses even on the two real workloads chosen to give
+deeper speculation its strongest plausible opportunity.
+
+At 17259 tokens D4 successfully reduces verifier rounds from
+165 to 149, but the higher M5 verifier cost and substantially
+larger MTP-side cost outweigh the speculative-round savings.
+
+Both comparisons retain exact final-output equivalence between
+D3 and D4.
+
+Therefore no adaptive D3/D4 runtime policy is justified with
+the current verifier implementation.
+
+Combined P57 conclusion:
+
+- D2/M3 lost to D3/M4 at every sampled P57A operating point.
+- D4/M5 lost at ~30K in P56.
+- D4/M5 also lost its favorable 4329- and 17259-token P57B
+  challenges.
+- D3/M4 remains the default production speculative depth.
+
+P57B also showed that speculative trajectory itself is not
+fully stable across separate benchmark sessions.
+
+For the same request and D3 policy:
+
+- 4329-token P57A: 166 cycles
+- 4329-token P57B: 181 cycles
+- 17259-token P57A: 150 cycles
+- 17259-token P57B: 165 cycles
+
+The final output hashes remained the same.
+
+Therefore previously observed prompt-specific acceptance
+should not currently be treated as a sufficiently stable
+routing signal.
+
+Operational note:
+
+Because P57B was pasted into an interactive shell, its EXIT
+trap did not execute when the benchmark block completed.
+The experimental true-M5 patch therefore remained installed
+until it was explicitly reverse-applied afterward.
+
+Active runtime was restored to fixed D3 / verifier M=4.
+
+Next:
+
+Keep D3/M4 fixed and return to structural performance work.
+Profile the remaining D3/M4 backbone cost by operation and
+context length to identify the next high-leverage kernel or
+runtime target instead of further speculative-depth tuning.
