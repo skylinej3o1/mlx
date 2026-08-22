@@ -1961,3 +1961,147 @@ under a stable session.
 After that, resume structural context-length work on the
 remaining 16 full-attention KV scans rather than reopening
 speculative-depth routing.
+
+## Current handoff — post-P58
+
+Current checkpoint:
+
+- branch: project51-q8-verifier
+- commit: 52c1efd
+- P58 FP16 fused GDN verifier prework certified
+- preserved patch:
+  experiments/p51-q8-verifier/patches/
+  0011-p58-fp16-gdn-verify-prework.patch
+
+Immediate next phase: P59.
+
+P59 goal:
+
+Integrate the certified P58 FP16 GDN route with the exact
+P54F D3/M4 verifier policy and establish a fresh absolute
+29,297-token / 512-output champion.
+
+Enable:
+
+OMLX_GDN_VERIFY_PREWORK_FP16=1
+
+Keep the existing P54F routing unchanged.
+
+Historical P54F 30K reference:
+
+- 18.504 tok/s mean
+- 147.128 ms/backbone-cycle
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+P58I certified paired kernel delta:
+
+- +2.37% realized decode throughput
+- -2.460 ms/backbone-cycle
+
+A simple projection puts P59 near 18.9 tok/s, but P59 must
+measure the absolute result rather than assume the paired
+delta transfers arithmetically.
+
+Current 30K target ladder:
+
+- P59 integrated P58:
+  ~18.9 tok/s center
+- next structural attention phase:
+  ~20 tok/s 50% target
+- mature verifier stack:
+  ~21-22 tok/s
+- broader mature MXFORGE:
+  ~22.5-24 tok/s 50% region
+- ~25+ requires another major architectural win
+
+All of these targets refer to the real ~29.3K-context
+benchmark.
+
+Do not compare them directly with the historical ~27.6-29
+tok/s Q6-ish champions, which were short/low-context runs.
+
+### P60 priority after P59
+
+The leading next structural target is specialized long-KV
+verifier attention for the exact Qwen3.8 geometry:
+
+- verifier M=4 / q_len=4
+- GQA=6
+- head_dim=256
+- 16 full-attention layers
+- long KV history
+
+The existing qwen35_verify_sdpa_split path already fits all
+four M4 verifier rows into one vector-SDPA dispatch per
+full-attention layer.
+
+Therefore do NOT revisit the already-solved idea of merely
+combining four row-wise SDPA calls.
+
+Instead investigate:
+
+- reuse K/V loads across GQA query heads;
+- reuse KV work across M4 verifier rows where practical;
+- split long sequence/KV work to improve M1 GPU occupancy;
+- specialize around GQA6 + hd256 + M4;
+- reduce memory traffic from the 16 growing KV-history scans.
+
+Recent upstream MLX work titled:
+
+"Read each K/V byte once in gqa-8 decode attention"
+
+is a high-value architecture lead. It is not directly
+applicable because it targets GQA8 / single-token decode,
+but its K/V-reuse strategy should be mined for a
+GQA6/M4 verifier-specific Metal implementation.
+
+A recent upstream force_fused SDPA option may also be useful
+as a diagnostic/assertion tool. Confirm installed MLX support
+before relying on it.
+
+### Later Qwen workstreams
+
+After the attention path:
+
+1. LM-head / MTP-module specialization
+   - reduced draft vocabulary from measured output usage
+   - specialized quant/layout
+   - lower-overhead sampling
+
+2. Custom MTP head
+   - P57 closed adaptive depth, not head optimization
+   - retain D3/M4 and try to improve acceptance / reduce
+     verifier cycle count
+
+3. Prefix-cache/session discipline
+   - stable serialization
+   - exact prefix reuse
+   - session affinity
+   - cached/new-token telemetry
+
+4. Heterogeneous ANE/GPU prompt processing
+
+5. Adaptive mixed-precision KV / Geodesia-inspired work
+   only after the core attention/verifier path stabilizes
+
+6. M1-specific hardware-aware quant/layout search
+
+Recent DS4, 5070-sidecar, adaptive-waterfall, Geodesia-KV,
+and ReasonMaxxer research notes remain separate future
+workstreams under docs/research and should be treated as
+architecture sources rather than mixed into P59.
+
+### Experiment safety
+
+When temporarily modifying installed oMLX Python source,
+create and execute a /tmp/*.sh script with cleanup traps in
+the bash subprocess.
+
+Do not rely on EXIT traps pasted directly into interactive
+zsh.
+
+Next action:
+
+Run P59 integrated absolute 30K certification.
