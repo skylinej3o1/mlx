@@ -1362,3 +1362,74 @@ Next:
 
 Reopen D4/M5 and measure routing transfer before attempting
 new M5-specific kernel specialization.
+
+## P56A — D4/M5 verifier-routing transfer
+
+P56A reopened fixed D4 / verifier M=5 and measured the
+transfer of the ALL-MEDIUM verifier-routing policy.
+
+Configuration:
+
+- fixed speculative depth D4
+- verifier M=5
+- global regular-projection K_PARTS=2
+- no shape-specific K_PARTS overrides
+- lm_head NSG8 / BN4
+- frozen 29,297-token ruler
+
+M5 shape census confirmed the expected verifier families.
+
+DEFAULT:
+
+- 12.016 tok/s / 223.809 ms/cycle
+- 11.824 tok/s / 226.564 ms/cycle
+- mean 11.920 tok/s
+- mean 225.187 ms/cycle
+- always 180 cycles
+- accept 334/474
+- hash f42ac9dd2bdf9d5a
+
+ALL-MEDIUM:
+
+- 14.630 tok/s / 174.422 ms/cycle
+- 14.520 tok/s / 174.568 ms/cycle
+- mean 14.575 tok/s
+- mean 174.495 ms/cycle
+- always 188 cycles
+- accept 324/476
+- hash f46220cfe4923fc1
+
+Delta:
+
+- +22.27% realized TG
+- -50.692 ms/backbone-cycle
+
+Interpretation:
+
+Verifier routing transfers extremely strongly to M5.
+
+However, even after removing more than 50 ms/backbone-cycle,
+D4/M5 remains substantially behind the certified D3/M4
+champion at the frozen ~29.3K ruler.
+
+The deeper speculative configuration currently provides no
+round-efficiency advantage over D3/M4:
+
+- D4/M5 ALL-MEDIUM: 188 cycles / 2.72 tok per cycle
+- D3/M4 champion: 186 cycles / approximately 2.75 tok per cycle
+
+D4/M5 also shows materially higher MTP-side runtime.
+
+Therefore a broad M5 per-shape tuning campaign is not yet
+justified.
+
+One remaining structural M5-specific opportunity should be
+tested first:
+
+The huge-N lm_head path currently maps verifier M=5 onto an
+M6 MSG template. Test a true-M5 MSG template while holding
+all other P56A parameters fixed.
+
+If true-M5 does not produce a large structural reduction,
+close D4/M5 for the ~30K operating point and return to the
+D3/M4 champion.
