@@ -2263,3 +2263,204 @@ P60A first audits:
 
 Only after that audit should P60B alter or benchmark attention
 kernel structure.
+
+## P60B-D — SDPA block geometry and trajectory search
+
+P60A established the exact full-attention verifier path:
+
+- q_len=4
+- 24 query heads
+- 4 KV heads
+- GQA=6
+- head_dim=256
+- 16 full-attention layers
+- ~29.3K KV at the frozen ruler
+
+The installed qwen35_verify_sdpa_split patch sends the full
+M4 verify block through MLX vector SDPA because:
+
+q_len * GQA = 4 * 6 = 24 <= 32
+
+At long KV length this selects sdpa_vector_2pass.
+
+The local MLX tree does not contain the newer upstream
+sdpa_vector_2pass_1_gqa K/V-reuse kernel.
+
+### P60B — attention-only block-count scout
+
+Exact synthetic geometry:
+
+- B=1
+- QH=24
+- KVH=4
+- q_len=4
+- kv_len=29297
+- D=256
+- FP16
+
+AUTO bookend median:
+
+- 2.0844 ms
+
+Explicit block medians:
+
+- B16:  2.6150 ms
+- B32:  2.2077 ms
+- B64:  1.9927 ms
+- B128: 2.0087 ms
+- B256: 2.0939 ms
+- B512: 2.1293 ms
+
+B64 therefore showed:
+
+- +4.60% attention-kernel speed
+- estimated -1.468 ms/backbone-cycle across 16 layers
+
+AUTO output was bit-identical to B256, confirming that the
+M1 Max / ~29K / M4 geometry automatically selects 256 blocks.
+
+### P60C — B64 integrated certification
+
+Balanced 4+4 results:
+
+AUTO:
+
+- mean 18.043 tok/s
+- mean 149.536 ms/backbone-cycle
+- always 186 cycles
+- always accept 325/442
+- hash 101ae2aec9793dfe
+
+B64:
+
+- mean 17.230 tok/s
+- mean 147.892 ms/backbone-cycle
+- always 197 cycles
+- always accept 315/452
+- hash f46220cfe4923fc1
+
+Raw kernel/backbone result:
+
+- -1.644 ms/cycle
+
+Realized throughput:
+
+- -4.50%
+
+Therefore the P60B kernel saving transferred almost exactly,
+but changing the SDPA block reduction tree perturbed floating
+point decisions enough to degrade speculative acceptance and
+add 11 verifier cycles.
+
+B64 is rejected.
+
+### P60D — trajectory-safe block hunt
+
+Results:
+
+AUTO-A:
+- 18.092 tok/s
+- 149.236 ms/cycle
+- 186 cycles
+- 325/442
+- hash 101ae2aec9793dfe
+
+B128:
+- 18.093 tok/s
+- 148.278 ms/cycle
+- 187 cycles
+- 325/442
+- hash f42ac9dd2bdf9d5a
+
+B192:
+- 18.063 tok/s
+- 148.554 ms/cycle
+- 187 cycles
+- 325/442
+- hash f42ac9dd2bdf9d5a
+
+B160:
+- 17.250 tok/s
+- 148.551 ms/cycle
+- 196 cycles
+- 316/450
+- hash f46220cfe4923fc1
+
+B224:
+- 17.205 tok/s
+- 148.885 ms/cycle
+- 196 cycles
+- 316/450
+- hash f46220cfe4923fc1
+
+B96:
+- 18.099 tok/s
+- 149.072 ms/cycle
+- 186 cycles
+- 325/442
+- hash 101ae2aec9793dfe
+
+AUTO-B:
+- 18.057 tok/s
+- 149.463 ms/cycle
+- 186 cycles
+- 325/442
+- hash 101ae2aec9793dfe
+
+AUTO bookend mean:
+
+- 18.074 tok/s
+- 149.350 ms/cycle
+
+Only B96 retained the exact historical trajectory.
+
+B96 delta:
+
+- +0.14% TG
+- -0.278 ms/cycle
+
+Conclusion:
+
+The block-count search is closed.
+
+There is real attention headroom, but the large wins from
+reducing pass-1 blocks change the floating-point reduction
+tree and destabilize speculative acceptance.
+
+Do not promote a global MLX_SDPA_BLOCKS override.
+
+The next kernel must instead preserve the native 256-block
+partial-reduction topology while reducing redundant K/V reads.
+
+### P60E target
+
+Build an exact verifier specialization for:
+
+- FP16
+- q_len=4
+- GQA=6
+- head_dim=256
+- causal
+- no sinks
+- no array mask
+- long KV
+
+First scout: HPT2.
+
+Each SIMD group computes two query-head/row combinations from
+one K/V load, while each query accumulator still processes:
+
+block_idx,
+block_idx + blocks,
+block_idx + 2*blocks,
+...
+
+in the exact existing order.
+
+The second-pass aggregation and 256-block topology stay
+unchanged.
+
+Goal:
+
+reduce redundant K/V traffic without changing the frozen
+186-cycle / 325-of-442 / 101ae2aec9793dfe trajectory.
