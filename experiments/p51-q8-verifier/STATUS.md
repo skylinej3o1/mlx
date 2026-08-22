@@ -3288,3 +3288,89 @@ Preferred structural stack remains:
 - native 256 SDPA blocks
 - P61 HEADPAIR HPT2 attention reuse
 - exact frozen speculative trajectory
+
+## Project handoff / new-chat protocol
+
+This repository, specifically this STATUS file, is the canonical
+persistent handoff for this tuning project.
+
+### Canonical-memory rule
+
+All technical context needed to continue the project MUST be recorded
+in this STATUS file at meaningful checkpoints, including as applicable:
+
+- current canonical commit / branch
+- certified champion and performance numbers
+- fixed experimental policy and environment
+- relevant source architecture
+- experiment rationale
+- exact controls and invariants
+- successful and failed experiments
+- measured results
+- hashes / trajectory identifiers
+- accepted and rejected hypotheses
+- local artifact locations and SHA256 values when important
+- current preferred structural stack
+- explicit next experiment
+- important cautions / closed search branches
+
+Do not depend on a large chat handoff prompt to carry project state.
+
+If an important fact is needed to resume work in a fresh chat, it
+belongs here.
+
+### New-chat rule
+
+New-chat bootstrap prompts should be intentionally minimal.
+
+Normal bootstrap prompt:
+
+`Continue the MLX/oMLX verifier tuning project. Read experiments/p51-q8-verifier/STATUS.md first, verify the current repo checkpoint, and continue from the recorded next experiment.`
+
+That is normally sufficient.
+
+Do NOT reproduce the full project history, benchmark tables, environment
+details, or previous experiment summaries in the new-chat prompt.
+Those belong in STATUS.md.
+
+### Resume rule for the assistant
+
+At the beginning of a fresh project chat:
+
+1. Read `experiments/p51-q8-verifier/STATUS.md` before designing or
+   recommending the next experiment.
+2. Treat the STATUS file at the current canonical HEAD as the primary
+   project handoff.
+3. Verify the repo branch / HEAD / cleanliness before modifying project
+   state.
+4. Resume from the explicit next experiment recorded in STATUS rather
+   than reconstructing project history from chat memory.
+5. Preserve the project's existing control, reproducibility, trajectory,
+   and experimental-isolation discipline.
+
+If chat context and the canonical STATUS file disagree about an older
+project fact, inspect the repo/history and prefer the intentionally
+checkpointed repository record unless newer verified evidence exists.
+
+### Checkpoint rule
+
+Before recommending a fresh chat after a meaningful project phase:
+
+1. update STATUS with all information required to resume;
+2. preserve important non-Git artifacts and hashes when needed;
+3. commit the checkpoint;
+4. push it to the fork;
+5. verify local HEAD == fork HEAD and the working tree is clean;
+6. only then declare it a safe new-chat checkpoint.
+
+The goal is that a fresh chat requires only the minimal bootstrap prompt
+above.
+
+### Current resume point
+
+As of the P63 diagnostic checkpoint, the next phase is:
+
+**P64A — offline shared-LM-head residual replay**
+
+The detailed P63 evidence, champion state, artifacts, controls, and
+rationale are recorded above in this STATUS file.
