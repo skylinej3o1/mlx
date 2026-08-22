@@ -3289,6 +3289,170 @@ Preferred structural stack remains:
 - P61 HEADPAIR HPT2 attention reuse
 - exact frozen speculative trajectory
 
+## P64 — Offline shared-LM-head residual replay
+
+P64A tested the shared mean-residual seam identified by P63
+without altering runtime generation.
+
+The frozen P63E artifact was first validated exactly:
+
+- artifact shape: 442 x 5120
+- D1 / D2 / D3 rows: 186 / 155 / 101
+- exact artifact SHA256:
+  aab731da83b7bdd21a1c92d87290303d03b15cd1a1d3219050167b2d7e28d9b2
+
+The exact Q8 / GS64 shared target LM head was replayed from:
+
+- vocabulary: 248320
+- packed weight shape: 248320 x 1280
+- Q8
+- group size 64
+
+Before testing any correction, P64A reproduced every important
+P63 invariant:
+
+- baseline top-1: 325 / 442
+- rejection count: 117
+- replay acceptance mask exactly matched the captured mask
+- replay draft tokens exactly matched captured draft IDs
+- rejection target-rank census exactly reproduced:
+  - rank <= 2: 44
+  - rank <= 4: 70
+  - rank <= 8: 81
+  - rank <= 16: 98
+
+This establishes the offline shared-LM-head replay as faithful
+to the captured MTP distributions.
+
+Mean residual L2 norms:
+
+- global: 47.8147
+- D1: 49.8812
+- D2: 48.9386
+- D3: 52.3359
+
+P64A swept additive corrections using:
+
+- one global mean residual
+- depth-specific mean residuals
+- alpha:
+  - -0.50
+  - -0.25
+  - 0
+  - 0.125
+  - 0.25
+  - 0.50
+  - 0.75
+  - 1.00
+
+Both full-data replay and stratified 5-fold held-out replay
+were measured.
+
+Best full-data result:
+
+- global alpha=0.25
+- top-1: 326 / 442
+- recovered rejections: 2
+- broken accepts: 1
+- net: +1
+
+This tiny in-sample gain did not survive held-out replay.
+
+Best CV5 result:
+
+- alpha=0
+- top-1: 325 / 442
+- net: 0
+
+Representative nonzero CV5 results:
+
+- global alpha=0.25:
+  - top-1 325 / 442
+  - recovered 1
+  - broken 1
+  - net 0
+
+- depth alpha=0.50:
+  - top-1 325 / 442
+  - recovered 3
+  - broken 3
+  - net 0
+
+Larger positive corrections increasingly damaged already-correct
+drafts.
+
+At alpha=1.0:
+
+- global CV5: 317 / 442, net -8
+- depth CV5: 317 / 442, net -8
+
+Conclusion:
+
+The shared mean residual observed in P63 is real geometric
+structure, but a simple additive mean correction is not a useful
+MTP decision correction.
+
+P64A is therefore rejected.
+
+Do not integrate either:
+
+- global mean-residual correction
+- depth-specific mean-residual correction
+
+into live speculative generation.
+
+The failure also removes the rationale for collecting additional
+prompts merely to validate this specific additive-mean hypothesis.
+
+Preserved P64 artifacts:
+
+- p64a-residual-replay.json
+  SHA256:
+  453082b4c61077b94482448ad89330e275d860073f11b0eab340ae7263e3a508
+
+- p64a-mean-residuals.npz
+  SHA256:
+  aec5fae15dba7e5443ff9638abdf01177fd980d61cce8bbfe3d4ecfa48d37538
+
+Champion remains P61 HEADPAIR HPT2:
+
+- TG: 18.731 tok/s
+- BPC: 144.263 ms/cycle
+- cycles: 186
+- acceptance: 325 / 442
+- hash: 101ae2aec9793dfe
+
+The high-value P63 near-miss observation remains:
+
+- 44 / 117 rejection frontiers have target rank <= 2
+- 70 / 117 have target rank <= 4
+
+Therefore the next experiment moves from global hidden correction
+to selective candidate branching.
+
+### P65A target
+
+Measure whether rank-2-recoverable rejection frontiers are
+concentrated among low-confidence MTP predictions.
+
+Replay the exact shared LM head and capture:
+
+- top-1 token
+- top-2 token
+- top-1 minus top-2 logit margin
+
+Then evaluate selective top-2 branching at increasing branch
+budgets.
+
+The key question is whether a small low-margin subset captures
+a large fraction of the 44 rank-2 rejection frontiers.
+
+If so, selective top-2 / tree speculative decoding may be
+higher leverage than modifying the MTP representation itself.
+
+Do not implement live tree speculation until this offline
+branchability scout establishes a useful confidence gate.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -3368,9 +3532,14 @@ above.
 
 ### Current resume point
 
-As of the P63 diagnostic checkpoint, the next phase is:
+As of the P64A checkpoint, the next phase is:
 
-**P64A — offline shared-LM-head residual replay**
+**P65A — top-2 branchability / confidence-gating scout**
 
-The detailed P63 evidence, champion state, artifacts, controls, and
-rationale are recorded above in this STATUS file.
+P64A rejected global and depth-specific additive mean-residual
+correction after exact shared-LM-head replay and 5-fold
+held-out validation.
+
+P65A should test whether low MTP top-1/top-2 margin can
+selectively identify the 44 rank-2-recoverable rejection
+frontiers before any live tree-speculative implementation.
