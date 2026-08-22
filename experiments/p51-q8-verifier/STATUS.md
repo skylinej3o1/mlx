@@ -2105,3 +2105,161 @@ zsh.
 Next action:
 
 Run P59 integrated absolute 30K certification.
+
+## P59 — Integrated FP16 GDN absolute 30K certification
+
+P59 integrated the certified P58 FP16 fused GDN verifier
+prework with the exact P54F D3/M4 routing policy.
+
+Policy:
+
+- fixed D3 / verifier M=4
+- ALL-MEDIUM verifier routing
+- 5120x6144: K_PARTS=1
+- 5120x17408: K_PARTS=1
+- remaining regular routed projections: default K_PARTS=2
+- lm_head NSG8 / BN4
+- OMLX_GDN_VERIFY_PREWORK_FP16=1
+- frozen 29,297-token / 512-output ruler
+
+P59 absolute four-run result:
+
+- run 1:
+  - 17.069 tok/s
+  - 153.597 ms/backbone-cycle
+- run 2:
+  - 16.952 tok/s
+  - 154.801 ms/backbone-cycle
+- run 3:
+  - 17.019 tok/s
+  - 154.244 ms/backbone-cycle
+- run 4:
+  - 17.001 tok/s
+  - 154.230 ms/backbone-cycle
+
+Mean:
+
+- 17.010 tok/s
+- TG SD 0.048
+- 154.218 ms/backbone-cycle
+- BPC SD 0.492
+- best observed TG 17.069 tok/s
+
+Every run retained exactly:
+
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+- fused FP16 GDN engagement
+
+This did not beat the historical P54F absolute certification:
+
+- P54F mean: 18.504 tok/s
+- P54F BPC: 147.128 ms/cycle
+
+However, the P59 session was clearly slower globally and could
+not distinguish integration performance from system/session drift.
+
+### P59B — same-session drift control
+
+P59B therefore repeated the exact P54F stack in a balanced
+same-session FP16 GDN OFF/ON comparison.
+
+Order:
+
+- BASE-1
+- FUSED-1
+- FUSED-2
+- BASE-2
+
+BASE:
+
+- 17.940 tok/s / 149.673 ms/cycle
+- 18.054 tok/s / 149.756 ms/cycle
+- mean 17.997 tok/s
+- mean 149.715 ms/cycle
+
+FUSED:
+
+- 18.229 tok/s / 147.892 ms/cycle
+- 18.486 tok/s / 146.472 ms/cycle
+- mean 18.358 tok/s
+- mean 147.182 ms/cycle
+
+Same-session fused delta:
+
+- +2.00% realized TG
+- -2.532 ms/backbone-cycle
+
+For comparison, P58I certified:
+
+- +2.37% realized TG
+- -2.460 ms/backbone-cycle
+
+Therefore P59B reproduces the P58 kernel-side result extremely
+closely.
+
+All four P59B runs retained exactly:
+
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+Fused GDN engaged only in the FUSED arm.
+
+P59 conclusion:
+
+- P58 FP16 GDN integration: PASS
+- deterministic trajectory: PASS
+- same-session performance transfer: PASS
+- new absolute 30K champion: NOT ESTABLISHED
+
+The failed absolute P59 result is dominated by session/system
+performance drift rather than by an integration regression.
+
+The historical absolute 30K certification remains:
+
+- P54F: 18.504 tok/s mean
+
+The preferred structural verifier stack now includes the
+certified P58 FP16 GDN fusion.
+
+Do not spend additional tuning cycles chasing an absolute P59
+number in a drifting machine session.
+
+Proceed to P60 structural long-KV verifier attention work using
+paired or same-session controls.
+
+## P60 — Long-KV verifier attention
+
+P60 targets the remaining 16 full-attention layers.
+
+Exact verifier geometry established before P60:
+
+- verifier M=4 / q_len=4
+- 24 query heads
+- 4 KV heads
+- GQA factor=6
+- head_dim=256
+- 16 full-attention layers
+- long growing KV history
+
+The existing qwen35 verifier SDPA split path already fits all
+four verifier rows into one vector-SDPA dispatch per full-attention
+layer.
+
+Therefore P60 must not revisit merely combining four row-wise
+attention calls.
+
+P60A first audits:
+
+- exact installed qwen35 verifier-SDPA wrapper
+- installed MLX version and SDPA API
+- whether force_fused is available
+- whether the local MLX source contains the newly merged
+  GQA K/V-reuse kernel
+- exact current vector-SDPA dispatch constraints for
+  q_len=4 / GQA6 / head_dim=256
+
+Only after that audit should P60B alter or benchmark attention
+kernel structure.
