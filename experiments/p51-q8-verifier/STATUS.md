@@ -2464,3 +2464,244 @@ Goal:
 
 reduce redundant K/V traffic without changing the frozen
 186-cycle / 325-of-442 / 101ae2aec9793dfe trajectory.
+
+## P60E-G — HPT2 verifier attention certification
+
+P60B-D demonstrated that reducing the native 256-block
+two-pass SDPA reduction topology can expose meaningful
+attention speed, but also changes floating-point reductions
+enough to perturb speculative acceptance.
+
+The custom-kernel work therefore retained:
+
+- native 256 pass-1 blocks
+- existing second-pass aggregation
+- the same per-output token visitation order
+
+while reducing redundant K/V reads.
+
+### P60E — HPT2 attention-only kernel
+
+An isolated MLX worktree was built at:
+
+/tmp/p60e-mlx-hpt2
+
+The specialized route targets the exact verifier geometry:
+
+- FP16 certified workload
+- batch 1
+- q_len=4
+- 24 query heads
+- 4 KV heads
+- GQA=6
+- head_dim=256
+- causal
+- no sinks
+- no array mask
+- long KV
+
+The route is environment gated:
+
+MLX_SDPA_GQA6_M4_HPT2=1
+
+and was tested with the native:
+
+MLX_SDPA_BLOCKS=256
+
+HPT2 keeps two query/row accumulators in registers and
+reuses each K/V load across both while preserving each
+individual accumulator's original token-processing order.
+
+Exact 29,297-KV microbenchmark:
+
+BASE mean-of-bookend medians:
+
+- 2.0653 ms
+
+HPT2 mean-of-bookend medians:
+
+- 1.8274 ms
+
+Kernel speedup:
+
+- +13.01%
+
+Estimated 16-layer effect:
+
+- approximately -3.805 ms/backbone-cycle
+
+All BASE and HPT2 outputs had exactly the same hash:
+
+c37c1d739e0a90b0
+
+Therefore the tested exact attention call was bit-exact.
+
+A later preflight reproduced:
+
+- BASE 2.0721 ms
+- HPT2 1.8418 ms
+- identical c37c1d739e0a90b0 hash
+
+### P60F — integrated 2+2 scout
+
+Both arms used the same isolated rebuilt MLX and explicitly
+used 256 SDPA blocks.
+
+Only:
+
+MLX_SDPA_GQA6_M4_HPT2
+
+changed between arms.
+
+BASE:
+
+- 18.060 tok/s / 149.428 ms/cycle
+- 18.095 tok/s / 149.195 ms/cycle
+- mean 18.078 tok/s
+- mean 149.312 ms/cycle
+
+HPT2:
+
+- 18.650 tok/s / 144.856 ms/cycle
+- 18.684 tok/s / 144.652 ms/cycle
+- mean 18.667 tok/s
+- mean 144.754 ms/cycle
+
+Paired result:
+
+- +3.26% TG
+- -4.558 ms/backbone-cycle
+
+Every run retained exactly:
+
+- 186 cycles
+- accept 325/442
+- 73.5% acceptance
+- hash 101ae2aec9793dfe
+
+### P60G — balanced 4+4 certification
+
+Order:
+
+- BASE-1
+- HPT2-1
+- HPT2-2
+- BASE-2
+- HPT2-3
+- BASE-3
+- BASE-4
+- HPT2-4
+
+BASE runs:
+
+- 18.093 tok/s / 149.149 ms/cycle
+- 18.076 tok/s / 149.309 ms/cycle
+- 18.066 tok/s / 149.395 ms/cycle
+- 18.053 tok/s / 149.485 ms/cycle
+
+BASE mean:
+
+- 18.072 tok/s
+- TG SD 0.017
+- 149.335 ms/backbone-cycle
+- BPC SD 0.143
+
+HPT2 runs:
+
+- 18.677 tok/s / 144.734 ms/cycle
+- 18.687 tok/s / 144.632 ms/cycle
+- 18.669 tok/s / 144.754 ms/cycle
+- 18.658 tok/s / 144.770 ms/cycle
+
+HPT2 mean:
+
+- 18.672 tok/s
+- TG SD 0.012
+- 144.722 ms/backbone-cycle
+- BPC SD 0.062
+
+Certified paired delta:
+
+- +3.32% realized TG
+- -4.612 ms/backbone-cycle
+- approximately 857.8 ms target-backbone time removed
+  across 186 verifier cycles
+
+All eight P60G runs retained exactly:
+
+- 186 cycles
+- accept 325/442
+- 73.5% acceptance
+- hash 101ae2aec9793dfe
+
+This establishes a bit-stable structural verifier-attention
+win rather than a speculative-trajectory effect.
+
+### Absolute champion
+
+Historical P54F absolute certification:
+
+- 18.504 tok/s mean
+- 147.128 ms/backbone-cycle
+
+P60G HPT2:
+
+- 18.672 tok/s mean
+- 144.722 ms/backbone-cycle
+
+Therefore P60G establishes a new measured 30K champion mean:
+
+- +0.91% TG versus historical P54F
+- -2.406 ms/cycle versus historical P54F
+
+This is especially notable because the same-session P60G
+BASE mean was only 18.072 tok/s, confirming that the HPT2
+structural delta survives a globally slower session.
+
+### P60 conclusion
+
+The long-KV verifier attention path had substantial redundant
+K/V traffic even after consolidating M4 into one vector-SDPA
+dispatch.
+
+A specialized HPT2 pass-1 kernel removes enough redundant
+K/V loading to produce:
+
+- +13.01% exact attention-call speed
+- +3.32% certified end-to-end TG
+- -4.612 ms/backbone-cycle
+
+while preserving both:
+
+- exact tested attention output
+- exact frozen speculative trajectory
+
+The implementation is preserved as:
+
+experiments/p51-q8-verifier/patches/
+0012-p60-hpt2-m4-gqa6-sdpa.patch
+
+and is promoted into the project branch source.
+
+Current preferred 30K verifier stack:
+
+- fixed D3
+- verifier M=4
+- P54F QMM routing
+- lm_head NSG8 / BN4
+- P58 FP16 fused GDN verifier prework
+- native 256-block vector SDPA topology
+- P60 HPT2 M4/GQA6/hd256 K/V-reuse attention kernel
+
+Current measured 30K champion:
+
+- 18.672 tok/s mean
+- 144.722 ms/backbone-cycle
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+Next attention optimization should retain the same numerical
+discipline. Candidate geometry work should preserve each
+accumulator's arithmetic order and compare alternative HPT2
+pairings before increasing register pressure substantially.

@@ -426,18 +426,37 @@ void sdpa_vector_2pass(
     bool do_causal,
     const std::optional<array>& mask,
     const std::optional<array>& sinks) {
-  // Set the kernel name
+  // Compute the necessary sizes.
+  int gqa_factor = q.shape(1) / k.shape(1);
+
+  const bool use_gqa6_m4_hpt2 =
+      env::get_var("MLX_SDPA_GQA6_M4_HPT2", 0) > 0 &&
+      do_causal &&
+      !mask &&
+      !sinks &&
+      q.flags().row_contiguous &&
+      q.shape(2) == 4 &&
+      gqa_factor == 6 &&
+      q.shape(-1) == 256 &&
+      v.shape(-1) == 256 &&
+      k.shape(2) >= 8192;
+
+  // Set the kernel name.
   std::string kname;
-  kname.reserve(64);
-  kname += "sdpa_vector_2pass_1_";
+  kname.reserve(96);
+
+  if (use_gqa6_m4_hpt2) {
+    kname += "sdpa_vector_2pass_1_gqa6_m4_hpt2_";
+  } else {
+    kname += "sdpa_vector_2pass_1_";
+  }
+
   kname += get_type_string(q.dtype());
   kname += "_";
   kname += std::to_string(q.shape(-1));
   kname += "_";
   kname += std::to_string(v.shape(-1));
 
-  // Compute the necessary sizes
-  int gqa_factor = q.shape(1) / k.shape(1);
   int n_simds = gqa_factor * q.shape(2);
 
   char devc = d.get_architecture().back();
@@ -481,7 +500,11 @@ void sdpa_vector_2pass(
   size_t k_seq_stride = k.strides()[2];
   size_t v_head_stride = v.shape(1) == 1 ? v.strides(0) : v.strides(1);
   size_t v_seq_stride = v.strides()[2];
-  MTL::Size group_dims(32, gqa_factor, q.shape(2));
+  MTL::Size group_dims =
+      use_gqa6_m4_hpt2
+      ? MTL::Size(32, 12, 1)
+      : MTL::Size(32, gqa_factor, q.shape(2));
+
   MTL::Size grid_dims(k.shape(1), q.shape(0), blocks);
 
   // Allocate the intermediates

@@ -1,0 +1,293 @@
+diff --git a/mlx/backend/metal/kernels/scaled_dot_product_attention.metal b/mlx/backend/metal/kernels/scaled_dot_product_attention.metal
+index 44ccb83..6c4e584 100644
+--- a/mlx/backend/metal/kernels/scaled_dot_product_attention.metal
++++ b/mlx/backend/metal/kernels/scaled_dot_product_attention.metal
+@@ -28,12 +28,21 @@ using namespace metal;
+       qk_dim,                                                  \
+       value_dim)
+ 
++#define instantiate_sdpa_vector_gqa6_m4_hpt2(type)                  \
++  instantiate_kernel(                                               \
++      "sdpa_vector_2pass_1_gqa6_m4_hpt2_" #type "_256_256",         \
++      sdpa_vector_2pass_1_gqa6_m4_hpt2,                              \
++      type,                                                          \
++      256,                                                           \
++      256)
++
+ #define instantiate_sdpa_vector_heads(type)      \
+   instantiate_sdpa_vector(type, 64, 64)          \
+   instantiate_sdpa_vector(type, 96, 96)          \
+   instantiate_sdpa_vector(type, 128, 128)        \
+   instantiate_sdpa_vector(type, 192, 128)        \
+   instantiate_sdpa_vector(type, 256, 256)        \
++  instantiate_sdpa_vector_gqa6_m4_hpt2(type)     \
+   instantiate_sdpa_vector_aggregation(type, 64)  \
+   instantiate_sdpa_vector_aggregation(type, 96)  \
+   instantiate_sdpa_vector_aggregation(type, 128) \
+diff --git a/mlx/backend/metal/kernels/sdpa_vector.h b/mlx/backend/metal/kernels/sdpa_vector.h
+index 1eec72b..09a450d 100644
+--- a/mlx/backend/metal/kernels/sdpa_vector.h
++++ b/mlx/backend/metal/kernels/sdpa_vector.h
+@@ -317,6 +317,202 @@ template <typename T, int D, int V = D>
+   }
+ }
+ 
++
++// P60E: exact M4 / GQA6 verifier specialization.
++//
++// Preserve the existing two-pass reduction topology exactly:
++// every output partial still owns the same `block_idx` and
++// processes the same interleaved key sequence in the same order.
++//
++// The only structural change is HPT2: one SIMD group computes
++// two query-head/row combinations while each K/V element is
++// loaded once into FP32 registers and reused for both.
++template <typename T, int D, int V = D>
++[[kernel]] void sdpa_vector_2pass_1_gqa6_m4_hpt2(
++    const device T* queries [[buffer(0)]],
++    const device T* keys [[buffer(1)]],
++    const device T* values [[buffer(2)]],
++    device T* out [[buffer(3)]],
++    device float* sums [[buffer(4)]],
++    device float* maxs [[buffer(5)]],
++    const constant int& N [[buffer(7)]],
++    const constant size_t& k_head_stride [[buffer(8)]],
++    const constant size_t& k_seq_stride [[buffer(9)]],
++    const constant size_t& v_head_stride [[buffer(10)]],
++    const constant size_t& v_seq_stride [[buffer(11)]],
++    const constant float& scale [[buffer(12)]],
++    uint3 tidtg [[thread_position_in_threadgroup]],
++    uint3 tid [[threadgroup_position_in_grid]],
++    uint3 tpg [[threadgroups_per_grid]],
++    uint simd_lid [[thread_index_in_simdgroup]]) {
++  constexpr int BD = 32;
++  constexpr int G = 6;
++  constexpr int QL = 4;
++  constexpr int HPT = 2;
++  constexpr int COMBOS = G * QL;
++  constexpr int NSIMD = COMBOS / HPT;
++
++  constexpr int qk_per_thread = D / BD;
++  constexpr int v_per_thread = V / BD;
++
++  typedef float U;
++
++  const int kv_head_idx = tid.x;
++  const int batch_idx = tid.y;
++  const int block_idx = tid.z;
++  const int blocks = tpg.z;
++
++  const int pair_idx = tidtg.y;
++  const int combo0 = pair_idx * HPT;
++
++  const int num_kv_heads = tpg.x;
++  const int num_q_heads = num_kv_heads * G;
++
++  U q[HPT][qk_per_thread];
++  U o[HPT][v_per_thread];
++
++  U max_score[HPT];
++  U sum_exp_score[HPT];
++
++  int q_head_idx[HPT];
++  int q_seq_idx[HPT];
++  int o_offset[HPT];
++
++  for (int j = 0; j < HPT; ++j) {
++    const int combo = combo0 + j;
++
++    q_head_idx[j] =
++        G * kv_head_idx + combo / QL;
++
++    q_seq_idx[j] =
++        combo % QL;
++
++    const int q_batch_head_idx =
++        batch_idx * num_q_heads + q_head_idx[j];
++
++    o_offset[j] =
++        q_batch_head_idx * QL + q_seq_idx[j];
++
++    const device T* qp =
++        queries
++        + o_offset[j] * D
++        + simd_lid * qk_per_thread;
++
++    for (int x = 0; x < qk_per_thread; ++x) {
++      q[j][x] =
++          static_cast<U>(scale)
++          * static_cast<U>(qp[x]);
++    }
++
++    max_score[j] = Limits<U>::finite_min;
++    sum_exp_score[j] = 0;
++
++    for (int x = 0; x < v_per_thread; ++x) {
++      o[j][x] = 0;
++    }
++  }
++
++  const int kv_batch_head_idx =
++      batch_idx * num_kv_heads + kv_head_idx;
++
++  const device T* kp =
++      keys
++      + kv_batch_head_idx * k_head_stride
++      + block_idx * k_seq_stride
++      + simd_lid * qk_per_thread;
++
++  const device T* vp =
++      values
++      + kv_batch_head_idx * v_head_stride
++      + block_idx * v_seq_stride
++      + simd_lid * v_per_thread;
++
++  // Preserve the stock pass-1 token order exactly.
++  for (int i = block_idx; i < N; i += blocks) {
++    U kr[qk_per_thread];
++    U vr[v_per_thread];
++
++    for (int x = 0; x < qk_per_thread; ++x) {
++      kr[x] = static_cast<U>(kp[x]);
++    }
++
++    for (int x = 0; x < v_per_thread; ++x) {
++      vr[x] = static_cast<U>(vp[x]);
++    }
++
++    for (int j = 0; j < HPT; ++j) {
++      const bool use_key =
++          i <= (N - QL + q_seq_idx[j]);
++
++      if (use_key) {
++        U score = 0;
++
++        for (int x = 0; x < qk_per_thread; ++x) {
++          score += q[j][x] * kr[x];
++        }
++
++        score = simd_sum(score);
++
++        U new_max =
++            max(max_score[j], score);
++
++        U factor =
++            fast::exp(
++                max_score[j] - new_max
++            );
++
++        U exp_score =
++            fast::exp(
++                score - new_max
++            );
++
++        max_score[j] = new_max;
++
++        sum_exp_score[j] =
++            sum_exp_score[j] * factor
++            + exp_score;
++
++        for (int x = 0; x < v_per_thread; ++x) {
++          o[j][x] =
++              o[j][x] * factor
++              + exp_score * vr[x];
++        }
++      }
++    }
++
++    kp += blocks * int(k_seq_stride);
++    vp += blocks * int(v_seq_stride);
++  }
++
++  for (int j = 0; j < HPT; ++j) {
++    device T* op =
++        out
++        + o_offset[j] * blocks * V
++        + block_idx * V
++        + simd_lid * v_per_thread;
++
++    device float* sp =
++        sums
++        + o_offset[j] * blocks
++        + block_idx;
++
++    device float* mp =
++        maxs
++        + o_offset[j] * blocks
++        + block_idx;
++
++    if (simd_lid == 0) {
++      sp[0] = sum_exp_score[j];
++      mp[0] = max_score[j];
++    }
++
++    for (int x = 0; x < v_per_thread; ++x) {
++      op[x] =
++          static_cast<T>(o[j][x]);
++    }
++  }
++}
++
+ template <typename T, int D>
+ [[kernel]] void sdpa_vector_2pass_2(
+     const device T* partials [[buffer(0)]],
+diff --git a/mlx/backend/metal/scaled_dot_product_attention.cpp b/mlx/backend/metal/scaled_dot_product_attention.cpp
+index d6f74bc..d5f34ee 100644
+--- a/mlx/backend/metal/scaled_dot_product_attention.cpp
++++ b/mlx/backend/metal/scaled_dot_product_attention.cpp
+@@ -426,18 +426,37 @@ void sdpa_vector_2pass(
+     bool do_causal,
+     const std::optional<array>& mask,
+     const std::optional<array>& sinks) {
+-  // Set the kernel name
++  // Compute the necessary sizes.
++  int gqa_factor = q.shape(1) / k.shape(1);
++
++  const bool use_gqa6_m4_hpt2 =
++      env::get_var("MLX_SDPA_GQA6_M4_HPT2", 0) > 0 &&
++      do_causal &&
++      !mask &&
++      !sinks &&
++      q.flags().row_contiguous &&
++      q.shape(2) == 4 &&
++      gqa_factor == 6 &&
++      q.shape(-1) == 256 &&
++      v.shape(-1) == 256 &&
++      k.shape(2) >= 8192;
++
++  // Set the kernel name.
+   std::string kname;
+-  kname.reserve(64);
+-  kname += "sdpa_vector_2pass_1_";
++  kname.reserve(96);
++
++  if (use_gqa6_m4_hpt2) {
++    kname += "sdpa_vector_2pass_1_gqa6_m4_hpt2_";
++  } else {
++    kname += "sdpa_vector_2pass_1_";
++  }
++
+   kname += get_type_string(q.dtype());
+   kname += "_";
+   kname += std::to_string(q.shape(-1));
+   kname += "_";
+   kname += std::to_string(v.shape(-1));
+ 
+-  // Compute the necessary sizes
+-  int gqa_factor = q.shape(1) / k.shape(1);
+   int n_simds = gqa_factor * q.shape(2);
+ 
+   char devc = d.get_architecture().back();
+@@ -481,7 +500,11 @@ void sdpa_vector_2pass(
+   size_t k_seq_stride = k.strides()[2];
+   size_t v_head_stride = v.shape(1) == 1 ? v.strides(0) : v.strides(1);
+   size_t v_seq_stride = v.strides()[2];
+-  MTL::Size group_dims(32, gqa_factor, q.shape(2));
++  MTL::Size group_dims =
++      use_gqa6_m4_hpt2
++      ? MTL::Size(32, 12, 1)
++      : MTL::Size(32, gqa_factor, q.shape(2));
++
+   MTL::Size grid_dims(k.shape(1), q.shape(0), blocks);
+ 
+   // Allocate the intermediates
