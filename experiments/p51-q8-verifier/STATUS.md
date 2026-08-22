@@ -2922,3 +2922,135 @@ Current measured 30K champion:
 The next attention experiment may increase HPT, but should
 continue to preserve the native 256-block reduction topology
 and exact per-accumulator arithmetic order.
+
+## P62 — HPT3 reuse frontier
+
+P62 tested whether verifier-attention K/V reuse could be
+extended beyond the certified P61 HPT2 same-row head-pair
+mapping.
+
+The experimental kernel used:
+
+- batch 1
+- q_len=4
+- 24 query heads
+- 4 KV heads
+- GQA=6
+- head_dim=256
+- FP16
+- causal
+- KV length 29,297
+- native 256 pass-1 blocks
+- unchanged pass-2 aggregation
+- unchanged per-accumulator arithmetic order
+
+P62 HPT3 grouped three GQA query heads at the same M4 row.
+
+This reduced logical SIMD groups from:
+
+- native: 24
+- HPT2: 12
+- HPT3: 8
+
+but increased live per-SIMD accumulator state from two query
+outputs to three.
+
+### P62A exact attention microbenchmark
+
+Balanced results:
+
+BASE-A:
+
+- median 2.0905 ms
+- hash c37c1d739e0a90b0
+
+HPT2-A:
+
+- median 1.8175 ms
+- hash c37c1d739e0a90b0
+
+HPT3-A:
+
+- median 3.9791 ms
+- hash c37c1d739e0a90b0
+
+HPT3-B:
+
+- median 3.9769 ms
+- hash c37c1d739e0a90b0
+
+HPT2-B:
+
+- median 1.8260 ms
+- hash c37c1d739e0a90b0
+
+BASE-B:
+
+- median 2.0838 ms
+- hash c37c1d739e0a90b0
+
+Mean of balanced medians:
+
+- BASE: 2.0872 ms
+- HPT2 HEADPAIR: 1.8217 ms
+- HPT3: 3.9780 ms
+
+Relative performance:
+
+- HPT2 versus BASE: +14.57%
+- HPT3 versus BASE: -47.53%
+- HPT3 versus HPT2: -54.21%
+
+All six outputs retained exactly:
+
+c37c1d739e0a90b0
+
+Therefore HPT3 is numerically bit-exact, but its performance
+is catastrophically worse.
+
+16-layer projection:
+
+- HPT2 saving versus BASE:
+  approximately 4.247 ms/backbone-cycle
+
+- HPT3 versus BASE:
+  approximately -30.254 ms/backbone-cycle
+
+- HPT3 incremental versus HPT2:
+  approximately -34.501 ms/backbone-cycle
+
+### P62 conclusion
+
+At head_dim=256 on the M1 Max vector-SDPA kernel, HPT3
+crosses the useful K/V-reuse versus register-pressure /
+occupancy frontier.
+
+The exactness result proves that the regression is not due
+to changed arithmetic or speculative behavior.
+
+HPT2 HEADPAIR remains the preferred verifier-attention
+geometry.
+
+Do not test HPT4 on this kernel geometry.
+
+Attention HPT search is closed at:
+
+- HPT=2
+- same M4 row
+- two adjacent GQA query heads
+- native 256-block reduction topology
+
+No P62 source changes are promoted.
+
+Canonical champion remains P61:
+
+- 18.731 tok/s mean
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+Next workstream:
+
+Audit the MTP module and lm-head path for the next
+structural verifier/decode optimization.
