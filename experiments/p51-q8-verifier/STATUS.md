@@ -3054,3 +3054,237 @@ Next workstream:
 
 Audit the MTP module and lm-head path for the next
 structural verifier/decode optimization.
+
+## P63 — MTP acceptance diagnosis
+
+P63 shifted optimization focus from raw MTP latency to speculative
+acceptance / cycle reduction.
+
+### P63A/B — architecture and budget audit
+
+Representative fixed-D3 P61 budget at ~30K context:
+
+- backbone: 144.328 ms/cycle
+- MTP: 1.828 ms/cycle
+- sampling: 0.032 ms/cycle
+- cache: 0.430 ms/cycle
+- backbone / MTP ratio: ~78.95x
+
+Frozen trajectory:
+
+- 512 emitted tokens
+- 186 verify cycles
+- 325 / 442 drafts accepted = 73.5%
+- 2.753 emitted tokens/cycle
+- D1: 155 / 186 = 83.33%
+- D2: 101 / 155 = 65.16%
+- D3: 69 / 101 = 68.32%
+
+Conclusion: shaving MTP compute has limited leverage. Avoiding even a
+small number of ~144 ms backbone verify cycles can be more valuable.
+
+Qwen3.5 MTP architecture audit established:
+
+- one full-attention MTP transformer layer
+- hidden size 5120
+- MTP hidden ultimately feeds the same target LM head
+- vocabulary size 248320
+- greedy verifier contains both target ids and the exact MTP draft
+  distributions needed for observational recoverability telemetry
+
+### P63C — greedy recoverability telemetry
+
+Exact frozen generation was preserved:
+
+- cycles: 186
+- accept: 325 / 442
+- hash: `101ae2aec9793dfe`
+
+All 117 true rejection frontiers were measured.
+
+Target rank under the MTP distribution at rejection:
+
+- rank <= 2: 44 / 117 = 37.6%
+- rank <= 4: 70 / 117 = 59.8%
+- rank <= 8: 81 / 117 = 69.2%
+- rank <= 16: 98 / 117 = 83.8%
+
+This is a strong near-miss signal: the MTP head is often near the
+target token even when top-1 is wrong.
+
+### P63D — confusion structure
+
+The near misses are contextual rather than a reusable vocabulary
+confusion table:
+
+- 117 rejection frontiers
+- 116 unique draft -> target pairs
+- only one pair repeated
+- all 44 rank-2 draft -> target pairs were unique
+
+Conclusion:
+
+- reject fixed token-bias / confusion-table correction
+- investigate representation / chain-state quality instead
+
+### P63E-v3c — complete aligned hidden-state capture
+
+After correcting diagnostic instrumentation, P63E captured every
+conditional draft position:
+
+- artifact shape: 442 x 5120 MTP hidden
+- paired target hidden: 442 x 5120
+- skipped cycles: 0
+- exact depth counts: D1=186, D2=155, D3=101
+- exact rejection count: 117
+- exact P63C rank totals reproduced
+- exact frozen output hash: `101ae2aec9793dfe`
+
+Diagnostic artifact SHA256:
+
+`aab731da83b7bdd21a1c92d87290303d03b15cd1a1d3219050167b2d7e28d9b2`
+
+P63E diagnostic TPS is NOT a performance result because hidden capture
+adds synchronization and host copies.
+
+Accepted-row MTP/target cosine by chain depth:
+
+- D1: 0.597302
+- D2: 0.526064
+- D3: 0.459056
+- D3 - D1: -0.138247
+
+This is a strong depth-drift signal.
+
+However, the aggregate accept/reject hidden-distance comparison was
+depth-confounded and must not be interpreted as a direct acceptance
+classifier.
+
+### P63F — depth-deconfounded hidden geometry
+
+Within-depth accept/reject discrimination:
+
+- mean cosine AUC: 0.463879
+- mean relative-L2 AUC: 0.417010
+
+Per depth:
+
+- D1 cosine AUC: 0.4458
+- D2 cosine AUC: 0.5319
+- D3 cosine AUC: 0.4139
+
+Therefore generic MTP -> target hidden closeness does NOT reliably
+predict acceptance once chain depth is controlled.
+
+Among rejected rows, representation error still has a moderate
+relationship with confidence error:
+
+- depth-demeaned gap vs 1-cos: +0.287112
+- depth-demeaned rank vs 1-cos: +0.224417
+- depth-demeaned gap vs relative-L2: +0.2528
+
+Residual structure is not strongly low-rank.
+
+Depth-specific centered PCA top-8 variance:
+
+- D1: 19.23%
+- D2: 19.20%
+- D3: 23.30%
+
+This rejects the current hypothesis that a tiny rank-8 residual adapter
+captures most MTP hidden error.
+
+There IS a substantial shared mean residual component.
+
+Mean residual direction strength:
+
+- D1: 0.395953
+- D2: 0.349624
+- D3: 0.353347
+
+Equivalent mean-residual share of uncentered residual energy:
+
+- D1: ~15.68%
+- D2: ~12.22%
+- D3: ~12.49%
+
+Mean residual direction cosine:
+
+- D1 / D2: +0.885495
+- D1 / D3: +0.769328
+- D2 / D3: +0.935171
+
+This is a plausible global-bias correction seam.
+
+The strongest self-chain evidence comes from centroid drift.
+
+Draft centroid cross-depth cosine:
+
+- D1 / D2: +0.939025
+- D1 / D3: +0.856822
+- D2 / D3: +0.950443
+
+Target centroid cross-depth cosine:
+
+- D1 / D2: +0.986943
+- D1 / D3: +0.973139
+- D2 / D3: +0.981485
+
+The target representation remains highly stable across depth while the
+MTP draft representation drifts substantially more, especially D1->D3.
+
+### P63 conclusion
+
+P63 establishes:
+
+1. Acceptance/cycle reduction is materially higher-leverage than raw
+   MTP latency optimization for this workload.
+2. Most rejected target tokens are already relatively near the top of
+   the MTP distribution.
+3. Misses are contextual, not a small repeated vocabulary-confusion
+   table.
+4. MTP representation changes strongly with self-chain depth while the
+   target representation is comparatively stable.
+5. Generic hidden distance is not a direct accept/reject classifier.
+6. Residual variation is too distributed to justify a rank-8 adapter
+   from this single ruler.
+7. A substantial and similarly oriented mean residual component exists
+   across D1/D2/D3.
+
+Preferred next experiment:
+
+**P64A — offline shared-LM-head residual replay**
+
+Using the frozen P63E hidden artifact, replay the shared LM head after
+adding scaled residual corrections and measure target-rank / top-1
+recovery without changing runtime generation.
+
+Compare at minimum:
+
+- no correction
+- one global mean residual direction
+- depth-specific mean residual directions
+- conservative scale sweep around zero
+
+Do not train a learned adapter yet.
+
+Any correction must first demonstrate held-out / multi-prompt
+generalization before an integrated speculative-decoding experiment.
+
+### Champion remains unchanged
+
+P61 HEADPAIR HPT2 remains the certified absolute champion:
+
+- TG: 18.731 tok/s
+- BPC: 144.263 ms/cycle
+- cycles: 186
+- acceptance: 325 / 442
+- hash: `101ae2aec9793dfe`
+
+Preferred structural stack remains:
+
+- P58 FP16 GDN
+- fixed P54F D3 / M4 verifier policy
+- native 256 SDPA blocks
+- P61 HEADPAIR HPT2 attention reuse
+- exact frozen speculative trajectory
