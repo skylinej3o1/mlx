@@ -1741,3 +1741,223 @@ Keep D3/M4 fixed and return to structural performance work.
 Profile the remaining D3/M4 backbone cost by operation and
 context length to identify the next high-leverage kernel or
 runtime target instead of further speculative-depth tuning.
+
+## P58 — FP16 fused GDN verifier prework
+
+P58 returned to structural D3/M4 backbone profiling after
+P57 closed adaptive speculative-depth routing.
+
+P58A-P58C established the active Qwen3.5 verifier structure:
+
+- 64 transformer layers total
+- 48 linear / Gated DeltaNet layers
+- 16 full-attention layers
+- full attention every fourth layer
+- hidden size 5120
+- 24 query heads
+- 4 KV heads
+- head_dim 256
+- fixed D3 / verifier M=4
+
+The existing qwen35 verify-SDPA split patch was confirmed
+active at M=4:
+
+- q_len=4
+- GQA factor=6
+- vector row budget=32
+- row limit=5
+
+Therefore the full M=4 verifier block already fits in one
+vector-SDPA dispatch per full-attention layer.
+
+P58D-P58F then found that the existing fused GDN verify
+prework patch was installed successfully but never engaged
+on this model.
+
+The exact rejection was dtype only.
+
+Observed verifier shape:
+
+- S=4
+- input shape (1, 4, 5120)
+- input dtype FP16
+- conv state dtype FP16
+- conv weight dtype FP16
+- gdn_sink present
+- mask None
+
+The existing patch required BF16 for all three tensors.
+
+All other eligibility conditions passed.
+
+P58G audited the fused Metal kernel.
+
+The kernel itself is dtype-generic:
+
+- scalar type T is templated from qkv.dtype
+- outputs use qkv.dtype
+- convolution accumulation uses FP32
+- RMS sum/reduction uses FP32
+- output conversion returns through T
+
+The BF16-only restriction therefore lived primarily in the
+Python eligibility checks and BF16 scale construction rather
+than in a BF16-specific Metal implementation.
+
+P58H added a temporary env-gated FP16 route:
+
+OMLX_GDN_VERIFY_PREWORK_FP16=1
+
+The FP16 route:
+
+- permits FP16 input/state/conv-weight tensors
+- requires state and weight dtype to equal input dtype
+- constructs q/k scales in inputs.dtype
+- otherwise leaves the fused kernel unchanged
+
+P58H 2+2 scout at the 29297-token real workload:
+
+BASE mean:
+
+- 18.090 tok/s
+- 148.987 ms/cycle
+
+FUSED mean:
+
+- 18.335 tok/s
+- 147.508 ms/cycle
+
+Delta:
+
+- +1.35% realized TG
+- -1.478 ms/cycle
+
+Every run retained:
+
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+P58I then ran a balanced 4+4 certification:
+
+Order:
+
+- BASE-1
+- FUSED-1
+- FUSED-2
+- BASE-2
+- FUSED-3
+- BASE-3
+- BASE-4
+- FUSED-4
+
+BASE:
+
+- mean TG 17.960 tok/s
+- TG SD 0.063
+- mean BPC 149.563 ms
+- BPC SD 0.392
+
+FUSED:
+
+- mean TG 18.386 tok/s
+- TG SD 0.147
+- mean BPC 147.103 ms
+- BPC SD 0.717
+
+Certified paired delta:
+
+- +2.37% realized TG
+- -2.460 ms/backbone-cycle
+- approximately 457.6 ms target-backbone time removed across
+  186 verifier cycles
+
+All eight certification runs retained exactly:
+
+- 186 cycles
+- accept 325/442
+- hash 101ae2aec9793dfe
+
+The fused arm engaged cleanly on every FUSED run and never
+fell back.
+
+P58I therefore establishes a clean kernel-side speed win,
+not a speculative-trajectory effect.
+
+Absolute-session note:
+
+The P58I BASE session was slower than the historical P54F
+certification environment.
+
+Therefore 18.386 tok/s is not promoted as a new absolute
+global champion measurement.
+
+P58 certifies the paired FP16 GDN kernel delta itself:
+
+- +2.37% TG
+- -2.460 ms/cycle
+
+P58J directly compared the internal fused FP16 prework output
+against the stock composed FP16 path.
+
+Coverage:
+
+- 96 GDN layer calls
+- two complete 48-GDN-layer verifier passes
+
+Direct tensor comparison result:
+
+- q differing elements: 0
+- q max absolute error: 0
+- k differing elements: 0
+- k max absolute error: 0
+- v differing elements: 0
+- v max absolute error: 0
+- next conv-state differing elements: 0
+- next conv-state max absolute error: 0
+
+Therefore the tested FP16 fused prework is bit-exact against
+the stock FP16 composed path for all directly compared
+q/k/v/conv-state tensors.
+
+The P58J synchronized comparator intentionally perturbed
+runtime timing and must not be used as a performance result.
+
+P58 conclusion:
+
+The existing Qwen3.5 fused GDN target-verify prework kernel
+was unnecessarily unavailable to the FP16 27B model because
+of BF16-only Python gating.
+
+Extending the route to FP16 is both:
+
+- performance-certified at 30K:
+  +2.37% paired TG / -2.460 ms per cycle
+
+and
+
+- directly numerically certified over the tested 96-call
+  coverage:
+  bit-exact q/k/v/next-conv-state tensors
+
+The certified implementation is preserved as:
+
+experiments/p51-q8-verifier/patches/
+0011-p58-fp16-gdn-verify-prework.patch
+
+The preserved patch remains environment gated:
+
+OMLX_GDN_VERIFY_PREWORK_FP16=1
+
+Current installed oMLX source is restored to the unmodified
+package version after experimentation.
+
+Next:
+
+Integrate the certified FP16 GDN route with the existing
+P54F D3/M4 policy and measure a fresh absolute 30K champion
+under a stable session.
+
+After that, resume structural context-length work on the
+remaining 16 full-attention KV scans rather than reopening
+speculative-depth routing.
