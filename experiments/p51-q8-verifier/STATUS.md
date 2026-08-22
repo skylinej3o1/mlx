@@ -3860,6 +3860,169 @@ Before implementing P65C, inspect the exact installed oMLX
 0.6.3rc2 chain/cache implementation rather than patching against
 newer upstream source.
 
+### P65C result — post-correction continuation
+
+P65C instrumented the exact installed oMLX 0.6.3rc2 runtime and
+remained fully observational.
+
+Installed source audited before the experiment:
+
+- oMLX 0.6.3rc2
+- MLX 0.32.0
+- mlx-lm 0.31.3
+- batch_generator.py SHA256:
+  2aae3666f861a6b4522af343315a4ebdcbde8f4029d1b46ae046aa23bb98289d
+- qwen35_model.py SHA256:
+  34e74b36bae0f62701a391bc19cc1d75c288424f075f05fa53bc647787b52d33
+
+The Qwen MTP head has a separate trim-capable KV cache and the
+runtime provides _clone_mtp_head_cache for detached speculative
+copies.
+
+P65C used a clone of committed-only MTP history after the normal
+head trim and rebuilt continuation from:
+
+- verifier/backbone hidden rows for the committed prefix; and
+- the known target correction token.
+
+No emitted token, backbone cache, persistent MTP cache, normal draft,
+or verifier decision was changed.
+
+Frozen trajectory reproduced exactly:
+
+- prompt: 29297 tokens
+- completion: 512 tokens
+- cycles: 186
+- acceptance: 325 / 442 = 73.5%
+- D1: 155 / 186
+- D2: 101 / 155
+- D3: 69 / 101
+- output hash: 101ae2aec9793dfe
+
+Exactly the P65B early rank-2 population was observed:
+
+- D1: 12
+- D2: 23
+- total: 35
+- censored: 0
+
+Post-correction continuation:
+
+D1:
+
+- +1 continuation: 8 / 12 = 66.7%
+- +2 continuation: 3 / 12 = 25.0%
+
+D2:
+
+- +1 continuation: 22 / 23 = 95.7%
+
+Combined:
+
+- at least one correct continuation:
+  30 / 35 = 85.7%
+- correct continuation positions:
+  33 / 47 = 70.2%
+- match-length histogram:
+  - 0: 5
+  - 1: 27
+  - 2: 3
+
+Preserved artifacts:
+
+p65c-oracle-continuation.json
+
+SHA256:
+
+5b7ef8be1f3a238b4a80a98ca04be025b956bbb278f735170c05d01f9c627abb
+
+p65c-oracle-events.jsonl
+
+SHA256:
+
+995701a134d9cbfdceaf60becfd0ec92bdf12c47c757d96c37eaec64e34a3548
+
+Important semantic qualification:
+
+P65C is a strong positive result, but its disposable continuation
+was generated AFTER the target verifier had supplied the correction
+token and verifier/backbone hidden representation.
+
+Therefore P65C proves:
+
+- a strong post-rejection / post-correction continuation seam
+
+It does NOT yet prove:
+
+- that a top-2 branch generated speculatively BEFORE target
+  verification from the MTP's own hidden state will have the same
+  continuation quality.
+
+This distinction matters.
+
+The normal MTP self-chain uses the MTP head's own post-norm hidden
+state for deeper speculative positions. P65C instead rebuilt committed
+history from target/backbone hidden rows after verification.
+
+Thus two candidate architectures now exist:
+
+1. true pre-verify tree speculation:
+   generate a top-2 alternate branch during ordinary MTP drafting,
+   then verify it jointly or through another efficient verifier form;
+
+2. post-reject rescue:
+   after the target reveals a rank-2 correction, immediately exploit
+   the unusually high-quality continuation conditioned on that
+   correction rather than waiting for a normal full next cycle.
+
+P65D must distinguish these architectures before live integration.
+
+### P65D target — true pre-verify alternate branch
+
+During ordinary MTP chain construction, before the target verifier
+runs:
+
+- at D1, retain the MTP top-2 token and build two additional MTP
+  continuation predictions from the same parent MTP hidden/cache;
+- at D2, retain the MTP top-2 token and build one additional
+  continuation prediction from the same parent MTP hidden/cache.
+
+All alternate work must use detached MTP-cache clones.
+
+After the target verifier runs:
+
+- keep only events where the ordinary top-1 rejected and target
+  equals the previously generated top-2 candidate;
+- compare the already-generated alternate continuation with the
+  subsequent real target token stream.
+
+Expected rank-2 event invariants:
+
+- D1: 12
+- D2: 23
+- total: 35
+
+Primary comparison:
+
+P65C post-correction continuation
+versus
+P65D true pre-verification MTP-only continuation.
+
+If P65D remains strong, true tree speculation is justified for an
+economics / verifier-layout scout.
+
+If P65D collapses while P65C remains strong, defer tree decoding and
+pursue a post-reject rescue micro-cycle instead.
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -3939,19 +4102,23 @@ above.
 
 ### Current resume point
 
-As of the P65B checkpoint, the next phase is:
+As of the P65C checkpoint, the next phase is:
 
-**P65C — observational oracle alternate continuation**
+**P65D — true pre-verify alternate-branch continuation**
 
-P65B established that MTP top-1/top-2 margin is a general
-rejection-confidence signal rather than a rank-2-specific signal.
+P65C found an extremely strong post-correction continuation seam:
 
-However, 35 / 44 rank-2 rejection opportunities occur at D1/D2,
-leaving 47 structurally available continuation positions.
+- 30 / 35 early rank-2 corrections carried >=1 continuation
+- 33 / 47 structurally available continuation positions matched
 
-P65C should condition the MTP head on the known correct top-2
-alternate at those early rejection frontiers and measure whether
-the alternate branch predicts subsequent target tokens correctly.
+However, P65C rebuilt continuation after verification from target
+hidden rows and the known correction token.
 
-First inspect the exact installed oMLX 0.6.3rc2 chain and MTP-cache
-implementation. Do not patch from newer upstream source blindly.
+P65D must generate the alternate top-2 continuation before target
+verification from the MTP's own parent hidden state and a detached
+copy of the exact speculative MTP cache.
+
+This will decide between:
+
+- true tree speculation, if the pre-verify branch remains strong; or
+- post-reject rescue, if only the post-correction seam remains strong.
