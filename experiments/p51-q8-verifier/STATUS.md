@@ -6646,3 +6646,151 @@ promotion:
 
 Require bit-exact microbenchmark parity before promotion.
 
+---
+
+## P69B2-B / P69B2-C — exact Q8 M4 shared-weight kernel
+
+Date: 2026-08-23
+
+### P69B2-B — dominant 6144 -> 5120 projection
+
+A dedicated M=4 affine-Q8 / GS64 FP16 shared-weight kernel was
+implemented in an isolated P61 worktree.
+
+The kernel preserves stock Q8 arithmetic and each verifier vector's
+FP32 accumulation order, but reads each group of Q8 weights once and
+applies it to all four M vectors.
+
+Two output geometries were screened:
+
+- SG2 x 4 output rows
+- SG4 x 2 output rows
+
+Both were bit-exact over all eight parity probes.
+
+Dominant K=6144 -> N=5120 result:
+
+Stock:
+- median: 0.206999 ms/call
+- screened cost: 13.325 ms/cycle
+
+SG2 x R4:
+- median: 0.122041 ms/call
+- speedup: 1.6961x
+- reduction: 41.04%
+- screened cost: 7.856 ms/cycle
+- screened saving: 5.469 ms/cycle
+- parity: exact, 0/163840 mismatches
+
+SG4 x R2:
+- median: 0.136397 ms/call
+- speedup: 1.5176x
+- reduction: 34.11%
+- screened saving: 4.545 ms/cycle
+- parity: exact
+
+SG2 x R4 is the promoted geometry.
+
+P69B2-B report SHA256:
+
+`fd57b34ff2b7d4376430cc14bb00b5ee86b4c12242eb289eae3d706c03f20a17`
+
+P69B2-B source patch SHA256:
+
+`0c77b2e2db28f583b6ad6eeb2aba1d34eee8c0f4388a2024902aa5c6fe058221`
+
+### P69B2-C — all three runtime-hot shapes
+
+The same SG2 x R4 Metal arithmetic was retained unchanged.
+Only the host gate was widened to the complete runtime-hot set:
+
+- K=6144 -> N=5120
+- K=5120 -> N=1024
+- K=5120 -> N=48
+
+All three shapes remained bit-exact across eight independent parity
+probes per shape.
+
+Results:
+
+1. K=6144 -> N=5120
+   - stock: 0.206655 ms/call
+   - SG2R4: 0.121717 ms/call
+   - speedup: 1.6978x
+   - reduction: 41.10%
+   - screened saving: 5.468 ms/cycle
+   - exact: yes
+
+2. K=5120 -> N=1024
+   - stock: 0.036842 ms/call
+   - SG2R4: 0.023017 ms/call
+   - speedup: 1.6007x
+   - reduction: 37.53%
+   - screened saving: 0.453 ms/cycle
+   - exact: yes
+
+3. K=5120 -> N=48
+   - stock: 0.004807 ms/call
+   - SG2R4: 0.004681 ms/call
+   - speedup: 1.0268x
+   - reduction: 2.61%
+   - screened saving: 0.012 ms/cycle
+   - exact: yes
+
+The three shapes cover:
+
+- 35,919 / 36,195 stock M4-Q8 calls
+- 99.2375% of the measured population
+
+Aggregate microbenchmark screen:
+
+- all-stock: 14.970 ms/cycle
+- all-SG2R4: 9.038 ms/cycle
+- screened saving: 5.932 ms/cycle
+- screened reduction: 39.63%
+
+These values remain screening estimates, not end-to-end attribution.
+
+P69B2-C report SHA256:
+
+`d39e79b7df41b51ccfa348f15f4818e1b63fded064da0ef5d66db37b5740eade`
+
+P69B2-C source patch SHA256:
+
+`3eaab0d7e92db7b0d5d496c76e1fa9d3c348506e6a9803a40842986347a4a9bb`
+
+### Next experiment
+
+**P69B3-A — frozen 3+3 integrated A/B**
+
+Reconstruct the exact P61 runtime plus the P69B2-C patch and compare:
+
+- BASE: P61 stack, SG2R4 route disabled
+- CAND: identical stack with
+  `MLX_P69B2_Q8_M4_SHARED=sg2r4`
+
+Balanced run order:
+
+- BASE-1
+- CAND-1
+- CAND-2
+- BASE-2
+- BASE-3
+- CAND-3
+
+Every run must retain:
+
+- output hash `101ae2aec9793dfe`
+- 512 completion tokens
+- 186 cycles
+- acceptance 325/442
+- depth d1=155/186, d2=101/155, d3=69/101
+
+Primary integrated metric:
+
+- backbone milliseconds per cycle
+
+Secondary metric:
+
+- measured decode tokens/sec
+
