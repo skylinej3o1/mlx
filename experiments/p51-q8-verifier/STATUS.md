@@ -5569,6 +5569,309 @@ LM head and express the correction as a lower-dimensional logit delta.
 This should be measured only if P67C demonstrates a positive
 recover-versus-break trade.
 
+### P67C result — confidence gate does not rescue
+
+P67C tested whether baseline MTP confidence could protect
+already-correct drafts from the P67A rank-64 state-dependent
+residual correction.
+
+The compact correction was frozen exactly from P67A:
+
+- output rank:
+  64
+- lambda:
+  0.1
+- correction alpha:
+  0.75
+
+No compact-model parameter was retuned.
+
+Gate threshold selection used only the original P67A
+train + validation development population:
+
+- 149 verifier cycles
+- 352 rows
+
+Five cycle-disjoint cross-fit folds were used.
+
+Every development correction prediction came from a model
+that did not train on that verifier cycle.
+
+Baseline top1-minus-top2 margin thresholds tested:
+
+- NONE
+- 0.25
+- 0.50
+- 0.75
+- 1.00
+- 1.25
+- 1.50
+- 1.75
+- 2.00
+- 2.50
+- 3.00
+- 4.00
+- 6.00
+- ALL
+
+Cross-fitted development results:
+
+NONE:
+
+- gated:
+  0
+- recovered:
+  0
+- broken:
+  0
+- net:
+  0
+
+0.25:
+
+- gated:
+  25
+- baseline rejects:
+  13
+- baseline accepts:
+  12
+- recovered:
+  2
+- broken:
+  6
+- net:
+  -4
+
+0.50:
+
+- gated:
+  37
+- recovered:
+  2
+- broken:
+  7
+- net:
+  -5
+
+0.75:
+
+- gated:
+  56
+- recovered:
+  2
+- broken:
+  10
+- net:
+  -8
+
+1.00:
+
+- gated:
+  74
+- recovered:
+  4
+- broken:
+  11
+- net:
+  -7
+
+1.50:
+
+- gated:
+  105
+- recovered:
+  5
+- broken:
+  13
+- net:
+  -8
+
+2.00:
+
+- gated:
+  121
+- recovered:
+  5
+- broken:
+  14
+- net:
+  -9
+
+3.00:
+
+- gated:
+  174
+- recovered:
+  5
+- broken:
+  14
+- net:
+  -9
+
+ALL:
+
+- gated:
+  352
+- baseline rejects:
+  94
+- baseline accepts:
+  258
+- recovered:
+  5
+- broken:
+  14
+- net:
+  -9
+
+Every nonzero confidence-gated policy was negative.
+
+The development-selection objective therefore correctly chose:
+
+- threshold:
+  NONE
+- gated rows:
+  0
+- net:
+  0
+
+The already-exposed P67B test split then necessarily remained
+unchanged:
+
+- gated:
+  0 / 90
+- recovered:
+  0
+- broken:
+  0
+- net:
+  0
+
+For reference, P67B ungated compact was reproduced exactly:
+
+- recovered:
+  4
+- broken:
+  4
+- net:
+  0
+
+P67C signal:
+
+CONFIDENCE_GATE_DOES_NOT_RESCUE
+
+Conclusion:
+
+Baseline confidence is a real rejection signal, as established
+earlier in P65, but it is not sufficient to distinguish rows where
+the P67A Euclidean residual correction will help from rows where it
+will destroy an already-correct decision.
+
+Therefore close the current formulation:
+
+- Euclidean target-hidden residual regression
+- followed by baseline-margin gating
+
+Do not tune another threshold or depth-specific gate on the same
+spent ruler.
+
+The P67 sequence nevertheless established two important positive facts:
+
+1. MTP hidden state contains substantial held-out information about
+   target representation error.
+
+2. A compact rank-64 correction can recover real LM-head mistakes.
+
+The primary failure is objective alignment:
+
+- P67A minimizes representation-space residual error;
+- production utility depends on target-vs-competitor LM-head margins;
+- increasing Euclidean predictor capacity made token behavior worse,
+  not better.
+
+Therefore the next learned experiment should train directly toward
+LM-head decision geometry and explicitly protect already-correct rows.
+
+Preserved P67C artifact:
+
+p67c-confidence-gated-compact-replay.json
+
+SHA256:
+
+36accd2fc402f37acc59c961b4ef10ceeb558f5c1d84de76e50d19d21999cb8a
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
+### P68A target — decision-aware low-rank margin correction
+
+P68A should remain offline.
+
+Do NOT optimize Euclidean distance to target hidden.
+
+Instead construct a fixed rank-64 hidden correction subspace from
+training-only MTP->target residuals and train the state-dependent
+predictor toward LM-head decision margins.
+
+For each training fold:
+
+- fit a rank-64 residual basis using training cycles only;
+- replay the exact shared Q8 / GS64 LM head;
+- for an already-correct row:
+  - desired correction coefficient target = zero;
+- for a rejected row:
+  - identify the current baseline top-1 competitor;
+  - project target-vs-competitor LM-head sensitivity into the
+    rank-64 basis;
+  - construct the minimum-L2 coefficient vector that would raise
+    target above that competitor by a small positive margin;
+  - clip the coefficient norm conservatively.
+
+Then train a state-only kernel-ridge predictor:
+
+MTP hidden -> 64 decision-aware correction coefficients
+
+The inference predictor must not consume target id, acceptance,
+target hidden, or target logits.
+
+Use cycle-disjoint cross-fitting on the original 149 development
+cycles.
+
+Select only on cross-fitted development behavior.
+
+The already-exposed P67B 90-row split may be used only as secondary
+fixed-policy confirmation.
+
+Primary exact metrics:
+
+- recovered baseline rejections
+- broken baseline accepts
+- net top-1 change
+- per-depth behavior
+- correction norm
+- exact Q8/GS64 full-vocabulary replay
+
+The selected development policy must be verified with a full exact
+LM-head replay, because pairwise target-vs-baseline-competitor
+optimization can still cause a third token to become top-1.
+
+If P68A is positive:
+
+- stop tuning on this single prompt;
+- freeze the objective and architecture;
+- capture genuinely new prompts for validation.
+
+If P68A is not positive:
+
+- close low-rank hidden-correction adapters from this ruler;
+- return to structural verifier/runtime work or collect a larger
+  multi-prompt training corpus before further learned tuning.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -5648,27 +5951,32 @@ above.
 
 ### Current resume point
 
-As of the P67B checkpoint:
+As of the P67C checkpoint, simple Euclidean residual correction plus
+baseline-confidence gating is closed.
 
-- compact rank-64 residual prediction remains strongly positive in
-  held-out hidden space;
-- ungated exact-head replay is net neutral:
-  4 recovered / 4 broken;
-- full-capacity correction is harmful:
-  3 recovered / 9 broken.
+Every nonzero P67C development gate was negative.
 
 The next phase is:
 
-**P67C — confidence-gated compact correction**
+**P68A — decision-aware low-rank margin correction**
 
-Keep rank64 / lambda0.1 / alpha0.75 fixed.
+Keep the correction space compact at rank 64, but change the training
+target from target-hidden Euclidean residual to direct shared-LM-head
+decision geometry.
 
-Select only the baseline confidence gate using cross-fitted
-train+validation cycles.
+Already-correct training rows should target zero correction.
 
-Do not use the already-observed P67B test-depth pattern for policy
-selection.
+Rejected training rows should target the minimum-norm rank-64 hidden
+correction needed to raise the true target over the current baseline
+competitor.
 
-If confidence gating produces a positive recover-versus-break trade,
-the next phase should validate the fixed architecture on new prompts
-before any runtime integration.
+Select policy parameters only from cycle-disjoint cross-fitted
+development behavior.
+
+Use exact full-vocabulary Q8/GS64 replay to verify the selected policy.
+
+Do not tune from the already-exposed P67B test-depth pattern.
+
+If P68A produces a positive exact development trade and secondary
+fixed-policy confirmation, freeze the architecture and move to new
+prompt capture rather than continuing same-ruler tuning.
