@@ -4430,6 +4430,219 @@ compaction mechanism or an equivalent strategy.
 
 The D2-only result provides a useful zero-dynamic-gate alternative.
 
+### P66B result — lazy branch generation exceeds budget
+
+P66B measured the lower-bound cost of true pre-verification
+alternate MTP generation after removing the additional host
+synchronization used by P65D.
+
+Controls:
+
+- exact frozen 29297-token prompt
+- 512 generated tokens
+- P61 HEADPAIR HPT2
+- P58 FP16 GDN
+- fixed D3 MTP
+- output hash 101ae2aec9793dfe
+- 186 cycles
+- 325 / 442 ordinary drafts accepted
+
+G25 / G33 used precomputed frozen-ruler cycle/depth schedules.
+
+Therefore their measurements intentionally exclude the unresolved
+production cost of making a dynamic low-margin branch decision.
+
+Alternate branch arrays remained lazy on device and were resolved
+inside the verifier cycle's already-existing host synchronization.
+
+Interleaved CONTROL median:
+
+- decode window:
+  27.341537 s
+- TG:
+  18.726 tok/s
+- internal measured time:
+  27264.950 ms
+
+G25:
+
+- 84 selected parents
+- 127 alternate continuation nodes
+- median TG:
+  18.125 tok/s
+- decode-window delta:
+  +907.3 ms
+- integrated added cost:
+  7.144 ms/node
+- internal-time delta:
+  +888.8 ms
+- internal delta:
+  6.999 ms/node
+- P66A total break-even:
+  6.190 ms/node
+- residual target-tree budget:
+  -0.955 ms/node
+
+G33:
+
+- 114 selected parents
+- 172 nodes
+- median TG:
+  17.918 tok/s
+- decode-window delta:
+  +1232.8 ms
+- integrated added cost:
+  7.167 ms/node
+- internal-time delta:
+  +1207.5 ms
+- internal delta:
+  7.020 ms/node
+- P66A total break-even:
+  6.703 ms/node
+- residual target-tree budget:
+  -0.464 ms/node
+
+D2ALL:
+
+- 155 selected parents
+- 155 nodes
+- median TG:
+  17.963 tok/s
+- decode-window delta:
+  +1161.3 ms
+- integrated added cost:
+  7.492 ms/node
+- internal-time delta:
+  +1143.4 ms
+- internal delta:
+  7.377 ms/node
+- P66A break-even:
+  approximately 5.410 ms/node
+- residual target-tree budget:
+  -2.082 ms/node
+
+P66B signal:
+
+BRANCH_GENERATION_CONSUMES_TREE_BUDGET
+
+Conclusion:
+
+The current pre-verification tree implementation is economically
+non-viable.
+
+Alternate MTP generation alone consumes more than the complete
+break-even budget before paying for:
+
+- target-tree verification
+- tree attention layout
+- dynamic confidence gating
+- target cache bookkeeping
+
+Do NOT proceed directly to a widened target-tree verifier using this
+alternate-continuation implementation.
+
+This closes the current implementation path, but does not yet close
+the semantic tree opportunity.
+
+The branch-generation implementation still pays to predict every
+alternate descendant with an additional MTP forward.
+
+A potentially cheaper architecture exists:
+
+the ordinary linear MTP chain has already generated tokens at D2/D3
+beyond the branch point.
+
+Speculative candidates need not themselves have been generated under
+the alternate parent; correctness is established by target
+verification.
+
+Therefore a top-2 branch may be able to reuse the already-existing
+main-chain descendant token IDs with zero extra continuation MTP
+forwards.
+
+P66C must measure this before tree speculation is abandoned.
+
+Preserved P66B artifact:
+
+p66b-lazy-branch-cost.json
+
+SHA256:
+
+d38ad8adbd233772adee4877702a500e3b3374c4282c78b9d4eff14691c20167
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
+### P66C target — free descendant reuse
+
+P66C is observational and must perform NO alternate MTP forward.
+
+At the exact 35 true rank-2 D1/D2 rejection frontiers established
+by P65D, retain the ordinary already-generated draft token IDs that
+occur after the rejected position.
+
+For a D1 rejection:
+
+ordinary chain already contains:
+
+- original D2 token
+- original D3 token
+
+Treat those token IDs as descendants of the alternate top-2 D1
+correction and compare them against the subsequent real target token
+stream.
+
+For a D2 rejection:
+
+ordinary chain already contains:
+
+- original D3 token
+
+Treat that token as the descendant of the alternate top-2 D2
+correction.
+
+Measure sequential speculative usefulness:
+
+- D1 reused +1
+- D1 reused +2
+- D2 reused +1
+- branches with at least one reusable descendant
+- total reusable continuation positions out of structural maximum 47
+
+Important:
+
+For D1, if the reused D2 token is wrong, the reused D3 token is not
+counted even if its ID happens to match later, because speculative
+acceptance terminates at the first mismatch.
+
+This experiment requires:
+
+- no MTP cache clone
+- no alternate MTP decoder invocation
+- no alternate LM-head projection
+- no new host synchronization
+
+It reads only draft IDs that already exist in the ordinary verifier
+sync result.
+
+If a substantial fraction of P65D's 25 useful continuation positions
+can be recovered this way, the economic tree problem changes
+dramatically:
+
+- alternate continuation MTP cost becomes zero
+- remaining costs are top-2 extraction / selection and target-tree
+  verification
+
+If free descendant reuse is weak, the current tree direction should
+be deprioritized unless a fundamentally cheaper alternate-head
+implementation is found.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -4509,23 +4722,22 @@ above.
 
 ### Current resume point
 
-As of the P66A checkpoint, the next phase is:
+As of the P66B checkpoint, the next phase is:
 
-**P66B — lazy pre-verify branch-generation cost**
+**P66C — free descendant reuse**
 
-P66A established that useful tree continuation is economically
-interesting only if total added branch plus target-verifier cost is
-roughly 5-7 ms per extra node or lower.
+P66B established that even a lazy no-new-host-sync alternate MTP
+continuation path costs approximately 7.1-7.5 ms/node.
 
-The forced-sync P65D implementation is too expensive.
+That already exceeds the entire P66A tree break-even envelope.
 
-P66B should benchmark a no-new-host-sync lazy alternate-MTP path under:
+Do not implement target-tree verification using separately generated
+alternate continuations.
 
-- ~25% precomputed frozen-ruler gate
-- ~33% precomputed frozen-ruler gate
-- static D2-only branching
+P66C should instead test whether the already-generated ordinary
+D2/D3 draft IDs can be reused as descendants of the alternate top-2
+branch.
 
-Do not widen the target verifier yet.
-
-First determine how much of the 5-7 ms/node budget is consumed by
-alternate MTP generation alone.
+This requires zero additional continuation MTP forwards and is the
+last high-leverage tree formulation to test before deprioritizing
+this direction.
