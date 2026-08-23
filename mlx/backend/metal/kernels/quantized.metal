@@ -238,6 +238,22 @@ instantiate_quantized_batched(
 instantiate_quantized_batched(
     affine_qmv_fast_m5_fixed_5120_1024, float16_t, 64, 6, 0)
 
+
+instantiate_quantized_batched(
+    affine_qmv_fast_m4_q8_shared_sg2r4,
+    float16_t,
+    64,
+    8,
+    0)
+
+instantiate_quantized_batched(
+    affine_qmv_fast_m4_q8_shared_sg4r2,
+    float16_t,
+    64,
+    8,
+    0)
+
+
 instantiate_quantized_batched(
     affine_qmv_fast_m4, float16_t, 64, 6, 0)
 

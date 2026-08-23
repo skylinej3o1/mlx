@@ -6794,3 +6794,193 @@ Secondary metric:
 
 - measured decode tokens/sec
 
+---
+
+## P69B3 — SG2R4 integrated certification and champion promotion
+
+Date: 2026-08-23
+
+P69B2 produced an exact M4 affine-Q8 / GS64 FP16 shared-weight
+kernel using SG2 x 4 output rows.
+
+The promoted route applies only to the three P69B1 runtime-hot
+stock-QMV shapes:
+
+- M=4, K=6144, N=5120
+- M=4, K=5120, N=1024
+- M=4, K=5120, N=48
+
+The kernel retains stock Q8 arithmetic and per-vector FP32
+accumulation order while sharing each Q8 weight load across all
+four verifier vectors.
+
+### P69B3-A — initial frozen 3+3
+
+Balanced order:
+
+- BASE
+- CAND
+- CAND
+- BASE
+- BASE
+- CAND
+
+All six runs retained the exact frozen trajectory:
+
+- output hash: `101ae2aec9793dfe`
+- prompt: 29,297 tokens
+- completion: 512 tokens
+- cycles: 186
+- acceptance: 325/442 = 73.5%
+- depth:
+  - d1 = 155/186
+  - d2 = 101/155
+  - d3 = 69/101
+
+P69B3-A result:
+
+- BASE mean BPC: 141.1898 ms
+- CAND mean BPC: 140.4226 ms
+- mean BPC improvement: 0.543%
+- mean BPC saving: 0.7672 ms/cycle
+- paired BPC wins: 2/3
+
+The first two pairs were positive:
+
+- +2.374% BPC
+- +1.729% BPC
+
+The final candidate run suffered a broad simultaneous disturbance
+across backbone, MTP, and cache and produced the negative third pair.
+
+P69B3-A therefore remained positive but required controlled repeat.
+
+P69B3-A summary SHA256:
+
+`59a7098cdc896e33826d9daed9bc66fe449a859d6624a51f89d7aa00ec17ece7`
+
+### P69B3-B — controlled 4+4 certification
+
+A controlled repeat used:
+
+- four adjacent matched BASE/CAND pairs
+- mirrored pair order:
+  - BASE -> CAND
+  - CAND -> BASE
+  - CAND -> BASE
+  - BASE -> CAND
+- 12-second idle cooldown between every frozen run
+- no exclusion of disturbed runs from the statistics
+
+All eight runs again retained the exact frozen hash and speculative
+trajectory.
+
+Controlled result:
+
+BASE:
+
+- mean TG: 18.6855 tok/s
+- median TG: 18.6870 tok/s
+- mean BPC: 144.8065 ms
+- median BPC: 144.7836 ms
+- BPC stdev: 0.0867 ms
+
+SG2R4 candidate:
+
+- mean TG: 19.0746 tok/s
+- median TG: 19.0741 tok/s
+- mean BPC: 141.8324 ms
+- median BPC: 141.8309 ms
+- BPC stdev: 0.0422 ms
+
+Integrated deltas:
+
+- mean TG: +2.083%
+- mean BPC: +2.054% faster
+- median BPC: +2.039% faster
+- mean BPC saving: 2.9741 ms/cycle
+- median BPC saving: 2.9527 ms/cycle
+
+Adjacent paired BPC results:
+
+1. +2.033% / +2.9430 ms/cycle
+2. +2.042% / +2.9565 ms/cycle
+3. +2.016% / +2.9194 ms/cycle
+4. +2.123% / +3.0774 ms/cycle
+
+Certification:
+
+- BPC pair wins: 4/4
+- median paired BPC improvement: +2.038%
+- pooled 7+7 mean BPC improvement: +1.416%
+- pooled 7+7 median BPC improvement: +2.017%
+- microbenchmark screened saving: 5.9322 ms/cycle
+- controlled integrated saving: 2.9741 ms/cycle
+- microbenchmark -> integrated translation: 50.13%
+
+Verdict:
+
+**CERTIFIED CONTROLLED INTEGRATED WIN**
+
+The P69 SG2R4 Q8 M4 shared-weight path is promoted as the new
+project51 verifier-projection champion.
+
+P69B3-B summary SHA256:
+
+`e465d0d0cace9f6cd412e635263b52568bcf47eaa8391a6fdaaeabf1d6c286e3`
+
+Certified source patch SHA256:
+
+`3eaab0d7e92db7b0d5d496c76e1fa9d3c348506e6a9803a40842986347a4a9bb`
+
+Canonical patch:
+
+`experiments/p51-q8-verifier/patches/0012-p69b-q8-m4-shared-weight-sg2r4.patch`
+
+### Promoted runtime switch
+
+The exact certified route is enabled with:
+
+`MLX_P69B2_Q8_M4_SHARED=sg2r4`
+
+The environment gate is deliberately retained in the promoted source
+so the committed code remains byte-identical to the source used in
+P69B3-A/B certification.
+
+### Current preferred stack
+
+The preferred stack is now:
+
+- fixed D3 / verifier M4
+- P54F verifier QMM routing
+- lm_head NSG8 / BN4
+- P58 FP16 GDN fused verifier prework
+- native 256-block SDPA reduction topology
+- P61 HPT2 HEADPAIR K/V reuse
+- P69 SG2R4 Q8 M4 shared-weight projection path
+- exact frozen speculative trajectory
+
+### Next experiment
+
+**P69B4 — post-champion residual projection-bundle profile**
+
+Do not immediately optimize another assumed kernel.
+
+First repeat the passive natural command-buffer profiler with the
+certified SG2R4 route enabled and the exact frozen ruler.
+
+Goals:
+
+1. measure the residual projection/QMV natural-CB archetype after the
+   certified ~2.97 ms/cycle integrated reduction;
+2. determine whether the next largest residual component is:
+   - remaining stock QMV tail,
+   - verifier custom QMM,
+   - RMS/gather/activation/add,
+   - or a different command-buffer archetype;
+3. choose the next optimization from post-P69 evidence rather than
+   the pre-P69 profile.
+
+Do not reopen closed D2/D4, tree speculation, HPT3/HPT4, learned
+hidden correction, or P61-attention geometry without new evidence.
+

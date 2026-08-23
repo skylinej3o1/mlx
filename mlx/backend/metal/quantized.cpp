@@ -257,6 +257,155 @@ void qmv(
   std::string type_string = get_type_string(x.dtype());
   bool fast = N % bn == 0 && K % 512 == 0;
 
+  // P69B2B_Q8_M4_SHARED_HOST
+  //
+  // Exact-shape, measurement-only route.
+  //
+  // Values:
+  //   sg2r4
+  //   sg4r2
+  //
+  // No default behavior changes when the env is absent.
+  const char* p69b2b_env =
+      std::getenv(
+          "MLX_P69B2_Q8_M4_SHARED"
+      );
+
+  const bool p69b2b_shape =
+      p69b2b_env != nullptr &&
+      mode == "affine" &&
+      bits == 8 &&
+      group_size == 64 &&
+      M == 4 &&
+      // P69B2C_ALL_HOT_GATE
+      (
+          (N == 5120 && K == 6144) ||
+          (N == 1024 && K == 5120) ||
+          (N == 48 && K == 5120)
+      ) &&
+      B == 1 &&
+      biases.has_value() &&
+      x.dtype() == float16 &&
+      out.dtype() == float16 &&
+      fast;
+
+  if (p69b2b_shape) {
+    std::string variant(
+        p69b2b_env
+    );
+
+    std::string base;
+    int simdgroups = 0;
+
+    if (variant == "sg2r4") {
+      base =
+          "qmv_fast_m4_q8_shared_sg2r4";
+      simdgroups = 2;
+    } else if (
+        variant == "sg4r2"
+    ) {
+      base =
+          "qmv_fast_m4_q8_shared_sg4r2";
+      simdgroups = 4;
+    }
+
+    if (!base.empty()) {
+      std::string shared_kname;
+
+      concatenate(
+          shared_kname,
+          mode +
+              "_" +
+              base +
+              "_",
+          type_string,
+          "_gs_",
+          group_size,
+          "_b_",
+          bits,
+          "_batch_0");
+
+      auto kernel =
+          get_quantized_kernel_wrapped(
+              d,
+              shared_kname,
+              base,
+              mode,
+              type_string,
+              group_size,
+              bits,
+              false);
+
+      auto& compute_encoder =
+          metal::get_command_encoder(
+              s
+          );
+
+      compute_encoder
+          .set_compute_pipeline_state(
+              kernel
+          );
+
+      int c = 0;
+
+      compute_encoder
+          .set_input_array(
+              w,
+              c++
+          );
+
+      compute_encoder
+          .set_input_array(
+              scales,
+              c++
+          );
+
+      compute_encoder
+          .set_input_array(
+              *biases,
+              c++
+          );
+
+      compute_encoder
+          .set_input_array(
+              x,
+              c++
+          );
+
+      compute_encoder
+          .set_output_array(
+              out,
+              c++
+          );
+
+      compute_encoder
+          .set_bytes(
+              K,
+              c++
+          );
+
+      compute_encoder
+          .set_bytes(
+              N,
+              c++
+          );
+
+      compute_encoder
+          .dispatch_threadgroups(
+              MTL::Size(
+                  1,
+                  (N + bn - 1) /
+                      bn,
+                  1),
+              MTL::Size(
+                  bk,
+                  simdgroups,
+                  1));
+
+      return;
+    }
+  }
+
   // Fixed-shape FC M1 geometry experiment.
   //
   // Env values:

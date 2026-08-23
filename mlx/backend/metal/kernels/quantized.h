@@ -815,6 +815,354 @@ METAL_FUNC void qmv_fast_impl(
 }
 
 
+
+// P69B2B_Q8_M4_SHARED_WEIGHT
+//
+// Exact M4 Q8 shared-weight experiment.
+//
+// Stock qmv_fast evaluates the same Q8 weight row separately for
+// each of the four M vectors. This implementation preserves:
+//
+//   * stock load_vector<..., 8> activation arithmetic
+//   * FP32 accumulators
+//   * per-vector Q8 multiply/add order
+//   * affine scale/bias expression
+//   * stock simd_sum reduction
+//   * eight output rows per threadgroup
+//
+// but reads each Q8 weight byte once and applies it to all four
+// verifier vectors.
+//
+// Geometry is templated so SG2xR4 and SG4xR2 can be screened
+// without changing arithmetic.
+template <
+    typename T,
+    int group_size,
+    int bits,
+    int num_simdgroups,
+    int results_per_simdgroup>
+METAL_FUNC void qmv_fast_m4_q8_shared_impl(
+    const device uint32_t* w,
+    const device T* scales,
+    const device T* biases,
+    const device T* x,
+    device T* y,
+    const constant int& in_vec_size,
+    const constant int& out_vec_size,
+    uint3 tid [[threadgroup_position_in_grid]],
+    uint simd_gid [[simdgroup_index_in_threadgroup]],
+    uint simd_lid [[thread_index_in_simdgroup]]) {
+
+  static_assert(
+      bits == 8,
+      "P69B2-B shared kernel is Q8-only");
+
+  static_assert(
+      num_simdgroups * results_per_simdgroup == 8,
+      "P69B2-B geometry must cover 8 output rows");
+
+  constexpr int packs_per_thread = 2;
+  constexpr int pack_factor =
+      get_pack_factor<bits, 32>();
+  constexpr int bytes_per_pack =
+      get_bytes_per_pack<bits, 32>();
+  constexpr int values_per_thread =
+      pack_factor * packs_per_thread;
+  constexpr int block_size =
+      values_per_thread * SIMD_SIZE;
+  constexpr int scale_step_per_thread =
+      group_size / values_per_thread;
+
+  static_assert(
+      values_per_thread == 8,
+      "P69B2-B Q8 path expects 8 values/lane");
+
+  typedef float U;
+
+  const device uint8_t* ws =
+      (const device uint8_t*)w;
+
+  thread U x0_thread[values_per_thread];
+  thread U x1_thread[values_per_thread];
+  thread U x2_thread[values_per_thread];
+  thread U x3_thread[values_per_thread];
+
+  thread U result0[results_per_simdgroup] = {0};
+  thread U result1[results_per_simdgroup] = {0};
+  thread U result2[results_per_simdgroup] = {0};
+  thread U result3[results_per_simdgroup] = {0};
+
+  const int in_vec_size_w =
+      in_vec_size *
+      bytes_per_pack /
+      pack_factor;
+
+  const int in_vec_size_g =
+      in_vec_size /
+      group_size;
+
+  const int out_row =
+      tid.y *
+          (
+              num_simdgroups *
+              results_per_simdgroup
+          ) +
+      simd_gid *
+          results_per_simdgroup;
+
+  ws +=
+      out_row *
+          in_vec_size_w +
+      simd_lid *
+          packs_per_thread *
+          bytes_per_pack;
+
+  scales +=
+      out_row *
+          in_vec_size_g +
+      simd_lid /
+          scale_step_per_thread;
+
+  biases +=
+      out_row *
+          in_vec_size_g +
+      simd_lid /
+          scale_step_per_thread;
+
+  const device T* x0 =
+      x +
+      simd_lid *
+          values_per_thread;
+
+  const device T* x1 =
+      x0 +
+      in_vec_size;
+
+  const device T* x2 =
+      x1 +
+      in_vec_size;
+
+  const device T* x3 =
+      x2 +
+      in_vec_size;
+
+  device T* y0 =
+      y +
+      out_row;
+
+  device T* y1 =
+      y0 +
+      out_vec_size;
+
+  device T* y2 =
+      y1 +
+      out_vec_size;
+
+  device T* y3 =
+      y2 +
+      out_vec_size;
+
+  for (
+      int k = 0;
+      k < in_vec_size;
+      k += block_size) {
+
+    U sum0 =
+        load_vector<
+            T,
+            U,
+            values_per_thread,
+            bits>(
+                x0,
+                x0_thread);
+
+    U sum1 =
+        load_vector<
+            T,
+            U,
+            values_per_thread,
+            bits>(
+                x1,
+                x1_thread);
+
+    U sum2 =
+        load_vector<
+            T,
+            U,
+            values_per_thread,
+            bits>(
+                x2,
+                x2_thread);
+
+    U sum3 =
+        load_vector<
+            T,
+            U,
+            values_per_thread,
+            bits>(
+                x3,
+                x3_thread);
+
+    for (
+        int row = 0;
+        row < results_per_simdgroup;
+        ++row) {
+
+      const device uint8_t* wl =
+          ws +
+          row *
+              in_vec_size_w;
+
+      const device T* sl =
+          scales +
+          row *
+              in_vec_size_g;
+
+      const device T* bl =
+          biases +
+          row *
+              in_vec_size_g;
+
+      U scale = sl[0];
+      U bias = bl[0];
+
+      U a0 = 0;
+      U a1 = 0;
+      U a2 = 0;
+      U a3 = 0;
+
+#pragma clang loop unroll(full)
+      for (
+          int i = 0;
+          i < values_per_thread;
+          ++i) {
+
+        // Explicitly load the Q8 weight byte once.
+        U q =
+            static_cast<U>(
+                wl[i]
+            );
+
+        // Preserve each vector's stock left-to-right
+        // FP32 accumulation sequence.
+        a0 +=
+            x0_thread[i] *
+            q;
+
+        a1 +=
+            x1_thread[i] *
+            q;
+
+        a2 +=
+            x2_thread[i] *
+            q;
+
+        a3 +=
+            x3_thread[i] *
+            q;
+      }
+
+      result0[row] +=
+          scale *
+              a0 +
+          sum0 *
+              bias;
+
+      result1[row] +=
+          scale *
+              a1 +
+          sum1 *
+              bias;
+
+      result2[row] +=
+          scale *
+              a2 +
+          sum2 *
+              bias;
+
+      result3[row] +=
+          scale *
+              a3 +
+          sum3 *
+              bias;
+    }
+
+    ws +=
+        block_size *
+        bytes_per_pack /
+        pack_factor;
+
+    scales +=
+        block_size /
+        group_size;
+
+    biases +=
+        block_size /
+        group_size;
+
+    x0 +=
+        block_size;
+
+    x1 +=
+        block_size;
+
+    x2 +=
+        block_size;
+
+    x3 +=
+        block_size;
+  }
+
+  for (
+      int row = 0;
+      row < results_per_simdgroup;
+      ++row) {
+
+    result0[row] =
+        simd_sum(
+            result0[row]
+        );
+
+    result1[row] =
+        simd_sum(
+            result1[row]
+        );
+
+    result2[row] =
+        simd_sum(
+            result2[row]
+        );
+
+    result3[row] =
+        simd_sum(
+            result3[row]
+        );
+
+    if (simd_lid == 0) {
+      y0[row] =
+          static_cast<T>(
+              result0[row]
+          );
+
+      y1[row] =
+          static_cast<T>(
+              result1[row]
+          );
+
+      y2[row] =
+          static_cast<T>(
+              result2[row]
+          );
+
+      y3[row] =
+          static_cast<T>(
+              result3[row]
+          );
+    }
+  }
+}
+
+
 template <typename U>
 inline U qdot_q6_8_m3(
     uint8_t w0,
@@ -3834,6 +4182,95 @@ template <typename T, int group_size, int bits, bool batched>
           biases,
           x,
           y,
+          tid,
+          simd_gid,
+          simd_lid);
+}
+
+
+
+template <
+    typename T,
+    int group_size,
+    int bits,
+    bool batched>
+[[kernel]] void affine_qmv_fast_m4_q8_shared_sg2r4(
+    const device uint32_t* w [[buffer(0)]],
+    const device T* scales [[buffer(1)]],
+    const device T* biases [[buffer(2)]],
+    const device T* x [[buffer(3)]],
+    device T* y [[buffer(4)]],
+    const constant int& in_vec_size [[buffer(5)]],
+    const constant int& out_vec_size [[buffer(6)]],
+    const constant int& x_batch_ndims [[buffer(7)]],
+    const constant int* x_shape [[buffer(8)]],
+    const constant int64_t* x_strides [[buffer(9)]],
+    const constant int& w_batch_ndims [[buffer(10)]],
+    const constant int* w_shape [[buffer(11)]],
+    const constant int64_t* w_strides [[buffer(12)]],
+    const constant int64_t* s_strides [[buffer(13)]],
+    const constant int64_t* b_strides [[buffer(14)]],
+    uint3 tid [[threadgroup_position_in_grid]],
+    uint simd_gid [[simdgroup_index_in_threadgroup]],
+    uint simd_lid [[thread_index_in_simdgroup]]) {
+
+  qmv_fast_m4_q8_shared_impl<
+      T,
+      group_size,
+      bits,
+      2,
+      4>(
+          w,
+          scales,
+          biases,
+          x,
+          y,
+          in_vec_size,
+          out_vec_size,
+          tid,
+          simd_gid,
+          simd_lid);
+}
+
+
+template <
+    typename T,
+    int group_size,
+    int bits,
+    bool batched>
+[[kernel]] void affine_qmv_fast_m4_q8_shared_sg4r2(
+    const device uint32_t* w [[buffer(0)]],
+    const device T* scales [[buffer(1)]],
+    const device T* biases [[buffer(2)]],
+    const device T* x [[buffer(3)]],
+    device T* y [[buffer(4)]],
+    const constant int& in_vec_size [[buffer(5)]],
+    const constant int& out_vec_size [[buffer(6)]],
+    const constant int& x_batch_ndims [[buffer(7)]],
+    const constant int* x_shape [[buffer(8)]],
+    const constant int64_t* x_strides [[buffer(9)]],
+    const constant int& w_batch_ndims [[buffer(10)]],
+    const constant int* w_shape [[buffer(11)]],
+    const constant int64_t* w_strides [[buffer(12)]],
+    const constant int64_t* s_strides [[buffer(13)]],
+    const constant int64_t* b_strides [[buffer(14)]],
+    uint3 tid [[threadgroup_position_in_grid]],
+    uint simd_gid [[simdgroup_index_in_threadgroup]],
+    uint simd_lid [[thread_index_in_simdgroup]]) {
+
+  qmv_fast_m4_q8_shared_impl<
+      T,
+      group_size,
+      bits,
+      4,
+      2>(
+          w,
+          scales,
+          biases,
+          x,
+          y,
+          in_vec_size,
+          out_vec_size,
           tid,
           simd_gid,
           simd_lid);
