@@ -6181,6 +6181,223 @@ The next optimization after P69A must target the largest measured
 unclosed structural remainder rather than guessing from historical
 kernel intuition.
 
+
+## P69A — structural verifier remainder audit
+
+P69A returned to the certified P61 structural stack and measured the
+remaining verifier-backbone cost before designing another optimization.
+
+The frozen ruler remained:
+
+- prompt: 29,297 tokens
+- generation: 512 tokens
+- fixed D3 / verifier M4
+- 186 cycles
+- acceptance: 325/442 = 73.5%
+- depth: d1=155/186, d2=101/155, d3=69/101
+- output hash: 101ae2aec9793dfe
+
+### P69A profiler capability audit
+
+The initial Metal System Trace exposed a rich compiled-shader dictionary
+and command-buffer timing data, but no usable per-shader execution timing
+on this M1 Max.
+
+Shader Timeline / shader-profiler counters were unavailable:
+
+- profiler table remained empty
+- Metal reported that the selected counter profile was unsupported
+
+Direct `MTLCommandBuffer` GPU timestamps were then validated using:
+
+- `GPUStartTime()`
+- `GPUEndTime()`
+
+The direct timestamp smoke passed on this M1 Max.
+
+An attempted family-boundary profiler that committed command buffers from
+inside pipeline selection was rejected after Metal aborted with a command-
+buffer lifecycle assertion.
+
+A second experiment split compute encoders on operation-family transitions
+without forcing command-buffer commits. The mechanism successfully joined
+encoder labels to real GPU durations on a synthetic workload, but the full
+ruler changed dramatically:
+
+- 130 cycles instead of 186
+- acceptance 382/385 instead of 325/442
+- output became degenerate repeated punctuation
+
+Therefore even encoder-boundary changes are numerically / scheduling
+intrusive on this verifier path and cannot be used for P69 attribution.
+
+### P69A passive natural-command-buffer profiler
+
+P69A-7D instead added metadata only while preserving MLX's existing
+encoder and command-buffer boundaries exactly.
+
+For each naturally occurring command buffer it recorded:
+
+- normal command-buffer GPU duration
+- exact compiled kernel IDs dispatched inside the buffer
+- dispatch counts per kernel
+
+It did not add:
+
+- `end_encoding()`
+- `commit()`
+- synchronization
+- arithmetic changes
+- kernel-geometry changes
+- speculative-policy changes
+
+This passive instrumentation preserved the frozen trajectory exactly:
+
+- hash: 101ae2aec9793dfe
+- cycles: 186
+- acceptance: 325/442
+- exact depth ladder retained
+
+P69A-7D telemetry:
+
+- backbone: 26,811.4 ms
+- MTP: 347.3 ms
+- sampling: 6.3 ms
+- cache: 73.3 ms
+
+The natural command-buffer decode slice contained:
+
+- 29,626 command buffers
+- 25,211.102 ms measured GPU time
+- 135.544 ms mean measured GPU time/cycle
+- 1.816 ms cycle-to-cycle SD
+- 129.802 ms minimum cycle
+- 151.214 ms maximum cycle
+
+Measured natural GPU time therefore covered approximately:
+
+- 94.03% of logged backbone time
+- 92.56% of total logged decode work
+
+Kernel `custom_kernel_omlx_vk_m4_q8_bn4_nsg8_gs64_fp16`
+appeared exactly 186 times and provided a natural cycle terminator for
+offline segmentation.
+
+### Dominant natural buffer archetypes
+
+The largest directly measured recurrent natural command-buffer archetype
+was a verifier projection / QMV buffer:
+
+- 8,550 occurrences
+- 45.968 buffers/cycle
+- median 0.77550 ms/buffer
+- 35.648 ms/cycle direct measured contribution
+
+Its recurring composition includes:
+
+- RMS normalization
+- stock `affine_qmv_fast` Q8 projection
+- custom verifier split-K QMM
+- gather / activation / add operations
+
+The second-largest recurring archetype was the certified P61 long-context
+attention buffer:
+
+- 2,944 occurrences
+- 15.828 buffers/cycle
+- median 1.52675 ms/buffer
+- 24.165 ms/cycle direct measured contribution
+
+Therefore the largest measured unclosed structural remainder is no longer
+the already-optimized P61 attention path. It is the recurrent verifier
+projection / QMV bundle.
+
+### Kernel-level attribution limit
+
+A coarse family NNLS model was weak:
+
+- R² = 0.136750
+
+An exact-kernel NNLS model improved fit but remained insufficient for
+kernel-level promotion:
+
+- R² = 0.430393
+
+The model suggested a large role for stock Q8 `affine_qmv_fast`, but this
+estimate is NOT promoted as a measured standalone kernel cost because the
+natural scheduler strongly collinearizes the hot verifier kernels.
+
+Matched natural-buffer contrasts were then attempted.
+
+The important hot kernels, including:
+
+- stock `affine_qmv_fast`
+- verifier KP1 / KP2 QMM
+- P61 HEADPAIR SDPA
+- M4 lm_head verifier QMM
+- GDN verifier kernels
+
+did not obtain clean exact matched contrasts because they travel together
+in the natural execution graph.
+
+Therefore P69A does NOT claim that any single kernel owns the full
+35.648 ms/cycle projection-buffer cost.
+
+### Final hardware counter gate
+
+The Apple M1 Max reports:
+
+- stage-boundary counter sampling: YES
+- dispatch-boundary counter sampling: NO
+- timestamp counter set: present
+- timestamp sample-buffer creation: supported
+
+Because dispatch-boundary counter sampling is unsupported, true
+non-perturbative per-dispatch timestamping inside the existing compute
+encoder is not available on this hardware.
+
+This closes the remaining clean kernel-timestamp route.
+
+### P69A conclusion
+
+P69A is complete.
+
+The strongest defensible structural result is:
+
+**the dominant remaining unclosed verifier cost is the recurrent
+projection / QMV command-buffer bundle, measured directly at approximately
+35.648 ms/cycle on the frozen 30K P61 ruler.**
+
+The already-certified P61 attention archetype is approximately
+24.165 ms/cycle and is no longer the first optimization target.
+
+Do not interpret the weak regression as proof that stock
+`affine_qmv_fast` alone costs ~74 ms/cycle.
+
+### Next phase — P69B
+
+P69B should optimize the measured projection / QMV bundle.
+
+Begin with exact-shape isolation and microbenchmarking of the hot projection
+path, especially the stock Q8 `affine_qmv_fast` component and its interaction
+with the existing verifier KP1/KP2 routes.
+
+The objective is to determine which component of the directly measured
+35.648 ms/cycle archetype can be reduced while preserving the exact P61
+arithmetic / speculative trajectory.
+
+Do NOT reopen:
+
+- D2/D4 speculative-depth routing
+- P65/P66 tree speculation
+- HPT3/HPT4 attention geometry
+- P67/P68 learned hidden correction
+- further P61 attention tuning without new measured evidence
+
+P69B must remain driven by the measured projection/QMV remainder rather
+than by historical kernel intuition.
+
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -6267,7 +6484,7 @@ P68A's cycle-cross-fitted decision-aware rank-64 search selected NONE.
 
 The next phase is:
 
-**P69A — structural verifier remainder audit**
+**P69B — verifier projection / QMV bundle optimization**
 
 Return to the certified P61 structural stack.
 
@@ -6278,12 +6495,13 @@ Do not reopen:
 - HPT3/HPT4 attention geometry
 - P67/P68 same-ruler learned hidden correction
 
-Before designing another kernel, profile the remaining P61
-backbone-cycle cost by operation family and identify the largest
-unclosed structural target.
+P69A completed the structural remainder audit while preserving the exact
+frozen P61 trajectory.
 
-P69A should be observational only and must preserve the exact frozen
-trajectory.
+The largest directly measured unclosed remainder is now the recurrent
+verifier projection / QMV natural command-buffer bundle at approximately
+35.648 ms/cycle.
 
-After P69A, optimize the measured dominant remainder rather than
-guessing the next kernel family.
+P69B should isolate and optimize that measured projection path, beginning
+with exact-shape microbenchmarking rather than assuming any single kernel
+owns the entire buffer cost.
