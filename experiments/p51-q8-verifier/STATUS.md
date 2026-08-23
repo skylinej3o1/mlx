@@ -5292,6 +5292,283 @@ states.
 If compact exact-head replay is positive, the next phase must be
 multi-prompt validation before any live decoding integration.
 
+### P67B result — hidden gain does not transfer ungated
+
+P67B replayed the exact shared Q8 / GS64 LM head on the untouched
+P67A test split.
+
+Test set:
+
+- 37 verifier cycles
+- 90 draft rows
+- 67 baseline accepts
+- 23 baseline rejections
+
+The P67A predictors reproduced exactly before LM-head evaluation:
+
+- depth-mean R2:
+  +0.111547968
+- compact rank-64 R2:
+  +0.251009810
+- full-capacity R2:
+  +0.317772533
+
+Exact shared head:
+
+- vocab:
+  248320
+- Q8
+- group size:
+  64
+- shard:
+  model-00006-of-00007.safetensors
+
+Baseline replay invariants:
+
+- draft top-1 mismatches:
+  0
+- captured target-rank mismatches:
+  0
+- baseline acceptance mask:
+  exact
+
+Exact token-decision result:
+
+BASE:
+
+- correct:
+  67 / 90
+- rejection target rank <=2:
+  8 / 23
+- <=4:
+  15 / 23
+- <=8:
+  17 / 23
+- <=16:
+  20 / 23
+- mean rejection target-logit deficit:
+  3.1505
+
+DEPTH_MEAN:
+
+- correct:
+  68 / 90
+- recovered rejections:
+  1
+- broken accepts:
+  0
+- net:
+  +1
+
+COMPACT64:
+
+- correct:
+  67 / 90
+- recovered rejections:
+  4
+- broken accepts:
+  4
+- net:
+  0
+- rejection target rank <=2:
+  10 / 23
+- <=4:
+  16 / 23
+- <=8:
+  18 / 23
+- <=16:
+  20 / 23
+- mean rejection target-logit deficit:
+  3.0346
+
+FULL:
+
+- correct:
+  61 / 90
+- recovered rejections:
+  3
+- broken accepts:
+  9
+- net:
+  -6
+
+Compact rank-64 by depth:
+
+D1:
+
+- 37 rows
+- baseline correct:
+  31
+- corrected:
+  29
+- recover:
+  1
+- break:
+  3
+- net:
+  -2
+
+D2:
+
+- 31 rows
+- baseline correct:
+  22
+- corrected:
+  24
+- recover:
+  3
+- break:
+  1
+- net:
+  +2
+
+D3:
+
+- 22 rows
+- baseline correct:
+  14
+- corrected:
+  14
+- recover:
+  0
+- break:
+  0
+- net:
+  0
+
+The eight compact decision transitions were:
+
+- four recovered baseline rejects
+- four broken baseline accepts
+
+P67B signal:
+
+HIDDEN_GAIN_DOES_NOT_TRANSFER_TO_TOP1
+
+Conclusion:
+
+The P67A state-dependent representation signal is real, but direct
+Euclidean residual regression is not sufficiently aligned with the
+shared-LM-head decision boundary when applied unconditionally.
+
+Increasing capacity makes the token trade worse rather than better:
+
+- rank-64:
+  net 0
+- full:
+  net -6
+
+Therefore this is not primarily an under-capacity problem.
+
+The compact correction does, however:
+
+- recover four real held-out rejections;
+- improve target-rank statistics on baseline rejects;
+- slightly reduce mean rejection target-logit deficit.
+
+The failure mode is protection of already-correct drafts.
+
+This motivates a selective correction architecture rather than
+discarding the state-dependent signal immediately.
+
+P65 independently established that baseline top1-top2 margin is a
+strong general rejection / uncertainty signal.
+
+Therefore P67C should test whether applying the fixed P67A compact
+correction only to low-confidence baseline rows preserves recovered
+rejections while suppressing broken accepts.
+
+Important methodological rule:
+
+The observed P67B D1/D2 test-depth behavior is hypothesis-generating
+only.
+
+Do not choose a D2-only policy from this spent test result.
+
+P67C gating must be selected without using P67B test outcomes.
+
+Preserved P67B artifact:
+
+p67b-exact-q8-lm-head-replay.json
+
+SHA256:
+
+000dbfb3167815311269112cdb6eea0a4dfcd623ed707b3a7c9b5b32a191dc40
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
+### P67C target — confidence-gated compact correction
+
+Keep the P67A compact predictor fixed:
+
+- output rank:
+  64
+- lambda:
+  0.1
+- correction alpha:
+  0.75
+
+Do not retune those parameters using P67B test rows.
+
+Use P67A train + validation cycles only to select a baseline
+top1-minus-top2 margin threshold.
+
+Use cycle-disjoint cross-fitting across those 149 development cycles:
+
+- each development row receives a correction prediction from a model
+  that did not train on its cycle;
+- exact shared Q8/GS64 LM-head replay supplies baseline margin and
+  corrected token decision;
+- pool the out-of-fold decisions;
+- select one margin threshold using only those out-of-fold development
+  decisions.
+
+Selection objective:
+
+1. maximize net top-1 gain;
+2. then minimize broken baseline accepts;
+3. then maximize recovered rejections;
+4. then prefer fewer gated rows.
+
+Include a NONE policy.
+
+Then:
+
+- refit the fixed rank-64 predictor on all P67A train + validation rows;
+- apply the frozen margin gate to the 90-row P67B test split;
+- compare against ungated COMPACT64.
+
+The P67B test has already been exposed once and must not be described
+as a newly untouched test.
+
+It remains useful as a secondary fixed-policy confirmation because
+the P67C threshold itself is selected without those outcomes.
+
+Runtime architecture note:
+
+A positive margin-gated result can potentially avoid a second full
+Q8 LM-head pass.
+
+The normal baseline LM-head pass already supplies:
+
+- baseline logits
+- baseline top1 / top2
+- confidence margin
+
+Because the learned correction is constrained to a rank-64 residual
+basis, a future implementation can pre-project that basis through the
+LM head and express the correction as a lower-dimensional logit delta.
+
+This should be measured only if P67C demonstrates a positive
+recover-versus-break trade.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -5371,27 +5648,27 @@ above.
 
 ### Current resume point
 
-As of the P67A checkpoint, a compact state-dependent residual predictor
-has passed held-out hidden-space validation.
+As of the P67B checkpoint:
+
+- compact rank-64 residual prediction remains strongly positive in
+  held-out hidden space;
+- ungated exact-head replay is net neutral:
+  4 recovered / 4 broken;
+- full-capacity correction is harmful:
+  3 recovered / 9 broken.
 
 The next phase is:
 
-**P67B — exact Q8 shared-LM-head replay**
+**P67C — confidence-gated compact correction**
 
-Use only the untouched P67A test cycles for final decision evaluation.
+Keep rank64 / lambda0.1 / alpha0.75 fixed.
 
-Compare:
+Select only the baseline confidence gate using cross-fitted
+train+validation cycles.
 
-- baseline hidden
-- depth-mean-only correction
-- rank-64 state-dependent correction
-- full-capacity state-dependent upper bound
+Do not use the already-observed P67B test-depth pattern for policy
+selection.
 
-The exact shared Q8 / GS64 LM head must reproduce baseline draft IDs
-and captured target ranks before corrected decisions are interpreted.
-
-Do not integrate a learned correction into live decoding yet.
-
-If the compact predictor produces a positive held-out top-1 trade,
-proceed to multi-prompt validation before any live speculative
-experiment.
+If confidence gating produces a positive recover-versus-break trade,
+the next phase should validate the fixed architecture on new prompts
+before any runtime integration.
