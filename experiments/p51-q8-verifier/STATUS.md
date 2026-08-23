@@ -4789,6 +4789,258 @@ Champion remains unchanged:
 - 325 / 442 drafts accepted
 - hash 101ae2aec9793dfe
 
+### P66D result — close current tree family
+
+P66D tested the final zero-alternate-MTP formulation in the P65/P66
+tree-speculation workstream.
+
+Instead of reusing only the ordinary descendant argmax as in P66C,
+P66D captured top-K candidate sets from the complete descendant MTP
+distributions that the ordinary linear chain had already computed.
+
+No alternate MTP continuation forward was performed.
+
+Frozen trajectory remained exact:
+
+- prompt: 29297
+- completion: 512
+- cycles: 186
+- acceptance: 325 / 442 = 73.5%
+- output hash: 101ae2aec9793dfe
+
+Exactly the expected oracle rank-2 population was observed:
+
+- D1: 12
+- D2: 23
+- total: 35
+- structural descendant positions: 47
+
+Free candidate-set results:
+
+K=1:
+
+- D1 +1: 2 / 12
+- D1 +2: 1 / 12
+- D2 +1: 3 / 23
+- shallow positions: 5
+- deep positions: 6 / 47
+- shallow oracle target nodes: 70
+- deep oracle target nodes: 82
+- shallow break-even: 3.743 ms/node
+- deep break-even: 3.835 ms/node
+
+K=2:
+
+- D1 +1: 3 / 12
+- D1 +2: 2 / 12
+- D2 +1: 4 / 23
+- shallow positions: 7
+- deep positions: 9 / 47
+- shallow oracle target nodes: 105
+- deep oracle target nodes: 153
+- shallow break-even: 3.494 ms/node
+- deep break-even: 3.083 ms/node
+
+K=4:
+
+- D1 +1: 3 / 12
+- D1 +2: 2 / 12
+- D2 +1: 7 / 23
+- shallow positions: 10
+- deep positions: 12 / 47
+- shallow oracle target nodes: 175
+- deep oracle target nodes: 367
+- shallow break-even: 2.995 ms/node
+- deep break-even: 1.714 ms/node
+
+K=8:
+
+- D1 +1: 5 / 12
+- D1 +2: 3 / 12
+- D2 +1: 7 / 23
+- deep positions: 15 / 47
+- deep oracle target nodes: 1083
+- deep break-even: 0.726 ms/node
+
+K=16:
+
+- D1 +1: 6 / 12
+- D1 +2: 4 / 12
+- D2 +1: 7 / 23
+- deep positions: 17 / 47
+- deep oracle target nodes: 3667
+- deep break-even: 0.243 ms/node
+
+Target-rank census across all 47 already-computed descendant
+distributions:
+
+- rank <= 1:
+  6 / 47 = 12.8%
+- rank <= 2:
+  9 / 47 = 19.1%
+- rank <= 4:
+  12 / 47 = 25.5%
+- rank <= 8:
+  15 / 47 = 31.9%
+- rank <= 16:
+  17 / 47 = 36.2%
+- rank > 16:
+  30 / 47 = 63.8%
+
+P65D separately generated alternate continuations had:
+
+- 25 / 47 correct continuation positions
+
+Therefore the poor P66C reuse result is not merely an argmax problem.
+Most post-correction target tokens are not even near the top of the
+ordinary wrong-parent descendant distribution.
+
+P66D verdict:
+
+CLOSE_CURRENT_TREE_FAMILY
+
+This decision is stronger than the raw oracle node budgets imply.
+
+All P66D economics condition on already knowing the exact 35
+target-rank-2 rejection events.
+
+A production confidence gate does not know this and P65B established
+that margin is primarily a general rejection signal rather than a
+rank-2-specific signal.
+
+Production tree width would therefore include many false-positive
+branches and have strictly worse economics than these oracle figures.
+
+Combined P65/P66 conclusion:
+
+- rank-2 near-miss population:
+  real
+- true pre-verify alternate continuation quality:
+  real
+- separately generated branch semantics:
+  valid
+- separately generated branch runtime cost:
+  too high
+- free top-1 descendant reuse:
+  weak
+- free small-top-K descendant reuse:
+  economically weak
+- confidence margin as rank-2 detector:
+  rejected
+- current tree-speculation family:
+  CLOSED
+
+Do not reopen this branch without a fundamentally different
+branch-generation or target-verification primitive.
+
+Preserved P66D artifacts:
+
+p66d-free-topk-descendants.json
+
+SHA256:
+
+9cbd4e050ea7bb37a5ce9c406f4a293ce783b95f868ed688fc521a01a724c057
+
+p66d-free-topk-descendants-events.jsonl
+
+SHA256:
+
+64adfdbbf01876ca1c6b0516f1f55a0c36adf669fc9ebd9dd85c8bec4e20a531
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
+### P67A target — state-dependent residual predictability
+
+Return to MTP-head acceptance improvement while keeping fixed:
+
+- D3 / M4
+- P58 FP16 GDN
+- native 256-block attention topology
+- P61 HPT2 HEADPAIR
+- exact shared Q8 / GS64 LM head
+- frozen P61 speculative trajectory for diagnostics
+
+P64A rejected a constant global/depth mean residual correction.
+
+P64A did NOT test whether the target residual is conditionally
+predictable from the MTP hidden state.
+
+P67A should remain completely offline.
+
+Using the exact P63E aligned artifact:
+
+- X = MTP hidden
+- Y = target hidden
+- residual R = Y - X
+
+Use whole verifier cycles as the splitting unit so D1/D2/D3 rows from
+one cycle can never cross train / validation / test boundaries.
+
+Canonical split:
+
+- deterministic cycle shuffle
+- 60% train
+- 20% validation
+- 20% untouched test
+
+Train a diagnostic kernel-ridge residual predictor from MTP hidden
+state.
+
+Use depth-specific residual means as the intercept so the model tests
+STATE-DEPENDENT structure beyond the P64 mean seam.
+
+Evaluate both:
+
+- compact residual output ranks:
+  8 / 16 / 32 / 64
+- higher-capacity upper bounds:
+  128 / full
+
+Select:
+
+- lambda
+- output rank
+- correction scale
+
+using validation only.
+
+Then refit on train + validation and evaluate the selected model once
+on the untouched test set.
+
+Primary metrics:
+
+- residual-energy R2 versus no correction
+- incremental R2 versus depth-mean-only correction
+- corrected-hidden cosine to target
+- relative-L2 reduction
+- predicted-residual cosine to true residual
+- per-depth test behavior
+
+Also evaluate the validation-selected best compact rank <=64
+independently from the best-any-capacity model.
+
+Interpretation:
+
+If a compact held-out predictor materially beats the depth-mean
+baseline, proceed to exact shared-LM-head replay in P67B.
+
+If only a high-capacity/full predictor generalizes, treat that as
+evidence of state-dependent structure but not yet of a practical
+adapter.
+
+If neither beats depth-mean correction on untouched test cycles, close
+this residual-prediction route and move to a different MTP-head
+training objective.
+
+P67A is a predictability experiment, not a production model.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -4868,22 +5120,22 @@ above.
 
 ### Current resume point
 
-As of the P66C checkpoint, the next phase is:
+As of the P66D checkpoint, the P65/P66 tree-speculation family is
+closed.
 
-**P66D — free top-K descendant candidate reuse**
+The next phase is:
 
-P66C showed that ordinary descendant top-1 IDs transfer poorly after
-a corrected top-2 parent:
+**P67A — held-out state-dependent residual predictability**
 
-- 5 / 35 branches had any reusable continuation
-- 6 / 47 continuation positions matched
+P64 rejected constant global/depth residual correction, but did not
+test a supervised MTP-hidden -> target-residual mapping.
 
-However, the complete descendant MTP distributions already exist.
+P67A should use the exact P63E aligned hidden capture and cycle-disjoint
+train / validation / untouched-test splits to determine whether
+state-dependent residual structure generalizes at all.
 
-P66D should measure whether small top-K sets from those already-computed
-distributions contain the subsequent target token(s).
+Do not integrate any learned correction into live decoding yet.
 
-This still requires zero alternate MTP forwards.
-
-If K<=4 does not recover substantial continuation, close the current
-tree-speculation family and return to MTP-head acceptance improvement.
+If a compact held-out predictor succeeds, P67B should replay the exact
+shared Q8/GS64 LM head and measure acceptance / target-rank effects
+before any runtime implementation.
