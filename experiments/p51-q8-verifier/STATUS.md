@@ -5872,6 +5872,315 @@ If P68A is not positive:
 - return to structural verifier/runtime work or collect a larger
   multi-prompt training corpus before further learned tuning.
 
+### P68A result — no decision-aware low-rank gain
+
+P68A tested the final same-ruler learned hidden-correction formulation.
+
+Unlike P67A, P68A did NOT optimize Euclidean distance to target hidden.
+
+It trained a compact rank-64 state-dependent correction directly
+against shared-LM-head decision geometry.
+
+Training-label construction:
+
+- correction subspace:
+  rank 64
+- basis:
+  training-only MTP -> target residual PCA
+- already-correct training rows:
+  explicit zero-correction target
+- rejected training rows:
+  minimum-L2 rank-64 coefficient vector required to raise the
+  true target above the current baseline top-1 competitor
+- exact shared head:
+  Q8 / GS64 / vocabulary 248320
+
+Inference predictor remained state-only:
+
+- MTP hidden -> rank-64 correction coefficients
+
+No target id, target hidden, target logit, or acceptance flag was
+available to the inference predictor.
+
+Development population:
+
+- original P67A train + validation cycles
+- 149 verifier cycles
+- 352 rows
+- 258 accepted
+- 94 rejected
+
+Selection used five cycle-disjoint cross-fit folds.
+
+Search space:
+
+target margin:
+
+- 0.00
+- 0.25
+- 0.50
+
+label coefficient clip norm:
+
+- 8
+- 16
+- 32
+
+kernel-ridge lambda:
+
+- 0.1
+- 1.0
+
+rejection-row training weight:
+
+- 1
+- 4
+
+output scale:
+
+- 0.50
+- 1.00
+
+A NONE policy was included.
+
+Baseline exact shared-LM-head replay reproduced all 442 rows.
+
+Cross-fitted pairwise development result:
+
+The selector preferred:
+
+NONE
+
+with:
+
+- recovered:
+  0
+- broken:
+  0
+- net:
+  0
+
+No active configuration achieved positive net development gain.
+
+Representative strongest active configurations:
+
+target-margin 0.00 / clip32 / lambda0.1 /
+reject-weight4 / scale1.0:
+
+- recovered:
+  3
+- broken:
+  3
+- net:
+  0
+
+target-margin 0.25 / clip32 / lambda0.1 /
+reject-weight4 / scale1.0:
+
+- recovered:
+  3
+- broken:
+  3
+- net:
+  0
+
+target-margin 0.50 / clip32 / lambda0.1 /
+reject-weight4 / scale1.0:
+
+- recovered:
+  3
+- broken:
+  3
+- net:
+  0
+
+More conservative configurations generally changed no decisions or
+became net negative.
+
+Because NONE won development selection, exact full-vocabulary OOF
+verification remained baseline:
+
+- rows:
+  352
+- baseline correct:
+  258
+- corrected:
+  258
+- recovered:
+  0
+- broken:
+  0
+- net:
+  0
+
+Secondary already-exposed P67B test likewise remained baseline:
+
+- rows:
+  90
+- baseline correct:
+  67
+- corrected:
+  67
+- recovered:
+  0
+- broken:
+  0
+- net:
+  0
+
+P68A signal:
+
+NO_DECISION_AWARE_LOW_RANK_GAIN
+
+Conclusion:
+
+The single frozen 29.3K ruler does contain real state-dependent
+MTP -> target information, as demonstrated by P67A.
+
+However, none of the compact low-rank correction formulations tested
+on this ruler converts that information into a reproducibly positive
+top-1 trade.
+
+Closed same-ruler learned formulations now include:
+
+1. constant global residual correction
+2. constant depth-specific residual correction
+3. state-dependent Euclidean residual regression
+4. state-dependent residual regression plus baseline-margin gating
+5. rank-64 direct target-vs-competitor decision-margin supervision
+
+Do not continue hyperparameter tuning of this adapter family on the
+same prompt.
+
+A future learned-correction effort requires a substantially larger
+multi-prompt training corpus rather than another same-ruler variant.
+
+Preserved artifact:
+
+p68a-decision-aware-margin-adapter.json
+
+SHA256:
+
+95460bade39ca2ff9607be6bf00638c9485f82523078f6b121a16b3f84aada17
+
+### Search-family closure after P68A
+
+The following major branches are now intentionally closed for the
+current 29.3K operating point unless a fundamentally new primitive or
+new multi-prompt evidence appears.
+
+Speculative-depth routing:
+
+- D2/M3 lost to D3/M4 across P57 sampled real workloads
+- D4/M5 lost even on acceptance-rich challenges
+- fixed D3/M4 remains preferred
+
+Verifier attention geometry:
+
+- native 256-block topology retained for numerical stability
+- HPT2 HEADPAIR is certified
+- HPT3 is catastrophically slower
+- do not test HPT4 on this kernel geometry
+
+Tree speculation:
+
+- real rank-2 near-miss population exists
+- true pre-verify alternate continuation exists
+- separately generated branch cost exceeds its economic envelope
+- free top-1 and small-top-K descendant reuse are too weak
+- P65/P66 tree family closed
+
+Same-ruler learned hidden correction:
+
+- hidden-state predictability exists
+- direct top-1 utility does not generalize positively
+- P67/P68 same-ruler correction family closed
+
+Champion remains unchanged:
+
+P61 HEADPAIR HPT2
+
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- acceptance:
+  325 / 442
+- hash:
+  101ae2aec9793dfe
+
+Preferred structural stack remains:
+
+- fixed D3 / verifier M4
+- P54F verifier QMM routing
+- lm_head NSG8 / BN4
+- P58 FP16 GDN fused verifier prework
+- native 256-block SDPA reduction topology
+- P61 HPT2 HEADPAIR K/V reuse
+- exact frozen speculative trajectory
+
+### P69A target — structural verifier remainder audit
+
+Return to structural runtime optimization.
+
+Do NOT begin with another speculative-policy or learned-correction
+experiment.
+
+P69A should first measure where the remaining P61 verifier-backbone
+time is spent.
+
+The purpose is to identify the largest remaining optimizable component
+after the already-certified structural work.
+
+Already optimized / heavily searched components include:
+
+- regular verifier QMM routing and split-K policy:
+  P51-P55
+- huge-N lm_head geometry:
+  P52-P55
+- GDN verifier prework:
+  P58
+- full-attention long-KV K/V reuse:
+  P60-P62
+
+P69A should profile the certified P61 stack while preserving:
+
+- exact D3/M4 policy
+- exact 186-cycle trajectory
+- exact 325/442 acceptance
+- exact output hash
+- P58 FP16 GDN
+- P61 HPT2 HEADPAIR
+- native 256-block attention topology
+
+Profile the remaining backbone by operation family.
+
+At minimum separate:
+
+- regular quantized projections / QMM
+- lm_head
+- full-attention SDPA
+- Gated DeltaNet / recurrent work
+- normalization
+- residual / elementwise work
+- embeddings / indexing where applicable
+- cache / state update work
+- unclassified framework / dispatch remainder
+
+Where possible also split by:
+
+- 48 GDN layers
+- 16 full-attention layers
+- verifier M=4 hot shapes
+
+P69A is an attribution experiment.
+
+Do not alter arithmetic, kernel geometry, speculative policy, or
+trajectory during the initial profile.
+
+The next optimization after P69A must target the largest measured
+unclosed structural remainder rather than guessing from historical
+kernel intuition.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -5951,32 +6260,30 @@ above.
 
 ### Current resume point
 
-As of the P67C checkpoint, simple Euclidean residual correction plus
-baseline-confidence gating is closed.
+As of the P68A checkpoint, same-ruler learned hidden correction is
+closed.
 
-Every nonzero P67C development gate was negative.
+P68A's cycle-cross-fitted decision-aware rank-64 search selected NONE.
 
 The next phase is:
 
-**P68A — decision-aware low-rank margin correction**
+**P69A — structural verifier remainder audit**
 
-Keep the correction space compact at rank 64, but change the training
-target from target-hidden Euclidean residual to direct shared-LM-head
-decision geometry.
+Return to the certified P61 structural stack.
 
-Already-correct training rows should target zero correction.
+Do not reopen:
 
-Rejected training rows should target the minimum-norm rank-64 hidden
-correction needed to raise the true target over the current baseline
-competitor.
+- D2/D4 speculative-depth routing
+- P65/P66 tree speculation
+- HPT3/HPT4 attention geometry
+- P67/P68 same-ruler learned hidden correction
 
-Select policy parameters only from cycle-disjoint cross-fitted
-development behavior.
+Before designing another kernel, profile the remaining P61
+backbone-cycle cost by operation family and identify the largest
+unclosed structural target.
 
-Use exact full-vocabulary Q8/GS64 replay to verify the selected policy.
+P69A should be observational only and must preserve the exact frozen
+trajectory.
 
-Do not tune from the already-exposed P67B test-depth pattern.
-
-If P68A produces a positive exact development trade and secondary
-fixed-policy confirmation, freeze the architecture and move to new
-prompt capture rather than continuing same-ruler tuning.
+After P69A, optimize the measured dominant remainder rather than
+guessing the next kernel family.
