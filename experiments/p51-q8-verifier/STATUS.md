@@ -5041,6 +5041,257 @@ training objective.
 
 P67A is a predictability experiment, not a production model.
 
+### P67A result — compact state-dependent residual signal
+
+P67A tested whether target-hidden residual structure is predictable
+from the current MTP hidden state beyond the constant depth-mean seam
+rejected by P64A.
+
+Artifact:
+
+- exact P63E aligned capture
+- 442 x 5120 MTP hidden
+- paired 442 x 5120 target hidden
+- 186 verifier cycles
+- D1 / D2 / D3:
+  186 / 155 / 101
+- 325 accepted drafts
+
+Split unit:
+
+- whole verifier cycle
+
+No D1/D2/D3 rows from a single cycle could cross dataset splits.
+
+Deterministic split seed:
+
+- 6701
+
+Split:
+
+- train:
+  112 cycles / 273 rows
+- validation:
+  37 cycles / 79 rows
+- untouched test:
+  37 cycles / 90 rows
+
+Training / model-selection policy:
+
+- depth-specific MTP-hidden centering
+- depth-specific residual-mean intercept
+- linear kernel ridge predictor
+- residual output ranks:
+  8 / 16 / 32 / 64 / 128 / full
+- lambda:
+  0.1 / 1.0 / 10.0
+- correction alpha:
+  0.25 / 0.50 / 0.75 / 1.00
+- all hyperparameter selection:
+  validation only
+- final test:
+  one untouched evaluation after refitting train + validation
+
+Validation depth-mean-only baseline:
+
+- selected alpha:
+  0.75
+- validation residual R2:
+  +0.104242
+
+Best validation any-capacity predictor:
+
+- full output rank
+- lambda 0.1
+- alpha 0.75
+- validation R2:
+  +0.272958
+
+Best validation compact predictor:
+
+- output rank 64
+- lambda 0.1
+- alpha 0.75
+- validation R2:
+  +0.218577
+
+Untouched test depth-mean baseline:
+
+- R2:
+  +0.111548
+- corrected hidden / target cosine delta:
+  +0.045322
+- relative-L2 delta:
+  -0.070381
+
+Untouched test compact rank-64 predictor:
+
+- R2:
+  +0.251010
+- incremental R2 over depth-mean-only:
+  +0.139462
+- corrected hidden / target cosine delta:
+  +0.084655
+- predicted residual / true residual cosine:
+  +0.506417
+- relative-L2 delta:
+  -0.163426
+
+Compact test behavior remained positive at every depth:
+
+D1:
+
+- 37 rows
+- R2:
+  +0.248242
+- cosine delta:
+  +0.073593
+- relative L2:
+  1.034734 -> 0.885613
+
+D2:
+
+- 31 rows
+- R2:
+  +0.241772
+- cosine delta:
+  +0.079380
+- relative L2:
+  1.164035 -> 1.002286
+
+D3:
+
+- 22 rows
+- R2:
+  +0.264733
+- cosine delta:
+  +0.110693
+- relative L2:
+  1.288095 -> 1.098245
+
+Untouched test full-capacity upper bound:
+
+- R2:
+  +0.317773
+- incremental R2 over depth mean:
+  +0.206225
+- corrected hidden / target cosine delta:
+  +0.103359
+- predicted residual cosine:
+  +0.567831
+- relative-L2 delta:
+  -0.210908
+
+P67A signal:
+
+COMPACT_STATE_DEPENDENT_RESIDUAL_SIGNAL
+
+Conclusion:
+
+The P63 MTP -> target representation error contains a substantial
+state-dependent component that generalizes across held-out verifier
+cycles.
+
+This is qualitatively different from P64A.
+
+P64A tested only:
+
+- global mean residual
+- depth-specific mean residual
+
+and found no held-out token-decision justification for those constant
+corrections.
+
+P67A shows that the residual is conditionally predictable from the
+MTP hidden state itself.
+
+The rank-64 result is especially important:
+
+- it captures substantial held-out residual structure;
+- it remains positive across D1 / D2 / D3;
+- it captures a large fraction of the full-capacity predictor's
+  held-out signal.
+
+However, P67A is still hidden-space evidence only.
+
+A better approximation to target hidden does not automatically imply
+better shared-LM-head token decisions.
+
+Therefore no live correction is justified yet.
+
+Preserved P67A artifact:
+
+p67a-supervised-residual-predictability.json
+
+SHA256:
+
+fbfcbcfde2bd6162dc39a6e5c28263cb903e7d7672319a939e3eb146974e4620
+
+Champion remains unchanged:
+
+- P61 HEADPAIR HPT2
+- 18.731 tok/s
+- 144.263 ms/backbone-cycle
+- 186 cycles
+- 325 / 442 drafts accepted
+- hash 101ae2aec9793dfe
+
+### P67B target — exact Q8 shared-LM-head replay
+
+P67B must remain offline.
+
+Use exactly the untouched P67A test cycles.
+
+Refit on P67A train + validation rows and reproduce:
+
+1. baseline MTP hidden
+2. validation-selected depth-mean correction
+3. validation-selected compact rank-64 predictor
+4. validation-selected full-capacity predictor as an upper bound
+
+Project each hidden representation through the exact shared target
+LM head:
+
+- vocabulary:
+  248320
+- Q8
+- group size 64
+- exact model quantized weight/scales/biases
+
+Before interpreting corrections, baseline replay must reproduce:
+
+- exact draft top-1 IDs on all test rows
+- exact captured target ranks on all test rows
+
+Primary decision metrics:
+
+- total target top-1 count
+- recovered baseline rejections
+- broken baseline accepts
+- net top-1 change
+- per-depth recovered / broken / net
+- target-rank movement on baseline rejection rows
+- target rank <=2 / <=4 / <=8 / <=16
+- target-logit deficit versus top-1
+
+Interpretation:
+
+A hidden-space gain is useful only if the compact predictor produces a
+positive held-out token-decision trade:
+
+- recover incorrect drafts
+- without breaking a comparable number of correct drafts
+
+Do not translate corrected-row count directly into verifier-cycle
+savings.
+
+The captured hidden states come from the original speculative
+trajectory; changing an earlier token decision changes later MTP
+states.
+
+If compact exact-head replay is positive, the next phase must be
+multi-prompt validation before any live decoding integration.
+
 ## Project handoff / new-chat protocol
 
 This repository, specifically this STATUS file, is the canonical
@@ -5120,22 +5371,27 @@ above.
 
 ### Current resume point
 
-As of the P66D checkpoint, the P65/P66 tree-speculation family is
-closed.
+As of the P67A checkpoint, a compact state-dependent residual predictor
+has passed held-out hidden-space validation.
 
 The next phase is:
 
-**P67A — held-out state-dependent residual predictability**
+**P67B — exact Q8 shared-LM-head replay**
 
-P64 rejected constant global/depth residual correction, but did not
-test a supervised MTP-hidden -> target-residual mapping.
+Use only the untouched P67A test cycles for final decision evaluation.
 
-P67A should use the exact P63E aligned hidden capture and cycle-disjoint
-train / validation / untouched-test splits to determine whether
-state-dependent residual structure generalizes at all.
+Compare:
 
-Do not integrate any learned correction into live decoding yet.
+- baseline hidden
+- depth-mean-only correction
+- rank-64 state-dependent correction
+- full-capacity state-dependent upper bound
 
-If a compact held-out predictor succeeds, P67B should replay the exact
-shared Q8/GS64 LM head and measure acceptance / target-rank effects
-before any runtime implementation.
+The exact shared Q8 / GS64 LM head must reproduce baseline draft IDs
+and captured target ranks before corrected decisions are interpreted.
+
+Do not integrate a learned correction into live decoding yet.
+
+If the compact predictor produces a positive held-out top-1 trade,
+proceed to multi-prompt validation before any live speculative
+experiment.
