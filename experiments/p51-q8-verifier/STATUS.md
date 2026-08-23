@@ -6505,3 +6505,144 @@ verifier projection / QMV natural command-buffer bundle at approximately
 P69B should isolate and optimize that measured projection path, beginning
 with exact-shape microbenchmarking rather than assuming any single kernel
 owns the entire buffer cost.
+
+---
+
+## P69B1 / P69B2-A — QMV shape census and wide screen
+
+Date: 2026-08-23
+
+### P69B1 — exact M4 affine-Q8 / GS64 runtime census
+
+P69B1 instrumented `QuantizedMatmul::eval_gpu` in an isolated
+P61 worktree and ran the frozen 29,297-token / 512-token D3/M4
+ruler.
+
+The run preserved the exact certified P61 trajectory:
+
+- prompt tokens: 29,297
+- completion tokens: 512
+- output hash: `101ae2aec9793dfe`
+- cycles: 186
+- acceptance: 325/442 = 73.5%
+- depth:
+  - d1 = 155/186
+  - d2 = 101/155
+  - d3 = 69/101
+- decode observation during the census run: 18.738 tok/s
+
+The earlier salvage warning was only a parser-index bug:
+the completion telemetry was emitted as `MTP[0]`, not `MTP[1]`.
+
+Exact stock M4 affine-Q8 / GS64 runtime population:
+
+- N=48, K=5120:
+  - 17,856 calls
+  - 96.000 calls/cycle
+- N=5120, K=6144:
+  - 11,973 calls
+  - 64.371 calls/cycle
+- N=1024, K=5120:
+  - 6,090 calls
+  - 32.742 calls/cycle
+- N=17408, K=5120:
+  - 138 calls
+- N=5120, K=17408:
+  - 69 calls
+- N=12288, K=5120:
+  - 69 calls
+
+Total:
+
+- 36,195 stock `dispatch_qmv` calls
+- 194.597 calls/cycle
+- zero M4 QMM/split-K fallbacks
+
+The three dominant shapes account for:
+
+- 35,919 / 36,195 calls
+- 99.2375% of the measured stock M4 Q8 population
+
+P69B1 report SHA256:
+
+`5a101cba46f0cce020677ac59ba01ea10c454fd4670e698a28f3ae0069af4291`
+
+### P69B2-A — forced affine `qmv_wide` screen
+
+P69B2-A tested the existing MLX `qmv_wide` implementation against
+stock `qmv_fast` on the three runtime-dominant shapes.
+
+Results:
+
+1. N=48, K=5120
+   - stock median: 0.014065 ms/call
+   - wide median: 0.018775 ms/call
+   - wide: +33.49% slower
+   - bit-exact parity: yes
+
+2. N=5120, K=6144
+   - stock median: 0.205920 ms/call
+   - wide median: 0.395310 ms/call
+   - wide: +91.97% slower
+   - bit-exact parity: no
+   - max abs diff: 0.0078125
+
+3. N=1024, K=5120
+   - stock median: 0.040210 ms/call
+   - wide median: 0.071863 ms/call
+   - wide: +78.72% slower
+   - bit-exact parity: no
+   - max abs diff: 0.03125
+
+Top-three screening totals:
+
+- stock: 15.922 ms/cycle
+- forced wide: 29.602 ms/cycle
+- forced wide penalty: 13.680 ms/cycle
+- weighted stock/wide ratio: 0.5379x
+- wide wins: 0/3
+
+These weighted cycle values are microbenchmark screening estimates,
+not promoted end-to-end ruler attribution.
+
+Conclusion:
+
+- close generic affine `qmv_wide` on M1 for this verifier workload
+- do not promote any forced-wide route
+- the existing MLX pre-gen15 affine-wide exclusion is strongly
+  supported by the exact verifier workload
+- next target is a dedicated M4 Q8 shared-weight kernel
+- begin with K=6144 -> N=5120 because it dominates the stock
+  microbenchmark opportunity at approximately 13.255 screened
+  ms/cycle
+
+P69B2-A report SHA256:
+
+`809e1e9d4a9c5515850f6db991bb9c8b42c212d83c7241e6486cfdf95e9d0940`
+
+### Next experiment
+
+**P69B2-B — exact M4 Q8 shared-weight kernel**
+
+First isolate only:
+
+- M=4
+- affine Q8
+- group size 64
+- FP16 input/output
+- K=6144
+- N=5120
+- B=1
+
+Preserve the stock Q8 arithmetic and per-vector accumulation order,
+but load each Q8 weight field once and apply it to all four verifier
+vectors.
+
+Screen at least two output geometries before any frozen-ruler
+promotion:
+
+- SG2 x 4 output rows
+- SG4 x 2 output rows
+
+Require bit-exact microbenchmark parity before promotion.
+
