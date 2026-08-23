@@ -7185,3 +7185,246 @@ Before changing verifier QMM arithmetic or geometry:
 Do not optimize the P61 attention bundle merely because it remains
 large; that workstream remains closed absent new evidence.
 
+---
+
+## P69B5 — verifier-QMM residual investigation
+
+Date: 2026-08-23
+
+P69B5 investigated whether the custom verifier QMM kernels inside the
+largest post-P69 projection bundle contained another actionable
+optimization.
+
+### P69B5-B1 — verifier router audit
+
+The exact verifier routing implementation is in:
+
+`omlx/patches/qwen35_verify_qmm.py`
+
+For non-lm_head verifier shapes, `vk_qmm()` selects K_PARTS using:
+
+1. global `OMLX_VERIFY_KPARTS`, if set;
+2. shape-specific `OMLX_VERIFY_KPARTS_SHAPES`, if present;
+3. otherwise K_PARTS=2 for N >= 4096 and K_PARTS=4 below that.
+
+The certified shape overrides remain:
+
+- 5120x6144 -> KP1
+- 5120x17408 -> KP1
+
+The existing `OMLX_VERIFY_TRACE_SHAPES` mechanism records unique
+signatures only and is not a dispatch census.
+
+### P69B5-B2 — exact runtime census
+
+One exact frozen run reproduced all 56,730 verifier-routed calls:
+
+KP1:
+
+- 32,736 calls
+- exactly 176/cycle
+
+KP2:
+
+- 23,808 calls
+- exactly 128/cycle
+
+lm_head MSG:
+
+- 186 calls
+- exactly 1/cycle
+
+Exact shape population:
+
+- M4 K5120 N17408 Q8 GS64 KP1: 128/cycle
+- M4 K17408 N5120 Q8 GS64 KP2: 64/cycle
+- M4 K5120 N6144 Q8 GS64 KP1: 48/cycle
+- M4 K5120 N10240 Q8 GS64 KP2: 48/cycle
+- M4 K5120 N12288 Q8 GS64 KP2: 16/cycle
+- M4 K5120 N248320 Q8 GS64 MSG: 1/cycle
+
+### P69B5-C1 — KP1 no-barrier scout
+
+Candidate:
+
+- preserve Q8 unpack/FMA traversal;
+- preserve FP32 accumulation;
+- preserve `simd_sum`;
+- remove the redundant K_PARTS=1 threadgroup
+  partial-store/barrier/reload sequence;
+- directly write the already-reduced SIMD accumulator.
+
+Both exact KP1 shapes were bit-exact.
+
+Results:
+
+K5120 N17408:
+
+- +0.2832% median microbench reduction
+- projected +0.188935 ms/cycle
+
+K5120 N6144:
+
+- -1.7501% median microbench reduction
+- projected -0.275900 ms/cycle
+
+Combined:
+
+- projected -0.086966 ms/cycle
+- -0.1054%
+
+Verdict:
+
+**CLOSED — KP1 no-barrier specialization does not pay.**
+
+### P69B5-C2 — KP2 parallel partial-store scout
+
+Candidate changed only partial staging after `simd_sum`:
+
+Stock:
+
+- lane 0 serially writes all 16 reduced accumulators.
+
+Candidate:
+
+- lanes 0..15 each write one accumulator.
+
+The barrier and two-part reduction order were unchanged.
+
+All three exact KP2 shapes were bit-exact.
+
+Microbench:
+
+- K17408 N5120: +0.3878%
+- K5120 N10240: +1.8020%
+- K5120 N12288: +0.2579%
+
+Weighted isolated projection:
+
+- +0.524599 ms/cycle
+- +0.8399%
+
+This justified an integrated scout but was not itself promotion
+evidence.
+
+### P69B5-D1 — controlled integrated 4+4
+
+Balanced order:
+
+- BASE / CAND
+- CAND / BASE
+- CAND / BASE
+- BASE / CAND
+
+Every measured run retained:
+
+- output hash `101ae2aec9793dfe`
+- 186 cycles
+- acceptance 325/442 = 73.5%
+- d1=155/186
+- d2=101/155
+- d3=69/101
+
+Results:
+
+BASE mean BPC:
+
+- 141.743817 ms
+
+CAND mean BPC:
+
+- 141.913575 ms
+
+Mean candidate change:
+
+- -0.169758 ms/cycle
+- -0.1198%
+
+BASE median BPC:
+
+- 141.709946 ms
+
+CAND median BPC:
+
+- 141.886022 ms
+
+Median candidate change:
+
+- -0.176075 ms/cycle
+- -0.1243%
+
+Mean TG change:
+
+- -0.1058%
+
+Adjacent pair wins:
+
+- 1/4
+
+Median pair change:
+
+- -0.1242%
+
+Verdict:
+
+**NO CONTROLLED INTEGRATED WIN.**
+
+The isolated C2 microbenchmark improvement did not translate into the
+real natural execution stack.
+
+### P69B5 conclusion
+
+Close verifier-QMM synchronization/staging work.
+
+Do not integrate:
+
+- KP1 no-barrier specialization;
+- KP2 parallel partial-store specialization.
+
+The custom verifier QMM kernels remain part of the projection bundle,
+but current evidence does not support further synchronization-level
+tuning.
+
+Return to the largest post-P69 natural-buffer archetype and map the
+remaining non-QMM components:
+
+- RMS
+- fused sigmoid/multiply activation
+- gather
+- add
+- associated copy/indexing kernels
+
+P61 attention remains closed absent new evidence.
+
+### P69B5 artifact hashes
+
+B1 router audit:
+
+`f8b5adeb8d75918ec3294eab42f2a26f3308d6882b6667837dcc7c76df73446b`
+
+B2 runtime census:
+
+`6410456ba36cca82275ede3060e22cf06c120c507f32e948d15d8f44341c4e7c`
+
+C1 KP1 microbench:
+
+`b8a01c886e72d4a9e1b405847c7387b7bdda6eb280dff9e77d8558506c2e22d2`
+
+C2 KP2 microbench:
+
+`784b015622bc2a9d2130f54584eb7538f0e9bcafb2bd8c9cadf6fcca8fc36234`
+
+D1 integrated 4+4 summary:
+
+`500f3c1692dea9c0fdef04da2f0d4dd2d69c3c69698f0106bb50af79704943ec`
+
+### Next experiment
+
+**P69B6-A — dominant projection-bundle source and operation map**
+
+Goal:
+
+Map the exact non-QMM kernel identities in the 33.114 ms/cycle
+natural command-buffer archetype back to MLX/oMLX/model operations
+before selecting another performance candidate.
+
