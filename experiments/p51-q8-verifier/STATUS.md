@@ -6984,3 +6984,204 @@ Goals:
 Do not reopen closed D2/D4, tree speculation, HPT3/HPT4, learned
 hidden correction, or P61-attention geometry without new evidence.
 
+---
+
+## P69B4 — post-champion residual natural-command-buffer profile
+
+Date: 2026-08-23
+
+P69B4 repeated the passive natural command-buffer profiler on the
+canonical P69 SG2R4 champion.
+
+The profiling worktree was created directly from canonical champion
+commit:
+
+`c55992a62e2844dd22b28b39f29fdeba61a30bb8`
+
+No historical P61 or P69 performance patch was replayed.
+
+Only the proven metadata-only natural command-buffer instrumentation
+was added.
+
+The frozen request retained the exact trajectory:
+
+- output hash: `101ae2aec9793dfe`
+- prompt: 29,297 tokens
+- completion: 512
+- cycles: 186
+- acceptance: 325/442 = 73.5%
+- d1 = 155/186
+- d2 = 101/155
+- d3 = 69/101
+
+Observed profiler telemetry:
+
+- backbone: 26,333.4 ms
+- MTP: 327.5 ms
+- sampling: 5.1 ms
+- cache: 73.2 ms
+
+The natural dataset contained:
+
+- 29,626 decode command buffers
+- 31,860 total recorded natural command buffers
+- 93 registered exact kernels
+
+### Pre-P69 vs post-P69 natural GPU cycle
+
+Pre-P69:
+
+- 135.544 ms/cycle
+
+Post-P69:
+
+- 133.323 ms/cycle
+
+Difference:
+
+- -2.221 ms/cycle
+- 1.64% reduction
+
+This is observational profiler evidence only.
+P69B3-B remains the authoritative performance certification.
+
+### QMV population transition
+
+Pre-P69 stock QMV dispatches:
+
+- 40,155
+
+Post-P69 stock QMV dispatches:
+
+- 4,236
+
+Promoted SG2R4 dispatches:
+
+- 35,919
+
+Therefore P69 moved essentially the complete previously identified
+runtime-hot M4-Q8 stock-QMV population onto SG2R4 while leaving the
+small stock-QMV tail.
+
+### Post-P69 direct natural-buffer archetypes
+
+Largest directly measured archetypes:
+
+1. projection / verifier bundle
+   - 33.114 ms/cycle
+   - 8,550 occurrences
+   - 45.968 buffers/cycle
+   - median 0.72037 ms
+   - includes SG2R4, KP1 verifier QMM, RMS, gather/add/activation
+
+2. P61 attention bundle
+   - 24.183 ms/cycle
+   - 2,944 occurrences
+   - 15.828 buffers/cycle
+   - median 1.52788 ms
+
+3. projection + GDN bundle
+   - 18.959 ms/cycle
+   - 5,330 occurrences
+   - 28.656 buffers/cycle
+
+4. residual stock-QMV bundle
+   - 12.656 ms/cycle
+   - 556 occurrences
+   - 2.989 buffers/cycle
+   - contains three stock `affine_qmv_fast` dispatches
+
+Additional recurring projection bundles:
+
+- 11.435 ms/cycle
+- 11.198 ms/cycle
+- 9.600 ms/cycle
+
+The projection path therefore remains the largest directly measured
+residual target after P69.
+
+### Exact verifier-QMM dispatch census from P69B4
+
+The post-P69 frozen trajectory contains:
+
+KP1 verifier QMM:
+
+- kernel id 78
+- 32,736 dispatches
+- exactly 176 dispatches/cycle
+
+KP2 verifier QMM:
+
+- kernel id 75
+- 23,808 dispatches
+- exactly 128 dispatches/cycle
+
+lm_head verifier QMM:
+
+- kernel id 83
+- 186 dispatches
+- exactly 1 dispatch/cycle
+
+SG2R4 M4-Q8:
+
+- kernel id 76
+- 35,919 dispatches
+
+This makes the recurring KP1/KP2 verifier QMM path the next
+projection component requiring exact source/shape analysis.
+
+### Regression caution
+
+Coarse family NNLS:
+
+- R² = 0.148068
+
+Exact-kernel NNLS:
+
+- R² = 0.683619
+
+The exact-kernel model is improved relative to pre-P69 but remains
+too weak for isolated attribution.
+
+In particular it assigns zero modeled cost to the heavily exercised
+SG2R4 kernel, demonstrating that individual NNLS coefficients must
+not be treated as kernel timings.
+
+Direct natural-buffer archetypes and controlled A/B remain the
+promotion standard.
+
+### P69B4 artifacts
+
+Natural profile SHA256:
+
+`cefecaa856549f45d4b3e3f035d06c8d78aea8c1a4d7463874725f5b3f90cc50`
+
+Offline solve SHA256:
+
+`f2485a427b6038eb027a30980777cf3f71c95d618f6689eb9c460ba86f1e9d8e`
+
+Matched-signature audit SHA256:
+
+`9933f0d7dad47646290595042cd571db88b053652b54e4543816915cba23bef8`
+
+Pre/post comparison SHA256:
+
+`13d5da2c9c46f3de83bb74a1fabfdde8b07f5bbd124b255efe7e16b56219dd33`
+
+### Next experiment
+
+**P69B5-A — verifier KP1/KP2 source and shape-routing audit**
+
+Before changing verifier QMM arithmetic or geometry:
+
+1. locate the exact oMLX implementation that creates the
+   `omlx_vk_ks_m4_q8_kp1` and `kp2` kernels;
+2. inspect the existing `OMLX_VERIFY_TRACE_SHAPES` implementation;
+3. determine whether it reports every dispatch or only unique route
+   decisions;
+4. identify the exact `(K,N,K_PARTS)` population feeding KP1 and KP2;
+5. only then build shape-specific bit-exact microbenchmarks.
+
+Do not optimize the P61 attention bundle merely because it remains
+large; that workstream remains closed absent new evidence.
+
