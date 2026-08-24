@@ -7713,3 +7713,183 @@ Only after the packaged implementation reproduces the E3
 win should DUAL64 receive a permanent runtime patch/tag and
 be added to the preferred stack.
 
+### P69B6-E4 — packaged DUAL64 certification and promotion
+
+P69B6-E4 moved the E3-winning DUAL64 implementation out of
+the temporary `sitecustomize.py` experiment and into the
+normal oMLX patch mechanism.
+
+The packaged change consists of two source changes:
+
+- a new `omlx/patches/qwen35_dual64_mlp.py` implementation
+- an installer hook in
+  `omlx/patches/mlx_vlm_mtp/qwen35_vlm_runtime.py`
+
+The runtime gate is:
+
+    OMLX_VERIFY_MLP_DUAL64=1
+
+The wrapper is installed in both BASE and CAND processes.
+Only the runtime gate differs between arms.
+
+Eligibility remains deliberately narrow:
+
+- target verify only
+- batch 1
+- verifier M=4
+- K=5120
+- N=17408
+- Q8 affine
+- group size 64
+- FP16 input / scales / biases
+- exact packed Q8 geometry
+- existing down_proj verifier path unchanged
+
+The packaged implementation preserves the E2/E3 arithmetic
+discipline:
+
+- original gate projection Q8 traversal
+- original up projection Q8 traversal
+- independent FP32 accumulators
+- original `simd_sum` reduction order
+- FP16 rounding at each projection-output boundary
+- exact MLX sigmoid / SiLU arithmetic
+- only the final 4x17408 SWIGLU tensor is materialized
+
+Therefore it removes:
+
+- the 4x17408 gate device tensor
+- the 4x17408 up device tensor
+- the standalone SWIGLU dispatch
+
+without changing the downstream K17408 -> N5120 down_proj.
+
+#### E4 packaged controlled 4+4
+
+Balanced order:
+
+- BASE-1
+- CAND-1
+- CAND-2
+- BASE-2
+- CAND-3
+- BASE-3
+- BASE-4
+- CAND-4
+
+All eight valid runs retained exactly:
+
+- output hash: 101ae2aec9793dfe
+- generation: 512 tokens
+- verifier cycles: 186
+- acceptance: 325/442 = 73.5%
+- depth:
+  - d1=155/186
+  - d2=101/155
+  - d3=69/101
+
+Every BASE run self-reported that the packaged wrapper was
+installed with DUAL64 disabled.
+
+Every CAND run self-reported:
+
+- packaged wrapper installed
+- DUAL64 enabled
+- DUAL64 actually engaged on the exact M=4 / Q8 / GS64 path
+
+BASE:
+
+- mean backbone/cycle: 141.780914 ms
+- median backbone/cycle: 141.768548 ms
+- mean TG: 19.063826 tok/s
+
+DUAL64:
+
+- mean backbone/cycle: 140.266801 ms
+- median backbone/cycle: 140.270699 ms
+- mean TG: 19.249275 tok/s
+
+Controlled packaged delta:
+
+- mean saving: 1.514113 ms/backbone-cycle
+- median saving: 1.497849 ms/backbone-cycle
+- mean backbone improvement: +1.0679%
+- median backbone improvement: +1.0565%
+- mean realized TG improvement: +0.9728%
+
+Adjacent paired improvements:
+
+- pair 1: +0.9028%
+- pair 2: +1.1217%
+- pair 3: +1.0388%
+- pair 4: +1.2080%
+- pair wins: 4/4
+- median pair improvement: +1.0802%
+
+Microbenchmark translation:
+
+- E2 projected saving: 3.433822 ms/cycle
+- E4 packaged saving: 1.514113 ms/cycle
+- translation: 44.09%
+
+E3-to-E4 reproduction:
+
+- E3 temporary-hook mean saving: 1.347984 ms/cycle
+- E4 packaged mean saving: 1.514113 ms/cycle
+- packaged reproduction: 112.32%
+
+This is stronger than the promotion threshold and reproduces
+the E3 result with the actual durable package architecture.
+
+Verdict:
+
+P69B6 DUAL64 is certified and promoted.
+
+The exact promoted patch artifact is:
+
+    experiments/p51-q8-verifier/patches/0014-p69b6-dual64-q8-mlp.patch
+
+Patch SHA256:
+
+    1f959d680a98af32ad70b909ede3375eb198b8e76dc439ef300a31fed80662d0
+
+E4 controlled-summary SHA256:
+
+    2bab5354a3fb0bde4a7810fc9e3693bf51e18831e0c328d6056d8b6f2c19dcec
+
+E4 promotion-manifest SHA256:
+
+    7b9779f06a7dae4ab56e5d6fa873d9689e257392fc12a7a0edaad8c5a5cbab20
+
+#### Preferred verifier stack after P69B6
+
+The preferred ~29.3K fixed-D3 / verifier-M4 stack is now the
+previous P69B3-certified stack plus:
+
+    OMLX_VERIFY_MLP_DUAL64=1
+
+when the promoted `0014-p69b6-dual64-q8-mlp.patch` oMLX patch is applied.
+
+The packaged E4 candidate establishes a new measured mean in
+this certification session:
+
+- 19.249275 tok/s
+- 140.266801 ms/backbone-cycle
+- 186 cycles
+- acceptance 325/442
+- output hash 101ae2aec9793dfe
+
+The paired delta, rather than the cross-session absolute
+number, remains the primary certification evidence.
+
+P69B6 is complete.
+
+Next:
+
+Re-profile natural command-buffer execution with the complete
+P69B6 stack enabled.
+
+Do not use the old pre-DUAL64 MLP activation / command-buffer
+ranking as the next optimization priority without measuring
+the new residual profile first.
+

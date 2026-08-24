@@ -1,0 +1,726 @@
+diff --git a/omlx/patches/mlx_vlm_mtp/qwen35_vlm_runtime.py b/omlx/patches/mlx_vlm_mtp/qwen35_vlm_runtime.py
+index 0130170..e0f950f 100644
+--- a/omlx/patches/mlx_vlm_mtp/qwen35_vlm_runtime.py
++++ b/omlx/patches/mlx_vlm_mtp/qwen35_vlm_runtime.py
+@@ -63,6 +63,14 @@ def apply() -> bool:
+         logger.debug(f"mlx_vlm.qwen3_5 not importable for MTP runtime: {e}")
+         return False
+ 
++    # P69B6_E4_DUAL64
++    # Install the target-verifier MLP wrapper after the mlx-vlm
++    # Qwen3.5 language module has loaded. The wrapper itself is
++    # runtime-gated by OMLX_VERIFY_MLP_DUAL64.
++    from ..qwen35_dual64_mlp import apply as _apply_p69b6_dual64_mlp
++
++    _apply_p69b6_dual64_mlp(q35_lang)
++
+     _patch_text_config(q35_config)
+     _register_mtp_classes_for_vlm(q35_lang)
+     _patch_vlm_language_model(q35_lang)
+diff --git a/omlx/patches/qwen35_dual64_mlp.py b/omlx/patches/qwen35_dual64_mlp.py
+new file mode 100644
+index 0000000..8f26fed
+--- /dev/null
++++ b/omlx/patches/qwen35_dual64_mlp.py
+@@ -0,0 +1,701 @@
++"""
++P69B6 DUAL64 target-verifier MLP fusion.
++
++Fuses:
++
++    gate_proj(x)
++    up_proj(x)
++    swiglu(gate, up)
++
++for the exact Qwen3.5 dense target-verifier geometry:
++
++    batch = 1
++    M = 4
++    K = 5120
++    N = 17408
++    Q8 affine
++    group_size = 64
++    K_PARTS = 1
++    FP16 activations / scales / biases
++
++The existing down_proj target-verifier path is left unchanged.
++
++Runtime gate:
++
++    OMLX_VERIFY_MLP_DUAL64=1
++
++The class wrapper is installed in both enabled and disabled
++processes.  The gate itself is cached at module import, so the
++controlled BASE/CAND comparison uses identical packaged source.
++"""
++
++from __future__ import annotations
++
++import os
++import sys
++from typing import Any
++
++import mlx.core as mx
++import mlx.nn as nn
++
++
++# P69B6_E4_DUAL64
++
++_ENABLED = (
++    os.environ.get(
++        "OMLX_VERIFY_MLP_DUAL64",
++        "",
++    )
++    .strip()
++    .lower()
++    in (
++        "1",
++        "true",
++        "yes",
++        "on",
++    )
++)
++
++M = 4
++K = 5120
++N = 17408
++GS = 64
++TG = 64
++
++_KERNEL = None
++_ENGAGED = False
++_ENGAGE_COUNT = 0
++
++
++_SOURCE = r"""
++    using namespace metal;
++
++    constexpr int M = 4;
++    constexpr int GS = 64;
++
++    uint lane =
++        thread_index_in_simdgroup;
++
++    uint proj =
++        simdgroup_index_in_threadgroup;
++
++    uint tg_n =
++        threadgroup_position_in_grid.y;
++
++    int K =
++        int(K_size);
++
++    int N =
++        int(N_size);
++
++    int K_by_w =
++        K / 4;
++
++    int K_by_gs =
++        K / GS;
++
++    int n0 =
++        int(tg_n) * 4;
++
++    using Vec8 =
++        vec<half, 8>;
++
++    const device Vec8* xv =
++        (const device Vec8*)x;
++
++    const device uint32_t* wq =
++        (proj == 0)
++        ? wg_q
++        : wu_q;
++
++    const device half* scales =
++        (proj == 0)
++        ? wg_scales
++        : wu_scales;
++
++    const device half* biases =
++        (proj == 0)
++        ? wg_biases
++        : wu_biases;
++
++    float acc[16];
++
++    _Pragma("unroll")
++    for (
++        int i = 0;
++        i < 16;
++        ++i
++    ) {
++        acc[i] = 0.0f;
++    }
++
++    /*
++     * Exact P69 verifier KP1 traversal.
++     *
++     * Two SIMD groups execute independently:
++     *
++     *   proj=0 -> gate_proj
++     *   proj=1 -> up_proj
++     *
++     * Each projection preserves the original Q8 packed-weight
++     * traversal, FP32 accumulation order, and simd_sum.
++     */
++
++    for (
++        int packA = int(lane);
++        packA < K / 8;
++        packA += 32
++    ) {
++        int k_base =
++            packA * 8;
++
++        int gi =
++            k_base / GS;
++
++        Vec8 v0 =
++            xv[
++                (
++                    0 * K
++                    + k_base
++                ) / 8
++            ];
++
++        Vec8 v1 =
++            xv[
++                (
++                    1 * K
++                    + k_base
++                ) / 8
++            ];
++
++        Vec8 v2 =
++            xv[
++                (
++                    2 * K
++                    + k_base
++                ) / 8
++            ];
++
++        Vec8 v3 =
++            xv[
++                (
++                    3 * K
++                    + k_base
++                ) / 8
++            ];
++
++        _Pragma("unroll")
++        for (
++            int j = 0;
++            j < 4;
++            ++j
++        ) {
++            uint32_t pa =
++                wq[
++                    (n0 + j)
++                    * K_by_w
++                    + packA * 2
++                ];
++
++            uint32_t pb =
++                wq[
++                    (n0 + j)
++                    * K_by_w
++                    + packA * 2
++                    + 1
++                ];
++
++            float s =
++                float(
++                    scales[
++                        (n0 + j)
++                        * K_by_gs
++                        + gi
++                    ]
++                );
++
++            float b =
++                float(
++                    biases[
++                        (n0 + j)
++                        * K_by_gs
++                        + gi
++                    ]
++                );
++
++            _Pragma("unroll")
++            for (
++                int ki = 0;
++                ki < 4;
++                ++ki
++            ) {
++                float wa =
++                    float(
++                        (
++                            pa
++                            >> (ki * 8)
++                        )
++                        & 0xFFu
++                    )
++                    * s
++                    + b;
++
++                float wb =
++                    float(
++                        (
++                            pb
++                            >> (ki * 8)
++                        )
++                        & 0xFFu
++                    )
++                    * s
++                    + b;
++
++                acc[
++                    j * 4 + 0
++                ] +=
++                    float(v0[ki])
++                    * wa;
++
++                acc[
++                    j * 4 + 1
++                ] +=
++                    float(v1[ki])
++                    * wa;
++
++                acc[
++                    j * 4 + 2
++                ] +=
++                    float(v2[ki])
++                    * wa;
++
++                acc[
++                    j * 4 + 3
++                ] +=
++                    float(v3[ki])
++                    * wa;
++
++                acc[
++                    j * 4 + 0
++                ] +=
++                    float(
++                        v0[
++                            ki + 4
++                        ]
++                    )
++                    * wb;
++
++                acc[
++                    j * 4 + 1
++                ] +=
++                    float(
++                        v1[
++                            ki + 4
++                        ]
++                    )
++                    * wb;
++
++                acc[
++                    j * 4 + 2
++                ] +=
++                    float(
++                        v2[
++                            ki + 4
++                        ]
++                    )
++                    * wb;
++
++                acc[
++                    j * 4 + 3
++                ] +=
++                    float(
++                        v3[
++                            ki + 4
++                        ]
++                    )
++                    * wb;
++            }
++        }
++    }
++
++    _Pragma("unroll")
++    for (
++        int i = 0;
++        i < 16;
++        ++i
++    ) {
++        acc[i] =
++            simd_sum(
++                acc[i]
++            );
++    }
++
++    /*
++     * Preserve the stock projection output boundary exactly:
++     *
++     *     FP32 accumulator -> FP16 projection output
++     *
++     * but retain the values in threadgroup memory rather than
++     * materializing separate 4x17408 gate/up device tensors.
++     */
++
++    threadgroup half tmp[32];
++
++    if (lane == 0) {
++        _Pragma("unroll")
++        for (
++            int i = 0;
++            i < 16;
++            ++i
++        ) {
++            tmp[
++                int(proj) * 16
++                + i
++            ] =
++                half(
++                    acc[i]
++                );
++        }
++    }
++
++    threadgroup_barrier(
++        mem_flags::mem_threadgroup
++    );
++
++    /*
++     * MLX SWIGLU:
++     *
++     *     silu(gate) * up
++     *
++     * MLX SiLU:
++     *
++     *     gate * sigmoid(gate)
++     *
++     * Metal Sigmoid<T>:
++     *
++     *     q = 1 / (1 + exp(abs(x)))
++     *     x < 0 ? q : 1 - q
++     */
++
++    if (
++        proj == 0
++        && lane < 16
++    ) {
++        half gate =
++            tmp[
++                int(lane)
++            ];
++
++        half up =
++            tmp[
++                16
++                + int(lane)
++            ];
++
++        auto q =
++            1
++            / (
++                1
++                + metal::exp(
++                    metal::abs(
++                        gate
++                    )
++                )
++            );
++
++        half sig =
++            (gate < 0)
++            ? q
++            : 1 - q;
++
++        int j =
++            int(lane) / 4;
++
++        int row =
++            int(lane)
++            - j * 4;
++
++        y[
++            row * N
++            + n0
++            + j
++        ] =
++            (
++                gate
++                * sig
++            )
++            * up;
++    }
++"""
++
++
++def _kernel():
++    global _KERNEL
++
++    if _KERNEL is None:
++        _KERNEL = mx.fast.metal_kernel(
++            name=(
++                "omlx_p69b6_dual64_"
++                "q8_gs64_m4_k5120_n17408"
++            ),
++            input_names=[
++                "x",
++                "wg_q",
++                "wg_scales",
++                "wg_biases",
++                "wu_q",
++                "wu_scales",
++                "wu_biases",
++                "K_size",
++                "N_size",
++            ],
++            output_names=[
++                "y",
++            ],
++            source=_SOURCE,
++        )
++
++    return _KERNEL
++
++
++def _eligible_linear(
++    linear: Any,
++) -> bool:
++    if not isinstance(
++        linear,
++        nn.QuantizedLinear,
++    ):
++        return False
++
++    if getattr(
++        linear,
++        "bits",
++        None,
++    ) != 8:
++        return False
++
++    if getattr(
++        linear,
++        "group_size",
++        None,
++    ) != GS:
++        return False
++
++    if getattr(
++        linear,
++        "mode",
++        "affine",
++    ) != "affine":
++        return False
++
++    weight = getattr(
++        linear,
++        "weight",
++        None,
++    )
++
++    scales = getattr(
++        linear,
++        "scales",
++        None,
++    )
++
++    biases = getattr(
++        linear,
++        "biases",
++        None,
++    )
++
++    if (
++        weight is None
++        or scales is None
++        or biases is None
++    ):
++        return False
++
++    if weight.dtype != mx.uint32:
++        return False
++
++    if (
++        scales.dtype != mx.float16
++        or biases.dtype != mx.float16
++    ):
++        return False
++
++    if tuple(
++        weight.shape
++    ) != (
++        N,
++        K // 4,
++    ):
++        return False
++
++    if tuple(
++        scales.shape
++    ) != (
++        N,
++        K // GS,
++    ):
++        return False
++
++    if tuple(
++        biases.shape
++    ) != tuple(
++        scales.shape
++    ):
++        return False
++
++    if hasattr(
++        linear,
++        "bias",
++    ):
++        return False
++
++    return True
++
++
++def _dual64(
++    x,
++    gate,
++    up,
++):
++    global _ENGAGED
++    global _ENGAGE_COUNT
++
++    if (
++        x.ndim != 3
++        or tuple(
++            x.shape
++        ) != (
++            1,
++            M,
++            K,
++        )
++        or x.dtype != mx.float16
++        or not _eligible_linear(
++            gate
++        )
++        or not _eligible_linear(
++            up
++        )
++    ):
++        return None
++
++    x2 = x[0]
++
++    (y,) = _kernel()(
++        inputs=[
++            x2,
++            gate.weight,
++            gate.scales,
++            gate.biases,
++            up.weight,
++            up.scales,
++            up.biases,
++            K,
++            N,
++        ],
++        grid=(
++            TG,
++            N // 4,
++            1,
++        ),
++        threadgroup=(
++            TG,
++            1,
++            1,
++        ),
++        output_shapes=[
++            (
++                M,
++                N,
++            ),
++        ],
++        output_dtypes=[
++            mx.float16,
++        ],
++    )
++
++    _ENGAGE_COUNT += 1
++
++    if not _ENGAGED:
++        _ENGAGED = True
++
++        print(
++            "P69B6_E4_ENGAGED "
++            "class=mlx_vlm.models.qwen3_5.language.Qwen3_5MLP "
++            "M=4 K=5120 N=17408 "
++            "Q8 GS64 DUAL64",
++            file=sys.stderr,
++            flush=True,
++        )
++
++    return y[None]
++
++
++def apply(
++    q35_lang,
++) -> bool:
++    """
++    Install the packaged Qwen3.5 MLP wrapper.
++
++    Installed in both enabled and disabled processes so the
++    controlled A/B uses identical Python source.
++    """
++
++    cls = q35_lang.Qwen3_5MLP
++
++    current = cls.__call__
++
++    if getattr(
++        current,
++        "_omlx_p69b6_e4_dual64",
++        False,
++    ):
++        return True
++
++    original = current
++
++    def __call__(
++        self,
++        x,
++        target_verify: bool = False,
++    ):
++        if (
++            _ENABLED
++            and target_verify
++        ):
++            y = _dual64(
++                x,
++                self.gate_proj,
++                self.up_proj,
++            )
++
++            if y is not None:
++                # Preserve the existing certified down-projection
++                # verifier route unchanged.
++                return q35_lang._target_verify_linear(
++                    self.down_proj,
++                    y,
++                    True,
++                )
++
++        return original(
++            self,
++            x,
++            target_verify,
++        )
++
++    __call__._omlx_p69b6_e4_dual64 = True
++
++    cls.__call__ = __call__
++
++    print(
++        "P69B6_E4_PATCH_CLASS "
++        "class=mlx_vlm.models.qwen3_5.language.Qwen3_5MLP "
++        f"enabled={int(_ENABLED)}",
++        file=sys.stderr,
++        flush=True,
++    )
++
++    return True
