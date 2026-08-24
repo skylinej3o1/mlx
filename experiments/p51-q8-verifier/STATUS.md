@@ -8239,3 +8239,48 @@ Next experiment:
     P69B9-B — gated SDPA pass-2 final-output epilogue
     exactness and microbenchmark.
 
+
+### P69B9-B in-progress terminal handoff — 2026-08-24
+
+Active experiment: gated SDPA pass-2 final-output epilogue exactness + isolated microbenchmark.
+
+Do NOT rerun P69B7 or reopen P69B8.
+
+New-terminal bootstrap on Jeff's Mac:
+
+    source /Users/skylinej17/.venvs/mlx-dspark/bin/activate
+    cd ~/src/mlx-m1-qmv
+    setopt interactivecomments
+
+Use short atomic shell blocks. Large interactive-zsh pastes have repeatedly
+truncated mid-block; if zsh shows `>....` or `dquote>`, press Ctrl-C once
+instead of opening another terminal.
+
+P69B9-B entry checkpoint was clean branch `project51-q8-verifier` at
+`ac48f6b740c5cc1c62202acc688ee185fd332ffe`.
+
+Progress:
+- local/fork checkpoint validation: PASS
+- source-seam audit: PASS
+- production source modifications: none
+- isolated source: `/tmp/p69b9b-gated-sdpa-epilogue.mm`
+- initial native build failed only because SDK sysroot was omitted
+- corrected Xcode/macOS-SDK build: `BUILD_EXIT=0`
+- built binary: `/tmp/p69b9b-gated-sdpa-epilogue`
+- exactness + microbenchmark: NOT RUN YET
+
+Correct native build requires:
+
+    SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+    CXX=$(xcrun --sdk macosx --find clang++)
+    "$CXX" -std=c++17 -O3 -fobjc-arc -Wno-deprecated-declarations \
+      -isysroot "$SDKROOT" -framework Foundation -framework Metal \
+      /tmp/p69b9b-gated-sdpa-epilogue.mm \
+      -o /tmp/p69b9b-gated-sdpa-epilogue
+
+Immediate next command:
+
+    /tmp/p69b9b-gated-sdpa-epilogue | tee /tmp/p69b9b-gated-sdpa-epilogue.txt
+
+Do not run integrated 4+4 unless this scout is bit-exact and projects enough
+absolute saving across the 16 full-attention layers.
