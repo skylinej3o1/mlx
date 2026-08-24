@@ -1,6 +1,6 @@
 # MXFORGE research source catalog
 
-Last updated: 2026-08-22
+Last updated: 2026-08-24
 
 This catalog turns external notes into a deduplicated research index. It is not an endorsement of every benchmark claim. Results from Reddit posts and project-authored benchmarks are treated as leads until reproduced on the target hardware. The roadmap promotes only the ideas that appear technically relevant to MXFORGE.
 
@@ -58,12 +58,18 @@ Status legend:
 | 39 | https://huggingface.co/inclusionAI/Ling-3.0-flash-dspark | Ling-3.0-flash DSpark checkpoint | CORE / primary checkpoint pointer | Official draft-model location referenced by the merged llama.cpp support PR. The page was too fresh to inspect reliably through the current web index at intake, so exact parameter count, precision, residency and target-component dependencies remain to be verified before planning 5070 placement. |
 | 40 | https://github.com/ggml-org/llama.cpp/pull/27508 | Ling/BailingMoE3 DSpark runtime support | CORE / promoted implementation evidence | Merged 2026-08-22. Adds `draft-dspark` support plus **partial rollback for BailingMoE3 recurrent state**. On a DGX Spark 880-request suite, overall decode rose **44.20->55.73 tok/s (~+26%)**; coding rose **43.80->73.71 (~+68%)** with 0.5773 coding acceptance. Gains vary sharply by workload, strongly supporting adaptive speculation. Mine recurrent-state rollback semantics and the separate-drafter conversion/verification protocol for an eventual MLX/Metal port. See `docs/research/LING30_DSPARK.md`. |
 | 41 | https://www.reddit.com/r/LocalLLM/comments/1vv2tw5/people_running_qwen_38_27b_on_apple_silicon_whats/ | Qwen3.8-27B Apple Silicon speed survey | CORE / promoted field evidence | Fresh community thread containing several useful but non-controlled Apple datapoints. Highest-value signals: M2 Ultra 64GB `UD-Q8_K_XL` in Unsloth Studio reports **34.9 tok/s vs 27.1 tok/s for a lighter Q4 rerun**; M5 Max 128GB llama.cpp + MTP + Q8_0 reports **~28-30 tok/s from ~10K through 262K context**; M3 Ultra 96GB oQ5e + Lightning MTP + ANE prefill reports **~42.7-43.7 tg tok/s** with **310-369 pp tok/s**; M4 Pro 48GB 4-bit oMLX+DFlash2 reports ~24 tok/s. Treat as evidence that Q8 can be execution-efficient, speculation/quant must be co-designed, and long-context certification matters. See `docs/research/QWEN38_APPLE_SPEED_FIELD_REPORTS.md`. |
+| 42 | https://www.reddit.com/r/LocalLLM/comments/1vwdssa/qwen3827b_dflash_on_a_36gb_m4_max_surprisingly/ | Qwen3.8 DFlash2 agent workload on M4 Max 36GB | CORE / promoted field evidence | Same coding-agent workload reportedly falls from ~133 s without DFlash to ~48 s with DFlash2 and ~42 s with a Q4 DFlash2 drafter, with all three runs correct. Treat the ~3.17x task-time improvement as a high-value field signal, not an M1 transfer factor. It strongly promotes low-bit drafter precision as a runtime knob and complete-task timing as a certification metric. See `docs/research/QWEN38_DFLASH_M4_36GB_AGENT_FIELD.md`. |
+| 43 | https://omlx.ai/benchmarks/performance/5allyvr2 | Qwen3.8 Q4 + quantized DFlash2 on M4 Max 32-core / 36GB | CORE / Apple DFlash corroboration | Community oMLX submission reports roughly **33.5 tok/s @1K** and **30.3 tok/s @4K** with quantized DFlash2. Heterogeneous with other public runs, but useful corroboration that the Apple DFlash2 path is real on the same 32-core/36GB hardware class as source 42. |
+| 44 | https://omlx.ai/benchmarks/performance/6zatli6n | Qwen3.8 Q8 target + Q4 DFlash2 drafter on M4 Max | CORE / promoted Q8-target evidence | Critical new evidence: a low-bit DFlash2 drafter can productively run ahead of an **8-bit target**, with the referenced submission reporting roughly **38.0 tok/s @1K** and **31.9 tok/s @4K**. This materially strengthens the MXFORGE plan to preserve Q8 target quality while using a cheap Q4 drafter. Do not transfer short-context M4 TPS directly to the M1 ~29K ruler. |
+| 45 | https://huggingface.co/incoai/Qwen3.8-27B-DFlash2-GGUF/blob/main/README.md | DFlash2 draft-quant acceptance | CORE / supporting evidence | Reported acceptance-length comparison shows Q4 DFlash2 around **5.39** in that evaluation versus ~5.28 BF16 and ~5.13 Q8. Treat as checkpoint/runtime-specific evidence, not a general law, but it rejects the assumption that a Q4 drafter must necessarily reduce acceptance. |
 
 ## Dedupe / relationship map
 
 ### Qwen3.8 speculative decoding
 
-Sources 1, 2, 7, 8, 10, 21, 22, 33, 34, and 41 all point at the same deeper conclusion: the winning question is not "MTP or DFlash?" in the abstract. The runtime should choose among draft mechanisms, depths, and now small parent-conditioned branch shapes using measured target-verification cost, drafter cost, acceptance/rejection-depth distribution, memory headroom, context length, quant execution characteristics, and workload type. Custom MTP-head weights are explicitly in scope. PCTree and the Apple field reports strengthen the rule that **higher acceptance or lower bpw is not automatically higher throughput**.
+Sources 1, 2, 7, 8, 10, 21, 22, 33, 34, 41-45 all point at the same deeper conclusion: the winning question is not "MTP or DFlash?" in the abstract. The runtime should choose among draft mechanisms, depths, quantizations, and small parent-conditioned branch shapes using measured target-verification cost, drafter cost, acceptance/rejection-depth distribution, memory headroom, context length, quant execution characteristics, and workload type. Custom MTP-head weights are explicitly in scope. PCTree and the Apple field reports strengthen the rule that **higher acceptance or lower bpw is not automatically higher throughput**.
+
+Sources 42-45 materially strengthen DFlash2's priority. The new design point is **Q4 DFlash2 drafter -> high-quality Q8 target**, with target verification remaining authoritative. Low drafter precision can therefore be optimized for speed/residency/acceptance independently of target-weight quality. The M1 experiment must compare this directly against the current native-MTP champion on identical ~29K coding replay rather than against plain AR.
 
 ### Apple prompt processing
 
@@ -78,11 +84,20 @@ For agentic coding, the second lever can still dominate the user experience beca
 
 ### Hardware-aware quantization
 
-Sources 5, 11, 12, 21, 22, 23, 28, 35, 36, and 41 support quantization as an execution-layout problem, not only a bpw/quality problem. Critical tensors (LM head, embeddings, recurrent state, MTP module, attention projections) can deserve different treatment from bulk weights. Dynamic 3.0 is another external example of spending bits non-uniformly to improve the quality/size frontier; MXFORGE adds measured target-hardware latency and verifier shape to that objective. The M2 Ultra Q8>Q4 field observation in source 41 is not a controlled comparison, but it directly supports keeping Q8 as a serious execution branch instead of assuming fewer weight bits must decode faster.
+Sources 5, 11, 12, 21, 22, 23, 28, 35, 36, 41-45 support quantization as an execution-layout problem, not only a bpw/quality problem. Critical tensors (LM head, embeddings, recurrent state, MTP module, attention projections, and now speculative drafter weights) can deserve different treatment from bulk target weights. Dynamic 3.0 is another external example of spending bits non-uniformly to improve the quality/size frontier; MXFORGE adds measured target-hardware latency and verifier shape to that objective. The M2 Ultra Q8>Q4 field observation in source 41 is not a controlled comparison, while sources 42-45 add a complementary lesson: **a low-bit drafter can be attractive even when the authoritative target remains Q8**.
 
 ### Qwen3.8 Apple speed / long-context field evidence
 
-Sources 35-37 and 41 now provide a useful community envelope across M1/M2/M3/M4/M5-class Apple Silicon. The data are heterogeneous and must not be merged into one benchmark curve, but they reinforce three project rules: **certify realistic ~30K and longer contexts; compare quants under identical runtimes and speculative settings; and judge PP/TTFT separately from decode**. Source 41's reported M5 Max Q8_0 + MTP stability through 262K is especially relevant as a long-context hypothesis to reproduce rather than a transferable performance claim.
+Sources 35-37 and 41-44 now provide a useful community envelope across M1/M2/M3/M4/M5-class Apple Silicon. The data are heterogeneous and must not be merged into one benchmark curve, but they reinforce three project rules: **certify realistic ~30K and longer contexts; compare quants under identical runtimes and speculative settings; and judge PP/TTFT separately from decode**. Source 41's reported M5 Max Q8_0 + MTP stability through 262K is especially relevant as a long-context hypothesis to reproduce rather than a transferable performance claim. Sources 42-44 specifically move DFlash2 + Q8 target from a speculative idea to a high-priority M1 bakeoff candidate.
+
+### DFlash2 Q4 drafter -> Q8 target on M1
+
+The current planning hypothesis is that DFlash2 and the P51-P69 verifier work may compose for a principled reason rather than by multiplying unrelated headline percentages:
+
+1. DFlash2 can increase useful candidate tokens per target verification.
+2. MXFORGE reduces the cost of multi-row Q8 verification.
+
+The live formal P69 ruler is **19.0746 tok/s at 29,297 prompt tokens**. The current planning midpoint for a fully tuned Q4-DFlash2 -> Q8-MXFORGE path is **~25.5 tok/s at the same ~29K ruler**, with an expected tuned band of roughly 24-27 tok/s and 28-30 tok/s treated as stretch territory. These are forecasts only, not measured results. The primary uncertainty is DFlash's natural verification-row geometry and acceptance at long context; native MTP currently favors D3/M4, so DFlash-specific routing/kernel retuning may be required. See `docs/research/QWEN38_DFLASH_M4_36GB_AGENT_FIELD.md`.
 
 ### DeepSeek V4 distributed adaptive runtime
 
