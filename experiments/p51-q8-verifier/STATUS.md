@@ -8284,3 +8284,124 @@ Immediate next command:
 
 Do not run integrated 4+4 unless this scout is bit-exact and projects enough
 absolute saving across the 16 full-attention layers.
+
+### P69B9-B — gated SDPA pass-2 epilogue exactness/microbench
+
+Date: 2026-08-24
+
+P69B9-B tested whether the final `sdpa_vector_2pass_2` output write
+could absorb:
+
+    output * sigmoid(gate)
+
+while leaving P61 HEADPAIR pass-1, the native pass-2 reduction tree,
+and the existing K6144 -> N5120 o_proj route unchanged.
+
+The first isolated candidate correctly mapped gate layout
+[B,L,H,D] onto pass-2 head-major [B,H,L,D], but a direct in-register:
+
+    half a = static_cast<half>(finalized)
+
+did not reproduce the real stock device-half materialization boundary.
+
+Initial exactness result:
+
+- 12 adversarial cases
+- 6 passed
+- 6 failed
+- failures were predominantly +/-1 FP16 ULP
+- total mismatches: 37,728 / tested output elements across cases
+- no benchmark or integrated ruler was run after that failure
+
+P69B9-B2 forced the stock SDPA FP16 boundary through threadgroup
+`half` storage before applying the gate. All threads participate in
+the threadgroup barrier; lane 0 of each SIMD group then reloads the
+rounded half and performs the stock half sigmoid/multiply.
+
+B2 exactness:
+
+- 12/12 adversarial cases bit-exact
+- 24,576/24,576 elements exact in every case
+- gate layout mapping confirmed
+- native SDPA accumulation/reduction order unchanged
+- P61 HEADPAIR geometry unchanged
+- production source unchanged
+
+B2 isolated epilogue microbenchmark, 11 paired rounds:
+
+- BASE median: 0.006097 ms/layer
+- CAND median: 0.005716 ms/layer
+- median saving: 0.000381 ms/layer
+- median reduction: +6.249662%
+- BASE mean: 0.006772 ms/layer
+- CAND mean: 0.006218 ms/layer
+- mean saving: 0.000554 ms/layer
+- paired wins: 10/11
+- projected median saving across 16 full-attention layers:
+  0.006096 ms/backbone-cycle
+- projected mean saving across 16 layers:
+  0.008862 ms/backbone-cycle
+
+At the P69B7 telemetry backbone of 139.641398 ms/cycle, the median
+projection is only about 0.0044% of a cycle.
+
+This is roughly 15x smaller than the already-closed P69B8 theoretical
+projection of 0.091047 ms/cycle.
+
+Verdict:
+
+**P69B9-B CLOSED WITHOUT INTEGRATED CERTIFICATION.**
+
+The fusion is structurally valid and bit-exact once the real FP16
+storage boundary is forced, but the absolute leverage is far too small
+to justify a frozen-ruler 4+4.
+
+No runtime change is promoted.
+
+Do not rerun:
+
+- P69B7 profiling
+- P69B8
+- P69B9 integrated 4+4
+
+P69B6 DUAL64 remains the latest promoted optimization.
+
+P69B9-B2 report SHA256:
+
+    da1531aa0ccf72e5eaa486da893fb161a3fb7f2538bfeb44f6a375db8e4b4756
+
+### Next experiment
+
+**P69B10-A — post-DUAL64 48-layer GDN recurrent-core / projection-bundle
+source and dispatch map**
+
+Use the already-collected P69B7 evidence; do NOT rerun P69B7.
+
+The largest post-DUAL64 natural archetype remains:
+
+- ~46.978 occurrences/cycle
+- ~33.742 ms/cycle
+- approximately the 48 GDN-layer frequency
+
+A second mixed GDN/projection archetype remains:
+
+- ~29.306 occurrences/cycle
+- ~19.206 ms/cycle
+
+P69B8 already proved the terminal GDN RMSNormGated seam is only a tiny
+fraction of this cost.
+
+P69B10-A should therefore map the remaining large GDN recurrent/core
+and projection operations to exact kernel identities, source seams,
+shapes, and per-cycle dispatch counts using existing profiler artifacts
+and source inspection before designing another kernel.
+
+Exclude already-certified/closed work:
+
+- P58 FP16 GDN verifier prework: keep
+- P69B8 RMSNormGated fusion: closed
+- P69B9 attention-gate epilogue: closed
+- P61 attention geometry: closed absent new evidence
+
+Select the next candidate only from a measured high-leverage GDN/core
+or projection seam.
