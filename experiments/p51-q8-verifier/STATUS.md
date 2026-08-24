@@ -7893,3 +7893,189 @@ Do not use the old pre-DUAL64 MLP activation / command-buffer
 ranking as the next optimization priority without measuring
 the new residual profile first.
 
+### P69B7 — post-DUAL64 natural residual profile
+
+P69B7 re-profiled the complete promoted verifier stack after
+P69B6 DUAL64.
+
+P69B7-A passive natural-CB dataset:
+
+- raw profiler command-buffer rows: 31,860
+- registered kernels: 94
+- natural decode buffers in the measured window: 29,626
+- verifier cycles: 186
+- acceptance: 325/442
+- depth: d1=155/186, d2=101/155, d3=69/101
+- output hash: 101ae2aec9793dfe
+- DUAL64 engagement observed
+- P61 HEADPAIR observed
+- SG2R4 observed
+
+P69B7-A server-log SHA256:
+
+    7e51c443565200c61158c7008053d1046c25e45f47bcece0fe932826acbfbd49
+
+P69B7-B natural-CB solve SHA256:
+
+    289a8dbe7ed06dfde6f8106f6f9d72b33cc8aa1c8c40ff62959d93175d217bbc
+
+P69B7-C matched-signature report SHA256:
+
+    aed43c499ad199e2b2118590e2ffd0b95a7d55e00db441d0842d14a183ca23ff
+
+P69B7-D B4->B7 residual comparison SHA256:
+
+    635e5f5d8a8f3b9f8ce2087f71a9af812139f43d9d7a87f2d67fce333b72f902
+
+P69B7-E GDN source-seam audit SHA256:
+
+    184891b6437f3950c89a8b37bc877e22f909349b5cd52fbd6b2b43426a8f09ba
+
+Observational B4 -> B7 transition:
+
+- natural GPU:
+  - B4: 133.323 ms/cycle
+  - B7: 132.659 ms/cycle
+  - delta: -0.664 ms/cycle
+  - improvement: +0.498%
+
+- telemetry backbone:
+  - B4: 141.577419 ms/cycle
+  - B7: 139.641398 ms/cycle
+  - delta: -1.936022 ms/cycle
+  - improvement: +1.3675%
+
+These are cross-session passive-profile numbers. The controlled
+P69B6-E4 result remains the authoritative DUAL64 performance
+certification.
+
+The structural graph accounting is exact:
+
+- standalone target-MLP SWIGLU:
+  - 12,460 -> 556
+  - delta = -11,904
+  - exactly -64/cycle
+
+- DUAL64:
+  - 0 -> 11,904
+  - exactly +64/cycle
+
+- verifier QMM:
+  - 56,730 -> 32,922
+  - delta = -23,808
+  - exactly -128/cycle
+
+Therefore the promoted fusion removed exactly the intended two
+gate/up verifier-QMM dispatches plus the standalone target-MLP
+SWIGLU population for all 64 decoder layers.
+
+The direct post-DUAL64 natural-buffer archetypes are now led by:
+
+1. 46.978/cycle, 33.742 ms/cycle
+   - approximately the 48 GDN-layer frequency
+
+2. 15.828/cycle, 24.168 ms/cycle
+   - approximately the 16 full-attention-layer frequency
+   - includes P61 HEADPAIR SDPA
+
+3. 29.306/cycle, 19.206 ms/cycle
+   - mixed GDN / projection bundle
+
+5. 15.984/cycle, 11.410 ms/cycle
+   - approximately the 16 full-attention-layer frequency
+   - includes attention-side gating/postprocessing plus the MLP
+
+P69B7 closes the pre-DUAL64 residual profile. Future candidate
+selection must use the post-DUAL64 B7 topology.
+
+
+### P69B8-A — exact GDN RMSNormGated fusion microbench
+
+Source seam:
+
+    out = self.norm(out, z)
+
+where Qwen3_5RMSNormGated performs:
+
+    x = mx.fast.rms_norm(hidden_states, self.weight, self.eps)
+    return _precise_swiglu(hidden_states, gate, x)
+
+A custom 32-thread Metal kernel reproduced the exact MLX
+128-wide RMS reduction:
+
+- one SIMD group
+- four values/lane
+- FP32 squared accumulation
+- simd_sum reduction
+- metal::precise::rsqrt
+- stock FP16 weighted-RMS rounding boundary
+- existing FP32 precise SiLU/gating arithmetic
+
+Real model norm weight was used:
+
+- shape: 128
+- dtype: FP16
+- observed range: 0.78515625 .. 0.9296875
+
+Exactness:
+
+- 8/8 dynamic-range sweeps bit-exact
+- zero-hidden adversarial case exact
+- constant-row adversarial case exact
+- alternating-sign adversarial case exact
+
+Timing over 11 balanced rounds / 128 batched invocations:
+
+- stock median: 0.006983070 ms/layer
+- fused median: 0.005086258 ms/layer
+- local saving: +0.001896813 ms/layer
+- local reduction: +27.1630%
+- wins: 10/11
+- projected 48-layer saving: +0.091047 ms/cycle
+
+Report SHA256:
+
+    adf089f1407cfffea86f5553d19e015d04299c541fd904dba61556835ca20cc9
+
+Decision:
+
+P69B8 RMSNormGated fusion is CLOSED WITHOUT integrated
+certification.
+
+Reason:
+
+The local kernel optimization is real and bit-exact, but its
+absolute leverage is too small.
+
+At the P69B7 telemetry backbone of ~139.64 ms/cycle, the
+microbench projection is only ~0.065% of a cycle even assuming
+an impossible 100% translation.
+
+For comparison, the closed P69B6-D ADD_RMS experiment projected
+roughly 0.542 ms/cycle yet translated to only ~0.020 ms/cycle
+integrated.
+
+A 4+4 certification for a 0.091 ms/cycle theoretical ceiling is
+not a good use of the frozen ruler.
+
+No runtime change is promoted from P69B8.
+
+Next:
+
+P69B9 should inspect the 16-layer full-attention residual
+topology.
+
+The first structural seam to audit is not a standalone
+sigmoid/multiply fusion and not sigmoid-on-load inside o_proj.
+
+Instead inspect whether the already-promoted P61 HEADPAIR SDPA
+kernel can apply the attention gate as an exact output epilogue:
+
+    output * mx.sigmoid(gate)
+
+before the existing o_proj.
+
+This could remove the standalone gate postprocessing and the
+ungated attention-output materialization without recomputing
+the Q8 output projection.
+
