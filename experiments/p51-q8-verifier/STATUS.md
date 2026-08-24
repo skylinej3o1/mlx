@@ -7428,3 +7428,288 @@ Map the exact non-QMM kernel identities in the 33.114 ms/cycle
 natural command-buffer archetype back to MLX/oMLX/model operations
 before selecting another performance candidate.
 
+## P69B6 — structural projection-bundle and MLP fusion
+
+P69B6 followed the post-P69B4 residual profile after
+P69B5 closed further verifier-QMM synchronization tuning.
+
+The dominant natural command-buffer archetype was:
+
+- approximately 33.114 ms/backbone-cycle
+- approximately 45.968 occurrences/cycle
+- mixed RMS / elementwise / gather / QMM work
+
+Static model/source mapping established:
+
+- 64 decoder layers
+- 48 Gated DeltaNet layers
+- 16 full-attention layers
+- hidden size 5120
+
+The approximately 45.968/cycle dominant archetype therefore
+tracks the 48-layer GDN path very closely.
+
+### P69B6-D — residual ADD -> RMS fusion
+
+The first structural candidate fused:
+
+    h = x + residual
+    n = post_attention_RMS(h)
+
+into a two-output Metal kernel returning both:
+
+    h
+    n
+
+The kernel copied the canonical MLX `rms_loopedfloat16`
+reduction topology and explicitly rounded the residual result
+to FP16 before RMS accumulation.
+
+P69B6-D2 exact M=4 / D=5120 microbenchmark:
+
+- exact cases: 8/8
+- stock median: 0.235274 ms
+- fused median: 0.226806 ms
+- isolated reduction: +3.60%
+- round wins: 10/11
+- projected saving: +0.541947 ms/backbone-cycle
+
+P69B6-D3 then tested the candidate in the frozen integrated
+29,297-token workload.
+
+The isolated gain did not translate.
+
+Controlled result:
+
+- pair wins: 1/4
+- mean saving: approximately +0.020 ms/cycle
+- median result: regression
+- microbenchmark translation: approximately 3.7%
+
+Conclusion:
+
+Close the residual ADD -> RMS fusion candidate.
+
+This reinforces the rule established by P69B5:
+
+small isolated kernel wins are not sufficient when natural
+execution does not remove enough meaningful graph work.
+
+D3 evidence SHA256:
+
+    c915d2a6fddfc12213defb2e194ef7d3ec2c9be562daa86635ba5a3be00649da
+
+### P69B6-E1 — exact MLP attribution
+
+P69B6-E1 identified the remaining large elementwise population.
+
+Natural kernel counts:
+
+- id26: 8,928 total = exactly 48/cycle
+- id28: 12,460 total = 66.989/cycle
+
+id26 therefore belongs to the 48-layer GDN path.
+
+The target-verifier MLP projection census was exact:
+
+- K5120 -> N17408: 23,808 calls
+  = 128/cycle
+  = gate_proj + up_proj across 64 decoder layers
+- K17408 -> N5120: 11,904 calls
+  = 64/cycle
+  = one down_proj per decoder layer
+
+The active MLP formula is:
+
+    gate, up = target_verify_linears(
+        gate_proj,
+        up_proj,
+        x,
+    )
+
+    y = swiglu(gate, up)
+
+    out = target_verify_linear(
+        down_proj,
+        y,
+    )
+
+The id28 population contains one target MLP activation call
+per decoder layer plus a small approximately 2.989/cycle
+side/MTP population.
+
+E1 evidence SHA256:
+
+    3cbfb8a71c522f359c9f7ed38b9e266fcef723f87c498390dba35b06fe829390
+
+### P69B6-E2 — dual Q8 gate/up QMM + SWIGLU
+
+A down-projection input-fusion design was rejected before
+implementation because down_proj is tiled over output
+columns and would recompute SWIGLU values across many output
+tiles.
+
+Instead P69B6-E2 fused the two independent gate/up Q8
+projections with the immediately following SWIGLU.
+
+The candidate preserves:
+
+- M=4
+- K=5120
+- N=17408
+- Q8 affine
+- group size 64
+- K_PARTS=1
+- original per-projection packed-weight traversal
+- original FP32 accumulation order
+- original `simd_sum`
+- FP16 projection-output rounding before SWIGLU
+- exact MLX sigmoid / SiLU arithmetic
+
+It writes only the final 4x17408 SWIGLU tensor, eliminating:
+
+- gate device materialization
+- up device materialization
+- the standalone SWIGLU dispatch
+
+Two geometries were tested.
+
+DUAL32:
+
+- one SIMD group
+- gate and up accumulators live together
+- input x loads reused
+- exact
+- 11/11 timing wins
+- +1.03% isolated
+- projected +0.544378 ms/cycle
+
+DUAL64:
+
+- two SIMD groups
+- one projection per SIMD group
+- lower register pressure
+- exact
+- 11/11 timing wins
+- stock median: 0.827652 ms
+- DUAL64 median: 0.773999 ms
+- isolated reduction: +6.48%
+- projected +3.433822 ms/cycle
+
+DUAL64 decisively beat DUAL32 and advanced.
+
+E2 evidence SHA256:
+
+    8371ceab179d7b775d27f76cff7b5ffdf15381b48e54ac9c2919b05867dc9676
+
+### P69B6-E3 — DUAL64 controlled integrated certification scout
+
+Balanced order:
+
+- BASE-1
+- CAND-1
+- CAND-2
+- BASE-2
+- CAND-3
+- BASE-3
+- BASE-4
+- CAND-4
+
+Every valid run retained exactly:
+
+- output hash: 101ae2aec9793dfe
+- 512 generated tokens
+- 186 verifier cycles
+- acceptance: 325/442 = 73.5%
+- depth:
+  - d1=155/186
+  - d2=101/155
+  - d3=69/101
+
+Every candidate run additionally self-reported that the
+DUAL64 MLP path was actually engaged.
+
+BASE mean:
+
+- backbone/cycle: 141.821371 ms
+- TG: 19.054934 tok/s
+
+DUAL64 mean:
+
+- backbone/cycle: 140.473387 ms
+- TG: 19.210250 tok/s
+
+Controlled mean delta:
+
+- -1.347984 ms/backbone-cycle
+- +0.9505% backbone efficiency
+- +0.8151% realized TG
+
+Median delta:
+
+- -1.536828 ms/backbone-cycle
+- +1.0838%
+
+Adjacent pairs:
+
+- pair 1: +0.4151%
+- pair 2: +1.1581%
+- pair 3: +1.2019%
+- pair 4: +1.0266%
+- pair wins: 4/4
+- median pair improvement: +1.0923%
+
+Microbenchmark -> integrated translation:
+
+- E2 projected: +3.433822 ms/cycle
+- E3 controlled: +1.347984 ms/cycle
+- translation: 39.26%
+
+Verdict:
+
+P69B6-E3 is a controlled integrated win.
+
+The important structural lesson is that meaningful graph-level
+work elimination can translate where small local kernel
+optimizations did not.
+
+DUAL64 removes two large 4x17408 intermediate writes plus the
+standalone SWIGLU dispatch while preserving the down_proj
+verifier path unchanged.
+
+E3 summary SHA256:
+
+    2339cddba8da68dcd18d45b203386f845997d780edddac4788ce2f4ba056bddf
+
+### P69B6 promotion state
+
+DUAL64 is now a certified promotion candidate.
+
+However, the E3 implementation was injected temporarily via
+an isolated `sitecustomize.py` hook.
+
+Therefore it is not yet considered part of the permanent
+runtime stack.
+
+Next:
+
+Package the exact DUAL64 implementation into the normal
+oMLX verifier patch path, guarded to:
+
+- target verify only
+- batch 1
+- M=4
+- K=5120
+- N=17408
+- Q8 affine
+- GS64
+- FP16
+
+Leave the existing certified down_proj QMM path untouched.
+
+Then re-run a controlled packaged-form certification.
+
+Only after the packaged implementation reproduces the E3
+win should DUAL64 receive a permanent runtime patch/tag and
+be added to the preferred stack.
+
