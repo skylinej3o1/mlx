@@ -1,6 +1,6 @@
 # MXFORGE research source catalog
 
-Last updated: 2026-08-20
+Last updated: 2026-08-24
 
 This catalog turns external notes into a deduplicated research index. It is not an endorsement of every benchmark claim. Results from Reddit posts and project-authored benchmarks are treated as leads until reproduced on the target hardware. The roadmap promotes only the ideas that appear technically relevant to MXFORGE.
 
@@ -9,6 +9,7 @@ Status legend:
 - **CORE / promoted** — directly relevant and promoted into the MXFORGE roadmap.
 - **CORE / already tracked** — already represented in the roadmap; source adds implementation detail or evidence.
 - **ADJACENT / port ideas** — different hardware/runtime, but contains techniques worth translating.
+- **FIELD REPORT / lead** — useful empirical datapoint, but not a controlled MXFORGE measurement; preserve exact configuration caveats.
 - **AGENT LAYER** — affects effective capability, context reuse, or orchestration rather than inference kernels.
 - **UNRESOLVED** — source could not be inspected reliably; retain as a pointer only.
 
@@ -48,29 +49,63 @@ Status legend:
 | 30 | https://nvidia.github.io/TensorRT-LLM/features/disagg-serving.html | KV mobility + topology transformation | ADJACENT / reference architecture | TensorRT-LLM documents KV cache transfer and **cache-layout transformation across different parallel strategies**, including a TP2 prefill -> PP2 generation example. Strong architectural precedent for MXFORGE TP<->PP KV migration without full re-prefill; port the concept, not CUDA/TensorRT. |
 | 31 | https://arxiv.org/html/2605.06241v2 | Reasoning post-training / ReasonMaxxer | CORE / promoted research | Strong evidence that, on the paper's verifiable math tasks, much RLVR benefit can be recovered by sparse steering of high-entropy branch decisions with a small LoRA rather than full online RL. Do not generalize the title to all capability learning. MXFORGE should test frozen Qwen3.8 + rank-16/32 QLoRA on automatically verified coding trajectories, comparing positive SFT, success/failure contrastive tuning, and entropy-targeted ReasonMaxxer-style updates. See `docs/research/REASONMAXXER_QLORA_REASONING.md`. |
 | 32 | https://github.com/geodesia-ai/geodesia-kv | Adaptive mixed-precision KV | CORE / promoted research | Strong architectural lead: per-64-token-block variable precision with a monotonic `{16,8,4,2,centroid}` ladder, attention-mass/distortion allocation, and fused mixed-bit attention. Port the idea to Metal rather than the CUDA implementation. Interpret “no information loss” as no token-position eviction, not numerical losslessness. Current validation is not Qwen3.8 GDN or DeepSeek MLA and does not establish a tok/s win on our hardware. See `docs/research/GEODESIA_KV.md`. |
+| 33 | https://www.reddit.com/r/LocalLLaMA/comments/1vunqoz/llamacpp_dspark_pc_tree_fork_up_to_3295_faster/ | DSpark Parent-Conditioned Drafting Tree fork | CORE / promoted as idea mine | First-shot llama.cpp PCTree implementation. RTX 5090 result is more important for its shape than its headline: k3/N16 beat linear DSpark n3 by only ~2.16% overall while k4/N22 had still higher acceptance but lower throughput, proving verifier cost can dominate acceptance. Qwen3.8-27B Q4 was reported worse with k2-k4; DeepSeek Flash was not yet tested. MXFORGE action: tiny hardware-cost-aware **Micro-PCTree**, k=2 first, N=3..8, equal target-row budgets. See `docs/research/DS4_MICRO_PCTREE.md`. |
+| 34 | https://arxiv.org/abs/2608.02123 | PCTree paper | CORE / promoted research | Primary PCTree paper: reuses DSpark's learned conditional structure to score multiple parent-consistent continuations without retraining or extra backbone passes. Reported matched-DSpark gains vary 3.1%-29.5% on Qwen3 4B/8B/14B; at B=16 on Qwen3-4B, acceptance length rose 9.41->11.16 and AR speedup 6.14x->6.60x. For TB4 TP, port the principle, not the large verification tree. |
+| 35 | https://www.reddit.com/r/LocalLLM/comments/1vupm6p/qwen3827b_6bit_macbook_m4_pro_259_toks/ | Qwen3.8-27B 6-bit Apple field report | FIELD REPORT / lead | Fresh M4 Pro report claims **25.9 tok/s** with a tuned 6-bit Qwen3.8-27B setup. Public text confirms the author experimented with settings for a speed/quality balance, but the screenshot/config is not yet sufficient for a controlled comparison. Preserve as a Q6 Apple reference point; do not transfer it to M1 without matching quant, runtime, MTP, context and KV settings. |
+| 36 | https://www.reddit.com/r/LocalLLM/comments/1vuptie/qwen3827b_6bit_on_a_macbook_m4_pro_48_gb_vision/ | Qwen3.8-27B 6-bit Apple vision field report | UNRESOLVED | User-supplied fresh report title states **M4 Pro 48GB, 6-bit, vision enabled, 21.6 tok/s**. The page could not yet be retrieved reliably for exact runtime/MTP/KV/context details. Keep it as a pointer and do **not** infer that the 25.9->21.6 difference is a pure vision penalty until the configurations are matched. |
+| 37 | https://www.reddit.com/r/oMLX/comments/1vumbhw/experience_with_ane_on_m1_max_64gb/ | Qwen3.8-27B ANE prefill on M1 Max 64GB | CORE / promoted field evidence | Direct same-generation evidence: oQ4e-fp16-mtp on M1 Max 64GB reportedly improves PP ~134.5->198.0 tok/s at ~1K and ~139.7->171.1 tok/s at ~4K, cutting TTFT ~7.62->5.18s and ~29.34->23.95s. ~1K decode is essentially unchanged (18.4->18.3), reinforcing ANE as a prefill lever. Reported peak-memory penalty is ~9.5-9.6GB. Promote ANE+GPU cold-prefill as a near-term M1 experiment with a memory/context crossover policy. Original user share link: https://www.reddit.com/r/oMLX/s/JR5dbVaMfI. See `docs/research/QWEN38_M1_ANE_PREFILL.md`. |
+| 38 | https://x.com/AntLingAGI/status/2090847436755648939 | Ling-3.0-flash model-specific DSpark release | CORE / promoted research lead | Ant Ling announces an open `Ling-3.0-flash-dspark` trained specifically for Ling-3.0-flash. Vendor report on 4 NVIDIA Blackwell GPUs, batch 1, 1,000 requests: **1,120 tok/s**, **0.78 ms mean TPOT**, **9.95 accept length**. Preserve as proof of a strong model-specific drafter, not a transferable local speed number. See `docs/research/LING30_DSPARK.md`. |
+| 39 | https://huggingface.co/inclusionAI/Ling-3.0-flash-dspark | Ling-3.0-flash DSpark checkpoint | CORE / primary checkpoint pointer | Official draft-model location referenced by the merged llama.cpp support PR. The page was too fresh to inspect reliably through the current web index at intake, so exact parameter count, precision, residency and target-component dependencies remain to be verified before planning 5070 placement. |
+| 40 | https://github.com/ggml-org/llama.cpp/pull/27508 | Ling/BailingMoE3 DSpark runtime support | CORE / promoted implementation evidence | Merged 2026-08-22. Adds `draft-dspark` support plus **partial rollback for BailingMoE3 recurrent state**. On a DGX Spark 880-request suite, overall decode rose **44.20->55.73 tok/s (~+26%)**; coding rose **43.80->73.71 (~+68%)** with 0.5773 coding acceptance. Gains vary sharply by workload, strongly supporting adaptive speculation. Mine recurrent-state rollback semantics and the separate-drafter conversion/verification protocol for an eventual MLX/Metal port. See `docs/research/LING30_DSPARK.md`. |
+| 41 | https://www.reddit.com/r/LocalLLM/comments/1vv2tw5/people_running_qwen_38_27b_on_apple_silicon_whats/ | Qwen3.8-27B Apple Silicon speed survey | CORE / promoted field evidence | Fresh community thread containing several useful but non-controlled Apple datapoints. Highest-value signals: M2 Ultra 64GB `UD-Q8_K_XL` in Unsloth Studio reports **34.9 tok/s vs 27.1 tok/s for a lighter Q4 rerun**; M5 Max 128GB llama.cpp + MTP + Q8_0 reports **~28-30 tok/s from ~10K through 262K context**; M3 Ultra 96GB oQ5e + Lightning MTP + ANE prefill reports **~42.7-43.7 tg tok/s** with **310-369 pp tok/s**; M4 Pro 48GB 4-bit oMLX+DFlash2 reports ~24 tok/s. Treat as evidence that Q8 can be execution-efficient, speculation/quant must be co-designed, and long-context certification matters. See `docs/research/QWEN38_APPLE_SPEED_FIELD_REPORTS.md`. |
+| 42 | https://www.reddit.com/r/LocalLLM/comments/1vwdssa/qwen3827b_dflash_on_a_36gb_m4_max_surprisingly/ | Qwen3.8 DFlash2 agent workload on M4 Max 36GB | CORE / promoted field evidence | Same coding-agent workload reportedly falls from ~133 s without DFlash to ~48 s with DFlash2 and ~42 s with a Q4 DFlash2 drafter, with all three runs correct. Treat the ~3.17x task-time improvement as a high-value field signal, not an M1 transfer factor. It strongly promotes low-bit drafter precision as a runtime knob and complete-task timing as a certification metric. See `docs/research/QWEN38_DFLASH_M4_36GB_AGENT_FIELD.md`. |
+| 43 | https://omlx.ai/benchmarks/performance/5allyvr2 | Qwen3.8 Q4 + quantized DFlash2 on M4 Max 32-core / 36GB | CORE / Apple DFlash corroboration | Community oMLX submission reports roughly **33.5 tok/s @1K** and **30.3 tok/s @4K** with quantized DFlash2. Heterogeneous with other public runs, but useful corroboration that the Apple DFlash2 path is real on the same 32-core/36GB hardware class as source 42. |
+| 44 | https://omlx.ai/benchmarks/performance/6zatli6n | Qwen3.8 Q8 target + Q4 DFlash2 drafter on M4 Max | CORE / promoted Q8-target evidence | Critical new evidence: a low-bit DFlash2 drafter can productively run ahead of an **8-bit target**, with the referenced submission reporting roughly **38.0 tok/s @1K** and **31.9 tok/s @4K**. This materially strengthens the MXFORGE plan to preserve Q8 target quality while using a cheap Q4 drafter. Do not transfer short-context M4 TPS directly to the M1 ~29K ruler. |
+| 45 | https://huggingface.co/incoai/Qwen3.8-27B-DFlash2-GGUF/blob/main/README.md | DFlash2 draft-quant acceptance | CORE / supporting evidence | Reported acceptance-length comparison shows Q4 DFlash2 around **5.39** in that evaluation versus ~5.28 BF16 and ~5.13 Q8. Treat as checkpoint/runtime-specific evidence, not a general law, but it rejects the assumption that a Q4 drafter must necessarily reduce acceptance. |
 
 ## Dedupe / relationship map
 
 ### Qwen3.8 speculative decoding
 
-Sources 1, 2, 7, 8, 10, 21, and 22 all point at the same deeper conclusion: the winning question is not "MTP or DFlash?" in the abstract. The runtime should choose among draft mechanisms and depths using measured target-verification cost, drafter cost, acceptance distribution, memory headroom, context length, and workload type. Custom MTP-head weights are now explicitly in scope.
+Sources 1, 2, 7, 8, 10, 21, 22, 33, 34, 41-45 all point at the same deeper conclusion: the winning question is not "MTP or DFlash?" in the abstract. The runtime should choose among draft mechanisms, depths, quantizations, and small parent-conditioned branch shapes using measured target-verification cost, drafter cost, acceptance/rejection-depth distribution, memory headroom, context length, quant execution characteristics, and workload type. Custom MTP-head weights are explicitly in scope. PCTree and the Apple field reports strengthen the rule that **higher acceptance or lower bpw is not automatically higher throughput**.
+
+Sources 42-45 materially strengthen DFlash2's priority. The new design point is **Q4 DFlash2 drafter -> high-quality Q8 target**, with target verification remaining authoritative. Low drafter precision can therefore be optimized for speed/residency/acceptance independently of target-weight quality. The M1 experiment must compare this directly against the current native-MTP champion on identical ~29K coding replay rather than against plain AR.
 
 ### Apple prompt processing
 
-Sources 4, 6, 9, 18, and 19 split the problem into two independent levers:
+Sources 4, 6, 9, 18, 19, 37, and 41 split the problem into two independent levers:
 
 1. **Make cold prefill faster** with specialized GPU kernels and heterogeneous ANE/GPU/CPU execution.
 2. **Make cold prefill rare** with stable prompt serialization, exact prefix reuse, session affinity, prewarming, and cache-hit telemetry.
 
-For agentic coding, the second lever can dominate the user experience.
+Source 37 materially strengthens the first lever because it is direct **M1 Max 64GB + Qwen3.8-27B + MTP** field evidence rather than a newer-chip extrapolation. Its ~9.5-9.6GB peak-memory penalty also makes ANE residency a scheduler decision: enable it when TTFT savings repay the memory cost, disable it when long-context/KV/output reserve matters more. Source 41 independently shows newer Apple hardware combining ANE prefill with Lightning MTP at high PP and decode rates, reinforcing architectural compatibility rather than transferring those numbers to M1.
+
+For agentic coding, the second lever can still dominate the user experience because a cache hit avoids cold prefill entirely.
 
 ### Hardware-aware quantization
 
-Sources 5, 11, 12, 21, 22, 23, and 28 support quantization as an execution-layout problem, not only a bpw/quality problem. Critical tensors (LM head, embeddings, recurrent state, MTP module, attention projections) can deserve different treatment from bulk weights. Dynamic 3.0 is another external example of spending bits non-uniformly to improve the quality/size frontier; MXFORGE adds measured target-hardware latency and verifier shape to that objective.
+Sources 5, 11, 12, 21, 22, 23, 28, 35, 36, 41-45 support quantization as an execution-layout problem, not only a bpw/quality problem. Critical tensors (LM head, embeddings, recurrent state, MTP module, attention projections, and now speculative drafter weights) can deserve different treatment from bulk target weights. Dynamic 3.0 is another external example of spending bits non-uniformly to improve the quality/size frontier; MXFORGE adds measured target-hardware latency and verifier shape to that objective. The M2 Ultra Q8>Q4 field observation in source 41 is not a controlled comparison, while sources 42-45 add a complementary lesson: **a low-bit drafter can be attractive even when the authoritative target remains Q8**.
+
+### Qwen3.8 Apple speed / long-context field evidence
+
+Sources 35-37 and 41-44 now provide a useful community envelope across M1/M2/M3/M4/M5-class Apple Silicon. The data are heterogeneous and must not be merged into one benchmark curve, but they reinforce three project rules: **certify realistic ~30K and longer contexts; compare quants under identical runtimes and speculative settings; and judge PP/TTFT separately from decode**. Source 41's reported M5 Max Q8_0 + MTP stability through 262K is especially relevant as a long-context hypothesis to reproduce rather than a transferable performance claim. Sources 42-44 specifically move DFlash2 + Q8 target from a speculative idea to a high-priority M1 bakeoff candidate.
+
+### DFlash2 Q4 drafter -> Q8 target on M1
+
+The current planning hypothesis is that DFlash2 and the P51-P69 verifier work may compose for a principled reason rather than by multiplying unrelated headline percentages:
+
+1. DFlash2 can increase useful candidate tokens per target verification.
+2. MXFORGE reduces the cost of multi-row Q8 verification.
+
+The live formal P69 ruler is **19.0746 tok/s at 29,297 prompt tokens**. The current planning midpoint for a fully tuned Q4-DFlash2 -> Q8-MXFORGE path is **~25.5 tok/s at the same ~29K ruler**, with an expected tuned band of roughly 24-27 tok/s and 28-30 tok/s treated as stretch territory. These are forecasts only, not measured results. The primary uncertainty is DFlash's natural verification-row geometry and acceptance at long context; native MTP currently favors D3/M4, so DFlash-specific routing/kernel retuning may be required. See `docs/research/QWEN38_DFLASH_M4_36GB_AGENT_FIELD.md`.
 
 ### DeepSeek V4 distributed adaptive runtime
 
-Sources 3, 4, 26, 27, 29, and 30 now support a broader design than one fixed TP/PP choice. Tune TP, PP, small-MTP, DSpark and target-only paths independently, then construct a context/workload phase diagram. Same-topology drafter swaps can be cheap; TP<->PP transitions require explicit KV migration/repartition economics. Datacenter disaggregated-serving systems validate phase-specific parallel strategies and movable KV state even though the Metal implementation will be custom.
+Sources 3, 4, 26, 27, 29, 30, 33, and 34 support a broader design than one fixed TP/PP choice. Tune TP, PP, small-MTP, linear DSpark, **Micro-PCTree**, and target-only paths independently, then construct a context/workload phase diagram. Same-topology drafter swaps can be cheap; TP<->PP transitions require explicit KV migration/repartition economics. Datacenter disaggregated-serving systems validate phase-specific parallel strategies and movable KV state even though the Metal implementation will be custom.
+
+### Ling-3.0-flash / model-specific DSpark
+
+Sources 38-40 establish a second serious model-specific DSpark branch beyond DeepSeek. Ling is a 124B-total / ~5.1B-active hybrid KDA+MLA MoE, and current Apple conversions make the target capacity-plausible across two 64GB Macs at useful precision. The new official DSpark checkpoint plus merged llama.cpp support makes a future **2x M1 target + 5070 drafter** experiment plausible, but not yet certified: inspect drafter residency and target dependencies first. The llama.cpp requirement for partial rollback of BailingMoE3 recurrent state is a key portability constraint. The DGX Spark benchmark also shows enormous workload dependence, so Ling speculation should be scheduler-controlled rather than globally enabled.
 
 ### RTX 5070 Ti Qwen3.8
 
@@ -78,7 +113,7 @@ Sources 12, 15-17, 23, and 28 define the current bakeoff. **UD-IQ4_XS Dynamic 3.
 
 ### Long-context KV
 
-Sources 15-17, 20-23, 28-30, and 32 suggest a ladder rather than one universal cache mode: ordinary high-quality asymmetric K/V at normal long context; more aggressive codecs only when capacity requires them; **heterogeneous block precision that preserves recent/salient history at higher precision while monotonically demoting colder blocks**; topology-aware cache mobility for distributed transitions; and eventually KV-aware training if the quality frontier is worth moving. Geodesia-KV is an architecture lead here, not direct evidence for Qwen3.8/Metal or DS4/MLA.
+Sources 15-17, 20-23, 28-30, 32, and 41 suggest a ladder rather than one universal cache mode: ordinary high-quality asymmetric K/V at normal long context; more aggressive codecs only when capacity requires them; **heterogeneous block precision that preserves recent/salient history at higher precision while monotonically demoting colder blocks**; topology-aware cache mobility for distributed transitions; and eventually KV-aware training if the quality frontier is worth moving. Geodesia-KV is an architecture lead here, not direct evidence for Qwen3.8/Metal or DS4/MLA. Source 41 adds a field hint that Q8-class target execution can remain practical deep into long context when the runtime/speculative path is favorable.
 
 ### Reasoning adapters / cheap post-training
 
@@ -100,4 +135,5 @@ For every imported idea:
 - preserve failed experiments in notes so the project does not rediscover them later;
 - record transition costs for adaptive runtimes, including weight reload, KV migration/repartition, and break-even future work;
 - for reasoning-adapter experiments, keep a frozen held-out suite and report pass@1/pass@k, tool validity, token/time cost, general-task regressions, and KL/drift diagnostics;
-- treat project-authored quality/agent benchmark claims as hypotheses until independently reproduced.
+- treat project-authored quality/agent benchmark claims as hypotheses until independently reproduced;
+- for user-supplied field reports, preserve the original URL and exact claimed configuration, and explicitly mark missing variables rather than silently normalizing unlike runs.
