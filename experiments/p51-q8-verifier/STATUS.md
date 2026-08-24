@@ -8079,3 +8079,163 @@ This could remove the standalone gate postprocessing and the
 ungated attention-output materialization without recomputing
 the Q8 output projection.
 
+### P69B9-A — full-attention gated SDPA seam audit
+
+P69B9-A audited the post-DUAL64 16-layer full-attention
+residual topology.
+
+Report SHA256:
+
+    5789f103ff8b02a6a81fef6b7b629a8be8177af7400d94670be1da1eefaff46c
+
+Model geometry:
+
+- hidden size: 5120
+- decoder layers: 64
+- full-attention interval: 4
+- therefore full-attention layers: 16
+- attention heads: 24
+- KV heads: 4
+- head dimension: 256
+
+Active attention source ends with:
+
+    output = output.transpose(0, 2, 1, 3).reshape(B, L, -1)
+
+    return _target_verify_linear(
+        self.o_proj,
+        output * mx.sigmoid(gate),
+        target_verify,
+    )
+
+Post-DUAL64 direct natural-buffer evidence includes two strong
+approximately-16-layer-frequency bundles:
+
+- rank 2:
+  - 15.828/cycle
+  - 24.168 ms/cycle
+  - includes P61 HEADPAIR SDPA
+
+- rank 5:
+  - 15.984/cycle
+  - 11.410 ms/cycle
+  - includes the attention-side sigmoid/multiply/postprocessing
+    and output projection context
+
+P61 HEADPAIR population:
+
+- 2,976 launches in 186 verifier cycles
+- exactly 16.000/cycle
+
+P61 patch SHA256:
+
+    1875a72869f8e21d30cb4c4ded19e647d434faa4f8e4287a2263f1559fa1ec06
+
+Important source refinement:
+
+The first P69B9 hypothesis was to put the gate directly into
+P61 HEADPAIR.
+
+Do NOT do this.
+
+P61 HEADPAIR is the specialized SDPA two-pass PASS-1 kernel:
+
+    sdpa_vector_2pass_1_gqa6_m4_hpt2_headpair
+
+It computes per-block partial attention outputs and stores:
+
+    op[x] = static_cast<T>(o[j][x])
+
+along with per-block sums and maxima.
+
+Those partials are subsequently consumed by:
+
+    sdpa_vector_2pass_2
+
+which performs the final cross-block max/sum/partial reduction.
+
+Therefore applying the attention gate in HEADPAIR pass-1 would
+gate partial values before the final SDPA aggregation and would
+not preserve the stock computation graph.
+
+Correct structural seam:
+
+    sdpa_vector_2pass_2
+
+The stock pass-2 kernel performs the final aggregation and ends
+with:
+
+    out[i] = static_cast<T>(o[i]);
+
+This is the correct place to investigate an exact attention-gate
+epilogue.
+
+Candidate P69B9-B:
+
+Extend/specialize the verifier-M4 SDPA pass-2 final-output path
+so that after the normal SDPA accumulator has been finalized it:
+
+1. preserves the existing SDPA FP16 rounding boundary;
+
+2. reads the corresponding FP16 attention gate element;
+
+3. reproduces the stock FP16 sigmoid semantics exactly;
+
+4. reproduces the stock FP16 multiply boundary exactly;
+
+5. writes the final gated FP16 attention activation;
+
+6. leaves the existing K6144 -> N5120 o_proj verifier route
+   completely unchanged.
+
+Target verifier geometry:
+
+- B=1
+- L/M=4
+- H=24
+- D=256
+- output width=6144
+- 16 full-attention layers/cycle
+
+Gate-layout caution:
+
+The SDPA pass-2 output is logically head-major during the kernel
+([B,H,L,D]), while the Python gate is logically
+[B,L,H,D] / [B,L,6144].
+
+A P69B9-B implementation must map:
+
+    (batch, head, q_row, d)
+
+to the corresponding gate element:
+
+    (batch, q_row, head, d)
+
+exactly once per final attention output element.
+
+Do not change SDPA accumulation order.
+
+Do not change P61 HEADPAIR geometry.
+
+Do not compute the gate inside o_proj output tiles; that would
+repeat the gate work across projection tiles.
+
+P69B9-B should begin with exactness + isolated microbenchmark,
+not an integrated 4+4.
+
+Promotion rule:
+
+Advance to controlled integrated testing only if the fused
+pass-2 epilogue is bit-exact and its measured absolute
+ms/cycle projection is large enough to justify the frozen-ruler
+cost.
+
+P69B8 remains closed.
+
+P69B6 DUAL64 remains the latest promoted optimization.
+
+Next experiment:
+
+    P69B9-B — gated SDPA pass-2 final-output epilogue
+    exactness and microbenchmark.
+
