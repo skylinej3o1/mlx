@@ -6,6 +6,7 @@ REPO="$HOME/src/mlx-m1-qmv"
 BRANCH="project51-q8-verifier"
 VERIFY="$REPO/experiments/p51-q8-verifier/scripts/verify-promoted-stack.sh"
 OMLX_CMD="/opt/homebrew/bin/omlx"
+TMPDIR="${TMPDIR:-/tmp}"
 
 fail() {
     echo "REBUILD_OMLX_OWNED_MLX_FAIL: $*" >&2
@@ -35,6 +36,8 @@ PY
 SHEBANG="$(head -n 1 "$OMLX_REAL")"
 OMLX_PY="${SHEBANG#\#!}"
 [[ -x "$OMLX_PY" ]] || fail "missing oMLX owning Python: $OMLX_PY"
+OMLX_BIN_DIR="$(dirname "$OMLX_PY")"
+BUILD_PATH="$OMLX_BIN_DIR:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 for marker in \
     "mlx/backend/metal/quantized.cpp:MLX_P69B2_Q8_M4_SHARED" \
@@ -60,12 +63,13 @@ echo "===== OMLX-OWNED MLX NATIVE REBUILD ====="
 echo "HEAD=$(git rev-parse HEAD)"
 echo "omlx_real=$OMLX_REAL"
 echo "omlx_python=$OMLX_PY"
+echo "build_path=$BUILD_PATH"
 "$OMLX_PY" --version
 
 OMLX_MLX_INFO="$TMPDIR/p51-omlx-mlx-info.$$"
 (
     cd /tmp
-    env -u PYTHONPATH "$OMLX_PY" - <<'PY'
+    env -u PYTHONPATH -u VIRTUAL_ENV "$OMLX_PY" - <<'PY'
 from pathlib import Path
 import mlx.core as mx
 root = Path(mx.__file__).resolve().parent
@@ -130,7 +134,6 @@ cleanup() {
             fi
         done < "$REPO_MANIFEST"
 
-        # Remove any newly-created CPython 3.11 extension not present before.
         find python/mlx -maxdepth 1 -type f -name 'core.cpython-311-*.so' -delete
         while IFS= read -r path; do
             [[ -n "$path" ]] || continue
@@ -154,7 +157,11 @@ echo "===== BUILD CURRENT MLX SOURCE FOR PYTHON 3.11 ====="
 export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-10}"
 echo "CMAKE_BUILD_PARALLEL_LEVEL=$CMAKE_BUILD_PARALLEL_LEVEL"
 
-env -u PYTHONPATH "$OMLX_PY" setup.py build_ext --inplace
+env \
+    -u PYTHONPATH \
+    -u VIRTUAL_ENV \
+    PATH="$BUILD_PATH" \
+    "$OMLX_PY" setup.py build_ext --inplace
 
 shopt -s nullglob
 CORE11=(python/mlx/core.cpython-311-*.so)
@@ -176,7 +183,7 @@ echo
 echo "===== VERIFY STAGED PYTHON 3.11 BUILD ====="
 (
     cd /tmp
-    PYTHONPATH="$REPO/python" "$OMLX_PY" - <<'PY'
+    env -u VIRTUAL_ENV PYTHONPATH="$REPO/python" "$OMLX_PY" - <<'PY'
 from pathlib import Path
 import mlx.core as mx
 
@@ -202,7 +209,6 @@ for path, needle, label in checks:
     if not hit:
         raise SystemExit("REBUILD_OMLX_OWNED_MLX_FAIL: staged " + label + " missing")
 
-# Force a trivial native operation through the rebuilt extension.
 a = mx.array([1.0, 2.0], dtype=mx.float32)
 b = a + 1.0
 mx.eval(b)
@@ -225,7 +231,7 @@ echo
 echo "===== VERIFY ACTUAL OMLX-OWNED MLX RUNTIME ====="
 (
     cd /tmp
-    env -u PYTHONPATH "$OMLX_PY" - <<'PY'
+    env -u PYTHONPATH -u VIRTUAL_ENV "$OMLX_PY" - <<'PY'
 from pathlib import Path
 import mlx.core as mx
 
@@ -258,8 +264,6 @@ print("OMLX_OWNED_COMPILED_MLX_RUNTIME_PASS")
 PY
 )
 
-# Installation is now proven. Keep it even if an independent Python-side
-# oMLX patch domain later fails validation.
 ROLLBACK=0
 
 echo
