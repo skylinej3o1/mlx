@@ -8405,3 +8405,241 @@ Exclude already-certified/closed work:
 
 Select the next candidate only from a measured high-leverage GDN/core
 or projection seam.
+
+
+## P69B10 — post-DUAL64 GDN recurrent-core / projection-bundle resolution
+
+P69B10 used the already-captured P69B7 passive natural
+command-buffer evidence. P69B7 was not rerun.
+
+### P69B10-A — recurrent/core and projection map
+
+The two related natural GDN command-buffer archetypes were:
+
+- 29.306 occurrences/cycle, 19.206 ms/cycle;
+- 17.435 occurrences/cycle, 11.298 ms/cycle.
+
+Combined:
+
+- 46.741 occurrences/cycle;
+- 30.504 ms/cycle.
+
+This is the approximately 48-layer GDN recurrent/core path.
+The two variants differ primarily by copy traffic.
+
+Exact recurrent/core identities include:
+
+- P58 fused GDN prework;
+- upstream `qwen3_5_gated_delta_with_states`;
+- the compiled GDN decay/beta expression;
+- verifier KP1/KP2 projection work;
+- promoted SG2R4 projection work.
+
+The exact frozen verifier-QMM census independently gives:
+
+- M4 K5120 N6144 KP1: 48/cycle;
+- M4 K5120 N10240 KP2: 48/cycle.
+
+The exact frozen stock-QMV census independently gives:
+
+- M4 K5120 N48: 96/cycle;
+- M4 K6144 N5120: 64.371/cycle total.
+
+Model geometry identifies the five 48-layer GDN projections as:
+
+- `in_proj_qkv`: K5120 -> N10240;
+- `in_proj_z`: K5120 -> N6144;
+- `in_proj_b`: K5120 -> N48;
+- `in_proj_a`: K5120 -> N48;
+- `out_proj`: K6144 -> N5120.
+
+Therefore the 48-layer GDN projection population resolves to:
+
+- qkv: verifier KP2 x48/cycle;
+- z: verifier KP1 x48/cycle;
+- b/a: promoted SG2R4 x96/cycle combined;
+- out_proj: promoted SG2R4 x48/cycle GDN contribution.
+
+The full K6144 -> N5120 stock-QMV census is 64.371/cycle
+because the same geometry also occurs outside the 48 GDN layers,
+including the full-attention population and small non-steady-state
+traffic.
+
+This projection assignment is resolved from model geometry plus
+the exact measured shape populations. The final closeout grep of
+the restored Homebrew `gated_delta.py` did not emit the projection
+source lines, so this checkpoint does not claim that particular
+grep as additional direct source-line evidence.
+
+Artifact:
+
+`~/src/mlx-m1-qmv-artifacts/p69/p69b10a-gdn-projection-map.txt`
+
+SHA256:
+
+`eba159452eebadf80ffa9451be47d9541d372a4d2dd15dd08b6d585760ac0ed6`
+
+P69B10-A mapping: **COMPLETE**.
+
+### P69B10-B — recurrent final-state duplicate-write isolated scout
+
+The active recurrent kernel stores every intermediate recurrent
+state into the history tensor and then separately writes the same
+final recurrent state into `state_out`.
+
+For B=1, T=4, Hv=48, Dv=128, Dk=128, FP32 state:
+
+- one final recurrent state = 3 MiB/layer;
+- duplicate final-state traffic = 3 MiB/layer;
+- 48-layer duplicate traffic = 144 MiB/cycle.
+
+The candidate removed the separate `state_out` write and returned:
+
+`states[:, -1]`
+
+as the live final state.
+
+Exactness passed on all isolated test distributions.
+
+15-round balanced isolated result:
+
+- stock median/layer: 0.083739 ms;
+- candidate median/layer: 0.074833 ms;
+- saving: +0.008906 ms/layer;
+- reduction: +10.636%;
+- paired wins: 15/15;
+- projected 48-layer ceiling: +0.427499 ms/cycle.
+
+Artifact:
+
+`~/src/mlx-m1-qmv-artifacts/p69/p69b10b-state-alias.txt`
+
+SHA256:
+
+`cffb172b3922b020cf6077c15f84416ae85e5e3c331faa1da7eb21643307fcba`
+
+This cleared the integration-scout threshold.
+
+### P69B10-C — packaged-form integrated final-state alias scout
+
+The alias was then implemented behind:
+
+`OMLX_GDN_FINAL_STATE_ALIAS`
+
+in the actual Homebrew Python 3.11 `mlx_vlm` runtime used by
+oMLX.
+
+Before integration, OFF vs ON produced identical SHA256 output
+for:
+
+- `y`;
+- live final state;
+- complete intermediate-state history.
+
+The promoted verifier stack was held fixed in both arms:
+
+- fixed D3 / verifier M4;
+- P58 FP16 GDN prework;
+- P61 HEADPAIR;
+- P69B3 SG2R4;
+- P69B6 packaged DUAL64.
+
+Controlled order:
+
+- BASE-1;
+- CAND-1;
+- CAND-2;
+- BASE-2.
+
+Every run retained exactly:
+
+- output hash `101ae2aec9793dfe`;
+- 512 completion tokens;
+- 186 verifier cycles;
+- acceptance 325/442;
+- d1=155/186;
+- d2=101/155;
+- d3=69/101.
+
+Packaged DUAL64 engaged in every arm.
+The alias engagement marker appeared only in candidate arms.
+
+Results:
+
+- BASE mean BPC: 140.136290 ms;
+- CAND mean BPC: 140.128495 ms;
+- mean saving: +0.007796 ms/cycle;
+- mean BPC change: +0.0056%;
+- BASE mean TG: 19.258018 tok/s;
+- CAND mean TG: 19.248561 tok/s;
+- TG change: -0.0491%;
+- pair 1: -0.214516 ms/cycle;
+- pair 2: +0.230108 ms/cycle;
+- paired wins: 1/2.
+
+Isolated projected ceiling:
+
+- +0.427499 ms/cycle.
+
+Observed isolated-to-integrated translation:
+
+- 1.82%.
+
+This is noise-level natural-runtime translation.
+
+Decision:
+
+**P69B10-C CLOSED.**
+
+Do not run 4+4 certification.
+Do not promote the final-state alias.
+
+Interpretation:
+
+The duplicate 144 MiB/cycle write is real and measurable in an
+isolated kernel benchmark, but it is effectively hidden or
+overlapped in the natural verifier execution and is not a useful
+critical-path optimization.
+
+Integrated summary artifact:
+
+`~/src/mlx-m1-qmv-artifacts/p69/p69b10c-2plus2/p69b10c-controlled-2plus2-summary.txt`
+
+SHA256:
+
+`ca9358b0c2ce40cb577bfa7ca837ad3deb5c2c2d809dd932b7366f15184198e3`
+
+Closeout artifact:
+
+`~/src/mlx-m1-qmv-artifacts/p69/p69b10c-closeout.txt`
+
+SHA256:
+
+`9b3a6f08592d5b7ee887a4b6050aceb66521e8eeb3d5425e47b9d47111b6b9d7`
+
+The experimental Homebrew `mlx_vlm` source was restored to the
+audited stock SHA:
+
+`073fe370f783a2124947203b19f996cb485f3122bac9087b319ca64b9c725112`
+
+### P69B10 checkpoint decision
+
+Keep:
+
+- P58 FP16 GDN prework;
+- P61 HEADPAIR;
+- P69B3 SG2R4;
+- P69B6 DUAL64.
+
+Closed:
+
+- P69B8 RMSNormGated fusion;
+- P69B9 attention-gate final epilogue;
+- P69B10-C recurrent final-state alias.
+
+P69B10-A projection/source mapping is complete enough to close
+the post-DUAL64 GDN recurrent-core mapping phase.
+
+Next work must select a new candidate from measured remaining
+high-leverage GDN/projection or downstream tail structure rather
+than reopening any of the closed local epilogues above.
