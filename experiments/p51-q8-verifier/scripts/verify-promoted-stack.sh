@@ -94,6 +94,7 @@ echo "===== IMPORTED / COMPILED MLX DOMAIN ====="
 
 python - <<'PY'
 from pathlib import Path
+import importlib.metadata as md
 import mlx
 import mlx.core as mx
 
@@ -102,17 +103,91 @@ needles = {
     b"MLX_SDPA_GQA6_M4_HPT2_HEADPAIR": "P61",
 }
 
+print("mlx_version=" + md.version("mlx"))
+print("mlx_file=" + str(getattr(mlx, "__file__", None)))
+print("mlx_core_file=" + str(getattr(mx, "__file__", None)))
+print("mlx_path=" + repr(list(getattr(mlx, "__path__", []))))
+print("mlx_core_path=" + repr(list(getattr(mx, "__path__", []))))
+
+# MLX can be exposed as a namespace package, so mlx.__file__ may legitimately
+# be None. Use the installed distribution inventory as the canonical source of
+# native runtime files rather than assuming either module has a file path.
+dist = md.distribution("mlx")
+files = dist.files or []
+
+native = []
+seen = set()
+for rel in files:
+    try:
+        path = Path(dist.locate_file(rel)).resolve()
+    except (TypeError, OSError):
+        continue
+
+    if not path.is_file():
+        continue
+
+    name = path.name.lower()
+    is_native = (
+        name.endswith(".dylib")
+        or name.endswith(".a")
+        or name.endswith(".so")
+        or ".so." in name
+        or ".cpython-" in name and name.endswith(".so")
+    )
+
+    if is_native and path not in seen:
+        seen.add(path)
+        native.append(path)
+
+# Some editable/development installs omit native libraries from dist.files.
+# Add any native files reachable from module search paths as a fallback.
 roots = []
 for mod in (mlx, mx):
-    p = Path(mod.__file__).resolve()
-    root = p if p.is_dir() else p.parent
-    if root not in roots:
-        roots.append(root)
+    for item in getattr(mod, "__path__", []):
+        try:
+            root = Path(item).resolve()
+        except (TypeError, OSError):
+            continue
+        if root not in roots:
+            roots.append(root)
 
-print("mlx_file=" + str(Path(mlx.__file__).resolve()))
-print("mlx_core_file=" + str(Path(mx.__file__).resolve()))
+    file_value = getattr(mod, "__file__", None)
+    if file_value:
+        try:
+            p = Path(file_value).resolve()
+            root = p if p.is_dir() else p.parent
+        except (TypeError, OSError):
+            root = None
+        if root is not None and root not in roots:
+            roots.append(root)
+
 for root in roots:
-    print("runtime_search_root=" + str(root))
+    if not root.exists():
+        continue
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        name = path.name.lower()
+        is_native = (
+            name.endswith(".dylib")
+            or name.endswith(".a")
+            or name.endswith(".so")
+            or ".so." in name
+        )
+        if is_native:
+            rp = path.resolve()
+            if rp not in seen:
+                seen.add(rp)
+                native.append(rp)
+
+print("native_runtime_file_count=" + str(len(native)))
+for path in native:
+    print("native_runtime_file=" + str(path))
+
+if not native:
+    raise SystemExit(
+        "PROMOTED_STACK_FAIL: no native MLX runtime files found from distribution inventory"
+    )
 
 found = {needle: None for needle in needles}
 
@@ -133,25 +208,18 @@ def contains(path: Path, needle: bytes) -> bool:
     except (OSError, PermissionError):
         return False
 
-seen = set()
-for root in roots:
-    for path in root.rglob("*"):
-        if not path.is_file():
-            continue
-        rp = path.resolve()
-        if rp in seen:
-            continue
-        seen.add(rp)
-        for needle in needles:
-            if found[needle] is None and contains(rp, needle):
-                found[needle] = rp
+
+for path in native:
+    for needle in needles:
+        if found[needle] is None and contains(path, needle):
+            found[needle] = path
 
 for needle, label in needles.items():
     hit = found[needle]
     print(f"{label}_compiled_marker={hit or 'MISSING'}")
     if hit is None:
         raise SystemExit(
-            f"PROMOTED_STACK_FAIL: {label} marker absent from imported MLX runtime"
+            f"PROMOTED_STACK_FAIL: {label} marker absent from imported MLX native runtime"
         )
 
 print("COMPILED_MLX_RUNTIME_PASS")
