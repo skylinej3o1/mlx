@@ -16,6 +16,46 @@ setopt interactivecomments
 Do not assume the venv survived a broken command or a newly opened terminal.
 A fresh terminal commonly starts outside `mlx-dspark`.
 
+## Interactive-shell safety rule
+
+Never put failure-sensitive `set -e`, `set -o errexit`, `exit 1`, or equivalent
+shell-terminating behavior directly in the user's interactive zsh session.
+Doing so can terminate the whole Terminal tab when an ordinary validation
+command returns non-zero, leaving macOS Terminal at `[Process completed]` and
+forcing a new terminal.
+
+For every future paste-ready block:
+
+- keep the outer interactive zsh non-fatal;
+- begin by clearing errexit defensively when appropriate:
+
+```bash
+unsetopt ERR_EXIT 2>/dev/null || true
+set +e
+```
+
+- put strict failure-sensitive work inside a child subshell:
+
+```bash
+(
+    set -e
+    # strict work here
+)
+RC=$?
+echo "BLOCK_RC=$RC"
+```
+
+  or run a checked-in/temporary child Bash script with `bash script.sh`;
+- never use a top-level `exit 1` in a block pasted directly into interactive
+  zsh;
+- a child failure must return control to the existing `%` prompt rather than
+  terminate the terminal session;
+- prefer checked-in helper scripts over very large heredocs when the workflow
+  is reusable or failure-prone.
+
+A failed experiment or validator should therefore end with a non-zero child
+status such as `BLOCK_RC=1` while leaving the interactive terminal alive.
+
 ## Two compiled MLX ABI targets
 
 This project has **two distinct compiled MLX runtimes** that must both contain
@@ -139,5 +179,7 @@ runtime, and installed oMLX Python patches are separate state domains.
   source inspection and oMLX-process provenance checks.
 - Validate both compiled MLX ABIs before benchmarking.
 - Do not benchmark unless the promoted-stack validator passes.
+- Never enable errexit or call `exit` at top level in the user's interactive
+  zsh; isolate strict failure handling in a child subshell or Bash script.
 - Prefer local repo edits plus a deliberate checkpoint push over ad-hoc direct
   GitHub writes during an active tuning session.
