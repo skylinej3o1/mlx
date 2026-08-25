@@ -249,8 +249,35 @@ if source_sha != expected_metal_sha:
         f"embedded Metal SHA {source_sha} != {expected_metal_sha}"
     )
 
-if expected_qmm_sha not in packaged:
-    raise SystemExit("expected verifier-QMM SHA not embedded")
+qmm_value = None
+
+for node in tree.body:
+    if isinstance(node, ast.Assign):
+        if any(
+            isinstance(t, ast.Name)
+            and t.id == "EXPECTED_QMM_SHA"
+            for t in node.targets
+        ):
+            qmm_value = ast.literal_eval(
+                node.value
+            )
+            break
+
+if qmm_value is None:
+    raise SystemExit(
+        "embedded EXPECTED_QMM_SHA assignment missing"
+    )
+
+if qmm_value != expected_qmm_sha:
+    raise SystemExit(
+        "embedded verifier-QMM SHA mismatch: "
+        f"{qmm_value} != {expected_qmm_sha}"
+    )
+
+print(
+    "embedded_qmm_sha256="
+    + qmm_value
+)
 
 print("packaged_module=" + str(out_path))
 print("embedded_metal_sha256=" + source_sha)
