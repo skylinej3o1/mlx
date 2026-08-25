@@ -11,7 +11,6 @@ fail() {
 }
 
 [[ -f "$VENV_ACT" ]] || fail "missing venv activation: $VENV_ACT"
-
 # shellcheck disable=SC1090
 source "$VENV_ACT"
 cd "$REPO"
@@ -23,7 +22,6 @@ python --version
 
 echo
 echo "===== GIT DOMAIN ====="
-
 [[ "$(git branch --show-current)" == "$BRANCH" ]] || \
     fail "wrong branch: $(git branch --show-current)"
 
@@ -43,18 +41,15 @@ while read -r remote; do
             ;;
     esac
 done < <(git remote)
-
 [[ -n "$FORK_REMOTE" ]] || fail "skylinej3o1/mlx fork remote not found"
 
 git fetch --quiet "$FORK_REMOTE" "$BRANCH"
 LOCAL_SHA="$(git rev-parse HEAD)"
 FORK_SHA="$(git rev-parse FETCH_HEAD)"
-
 echo "branch=$BRANCH"
 echo "local_sha=$LOCAL_SHA"
 echo "fork_remote=$FORK_REMOTE"
 echo "fork_sha=$FORK_SHA"
-
 [[ "$LOCAL_SHA" == "$FORK_SHA" ]] || fail "local/fork checkpoint mismatch"
 
 for patch in \
@@ -62,187 +57,135 @@ for patch in \
     experiments/p51-q8-verifier/patches/0012-p69b-q8-m4-shared-weight-sg2r4.patch \
     experiments/p51-q8-verifier/patches/0013-p61-headpair-hpt2-sdpa.patch \
     experiments/p51-q8-verifier/patches/0014-p69b6-dual64-q8-mlp.patch
- do
+do
     [[ -f "$patch" ]] || fail "missing promoted patch: $patch"
- done
+done
 
 echo "GIT_DOMAIN_PASS"
 
 echo
 echo "===== REPO MLX SOURCE DOMAIN ====="
-
 grep -Fq "P69B2B_Q8_M4_SHARED_WEIGHT" \
-    mlx/backend/metal/kernels/quantized.h || \
-    fail "P69B3 source marker missing"
-
+    mlx/backend/metal/kernels/quantized.h || fail "P69B3 source marker missing"
+grep -Fq "affine_qmv_fast_m4_q8_shared_sg2r4" \
+    mlx/backend/metal/kernels/quantized.h || fail "P69B3 kernel marker missing"
 grep -Fq "MLX_P69B2_Q8_M4_SHARED" \
-    mlx/backend/metal/quantized.cpp || \
-    fail "P69B3 host gate missing"
-
+    mlx/backend/metal/quantized.cpp || fail "P69B3 host gate missing"
 grep -Fq "sdpa_vector_2pass_1_gqa6_m4_hpt2_headpair" \
-    mlx/backend/metal/kernels/sdpa_vector.h || \
-    fail "P61 kernel source marker missing"
-
+    mlx/backend/metal/kernels/sdpa_vector.h || fail "P61 kernel source marker missing"
 grep -Fq "MLX_SDPA_GQA6_M4_HPT2_HEADPAIR" \
-    mlx/backend/metal/scaled_dot_product_attention.cpp || \
-    fail "P61 host gate missing"
-
+    mlx/backend/metal/scaled_dot_product_attention.cpp || fail "P61 host gate missing"
 echo "REPO_MLX_SOURCE_PASS"
 
 echo
-echo "===== IMPORTED / COMPILED MLX DOMAIN ====="
-
+echo "===== VENV IMPORTED / COMPILED MLX DOMAIN ====="
 python - <<'PY'
 from pathlib import Path
 import importlib.metadata as md
 import mlx
 import mlx.core as mx
 
-needles = {
-    b"MLX_P69B2_Q8_M4_SHARED": "P69B3",
-    b"MLX_SDPA_GQA6_M4_HPT2_HEADPAIR": "P61",
-}
+root = Path(mx.__file__).resolve().parent
+lib = root / "lib" / "libmlx.dylib"
+metallib = root / "lib" / "mlx.metallib"
 
 print("mlx_version=" + md.version("mlx"))
 print("mlx_file=" + str(getattr(mlx, "__file__", None)))
-print("mlx_core_file=" + str(getattr(mx, "__file__", None)))
+print("mlx_core_file=" + str(Path(mx.__file__).resolve()))
 print("mlx_path=" + repr(list(getattr(mlx, "__path__", []))))
-print("mlx_core_path=" + repr(list(getattr(mx, "__path__", []))))
+print("venv_libmlx=" + str(lib))
+print("venv_metallib=" + str(metallib))
 
-dist = md.distribution("mlx")
-files = dist.files or []
-
-native = []
-seen = set()
-for rel in files:
-    try:
-        path = Path(dist.locate_file(rel)).resolve()
-    except (TypeError, OSError):
-        continue
-
+checks = [
+    (lib, b"MLX_P69B2_Q8_M4_SHARED", "P69B3_host"),
+    (lib, b"MLX_SDPA_GQA6_M4_HPT2_HEADPAIR", "P61_host"),
+    (metallib, b"affine_qmv_fast_m4_q8_shared_sg2r4", "P69B3_metallib"),
+    (metallib, b"sdpa_vector_2pass_1_gqa6_m4_hpt2_headpair", "P61_metallib"),
+]
+for path, needle, label in checks:
     if not path.is_file():
-        continue
+        raise SystemExit(f"PROMOTED_STACK_FAIL: venv native file missing: {path}")
+    hit = needle in path.read_bytes()
+    print(f"{label}={'PASS' if hit else 'MISSING'}")
+    if not hit:
+        raise SystemExit(f"PROMOTED_STACK_FAIL: {label} absent from venv compiled MLX runtime")
 
-    name = path.name.lower()
-    is_native = (
-        name.endswith(".dylib")
-        or name.endswith(".a")
-        or name.endswith(".so")
-        or ".so." in name
-        or ".cpython-" in name and name.endswith(".so")
-    )
-
-    if is_native and path not in seen:
-        seen.add(path)
-        native.append(path)
-
-roots = []
-for mod in (mlx, mx):
-    for item in getattr(mod, "__path__", []):
-        try:
-            root = Path(item).resolve()
-        except (TypeError, OSError):
-            continue
-        if root not in roots:
-            roots.append(root)
-
-    file_value = getattr(mod, "__file__", None)
-    if file_value:
-        try:
-            p = Path(file_value).resolve()
-            root = p if p.is_dir() else p.parent
-        except (TypeError, OSError):
-            root = None
-        if root is not None and root not in roots:
-            roots.append(root)
-
-for root in roots:
-    if not root.exists():
-        continue
-    for path in root.rglob("*"):
-        if not path.is_file():
-            continue
-        name = path.name.lower()
-        is_native = (
-            name.endswith(".dylib")
-            or name.endswith(".a")
-            or name.endswith(".so")
-            or ".so." in name
-        )
-        if is_native:
-            rp = path.resolve()
-            if rp not in seen:
-                seen.add(rp)
-                native.append(rp)
-
-print("native_runtime_file_count=" + str(len(native)))
-for path in native:
-    print("native_runtime_file=" + str(path))
-
-if not native:
-    raise SystemExit(
-        "PROMOTED_STACK_FAIL: no native MLX runtime files found from distribution inventory"
-    )
-
-found = {needle: None for needle in needles}
-
-
-def contains(path: Path, needle: bytes) -> bool:
-    overlap = max(0, len(needle) - 1)
-    tail = b""
-    try:
-        with path.open("rb") as f:
-            while True:
-                chunk = f.read(1024 * 1024)
-                if not chunk:
-                    return False
-                data = tail + chunk
-                if needle in data:
-                    return True
-                tail = data[-overlap:] if overlap else b""
-    except (OSError, PermissionError):
-        return False
-
-
-for path in native:
-    for needle in needles:
-        if found[needle] is None and contains(path, needle):
-            found[needle] = path
-
-for needle, label in needles.items():
-    hit = found[needle]
-    print(f"{label}_compiled_marker={hit or 'MISSING'}")
-    if hit is None:
-        raise SystemExit(
-            f"PROMOTED_STACK_FAIL: {label} marker absent from imported MLX native runtime"
-        )
-
-print("COMPILED_MLX_RUNTIME_PASS")
+print("VENV_COMPILED_MLX_RUNTIME_PASS")
 PY
 
 echo
-echo "===== HOMEBREW OMLX DOMAIN ====="
-
+echo "===== OMLX EXECUTABLE OWNERSHIP ====="
 OMLX_CMD="$(command -v omlx || true)"
 [[ -n "$OMLX_CMD" ]] || fail "omlx command not found"
-
 OMLX_REAL="$(python - "$OMLX_CMD" <<'PY'
 import os
 import sys
 print(os.path.realpath(sys.argv[1]))
 PY
 )"
-
 SHEBANG="$(head -n 1 "$OMLX_REAL")"
 OMLX_PY="${SHEBANG#\#!}"
-
 [[ -x "$OMLX_PY" ]] || fail "oMLX owning interpreter missing: $OMLX_PY"
-
 echo "omlx_cmd=$OMLX_CMD"
 echo "omlx_real=$OMLX_REAL"
 echo "omlx_python=$OMLX_PY"
 
-"$OMLX_PY" - <<'PY'
+echo
+echo "===== OMLX-OWNED COMPILED MLX DOMAIN ====="
+(
+    cd /tmp
+    env -u PYTHONPATH "$OMLX_PY" - <<'PY'
+from pathlib import Path
+import hashlib
+import importlib.metadata as md
+import mlx
+import mlx.core as mx
+
+root = Path(mx.__file__).resolve().parent
+core = Path(mx.__file__).resolve()
+lib = root / "lib" / "libmlx.dylib"
+metallib = root / "lib" / "mlx.metallib"
+
+print("omlx_owned_mlx_metadata_version=" + md.version("mlx"))
+print("omlx_owned_mlx_file=" + str(getattr(mlx, "__file__", None)))
+print("omlx_owned_core=" + str(core))
+print("omlx_owned_mlx_path=" + repr(list(getattr(mlx, "__path__", []))))
+print("omlx_owned_libmlx=" + str(lib))
+print("omlx_owned_metallib=" + str(metallib))
+
+for path in (core, lib, metallib):
+    if not path.is_file():
+        raise SystemExit(f"PROMOTED_STACK_FAIL: oMLX-owned native file missing: {path}")
+    h = hashlib.sha256(path.read_bytes()).hexdigest()
+    print(path.name + "_sha256=" + h)
+
+checks = [
+    (lib, b"MLX_P69B2_Q8_M4_SHARED", "P69B3_host"),
+    (lib, b"MLX_SDPA_GQA6_M4_HPT2_HEADPAIR", "P61_host"),
+    (metallib, b"affine_qmv_fast_m4_q8_shared_sg2r4", "P69B3_metallib"),
+    (metallib, b"sdpa_vector_2pass_1_gqa6_m4_hpt2_headpair", "P61_metallib"),
+]
+for path, needle, label in checks:
+    hit = needle in path.read_bytes()
+    print(f"omlx_owned_{label}={'PASS' if hit else 'MISSING'}")
+    if not hit:
+        raise SystemExit(
+            f"PROMOTED_STACK_FAIL: {label} absent from actual oMLX-owned compiled MLX runtime"
+        )
+
+# Native load smoke test.
+a = mx.array([1.0, 2.0], dtype=mx.float32)
+b = a + 1.0
+mx.eval(b)
+print("OMLX_OWNED_COMPILED_MLX_RUNTIME_PASS")
+PY
+)
+
+echo
+echo "===== HOMEBREW OMLX PYTHON PATCH DOMAIN ====="
+(
+    cd /tmp
+    env -u PYTHONPATH "$OMLX_PY" - <<'PY'
 from pathlib import Path
 import importlib.metadata as md
 import omlx
@@ -256,9 +199,7 @@ for package, want in expected.items():
     got = md.version(package)
     print(f"{package}_version={got}")
     if got != want:
-        raise SystemExit(
-            f"PROMOTED_STACK_FAIL: {package} version {got} != {want}"
-        )
+        raise SystemExit(f"PROMOTED_STACK_FAIL: {package} version {got} != {want}")
 
 root = Path(omlx.__file__).resolve().parent
 p58 = root / "patches" / "qwen35_gdn_prework.py"
@@ -309,6 +250,7 @@ for token in ("qwen35_dual64_mlp", "_apply_p69b6_dual64_mlp"):
 print("P69B6_RUNTIME_PASS")
 print("HOMEBREW_OMLX_RUNTIME_PASS")
 PY
+)
 
 echo
 echo "===== FINAL ====="
