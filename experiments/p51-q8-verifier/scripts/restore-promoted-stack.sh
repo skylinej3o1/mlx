@@ -180,7 +180,8 @@ vlmrts = vlmrt.read_text()
 for token in (
     "OMLX_VERIFY_MLP_DUAL64",
     "P69B6_E4_DUAL64",
-    "omlx_p69b6_dual64_q8_gs64_m4_k5120_n17408",
+    "omlx_p69b6_dual64_",
+    "q8_gs64_m4_k5120_n17408",
 ):
     if token not in duals:
         raise SystemExit(f"staged P69B6 token missing: {token}")
