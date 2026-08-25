@@ -98,3 +98,23 @@ The durable patch, promoter, restorer, and validator now preserve and
 verify the certified runtime state.
 
 Immediate next step: absolute frozen 29,297-token champion measurement.
+
+## Current absolute champion — P69B11
+
+The permanent P58/P61/P69B3/P69B6/P69B11 D3/M4 stack is now the
+measured ~30K champion.
+
+Frozen 29,297-token result:
+
+- **19.555088 tok/s**
+- **137.827957 ms/cycle**
+- 186 cycles
+- 325/442 acceptance
+- d1/d2/d3 = 155/101/69
+- hash `101ae2aec9793dfe`
+
+All promoted components engaged and the post-run canonical validator
+passed.
+
+**Next:** P69B12. Use existing profiling/census data; do not reopen
+P69B7, P69B8, P69B9, P69B10-C, or P69B11 certification.

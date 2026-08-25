@@ -352,3 +352,30 @@ All certification output hashes and verifier trajectories remained frozen.
 The canonical restorer repairs P69B11 together with P58/P69B6 when necessary,
 and the canonical validator requires the P69B11 module, wrapper hook, and exact
 embedded Metal source fingerprint.
+
+## P69B11 absolute champion validation
+
+Permanent live runtime validated at:
+
+- TG: 19.5550883835 tok/s
+- BPC: 137.827956989 ms/cycle
+- frozen hash: 101ae2aec9793dfe
+- cycles: 186
+- acceptance: 325/442
+- depths: 155/101/69
+
+Live engagement confirmed for P58, P69B6, and P69B11.
+
+The canonical promoted-stack validator passed both before and after the
+measurement.
+
+Current promoted verifier stack:
+
+1. P58 FP16 GDN verifier prework
+2. P61 HPT2 HEADPAIR attention
+3. P69B3 SG2R4 Q8 M4 shared projection
+4. P69B6 DUAL64 verifier MLP
+5. P69B11 asymmetric QKV(KP2)+Z(KP1) verifier projection bundle
+6. fixed D3/M4 speculative decoding
+
+Next optimization series: P69B12.

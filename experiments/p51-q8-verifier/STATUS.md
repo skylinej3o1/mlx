@@ -8699,3 +8699,60 @@ false-positive static runtime pass.
 
 Next: rerun the single frozen 29,297-token absolute champion
 measurement before P69B12.
+
+### P69B11 absolute permanent-stack champion
+
+After the promotion-packaging repair, the permanently installed
+P58/P61/P69B3/P69B6/P69B11 stack was measured once on the frozen
+29,297-token D3/M4 trajectory.
+
+Result:
+
+- TG: **19.5550883835 tok/s**
+- BPC: **137.827956989 ms/cycle**
+- backbone: **25,636.000 ms**
+- completion: **512 tokens**
+- verifier cycles: **186**
+- acceptance: **325/442**
+- depths: **d1=155, d2=101, d3=69**
+- output hash: **101ae2aec9793dfe**
+
+Promoted runtime engagement was directly observed:
+
+- P69B11_B3_PATCH enabled=1
+- P69B11_B3_EXACT_PASS QKV=1 Z=1
+- P69B11_B3_ENGAGED
+- P69B6_E4_ENGAGED
+- P58 GDN prework engaged
+- dense Qwen3.5 runtime MTP patch applied
+- no VLM-loading fallback
+
+The exact frozen trajectory matched certification.
+
+Relative context:
+
+- versus prior ~19.258 tok/s controlled champion:
+  approximately **+1.54%**
+- versus earlier 19.0775 tok/s peak:
+  approximately **+2.50%**
+
+Artifacts:
+
+- directory:
+  `~/src/mlx-m1-qmv-artifacts/p69/p69b11-champion-absolute-final`
+- server log SHA256:
+  `685e377a4cdfdf687ff30a6ab1a8ec4713696f347850487f124a39fec318de2a`
+- warmup SHA256:
+  `40dafeb97653eab2310b174588234d4551a637edb986df2d8fb4eb16a1b04155`
+- result SHA256:
+  `5b0eadff97dd292eacaf1bc58fa112e8f7ffed2c314914f3b4444a3fef8a1f73`
+- metrics SHA256:
+  `d818e8bdf062038f8c935c679e21bb2135d20edff57439245aab672b7a33053c`
+
+Verdict:
+
+**P69B11 is the new absolute ~30K verifier champion.**
+
+Do not rerun P69B11 B4 certification.
+
+Next experiment: **P69B12**.
