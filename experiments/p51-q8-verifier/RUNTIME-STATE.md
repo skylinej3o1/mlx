@@ -16,8 +16,9 @@ The project has two independent state domains:
    imported/compiled MLX package used by the benchmark environment.
 
 A clean Git checkout does not prove that the Homebrew package still contains
-promoted Python-side patches. A package reinstall, refresh, or experimental
-source restoration can overwrite installed files without changing Git.
+promoted Python-side patches. A package reinstall, refresh, experimental source
+restoration, or an in-place MLX source change without a native rebuild can make
+live runtime state diverge from Git without making the worktree dirty.
 
 Therefore every new terminal and every new chat must validate both domains.
 
@@ -132,9 +133,14 @@ Required runtime signatures include:
 ```text
 OMLX_VERIFY_MLP_DUAL64
 P69B6_E4_DUAL64
-omlx_p69b6_dual64_q8_gs64_m4_k5120_n17408
+"omlx_p69b6_dual64_"
+"q8_gs64_m4_k5120_n17408"
 _apply_p69b6_dual64_mlp
 ```
+
+Important: the Metal kernel name is represented in the Python source as two
+adjacent string literals. Do not validate the source by searching for the
+concatenated runtime kernel name as one contiguous source token.
 
 ## 2026-08-25 runtime-drift incident
 
@@ -159,8 +165,67 @@ The live source had:
 - zero `mx.float16` occurrences;
 - the old BF16-only eligibility checks.
 
+The new validator then exposed a second independent drift domain: repository
+MLX source contained P61/P69B3, while the imported native `libmlx.dylib` had
+been built before those promoted source changes. The source checkout was clean,
+but the compiled runtime lacked the promoted gate markers.
+
 This proves Git cleanliness alone is insufficient for this project. The cause
-of the overwrite was not established and must not be guessed.
+of the earlier Homebrew overwrite was not established and must not be guessed.
+
+### Recovery completed
+
+The recovery path was exercised end-to-end on 2026-08-25.
+
+Compiled MLX was rebuilt in place from the synchronized promoted source and
+then verified to contain both compiled markers in:
+
+```text
+~/src/mlx-m1-qmv/python/mlx/lib/libmlx.dylib
+```
+
+Verified compiled markers:
+
+```text
+MLX_P69B2_Q8_M4_SHARED
+MLX_SDPA_GQA6_M4_HPT2_HEADPAIR
+```
+
+Homebrew-side promoted runtime was restored and verified with these live
+SHA256 fingerprints:
+
+```text
+P58 qwen35_gdn_prework.py:
+2706ed6443c748026acd813c266c8c18eef9157adb5950036b5cba0c0cbda6b5
+
+P69B6 qwen35_vlm_runtime.py wrapper:
+4d684aa135ba535333717218d540316e6d05f436d749e9f8f39291da08beb435
+
+P69B6 qwen35_dual64_mlp.py:
+8f76c8afaee9027bcde2a52cf7457ca83f73bfcffd8ceff37cd16bd428f5c42a
+```
+
+At Git checkpoint:
+
+```text
+d1a9f311786dda74910cff4ad275a2e9bef3e262
+```
+
+the canonical validator completed with:
+
+```text
+GIT_DOMAIN_PASS
+REPO_MLX_SOURCE_PASS
+COMPILED_MLX_RUNTIME_PASS
+P58_RUNTIME_PASS
+P69B6_RUNTIME_PASS
+HOMEBREW_OMLX_RUNTIME_PASS
+PROMOTED_STACK_PASS
+PROMOTED_STACK_RESTORE_PASS
+```
+
+This is the first fully validated dual-domain promoted-stack checkpoint after
+the drift incident.
 
 ## Current experiment handoff
 
@@ -188,8 +253,7 @@ P69B11-B must preserve:
 
 Do **not** implement a naive homogeneous N16384 concatenated QMM.
 
-P69B11-B is paused until the canonical promoted-stack validator passes. After
-that pass, the next experiment is:
+The promoted-stack gate is now satisfied. The next experiment is:
 
 **P69B11-B — asymmetric KP2-QKV + KP1-Z bundled projection isolated exactness
 and balanced microbenchmark.**
@@ -198,21 +262,29 @@ Do not rerun P69B7 profiling and do not reopen P69B8, P69B9, or P69B10-C.
 
 ## Canonical commands
 
-Validate:
+Validate all state domains:
 
 ```bash
 bash experiments/p51-q8-verifier/scripts/verify-promoted-stack.sh
 ```
 
-Repair Homebrew Python-side drift, then revalidate:
+Repair Homebrew Python-side P58/P69B6 drift, then revalidate:
 
 ```bash
 bash experiments/p51-q8-verifier/scripts/restore-promoted-stack.sh
 ```
 
-The restore script intentionally refuses to repair Git/source or compiled MLX
-runtime drift. Those failures indicate the wrong build/checkpoint and require
-a controlled rebuild or checkout, not an installed-Python patch.
+Rebuild repository MLX source into the imported native runtime when the
+compiled-domain markers are stale:
+
+```bash
+bash experiments/p51-q8-verifier/scripts/rebuild-promoted-mlx.sh
+```
+
+The Homebrew restore script intentionally refuses to conceal Git/source or
+compiled MLX runtime drift. Compiled-domain failure requires the controlled
+native rebuild path; Git-domain failure requires synchronization/checkpoint
+repair.
 
 ## Checkpoint discipline
 
