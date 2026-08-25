@@ -8643,3 +8643,41 @@ the post-DUAL64 GDN recurrent-core mapping phase.
 Next work must select a new candidate from measured remaining
 high-leverage GDN/projection or downstream tail structure rather
 than reopening any of the closed local epilogues above.
+
+## P69B11-B4 — certified asymmetric QKV+Z projection bundle
+
+P69B11 bundles GDN `in_proj_qkv` and `in_proj_z` into one Metal dispatch while
+preserving their independent verifier arithmetic:
+
+- QKV: M4 K5120 N10240 Q8 GS64, KP2;
+- Z: M4 K5120 N6144 Q8 GS64, KP1;
+- separate FP16 output boundaries preserved;
+- no homogeneous N16384 concatenated QMM.
+
+B2 synthetic exactness was bit-exact for both outputs. B3 then passed a 2+2
+integrated scout at +2.228494624 ms/cycle and +1.4598% TG with 2/2 pair wins.
+
+B4 balanced 4+4 certification:
+
+- BASE mean BPC: 147.508870968 ms/cycle;
+- CAND mean BPC: 145.100268817 ms/cycle;
+- mean saving: +2.408602151 ms/cycle (+1.6329%);
+- median saving: +2.750000000 ms/cycle;
+- TG improvement: +1.5071%;
+- pair wins: 4/4;
+- all four CAND actual-weight exactness checks: PASS;
+- all eight frozen hashes: `101ae2aec9793dfe`;
+- all eight trajectories: 186 cycles / 325/442 / 155/101/69.
+
+Certification summary SHA256:
+
+`0a1153be3f7e4d0643da29abae923a15298fb393fe8fe7b7bcb611f4e934b39d`
+
+Verdict: **CERTIFIED / PROMOTE P69B11.**
+
+Runtime gate:
+
+`OMLX_VERIFY_GDN_QKVZ_DUAL=1`
+
+Next work is P69B12: select the next remaining verifier seam from existing
+P69B7/P69B10 measurements without rerunning profiling.

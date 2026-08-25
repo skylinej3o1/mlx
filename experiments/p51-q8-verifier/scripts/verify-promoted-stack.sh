@@ -56,7 +56,8 @@ for patch in \
     experiments/p51-q8-verifier/patches/0011-p58-fp16-gdn-verify-prework.patch \
     experiments/p51-q8-verifier/patches/0012-p69b-q8-m4-shared-weight-sg2r4.patch \
     experiments/p51-q8-verifier/patches/0013-p61-headpair-hpt2-sdpa.patch \
-    experiments/p51-q8-verifier/patches/0014-p69b6-dual64-q8-mlp.patch
+    experiments/p51-q8-verifier/patches/0014-p69b6-dual64-q8-mlp.patch \
+    experiments/p51-q8-verifier/patches/0015-p69b11-qkvz-dual.patch
 do
     [[ -f "$patch" ]] || fail "missing promoted patch: $patch"
 done
@@ -248,6 +249,53 @@ for token in ("qwen35_dual64_mlp", "_apply_p69b6_dual64_mlp"):
     if token not in vlmrts:
         raise SystemExit(f"PROMOTED_STACK_FAIL: P69B6 wrapper token missing: {token}")
 print("P69B6_RUNTIME_PASS")
+
+qkvz = root / "patches" / "qwen35_qkvz_dual.py"
+if not qkvz.is_file():
+    raise SystemExit(
+        f"PROMOTED_STACK_FAIL: P69B11 module missing: {qkvz}"
+    )
+
+qkvzs = qkvz.read_text()
+
+for token in (
+    "OMLX_VERIFY_GDN_QKVZ_DUAL",
+    "P69B11_B3_QKVZ_DUAL",
+    "P69B11_B3_EXACT_PASS",
+    "P69B11_B3_ENGAGED",
+):
+    if token not in qkvzs:
+        raise SystemExit(
+            f"PROMOTED_STACK_FAIL: P69B11 token missing: {token}"
+        )
+
+for token in (
+    "qwen35_qkvz_dual",
+    "_apply_p69b11_qkvz_dual",
+):
+    if token not in vlmrts:
+        raise SystemExit(
+            f"PROMOTED_STACK_FAIL: P69B11 wrapper token missing: {token}"
+        )
+
+import hashlib
+from omlx.patches import qwen35_qkvz_dual as qkvz_mod
+
+source_sha = hashlib.sha256(
+    qkvz_mod._SOURCE.encode()
+).hexdigest()
+
+print("p69b11_embedded_metal_sha256=" + source_sha)
+
+if source_sha != (
+    "e11dd85965c264cdd9b415348d0c2bd9"
+    "d19ae2cfd20ce1a7ad1654d740bc8508"
+):
+    raise SystemExit(
+        "PROMOTED_STACK_FAIL: P69B11 embedded Metal source SHA mismatch"
+    )
+
+print("P69B11_RUNTIME_PASS")
 print("HOMEBREW_OMLX_RUNTIME_PASS")
 PY
 )

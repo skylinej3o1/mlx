@@ -6,6 +6,7 @@ REPO="$HOME/src/mlx-m1-qmv"
 BRANCH="project51-q8-verifier"
 P58_PATCH="$REPO/experiments/p51-q8-verifier/patches/0011-p58-fp16-gdn-verify-prework.patch"
 P69B6_PATCH="$REPO/experiments/p51-q8-verifier/patches/0014-p69b6-dual64-q8-mlp.patch"
+P69B11_PATCH="$REPO/experiments/p51-q8-verifier/patches/0015-p69b11-qkvz-dual.patch"
 VERIFY="$REPO/experiments/p51-q8-verifier/scripts/verify-promoted-stack.sh"
 
 fail() {
@@ -28,6 +29,7 @@ git fetch --quiet fork "$BRANCH"
 
 [[ -f "$P58_PATCH" ]] || fail "missing P58 patch"
 [[ -f "$P69B6_PATCH" ]] || fail "missing P69B6 patch"
+[[ -f "$P69B11_PATCH" ]] || fail "missing P69B11 patch"
 [[ -f "$VERIFY" ]] || fail "validator is missing"
 
 OMLX_CMD="$(command -v omlx || true)"
@@ -55,6 +57,7 @@ PY
 LIVE_P58="$OMLX_ROOT/patches/qwen35_gdn_prework.py"
 LIVE_VLMRT="$OMLX_ROOT/patches/mlx_vlm_mtp/qwen35_vlm_runtime.py"
 LIVE_DUAL="$OMLX_ROOT/patches/qwen35_dual64_mlp.py"
+LIVE_QKVZ="$OMLX_ROOT/patches/qwen35_qkvz_dual.py"
 
 [[ -f "$LIVE_P58" ]] || fail "live P58 target missing"
 [[ -f "$LIVE_VLMRT" ]] || fail "live P69B6 wrapper target missing"
@@ -64,6 +67,7 @@ STAGE="$TMP/stage"
 BACKUP="$TMP/backup"
 ROLLBACK=0
 DUAL_EXISTED=0
+QKVZ_EXISTED=0
 
 cleanup() {
     rc=$?
@@ -75,6 +79,11 @@ cleanup() {
             cp -p "$BACKUP/qwen35_dual64_mlp.py" "$LIVE_DUAL"
         else
             rm -f "$LIVE_DUAL"
+        fi
+        if [[ "$QKVZ_EXISTED" -eq 1 ]]; then
+            cp -p "$BACKUP/qwen35_qkvz_dual.py" "$LIVE_QKVZ"
+        else
+            rm -f "$LIVE_QKVZ"
         fi
     fi
     rm -rf "$TMP"
@@ -91,6 +100,11 @@ if [[ -f "$LIVE_DUAL" ]]; then
     DUAL_EXISTED=1
     cp -p "$LIVE_DUAL" "$STAGE/omlx/patches/qwen35_dual64_mlp.py"
     cp -p "$LIVE_DUAL" "$BACKUP/qwen35_dual64_mlp.py"
+fi
+if [[ -f "$LIVE_QKVZ" ]]; then
+    QKVZ_EXISTED=1
+    cp -p "$LIVE_QKVZ" "$STAGE/omlx/patches/qwen35_qkvz_dual.py"
+    cp -p "$LIVE_QKVZ" "$BACKUP/qwen35_qkvz_dual.py"
 fi
 
 echo "===== STAGED RUNTIME CLASSIFICATION ====="
@@ -132,6 +146,21 @@ if [[ "$VLMRT_HAS" -ne "$DUAL_HAS" ]]; then
     fail "partial P69B6 runtime state; refusing automatic overwrite"
 fi
 
+QKVZ_VLMRT_HAS=0
+QKVZ_HAS=0
+grep -Fq "_apply_p69b11_qkvz_dual" "$STAGE/omlx/patches/mlx_vlm_mtp/qwen35_vlm_runtime.py" && QKVZ_VLMRT_HAS=1 || true
+if [[ -f "$STAGE/omlx/patches/qwen35_qkvz_dual.py" ]] && \
+   grep -Fq "OMLX_VERIFY_GDN_QKVZ_DUAL" "$STAGE/omlx/patches/qwen35_qkvz_dual.py"; then
+    QKVZ_HAS=1
+fi
+
+echo "P69B11_WRAPPER_PRESENT=$QKVZ_VLMRT_HAS"
+echo "P69B11_MODULE_PRESENT=$QKVZ_HAS"
+
+if [[ "$QKVZ_VLMRT_HAS" -ne "$QKVZ_HAS" ]]; then
+    fail "partial P69B11 runtime state; refusing automatic overwrite"
+fi
+
 if [[ "$P58_STATE" == "PRE" ]]; then
     echo "===== STAGE P58 RESTORE ====="
     (
@@ -152,6 +181,16 @@ else
     echo "P69B6 already present; no staged change"
 fi
 
+if [[ "$QKVZ_VLMRT_HAS" -eq 0 ]]; then
+    echo "===== STAGE P69B11 RESTORE ====="
+    (
+        cd "$STAGE"
+        patch --batch --forward -p1 < "$P69B11_PATCH"
+    )
+else
+    echo "P69B11 already present; no staged change"
+fi
+
 echo "===== VERIFY STAGED PYTHON SOURCES ====="
 
 "$OMLX_PY" - "$STAGE" <<'PY'
@@ -160,8 +199,9 @@ import sys
 root = Path(sys.argv[1]) / "omlx" / "patches"
 p58 = root / "qwen35_gdn_prework.py"
 dual = root / "qwen35_dual64_mlp.py"
+qkvz = root / "qwen35_qkvz_dual.py"
 vlmrt = root / "mlx_vlm_mtp" / "qwen35_vlm_runtime.py"
-for p in (p58, dual, vlmrt):
+for p in (p58, dual, qkvz, vlmrt):
     if not p.is_file():
         raise SystemExit(f"missing staged file: {p}")
     compile(p.read_text(), str(p), "exec")
@@ -188,6 +228,41 @@ for token in (
 for token in ("qwen35_dual64_mlp", "_apply_p69b6_dual64_mlp"):
     if token not in vlmrts:
         raise SystemExit(f"staged wrapper token missing: {token}")
+
+qkvzs = qkvz.read_text()
+for token in (
+    "OMLX_VERIFY_GDN_QKVZ_DUAL",
+    "P69B11_B3_QKVZ_DUAL",
+    "P69B11_B3_EXACT_PASS",
+    "P69B11_B3_ENGAGED",
+):
+    if token not in qkvzs:
+        raise SystemExit(f"staged P69B11 token missing: {token}")
+for token in ("qwen35_qkvz_dual", "_apply_p69b11_qkvz_dual"):
+    if token not in vlmrts:
+        raise SystemExit(f"staged P69B11 wrapper token missing: {token}")
+
+import ast
+import hashlib
+
+tree = ast.parse(qkvzs)
+source = None
+for node in tree.body:
+    if isinstance(node, ast.Assign):
+        if any(
+            isinstance(t, ast.Name) and t.id == "_SOURCE"
+            for t in node.targets
+        ):
+            source = ast.literal_eval(node.value)
+            break
+
+if source is None:
+    raise SystemExit("staged P69B11 embedded _SOURCE missing")
+
+source_sha = hashlib.sha256(source.encode()).hexdigest()
+if source_sha != "e11dd85965c264cdd9b415348d0c2bd9d19ae2cfd20ce1a7ad1654d740bc8508":
+    raise SystemExit("staged P69B11 embedded Metal SHA mismatch")
+
 print("STAGED_RUNTIME_PASS")
 PY
 
@@ -196,10 +271,12 @@ ROLLBACK=1
 cp -p "$STAGE/omlx/patches/qwen35_gdn_prework.py" "$LIVE_P58"
 cp -p "$STAGE/omlx/patches/mlx_vlm_mtp/qwen35_vlm_runtime.py" "$LIVE_VLMRT"
 cp -p "$STAGE/omlx/patches/qwen35_dual64_mlp.py" "$LIVE_DUAL"
+cp -p "$STAGE/omlx/patches/qwen35_qkvz_dual.py" "$LIVE_QKVZ"
 
 echo "p58_sha256=$(shasum -a 256 "$LIVE_P58" | awk '{print $1}')"
 echo "p69b6_wrapper_sha256=$(shasum -a 256 "$LIVE_VLMRT" | awk '{print $1}')"
 echo "p69b6_module_sha256=$(shasum -a 256 "$LIVE_DUAL" | awk '{print $1}')"
+echo "p69b11_module_sha256=$(shasum -a 256 "$LIVE_QKVZ" | awk '{print $1}')"
 
 echo "===== FULL PROMOTED-STACK REVALIDATION ====="
 bash "$VERIFY"

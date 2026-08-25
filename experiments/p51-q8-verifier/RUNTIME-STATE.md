@@ -67,6 +67,7 @@ The post-P69B10 champion stack keeps:
 - **P61** HEADPAIR HPT2 SDPA;
 - **P69B3** SG2R4 Q8 M4 shared-weight projection;
 - **P69B6** packaged DUAL64 verifier MLP fusion.
+- **P69B11** asymmetric GDN QKV+Z projection bundle;
 
 Closed work that must not be silently reintroduced:
 
@@ -301,3 +302,53 @@ During active tuning, prefer local changes followed by a deliberate commit and
 push at an explicit checkpoint. If a coordination/documentation commit is made
 directly on the fork, immediately fast-forward the local branch before doing
 more experimental work.
+
+## P69B11 certified runtime
+
+P69B11 is a Homebrew oMLX Python-side promoted component.
+
+Patch artifact:
+
+```text
+experiments/p51-q8-verifier/patches/0015-p69b11-qkvz-dual.patch
+```
+
+Live module:
+
+```text
+.../site-packages/omlx/patches/qwen35_qkvz_dual.py
+```
+
+Wrapper hook:
+
+```text
+qwen35_qkvz_dual
+_apply_p69b11_qkvz_dual
+```
+
+Runtime gate:
+
+```text
+OMLX_VERIFY_GDN_QKVZ_DUAL=1
+```
+
+The packaged module embeds the exact certified B2 Metal source. Required
+embedded Metal SHA256:
+
+```text
+e11dd85965c264cdd9b415348d0c2bd9d19ae2cfd20ce1a7ad1654d740bc8508
+```
+
+B4 certification:
+
+```text
+mean saving = +2.408602151 ms/cycle
+TG gain     = +1.5071%
+pair wins   = 4/4
+```
+
+All certification output hashes and verifier trajectories remained frozen.
+
+The canonical restorer repairs P69B11 together with P58/P69B6 when necessary,
+and the canonical validator requires the P69B11 module, wrapper hook, and exact
+embedded Metal source fingerprint.
