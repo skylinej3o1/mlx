@@ -379,3 +379,46 @@ Current promoted verifier stack:
 6. fixed D3/M4 speculative decoding
 
 Next optimization series: P69B12.
+
+## P69B12 certified runtime
+
+Recorded patch:
+experiments/p51-q8-verifier/patches/0016-p69b12-ba-piggyback.patch
+
+P69B12 extends the existing live module:
+.../site-packages/omlx/patches/qwen35_qkvz_dual.py
+
+It preserves the P69B11 gate and adds:
+OMLX_VERIFY_GDN_BA_PIGGYBACK
+
+Required embedded Metal SHA256 values:
+
+P69B11 base:
+e11dd85965c264cdd9b415348d0c2bd9d19ae2cfd20ce1a7ad1654d740bc8508
+
+P69B12 piggyback:
+dc30e64adbbd82eac7fc423137ca8b15a6727d3cecab662d1eb28033eb36142a
+
+Required packaged module SHA256:
+4722354e6c4b97822540c013b3874991e8ba1e75847b90d9a0160e707e486864
+
+Gate semantics:
+- QKVZ=0 PIGGY=0 -> disabled
+- QKVZ=0 PIGGY=1 -> disabled
+- QKVZ=1 PIGGY=0 -> P69B11
+- QKVZ=1 PIGGY=1 -> P69B12
+
+P69B12 certification:
+- +0.417204301 ms/cycle mean
+- +0.401612903 ms/cycle median
+- +0.2112% TG
+- pair wins 3/4
+- hash 101ae2aec9793dfe
+- trajectory 186 / 325-of-442 / 155-101-69
+
+The canonical restorer must apply 0015 before 0016 when P69B11 is absent.
+The canonical validator must verify both embedded source fingerprints and
+the independent P69B12 gate/state.
+
+Next:
+commit/push, exercise the durable restorer, then run one absolute ruler.

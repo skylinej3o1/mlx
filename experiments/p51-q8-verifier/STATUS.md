@@ -8756,3 +8756,80 @@ Verdict:
 Do not rerun P69B11 B4 certification.
 
 Next experiment: **P69B12**.
+
+## P69B12 — CERTIFIED B/A idle-SIMD piggyback
+
+P69B12 reuses otherwise-idle SIMD1 capacity inside the promoted
+P69B11 QKV(KP2)+Z(KP1) GDN projection dispatch to compute the two
+tiny B/A projections.
+
+Target:
+- verifier M=4, K=5120
+- QKV N=10240 Q8 GS64 KP2
+- Z N=6144 Q8 GS64 KP1
+- B/A N=48 Q8 GS64
+
+P69B12-B1 isolated actual-weight exactness:
+- Q/Z/B/A bit-exact on all 8 seeds
+- base median 0.573953125 ms
+- candidate median 0.565638000 ms
+- median saving +0.008315125 ms/GDN
+- pair wins 21/31
+- projected saving +0.399126 ms/cycle
+- piggyback Metal SHA256:
+  dc30e64adbbd82eac7fc423137ca8b15a6727d3cecab662d1eb28033eb36142a
+
+P69B12-B2 integrated 2+2:
+- BASE mean BPC 138.182258065
+- CAND mean BPC 137.777956989
+- mean saving +0.404301075 ms/cycle
+- median saving +0.404301075 ms/cycle
+- TG improvement +0.4285%
+- pair wins 2/2
+- all hashes 101ae2aec9793dfe
+- trajectory 186 / 325-of-442 / 155-101-69
+
+P69B12-B3 balanced 4+4 certification:
+- BASE mean BPC 138.606317204
+- CAND mean BPC 138.189112903
+- mean saving +0.417204301 ms/cycle
+- median saving +0.401612903 ms/cycle
+- TG improvement +0.2112%
+- pair wins 3/4
+- all 4 CAND actual-weight Q/Z/B/A exactness gates PASS
+- all 8 hashes 101ae2aec9793dfe
+- all 8 trajectories 186 / 325-of-442 / 155-101-69
+
+Certification summary SHA256:
+4f841c58d122fab883318beef6c8bc1e84788daf218cf5f4d72ceb0c0a416de6
+
+Verdict:
+P69B12 CERTIFIED FOR PROMOTION.
+
+Permanent patch:
+experiments/p51-q8-verifier/patches/0016-p69b12-ba-piggyback.patch
+
+Patch SHA256:
+ce85983738345863dd679506e5de12c756ab96c3bcb7d750f316921dbca0b94a
+
+Expected packaged module SHA256:
+4722354e6c4b97822540c013b3874991e8ba1e75847b90d9a0160e707e486864
+
+Independent gates:
+- OMLX_VERIFY_GDN_QKVZ_DUAL=1
+- OMLX_VERIFY_GDN_BA_PIGGYBACK=1
+
+Truth table:
+- QKVZ=0 PIGGY=0 -> disabled
+- QKVZ=0 PIGGY=1 -> disabled
+- QKVZ=1 PIGGY=0 -> P69B11
+- QKVZ=1 PIGGY=1 -> P69B12
+
+The explicit 2x2 gate matrix passed.
+
+Standalone P69B12-A B/A bundling is CLOSED.
+Do not rerun P69B7 profiling.
+Do not rerun P69B11 or P69B12 certification.
+
+Next after permanent restore:
+one absolute frozen 29,297-token P69B12 champion run.

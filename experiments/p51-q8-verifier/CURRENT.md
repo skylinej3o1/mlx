@@ -118,3 +118,31 @@ passed.
 
 **Next:** P69B12. Use existing profiling/census data; do not reopen
 P69B7, P69B8, P69B9, P69B10-C, or P69B11 certification.
+
+## Promoted checkpoint after P69B12 certification
+
+P69B12 is certified and queued for permanent restore on top of P69B11.
+
+Promoted stack after restore:
+1. P58 FP16 GDN verifier prework
+2. P61 HPT2 HEADPAIR SDPA
+3. P69B3 SG2R4 Q8 M4 projection
+4. P69B6 DUAL64 verifier MLP
+5. P69B11 QKV(KP2)+Z(KP1) bundle
+6. P69B12 B/A idle-SIMD piggyback
+7. fixed D3 / verifier M4
+
+P69B12 4+4 certification:
+- +0.417204301 ms/cycle mean
+- +0.401612903 ms/cycle median
+- +0.2112% TG
+- 3/4 pair wins
+- all exactness/hash/trajectory checks PASS
+
+Runtime gates:
+OMLX_VERIFY_GDN_QKVZ_DUAL=1
+OMLX_VERIFY_GDN_BA_PIGGYBACK=1
+
+Immediate next step:
+commit/push this promotion checkpoint, run the updated canonical restorer,
+then perform one absolute frozen 29,297-token permanent-stack measurement.

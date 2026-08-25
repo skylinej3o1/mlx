@@ -57,7 +57,8 @@ for patch in \
     experiments/p51-q8-verifier/patches/0012-p69b-q8-m4-shared-weight-sg2r4.patch \
     experiments/p51-q8-verifier/patches/0013-p61-headpair-hpt2-sdpa.patch \
     experiments/p51-q8-verifier/patches/0014-p69b6-dual64-q8-mlp.patch \
-    experiments/p51-q8-verifier/patches/0015-p69b11-qkvz-dual.patch
+    experiments/p51-q8-verifier/patches/0015-p69b11-qkvz-dual.patch \
+    experiments/p51-q8-verifier/patches/0016-p69b12-ba-piggyback.patch
 do
     [[ -f "$patch" ]] || fail "missing promoted patch: $patch"
 done
@@ -273,7 +274,9 @@ for node in qkvz_tree.body:
 
 for name in (
     "_ENABLED",
+    "_PIGGY_ENABLED",
     "_KERNEL",
+    "_BASE_KERNEL",
     "_EXACT_DONE",
     "_ENGAGE_COUNT",
 ):
@@ -285,9 +288,13 @@ for name in (
 
 for token in (
     "OMLX_VERIFY_GDN_QKVZ_DUAL",
+    "OMLX_VERIFY_GDN_BA_PIGGYBACK",
     "P69B11_B3_QKVZ_DUAL",
     "P69B11_B3_EXACT_PASS",
     "P69B11_B3_ENGAGED",
+    "P69B12_B3_PATCH",
+    "P69B12_B3_EXACT_PASS",
+    "P69B12_B3_ENGAGED",
 ):
     if token not in qkvzs:
         raise SystemExit(
@@ -320,6 +327,36 @@ if source_sha != (
         "PROMOTED_STACK_FAIL: P69B11 embedded Metal source SHA mismatch"
     )
 
+piggy_source = getattr(
+    qkvz_mod,
+    "_PIGGY_SOURCE",
+    None,
+)
+
+if not isinstance(piggy_source, str):
+    raise SystemExit(
+        "PROMOTED_STACK_FAIL: "
+        "P69B12 embedded piggyback source missing"
+    )
+
+piggy_source_sha = hashlib.sha256(
+    piggy_source.encode()
+).hexdigest()
+
+print(
+    "p69b12_embedded_piggy_metal_sha256="
+    + piggy_source_sha
+)
+
+if piggy_source_sha != (
+    "dc30e64adbbd82eac7fc423137ca8b15"
+    "a6727d3cecab662d1eb28033eb36142a"
+):
+    raise SystemExit(
+        "PROMOTED_STACK_FAIL: "
+        "P69B12 embedded piggyback Metal SHA mismatch"
+    )
+
 from omlx.patches.mlx_vlm_mtp import (
     qwen35_vlm_runtime as q35_dense_runtime,
 )
@@ -346,6 +383,7 @@ if not getattr(
 
 print("P69B11_DENSE_HOOK_PASS")
 print("P69B11_RUNTIME_PASS")
+print("P69B12_RUNTIME_PASS")
 print("HOMEBREW_OMLX_RUNTIME_PASS")
 PY
 )

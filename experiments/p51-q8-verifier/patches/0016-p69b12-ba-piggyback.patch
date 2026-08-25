@@ -1,0 +1,493 @@
+diff --git a/omlx/patches/qwen35_qkvz_dual.py b/omlx/patches/qwen35_qkvz_dual.py
+--- a/omlx/patches/qwen35_qkvz_dual.py
++++ b/omlx/patches/qwen35_qkvz_dual.py
+@@ -1,26 +1,17 @@
+ """
+-P69B11 certified QKV+Z verifier projection bundle.
+-
+-Exact shape:
+-    B=1
+-    M=4
+-    K=5120
+-
+-QKV:
+-    N=10240
+-    Q8 GS64
+-    K_PARTS=2
+-
+-Z:
+-    N=6144
+-    Q8 GS64
+-    K_PARTS=1
+-
+-The Metal source is the exact bit-exact source frozen by
+-P69B11-B2.
+-
+-BASE and CAND load this identical module.
+-Only OMLX_VERIFY_GDN_QKVZ_DUAL changes.
++P69B12 certified B/A idle-SIMD piggyback.
++
++Gate 0:
++    certified P69B11 QKV(KP2)+Z(KP1)
++    plus normal promoted SG2R4 B/A.
++
++Gate 1:
++    identical QKV/Z arithmetic plus
++    B/A piggybacked on SIMD group 1.
++
++The old environment gate name is intentionally retained so
++the proven P69B11 2+2 harness can be reused without touching
++its server/client/parser control path.
+ """
+ 
+ from __future__ import annotations
+@@ -45,6 +36,7 @@
+ K = 5120
+ NQ = 10240
+ NZ = 6144
++NBA = 48
+ GS = 64
+ BITS = 8
+ 
+@@ -58,6 +50,11 @@
+ EXPECTED_SOURCE_SHA = (
+     "e11dd85965c264cdd9b415348d0c2bd9"
+     "d19ae2cfd20ce1a7ad1654d740bc8508"
++)
++
++EXPECTED_PIGGY_SHA = (
++    "dc30e64adbbd82eac7fc423137ca8b15"
++    "a6727d3cecab662d1eb28033eb36142a"
+ )
+ 
+ _ENABLED = (
+@@ -75,33 +72,62 @@
+     )
+ )
+ 
++
++_PIGGY_ENABLED = (
++    os.environ.get(
++        "OMLX_VERIFY_GDN_BA_PIGGYBACK",
++        "0",
++    )
++    .strip()
++    .lower()
++    in (
++        "1",
++        "true",
++        "yes",
++        "on",
++    )
++)
++
+ _KERNEL = None
+-
++_BASE_KERNEL = None
+ _EXACT_DONE = False
+-
+ _ENGAGE_COUNT = 0
+ 
++
++def _sha(path: Path) -> str:
++    return hashlib.sha256(
++        path.read_bytes()
++    ).hexdigest()
++
++
+ _SOURCE = '\nusing namespace metal;\n\nconstexpr int GS = 64;\nconstexpr int MROWS = 4;\nconstexpr int NACC = 16;\nconstexpr int Q_TILES = 2560;\nconstexpr int Z_TILES = 1536;\n\nuint part =\n    simdgroup_index_in_threadgroup;\n\nuint lane =\n    thread_index_in_simdgroup;\n\nuint tg_n =\n    threadgroup_position_in_grid.y;\n\nint K =\n    int(K_size);\n\nint K_by_p =\n    K / 8;\n\nint K_by_w =\n    K / 4;\n\nint K_by_gs =\n    K / GS;\n\nusing Vec8 =\n    vec<T, 8>;\n\nconst device Vec8 *xv =\n    (const device Vec8*)x;\n\n/*\n * QKV KP2 needs 2 * NACC FP32 partials.\n *\n * Z reuses partials[0:NACC] only after QKV has finished\n * its reduction and global FP16 stores.\n */\nthreadgroup float partials[2 * NACC];\n\n\n/* ==========================================================\n * QKV\n *\n * Exact stock K_PARTS=2 structure.\n * ========================================================== */\n{\n    constexpr int K_PARTS = 2;\n\n    int N =\n        int(Nq_size);\n\n    int n0 =\n        int(tg_n) * 4;\n\n    int per_part =\n        K_by_p / K_PARTS;\n\n    int p_start =\n        int(part) * per_part;\n\n    int p_end =\n        (\n            int(part) ==\n            K_PARTS - 1\n        )\n            ? K_by_p\n            : p_start + per_part;\n\n    float acc_q[NACC];\n\n    _Pragma("unroll")\n    for (\n        int i = 0;\n        i < NACC;\n        ++i\n    ) {\n        acc_q[i] = 0.0f;\n    }\n\n    for (\n        int packA =\n            p_start + int(lane);\n        packA < p_end;\n        packA += 32\n    ) {\nint k_baseA = packA * 8;\n            int giA = k_baseA / GS;\n            Vec8 vA_0 = xv[(0 * K + k_baseA) / 8];\n            Vec8 vA_1 = xv[(1 * K + k_baseA) / 8];\n            Vec8 vA_2 = xv[(2 * K + k_baseA) / 8];\n            Vec8 vA_3 = xv[(3 * K + k_baseA) / 8];\n            uint32_t paA_0 = wq_q[(n0 + 0) * K_by_w + packA * 2]; uint32_t pbA_0 = wq_q[(n0 + 0) * K_by_w + packA * 2 + 1];\n            uint32_t paA_1 = wq_q[(n0 + 1) * K_by_w + packA * 2]; uint32_t pbA_1 = wq_q[(n0 + 1) * K_by_w + packA * 2 + 1];\n            uint32_t paA_2 = wq_q[(n0 + 2) * K_by_w + packA * 2]; uint32_t pbA_2 = wq_q[(n0 + 2) * K_by_w + packA * 2 + 1];\n            uint32_t paA_3 = wq_q[(n0 + 3) * K_by_w + packA * 2]; uint32_t pbA_3 = wq_q[(n0 + 3) * K_by_w + packA * 2 + 1];\n            float sA_0 = float(scales_q[(n0 + 0) * K_by_gs + giA]); float bA_0 = float(biases_q[(n0 + 0) * K_by_gs + giA]);\n            float sA_1 = float(scales_q[(n0 + 1) * K_by_gs + giA]); float bA_1 = float(biases_q[(n0 + 1) * K_by_gs + giA]);\n            float sA_2 = float(scales_q[(n0 + 2) * K_by_gs + giA]); float bA_2 = float(biases_q[(n0 + 2) * K_by_gs + giA]);\n            float sA_3 = float(scales_q[(n0 + 3) * K_by_gs + giA]); float bA_3 = float(biases_q[(n0 + 3) * K_by_gs + giA]);\n            {\n                uint32_t pa = paA_0;\n                uint32_t pb = pbA_0;\n                float s = sA_0;\n                float b = bA_0;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_q[0 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_q[0 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_q[0 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_q[0 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_q[0 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_q[0 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_q[0 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_q[0 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_1;\n                uint32_t pb = pbA_1;\n                float s = sA_1;\n                float b = bA_1;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_q[1 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_q[1 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_q[1 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_q[1 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_q[1 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_q[1 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_q[1 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_q[1 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_2;\n                uint32_t pb = pbA_2;\n                float s = sA_2;\n                float b = bA_2;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_q[2 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_q[2 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_q[2 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_q[2 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_q[2 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_q[2 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_q[2 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_q[2 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_3;\n                uint32_t pb = pbA_3;\n                float s = sA_3;\n                float b = bA_3;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_q[3 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_q[3 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_q[3 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_q[3 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_q[3 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_q[3 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_q[3 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_q[3 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n    }\n\n    _Pragma("unroll")\n    for (\n        int i = 0;\n        i < NACC;\n        ++i\n    ) {\n        acc_q[i] =\n            simd_sum(\n                acc_q[i]\n            );\n    }\n\n    if (lane == 0) {\n        _Pragma("unroll")\n        for (\n            int i = 0;\n            i < NACC;\n            ++i\n        ) {\n            partials[\n                int(part) *\n                    NACC +\n                i\n            ] =\n                acc_q[i];\n        }\n    }\n\n    threadgroup_barrier(\n        mem_flags::mem_threadgroup\n    );\n\n    if (\n        part == 0 &&\n        lane < NACC\n    ) {\n        float total =\n            0.0f;\n\n        _Pragma("unroll")\n        for (\n            int p = 0;\n            p < K_PARTS;\n            ++p\n        ) {\n            total +=\n                partials[\n                    p *\n                        NACC +\n                    int(lane)\n                ];\n        }\n\n        int j =\n            int(lane) /\n            MROWS;\n\n        int row =\n            int(lane) -\n            j * MROWS;\n\n        y_q[\n            row * N +\n            n0 +\n            j\n        ] =\n            T(total);\n    }\n}\n\n\n/* ==========================================================\n * Z\n *\n * Only QKV tile groups 0..1535 also own a Z tile.\n *\n * simdgroup 0 executes the exact stock KP1 traversal.\n * simdgroup 1 remains idle for arithmetic but participates\n * in the threadgroup barrier.\n * ========================================================== */\nif (tg_n < uint(Z_TILES)) {\n    constexpr int K_PARTS = 1;\n\n    int N =\n        int(Nz_size);\n\n    int n0 =\n        int(tg_n) * 4;\n\n    float acc_z[NACC];\n\n    _Pragma("unroll")\n    for (\n        int i = 0;\n        i < NACC;\n        ++i\n    ) {\n        acc_z[i] = 0.0f;\n    }\n\n    if (part == 0) {\n        int p_start =\n            0;\n\n        int p_end =\n            K_by_p;\n\n        for (\n            int packA =\n                p_start + int(lane);\n            packA < p_end;\n            packA += 32\n        ) {\nint k_baseA = packA * 8;\n            int giA = k_baseA / GS;\n            Vec8 vA_0 = xv[(0 * K + k_baseA) / 8];\n            Vec8 vA_1 = xv[(1 * K + k_baseA) / 8];\n            Vec8 vA_2 = xv[(2 * K + k_baseA) / 8];\n            Vec8 vA_3 = xv[(3 * K + k_baseA) / 8];\n            uint32_t paA_0 = wq_z[(n0 + 0) * K_by_w + packA * 2]; uint32_t pbA_0 = wq_z[(n0 + 0) * K_by_w + packA * 2 + 1];\n            uint32_t paA_1 = wq_z[(n0 + 1) * K_by_w + packA * 2]; uint32_t pbA_1 = wq_z[(n0 + 1) * K_by_w + packA * 2 + 1];\n            uint32_t paA_2 = wq_z[(n0 + 2) * K_by_w + packA * 2]; uint32_t pbA_2 = wq_z[(n0 + 2) * K_by_w + packA * 2 + 1];\n            uint32_t paA_3 = wq_z[(n0 + 3) * K_by_w + packA * 2]; uint32_t pbA_3 = wq_z[(n0 + 3) * K_by_w + packA * 2 + 1];\n            float sA_0 = float(scales_z[(n0 + 0) * K_by_gs + giA]); float bA_0 = float(biases_z[(n0 + 0) * K_by_gs + giA]);\n            float sA_1 = float(scales_z[(n0 + 1) * K_by_gs + giA]); float bA_1 = float(biases_z[(n0 + 1) * K_by_gs + giA]);\n            float sA_2 = float(scales_z[(n0 + 2) * K_by_gs + giA]); float bA_2 = float(biases_z[(n0 + 2) * K_by_gs + giA]);\n            float sA_3 = float(scales_z[(n0 + 3) * K_by_gs + giA]); float bA_3 = float(biases_z[(n0 + 3) * K_by_gs + giA]);\n            {\n                uint32_t pa = paA_0;\n                uint32_t pb = pbA_0;\n                float s = sA_0;\n                float b = bA_0;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_z[0 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_z[0 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_z[0 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_z[0 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_z[0 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_z[0 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_z[0 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_z[0 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_1;\n                uint32_t pb = pbA_1;\n                float s = sA_1;\n                float b = bA_1;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_z[1 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_z[1 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_z[1 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_z[1 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_z[1 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_z[1 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_z[1 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_z[1 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_2;\n                uint32_t pb = pbA_2;\n                float s = sA_2;\n                float b = bA_2;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_z[2 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_z[2 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_z[2 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_z[2 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_z[2 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_z[2 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_z[2 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_z[2 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_3;\n                uint32_t pb = pbA_3;\n                float s = sA_3;\n                float b = bA_3;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_z[3 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_z[3 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_z[3 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_z[3 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_z[3 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_z[3 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_z[3 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_z[3 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n        }\n\n        _Pragma("unroll")\n        for (\n            int i = 0;\n            i < NACC;\n            ++i\n        ) {\n            acc_z[i] =\n                simd_sum(\n                    acc_z[i]\n                );\n        }\n    }\n\n    if (\n        part == 0 &&\n        lane == 0\n    ) {\n        _Pragma("unroll")\n        for (\n            int i = 0;\n            i < NACC;\n            ++i\n        ) {\n            partials[i] =\n                acc_z[i];\n        }\n    }\n\n    /*\n     * Both SIMD groups must reach this barrier.\n     * Only group 0 produced Z arithmetic.\n     */\n    threadgroup_barrier(\n        mem_flags::mem_threadgroup\n    );\n\n    if (\n        part == 0 &&\n        lane < NACC\n    ) {\n        float total =\n            0.0f;\n\n        _Pragma("unroll")\n        for (\n            int p = 0;\n            p < K_PARTS;\n            ++p\n        ) {\n            total +=\n                partials[\n                    p *\n                        NACC +\n                    int(lane)\n                ];\n        }\n\n        int j =\n            int(lane) /\n            MROWS;\n\n        int row =\n            int(lane) -\n            j * MROWS;\n\n        y_z[\n            row * N +\n            n0 +\n            j\n        ] =\n            T(total);\n    }\n}\n'
++
++_PIGGY_SOURCE = '\nusing namespace metal;\n\nconstexpr int GS = 64;\nconstexpr int MROWS = 4;\nconstexpr int NACC = 16;\nconstexpr int Q_TILES = 2560;\nconstexpr int Z_TILES = 1536;\n\nuint part =\n    simdgroup_index_in_threadgroup;\n\nuint lane =\n    thread_index_in_simdgroup;\n\nuint tg_n =\n    threadgroup_position_in_grid.y;\n\nint K =\n    int(K_size);\n\nint K_by_p =\n    K / 8;\n\nint K_by_w =\n    K / 4;\n\nint K_by_gs =\n    K / GS;\n\nusing Vec8 =\n    vec<T, 8>;\n\nconst device Vec8 *xv =\n    (const device Vec8*)x;\n\n/*\n * QKV KP2 needs 2 * NACC FP32 partials.\n *\n * Z reuses partials[0:NACC] only after QKV has finished\n * its reduction and global FP16 stores.\n */\nthreadgroup float partials[2 * NACC];\n\n\n/* ==========================================================\n * QKV\n *\n * Exact stock K_PARTS=2 structure.\n * ========================================================== */\n{\n    constexpr int K_PARTS = 2;\n\n    int N =\n        int(Nq_size);\n\n    int n0 =\n        int(tg_n) * 4;\n\n    int per_part =\n        K_by_p / K_PARTS;\n\n    int p_start =\n        int(part) * per_part;\n\n    int p_end =\n        (\n            int(part) ==\n            K_PARTS - 1\n        )\n            ? K_by_p\n            : p_start + per_part;\n\n    float acc_q[NACC];\n\n    _Pragma("unroll")\n    for (\n        int i = 0;\n        i < NACC;\n        ++i\n    ) {\n        acc_q[i] = 0.0f;\n    }\n\n    for (\n        int packA =\n            p_start + int(lane);\n        packA < p_end;\n        packA += 32\n    ) {\nint k_baseA = packA * 8;\n            int giA = k_baseA / GS;\n            Vec8 vA_0 = xv[(0 * K + k_baseA) / 8];\n            Vec8 vA_1 = xv[(1 * K + k_baseA) / 8];\n            Vec8 vA_2 = xv[(2 * K + k_baseA) / 8];\n            Vec8 vA_3 = xv[(3 * K + k_baseA) / 8];\n            uint32_t paA_0 = wq_q[(n0 + 0) * K_by_w + packA * 2]; uint32_t pbA_0 = wq_q[(n0 + 0) * K_by_w + packA * 2 + 1];\n            uint32_t paA_1 = wq_q[(n0 + 1) * K_by_w + packA * 2]; uint32_t pbA_1 = wq_q[(n0 + 1) * K_by_w + packA * 2 + 1];\n            uint32_t paA_2 = wq_q[(n0 + 2) * K_by_w + packA * 2]; uint32_t pbA_2 = wq_q[(n0 + 2) * K_by_w + packA * 2 + 1];\n            uint32_t paA_3 = wq_q[(n0 + 3) * K_by_w + packA * 2]; uint32_t pbA_3 = wq_q[(n0 + 3) * K_by_w + packA * 2 + 1];\n            float sA_0 = float(scales_q[(n0 + 0) * K_by_gs + giA]); float bA_0 = float(biases_q[(n0 + 0) * K_by_gs + giA]);\n            float sA_1 = float(scales_q[(n0 + 1) * K_by_gs + giA]); float bA_1 = float(biases_q[(n0 + 1) * K_by_gs + giA]);\n            float sA_2 = float(scales_q[(n0 + 2) * K_by_gs + giA]); float bA_2 = float(biases_q[(n0 + 2) * K_by_gs + giA]);\n            float sA_3 = float(scales_q[(n0 + 3) * K_by_gs + giA]); float bA_3 = float(biases_q[(n0 + 3) * K_by_gs + giA]);\n            {\n                uint32_t pa = paA_0;\n                uint32_t pb = pbA_0;\n                float s = sA_0;\n                float b = bA_0;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_q[0 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_q[0 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_q[0 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_q[0 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_q[0 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_q[0 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_q[0 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_q[0 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_1;\n                uint32_t pb = pbA_1;\n                float s = sA_1;\n                float b = bA_1;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_q[1 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_q[1 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_q[1 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_q[1 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_q[1 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_q[1 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_q[1 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_q[1 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_2;\n                uint32_t pb = pbA_2;\n                float s = sA_2;\n                float b = bA_2;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_q[2 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_q[2 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_q[2 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_q[2 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_q[2 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_q[2 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_q[2 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_q[2 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_3;\n                uint32_t pb = pbA_3;\n                float s = sA_3;\n                float b = bA_3;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_q[3 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_q[3 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_q[3 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_q[3 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_q[3 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_q[3 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_q[3 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_q[3 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n    }\n\n    _Pragma("unroll")\n    for (\n        int i = 0;\n        i < NACC;\n        ++i\n    ) {\n        acc_q[i] =\n            simd_sum(\n                acc_q[i]\n            );\n    }\n\n    if (lane == 0) {\n        _Pragma("unroll")\n        for (\n            int i = 0;\n            i < NACC;\n            ++i\n        ) {\n            partials[\n                int(part) *\n                    NACC +\n                i\n            ] =\n                acc_q[i];\n        }\n    }\n\n    threadgroup_barrier(\n        mem_flags::mem_threadgroup\n    );\n\n    if (\n        part == 0 &&\n        lane < NACC\n    ) {\n        float total =\n            0.0f;\n\n        _Pragma("unroll")\n        for (\n            int p = 0;\n            p < K_PARTS;\n            ++p\n        ) {\n            total +=\n                partials[\n                    p *\n                        NACC +\n                    int(lane)\n                ];\n        }\n\n        int j =\n            int(lane) /\n            MROWS;\n\n        int row =\n            int(lane) -\n            j * MROWS;\n\n        y_q[\n            row * N +\n            n0 +\n            j\n        ] =\n            T(total);\n    }\n}\n\n\n\n/* ==========================================================\n * P69B12-B1\n *\n * B/A piggyback on otherwise-idle SIMD group 1.\n *\n * QKV arithmetic above remains untouched.\n * Z arithmetic below remains untouched.\n *\n * Existing threadgroup:\n *   part 0 = Z KP1 worker\n *   part 1 = formerly idle\n *\n * Piggyback:\n *   tg_n  0..11 -> B rows 0..47\n *   tg_n 12..23 -> A rows 0..47\n *\n * One SIMD group computes four output rows, preserving\n * the exact SG2R4 per-SIMD arithmetic stream.\n * ========================================================== */\nif (\n    part == 1 &&\n    tg_n < uint(24)\n) {\n    constexpr int BA_N = 48;\n    constexpr int BA_ROWS = 4;\n    constexpr int BA_VALUES = 8;\n    constexpr int BA_BLOCK = 256;\n\n    bool use_a =\n        tg_n >= uint(12);\n\n    int ba_tile =\n        use_a\n            ? int(tg_n) - 12\n            : int(tg_n);\n\n    int ba_out_row =\n        ba_tile *\n        BA_ROWS;\n\n    const device uint8_t *wba =\n        use_a\n            ? (const device uint8_t *)w_a\n            : (const device uint8_t *)w_b;\n\n    const device T *sba =\n        use_a\n            ? scales_a\n            : scales_b;\n\n    const device T *bba =\n        use_a\n            ? biases_a\n            : biases_b;\n\n    device T *yba =\n        use_a\n            ? y_a\n            : y_b;\n\n    wba +=\n        ba_out_row * K +\n        int(lane) * BA_VALUES;\n\n    sba +=\n        ba_out_row * K_by_gs +\n        int(lane) / 8;\n\n    bba +=\n        ba_out_row * K_by_gs +\n        int(lane) / 8;\n\n    const device T *bx0 =\n        x +\n        int(lane) * BA_VALUES;\n\n    const device T *bx1 =\n        bx0 + K;\n\n    const device T *bx2 =\n        bx1 + K;\n\n    const device T *bx3 =\n        bx2 + K;\n\n    float br0[BA_ROWS] = {0};\n    float br1[BA_ROWS] = {0};\n    float br2[BA_ROWS] = {0};\n    float br3[BA_ROWS] = {0};\n\n    for (\n        int bk = 0;\n        bk < K;\n        bk += BA_BLOCK\n    ) {\n        float xv0[BA_VALUES];\n        float xv1[BA_VALUES];\n        float xv2[BA_VALUES];\n        float xv3[BA_VALUES];\n\n        float sum0 = 0.0f;\n        float sum1 = 0.0f;\n        float sum2 = 0.0f;\n        float sum3 = 0.0f;\n\n        _Pragma("unroll")\n        for (\n            int i = 0;\n            i < BA_VALUES;\n            ++i\n        ) {\n            float v0 =\n                float(\n                    bx0[i]\n                );\n\n            float v1 =\n                float(\n                    bx1[i]\n                );\n\n            float v2 =\n                float(\n                    bx2[i]\n                );\n\n            float v3 =\n                float(\n                    bx3[i]\n                );\n\n            sum0 += v0;\n            sum1 += v1;\n            sum2 += v2;\n            sum3 += v3;\n\n            xv0[i] = v0;\n            xv1[i] = v1;\n            xv2[i] = v2;\n            xv3[i] = v3;\n        }\n\n        _Pragma("unroll")\n        for (\n            int row = 0;\n            row < BA_ROWS;\n            ++row\n        ) {\n            const device uint8_t *wr =\n                wba +\n                row * K;\n\n            const device T *sr =\n                sba +\n                row * K_by_gs;\n\n            const device T *bbr =\n                bba +\n                row * K_by_gs;\n\n            float s =\n                float(\n                    sr[0]\n                );\n\n            float b =\n                float(\n                    bbr[0]\n                );\n\n            float a0 = 0.0f;\n            float a1 = 0.0f;\n            float a2 = 0.0f;\n            float a3 = 0.0f;\n\n            _Pragma("unroll")\n            for (\n                int i = 0;\n                i < BA_VALUES;\n                ++i\n            ) {\n                float q =\n                    float(\n                        wr[i]\n                    );\n\n                a0 +=\n                    xv0[i] *\n                    q;\n\n                a1 +=\n                    xv1[i] *\n                    q;\n\n                a2 +=\n                    xv2[i] *\n                    q;\n\n                a3 +=\n                    xv3[i] *\n                    q;\n            }\n\n            br0[row] +=\n                s * a0 +\n                sum0 * b;\n\n            br1[row] +=\n                s * a1 +\n                sum1 * b;\n\n            br2[row] +=\n                s * a2 +\n                sum2 * b;\n\n            br3[row] +=\n                s * a3 +\n                sum3 * b;\n        }\n\n        wba +=\n            BA_BLOCK;\n\n        sba +=\n            BA_BLOCK /\n            GS;\n\n        bba +=\n            BA_BLOCK /\n            GS;\n\n        bx0 +=\n            BA_BLOCK;\n\n        bx1 +=\n            BA_BLOCK;\n\n        bx2 +=\n            BA_BLOCK;\n\n        bx3 +=\n            BA_BLOCK;\n    }\n\n    _Pragma("unroll")\n    for (\n        int row = 0;\n        row < BA_ROWS;\n        ++row\n    ) {\n        br0[row] =\n            simd_sum(\n                br0[row]\n            );\n\n        br1[row] =\n            simd_sum(\n                br1[row]\n            );\n\n        br2[row] =\n            simd_sum(\n                br2[row]\n            );\n\n        br3[row] =\n            simd_sum(\n                br3[row]\n            );\n\n        if (lane == 0) {\n            int col =\n                ba_out_row +\n                row;\n\n            yba[\n                0 * BA_N +\n                col\n            ] =\n                T(\n                    br0[row]\n                );\n\n            yba[\n                1 * BA_N +\n                col\n            ] =\n                T(\n                    br1[row]\n                );\n\n            yba[\n                2 * BA_N +\n                col\n            ] =\n                T(\n                    br2[row]\n                );\n\n            yba[\n                3 * BA_N +\n                col\n            ] =\n                T(\n                    br3[row]\n                );\n        }\n    }\n}\n\n\n/* ==========================================================\n * Z\n *\n * Only QKV tile groups 0..1535 also own a Z tile.\n *\n * simdgroup 0 executes the exact stock KP1 traversal.\n * simdgroup 1 remains idle for arithmetic but participates\n * in the threadgroup barrier.\n * ========================================================== */\nif (tg_n < uint(Z_TILES)) {\n    constexpr int K_PARTS = 1;\n\n    int N =\n        int(Nz_size);\n\n    int n0 =\n        int(tg_n) * 4;\n\n    float acc_z[NACC];\n\n    _Pragma("unroll")\n    for (\n        int i = 0;\n        i < NACC;\n        ++i\n    ) {\n        acc_z[i] = 0.0f;\n    }\n\n    if (part == 0) {\n        int p_start =\n            0;\n\n        int p_end =\n            K_by_p;\n\n        for (\n            int packA =\n                p_start + int(lane);\n            packA < p_end;\n            packA += 32\n        ) {\nint k_baseA = packA * 8;\n            int giA = k_baseA / GS;\n            Vec8 vA_0 = xv[(0 * K + k_baseA) / 8];\n            Vec8 vA_1 = xv[(1 * K + k_baseA) / 8];\n            Vec8 vA_2 = xv[(2 * K + k_baseA) / 8];\n            Vec8 vA_3 = xv[(3 * K + k_baseA) / 8];\n            uint32_t paA_0 = wq_z[(n0 + 0) * K_by_w + packA * 2]; uint32_t pbA_0 = wq_z[(n0 + 0) * K_by_w + packA * 2 + 1];\n            uint32_t paA_1 = wq_z[(n0 + 1) * K_by_w + packA * 2]; uint32_t pbA_1 = wq_z[(n0 + 1) * K_by_w + packA * 2 + 1];\n            uint32_t paA_2 = wq_z[(n0 + 2) * K_by_w + packA * 2]; uint32_t pbA_2 = wq_z[(n0 + 2) * K_by_w + packA * 2 + 1];\n            uint32_t paA_3 = wq_z[(n0 + 3) * K_by_w + packA * 2]; uint32_t pbA_3 = wq_z[(n0 + 3) * K_by_w + packA * 2 + 1];\n            float sA_0 = float(scales_z[(n0 + 0) * K_by_gs + giA]); float bA_0 = float(biases_z[(n0 + 0) * K_by_gs + giA]);\n            float sA_1 = float(scales_z[(n0 + 1) * K_by_gs + giA]); float bA_1 = float(biases_z[(n0 + 1) * K_by_gs + giA]);\n            float sA_2 = float(scales_z[(n0 + 2) * K_by_gs + giA]); float bA_2 = float(biases_z[(n0 + 2) * K_by_gs + giA]);\n            float sA_3 = float(scales_z[(n0 + 3) * K_by_gs + giA]); float bA_3 = float(biases_z[(n0 + 3) * K_by_gs + giA]);\n            {\n                uint32_t pa = paA_0;\n                uint32_t pb = pbA_0;\n                float s = sA_0;\n                float b = bA_0;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_z[0 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_z[0 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_z[0 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_z[0 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_z[0 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_z[0 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_z[0 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_z[0 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_1;\n                uint32_t pb = pbA_1;\n                float s = sA_1;\n                float b = bA_1;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_z[1 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_z[1 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_z[1 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_z[1 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_z[1 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_z[1 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_z[1 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_z[1 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_2;\n                uint32_t pb = pbA_2;\n                float s = sA_2;\n                float b = bA_2;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_z[2 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_z[2 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_z[2 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_z[2 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_z[2 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_z[2 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_z[2 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_z[2 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n            {\n                uint32_t pa = paA_3;\n                uint32_t pb = pbA_3;\n                float s = sA_3;\n                float b = bA_3;\n                for (int ki = 0; ki < 4; ++ki) {\n                    float wa = float((pa >> (ki * 8)) & 0xFFu) * s + b;\n                    float wb = float((pb >> (ki * 8)) & 0xFFu) * s + b;\n                    acc_z[3 * 4 + 0] += float(vA_0[ki]) * wa;\n                    acc_z[3 * 4 + 0] += float(vA_0[ki + 4]) * wb;\n                    acc_z[3 * 4 + 1] += float(vA_1[ki]) * wa;\n                    acc_z[3 * 4 + 1] += float(vA_1[ki + 4]) * wb;\n                    acc_z[3 * 4 + 2] += float(vA_2[ki]) * wa;\n                    acc_z[3 * 4 + 2] += float(vA_2[ki + 4]) * wb;\n                    acc_z[3 * 4 + 3] += float(vA_3[ki]) * wa;\n                    acc_z[3 * 4 + 3] += float(vA_3[ki + 4]) * wb;\n                }\n            }\n        }\n\n        _Pragma("unroll")\n        for (\n            int i = 0;\n            i < NACC;\n            ++i\n        ) {\n            acc_z[i] =\n                simd_sum(\n                    acc_z[i]\n                );\n        }\n    }\n\n    if (\n        part == 0 &&\n        lane == 0\n    ) {\n        _Pragma("unroll")\n        for (\n            int i = 0;\n            i < NACC;\n            ++i\n        ) {\n            partials[i] =\n                acc_z[i];\n        }\n    }\n\n    /*\n     * Both SIMD groups must reach this barrier.\n     * Only group 0 produced Z arithmetic.\n     */\n    threadgroup_barrier(\n        mem_flags::mem_threadgroup\n    );\n\n    if (\n        part == 0 &&\n        lane < NACC\n    ) {\n        float total =\n            0.0f;\n\n        _Pragma("unroll")\n        for (\n            int p = 0;\n            p < K_PARTS;\n            ++p\n        ) {\n            total +=\n                partials[\n                    p *\n                        NACC +\n                    int(lane)\n                ];\n        }\n\n        int j =\n            int(lane) /\n            MROWS;\n\n        int row =\n            int(lane) -\n            j * MROWS;\n\n        y_z[\n            row * N +\n            n0 +\n            j\n        ] =\n            T(total);\n    }\n}\n'
+ 
+ if hashlib.sha256(Path(vq.__file__).resolve().read_bytes()).hexdigest() != EXPECTED_QMM_SHA:
+     raise RuntimeError(
+-        "P69B11 verifier-QMM SHA mismatch"
++        "P69B12 verifier-QMM SHA mismatch"
+     )
+ 
+ if hashlib.sha256(_SOURCE.encode()).hexdigest() != EXPECTED_SOURCE_SHA:
+     raise RuntimeError(
+-        "P69B11 embedded Metal source SHA mismatch"
++        "P69B12 base embedded Metal SHA mismatch"
++    )
++
++if hashlib.sha256(_PIGGY_SOURCE.encode()).hexdigest() != EXPECTED_PIGGY_SHA:
++    raise RuntimeError(
++        "P69B12 piggyback embedded Metal SHA mismatch"
+     )
+ 
+ 
+ def _kernel():
+-    global _KERNEL
+-
+-    if _KERNEL is None:
+-        _KERNEL = mx.fast.metal_kernel(
++    global _BASE_KERNEL
++
++    if _BASE_KERNEL is None:
++        _BASE_KERNEL = mx.fast.metal_kernel(
+             name=(
+-                "p69b11b3_"
+-                "qkv_kp2_z_kp1_"
++                "p69b12b2_"
++                "base_qkv_kp2_z_kp1_"
+                 "q8_gs64_m4"
+             ),
+             input_names=[
+@@ -123,6 +149,46 @@
+             source=_SOURCE,
+         )
+ 
++    return _BASE_KERNEL
++
++
++def _piggy_kernel():
++    global _KERNEL
++
++    if _KERNEL is None:
++        _KERNEL = mx.fast.metal_kernel(
++            name=(
++                "p69b12b2_"
++                "qkvz_ba_idle_simd_"
++                "q8_gs64_m4"
++            ),
++            input_names=[
++                "x",
++                "wq_q",
++                "scales_q",
++                "biases_q",
++                "wq_z",
++                "scales_z",
++                "biases_z",
++                "K_size",
++                "Nq_size",
++                "Nz_size",
++                "w_b",
++                "scales_b",
++                "biases_b",
++                "w_a",
++                "scales_a",
++                "biases_a",
++            ],
++            output_names=[
++                "y_q",
++                "y_z",
++                "y_b",
++                "y_a",
++            ],
++            source=_PIGGY_SOURCE,
++        )
++
+     return _KERNEL
+ 
+ 
+@@ -185,25 +251,24 @@
+     ):
+         return False
+ 
+-    q = linears[0]
+-    z = linears[1]
+-
+-    if _linear_kn(q) != (
+-        K,
+-        NQ,
+-    ):
+-        return False
+-
+-    if _linear_kn(z) != (
+-        K,
+-        NZ,
+-    ):
+-        return False
+-
+-    for linear in (
+-        q,
+-        z,
+-    ):
++    q, z, b, a = linears
++
++    expected = (
++        (q, NQ),
++        (z, NZ),
++        (b, NBA),
++        (a, NBA),
++    )
++
++    for linear, n in expected:
++        if _linear_kn(
++            linear
++        ) != (
++            K,
++            n,
++        ):
++            return False
++
+         if int(
+             linear.bits
+         ) != BITS:
+@@ -230,7 +295,7 @@
+     return True
+ 
+ 
+-def _candidate(
++def _run_base_qz(
+     q,
+     z,
+     x,
+@@ -242,7 +307,7 @@
+         for v in x.shape[:-1]
+     )
+ 
+-    yq, yz = kernel(
++    return kernel(
+         inputs=[
+             x,
+             q.weight,
+@@ -285,7 +350,77 @@
+         ],
+     )
+ 
+-    return yq, yz
++
++def _run_piggy(
++    q,
++    z,
++    b,
++    a,
++    x,
++):
++    kernel = _piggy_kernel()
++
++    prefix = tuple(
++        int(v)
++        for v in x.shape[:-1]
++    )
++
++    return kernel(
++        inputs=[
++            x,
++            q.weight,
++            q.scales,
++            q.biases,
++            z.weight,
++            z.scales,
++            z.biases,
++            K,
++            NQ,
++            NZ,
++            b.weight,
++            b.scales,
++            b.biases,
++            a.weight,
++            a.scales,
++            a.biases,
++        ],
++        template=[
++            (
++                "T",
++                mx.float16,
++            ),
++        ],
++        grid=(
++            64,
++            Q_TILES,
++            1,
++        ),
++        threadgroup=(
++            64,
++            1,
++            1,
++        ),
++        output_shapes=[
++            prefix + (
++                NQ,
++            ),
++            prefix + (
++                NZ,
++            ),
++            prefix + (
++                NBA,
++            ),
++            prefix + (
++                NBA,
++            ),
++        ],
++        output_dtypes=[
++            mx.float16,
++            mx.float16,
++            mx.float16,
++            mx.float16,
++        ],
++    )
+ 
+ 
+ def apply(q35_lang):
+@@ -319,54 +454,99 @@
+                 target_verify,
+             )
+ 
+-        q = linears[0]
+-        z = linears[1]
+-
+-        yq, yz = _candidate(
++        q, z, b, a = linears
++
++        if not _PIGGY_ENABLED:
++            yq, yz = _run_base_qz(
++                q,
++                z,
++                x,
++            )
++
++            yb, ya = original(
++                linears[2:],
++                x,
++                target_verify,
++            )
++
++            return (
++                yq,
++                yz,
++                yb,
++                ya,
++            )
++
++        yq, yz, yb, ya = _run_piggy(
+             q,
+             z,
++            b,
++            a,
+             x,
+         )
+ 
+-        # First real CAND invocation is a model-weight
+-        # bit-exactness gate. It occurs during warmup and is
+-        # never repeated in measured steady state.
+         if not _EXACT_DONE:
+-            stock_q, stock_z = original(
+-                linears[:2],
++            rq, rz = _run_base_qz(
++                q,
++                z,
++                x,
++            )
++
++            rb, ra = original(
++                linears[2:],
+                 x,
+                 target_verify,
+             )
+ 
+             mx.eval(
+-                stock_q,
+-                stock_z,
++                rq,
++                rz,
++                rb,
++                ra,
+                 yq,
+                 yz,
++                yb,
++                ya,
+             )
+ 
+             q_exact = bool(
+                 mx.array_equal(
+-                    stock_q,
++                    rq,
+                     yq,
+                 ).item()
+             )
+ 
+             z_exact = bool(
+                 mx.array_equal(
+-                    stock_z,
++                    rz,
+                     yz,
+                 ).item()
+             )
+ 
+-            if not q_exact:
++            b_exact = bool(
++                mx.array_equal(
++                    rb,
++                    yb,
++                ).item()
++            )
++
++            a_exact = bool(
++                mx.array_equal(
++                    ra,
++                    ya,
++                ).item()
++            )
++
++            if not all(
++                (
++                    q_exact,
++                    z_exact,
++                    b_exact,
++                    a_exact,
++                )
++            ):
+                 raise RuntimeError(
+-                    "P69B11-B3 QKV actual-weight exactness failed"
+-                )
+-
+-            if not z_exact:
+-                raise RuntimeError(
+-                    "P69B11-B3 Z actual-weight exactness failed"
++                    "P69B12-B2 actual-weight "
++                    "exactness failed"
+                 )
+ 
+             _EXACT_DONE = True
+@@ -377,11 +557,10 @@
+                 "QKP=2 ZKP=1"
+             )
+ 
+-        b, a = original(
+-            linears[2:],
+-            x,
+-            target_verify,
+-        )
++            logger.warning(
++                "P69B12_B3_EXACT_PASS "
++                "QKV=1 Z=1 B=1 A=1"
++            )
+ 
+         _ENGAGE_COUNT += 1
+ 
+@@ -395,11 +574,20 @@
+                 _ENGAGE_COUNT,
+             )
+ 
++            logger.warning(
++                "P69B12_B3_ENGAGED "
++                "count=%d "
++                "BA_N=48 "
++                "piggy_groups=24 "
++                "piggy_simd=1",
++                _ENGAGE_COUNT,
++            )
++
+         return (
+             yq,
+             yz,
+-            b,
+-            a,
++            yb,
++            ya,
+         )
+ 
+     q35_lang._target_verify_linears = wrapped
+@@ -411,3 +599,9 @@
+         "enabled=%d",
+         int(_ENABLED),
+     )
++
++    logger.warning(
++        "P69B12_B3_PATCH "
++        "enabled=%d",
++        int(_PIGGY_ENABLED),
++    )

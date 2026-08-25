@@ -7,6 +7,7 @@ BRANCH="project51-q8-verifier"
 P58_PATCH="$REPO/experiments/p51-q8-verifier/patches/0011-p58-fp16-gdn-verify-prework.patch"
 P69B6_PATCH="$REPO/experiments/p51-q8-verifier/patches/0014-p69b6-dual64-q8-mlp.patch"
 P69B11_PATCH="$REPO/experiments/p51-q8-verifier/patches/0015-p69b11-qkvz-dual.patch"
+P69B12_PATCH="$REPO/experiments/p51-q8-verifier/patches/0016-p69b12-ba-piggyback.patch"
 VERIFY="$REPO/experiments/p51-q8-verifier/scripts/verify-promoted-stack.sh"
 
 fail() {
@@ -30,6 +31,7 @@ git fetch --quiet fork "$BRANCH"
 [[ -f "$P58_PATCH" ]] || fail "missing P58 patch"
 [[ -f "$P69B6_PATCH" ]] || fail "missing P69B6 patch"
 [[ -f "$P69B11_PATCH" ]] || fail "missing P69B11 patch"
+[[ -f "$P69B12_PATCH" ]] || fail "missing P69B12 patch"
 [[ -f "$VERIFY" ]] || fail "validator is missing"
 
 OMLX_CMD="$(command -v omlx || true)"
@@ -165,6 +167,20 @@ if [[ "$QKVZ_VLMRT_HAS" -ne "$QKVZ_HAS" ]]; then
     fail "partial P69B11 runtime state; refusing automatic overwrite"
 fi
 
+P69B12_HAS=0
+
+if [[ "$QKVZ_HAS" -eq 1 ]] && \
+   grep -Fq "OMLX_VERIFY_GDN_BA_PIGGYBACK" \
+       "$STAGE/omlx/patches/qwen35_qkvz_dual.py" && \
+   grep -Fq "P69B12_B3_PATCH" \
+       "$STAGE/omlx/patches/qwen35_qkvz_dual.py" && \
+   grep -Fq "_PIGGY_SOURCE" \
+       "$STAGE/omlx/patches/qwen35_qkvz_dual.py"; then
+    P69B12_HAS=1
+fi
+
+echo "P69B12_MODULE_PRESENT=$P69B12_HAS"
+
 if [[ "$P58_STATE" == "PRE" ]]; then
     echo "===== STAGE P58 RESTORE ====="
     (
@@ -193,6 +209,16 @@ if [[ "$QKVZ_VLMRT_HAS" -eq 0 ]]; then
     )
 else
     echo "P69B11 already present; no staged change"
+fi
+
+if [[ "$P69B12_HAS" -eq 0 ]]; then
+    echo "===== STAGE P69B12 RESTORE ====="
+    (
+        cd "$STAGE"
+        patch --batch --forward -p1 < "$P69B12_PATCH"
+    )
+else
+    echo "P69B12 already present; no staged change"
 fi
 
 echo "===== VERIFY STAGED PYTHON SOURCES ====="
@@ -236,9 +262,13 @@ for token in ("qwen35_dual64_mlp", "_apply_p69b6_dual64_mlp"):
 qkvzs = qkvz.read_text()
 for token in (
     "OMLX_VERIFY_GDN_QKVZ_DUAL",
+    "OMLX_VERIFY_GDN_BA_PIGGYBACK",
     "P69B11_B3_QKVZ_DUAL",
     "P69B11_B3_EXACT_PASS",
     "P69B11_B3_ENGAGED",
+    "P69B12_B3_PATCH",
+    "P69B12_B3_EXACT_PASS",
+    "P69B12_B3_ENGAGED",
 ):
     if token not in qkvzs:
         raise SystemExit(f"staged P69B11 token missing: {token}")
@@ -264,7 +294,9 @@ for node in tree.body:
 
 for name in (
     "_ENABLED",
+    "_PIGGY_ENABLED",
     "_KERNEL",
+    "_BASE_KERNEL",
     "_EXACT_DONE",
     "_ENGAGE_COUNT",
 ):
@@ -289,6 +321,40 @@ if source is None:
 source_sha = hashlib.sha256(source.encode()).hexdigest()
 if source_sha != "e11dd85965c264cdd9b415348d0c2bd9d19ae2cfd20ce1a7ad1654d740bc8508":
     raise SystemExit("staged P69B11 embedded Metal SHA mismatch")
+
+piggy_source = None
+
+for node in tree.body:
+    if isinstance(node, ast.Assign):
+        if any(
+            isinstance(t, ast.Name)
+            and t.id == "_PIGGY_SOURCE"
+            for t in node.targets
+        ):
+            piggy_source = ast.literal_eval(node.value)
+            break
+
+if piggy_source is None:
+    raise SystemExit(
+        "staged P69B12 embedded _PIGGY_SOURCE missing"
+    )
+
+piggy_source_sha = hashlib.sha256(
+    piggy_source.encode()
+).hexdigest()
+
+if piggy_source_sha != (
+    "dc30e64adbbd82eac7fc423137ca8b15"
+    "a6727d3cecab662d1eb28033eb36142a"
+):
+    raise SystemExit(
+        "staged P69B12 embedded Metal SHA mismatch"
+    )
+
+print(
+    "staged_p69b12_piggy_sha256="
+    + piggy_source_sha
+)
 
 print("STAGED_RUNTIME_PASS")
 PY
