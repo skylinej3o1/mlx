@@ -9,18 +9,20 @@ live.
 
 ## Why this exists
 
-The project has two independent state domains:
+This project has four independently drifting state domains:
 
-1. the Git checkout / fork, including MLX source changes and recorded patches;
-2. installed runtime state, especially the Homebrew `omlx` package and the
-   imported/compiled MLX package used by the benchmark environment.
+1. Git checkout / fork and recorded source patches;
+2. the Python-3.14 `mlx-dspark` compiled MLX runtime;
+3. the Python-3.11 MLX runtime actually owned by `/opt/homebrew/bin/omlx`;
+4. Homebrew oMLX Python-side runtime patches.
 
-A clean Git checkout does not prove that the Homebrew package still contains
-promoted Python-side patches. A package reinstall, refresh, experimental source
-restoration, or an in-place MLX source change without a native rebuild can make
-live runtime state diverge from Git without making the worktree dirty.
+A clean Git checkout does not prove any compiled or installed runtime still
+matches the promoted source. Package refreshes, source restoration, or source
+changes without a native rebuild can make live runtime state diverge from Git
+without dirtying the worktree.
 
-Therefore every new terminal and every new chat must validate both domains.
+Therefore every new terminal and every new chat must run the canonical
+promoted-stack validator before benchmarking.
 
 ## Canonical runtime ownership
 
@@ -30,6 +32,13 @@ Therefore every new terminal and every new chat must validate both domains.
 venv: /Users/skylinej17/.venvs/mlx-dspark
 repo: ~/src/mlx-m1-qmv
 branch: project51-q8-verifier
+venv Python: 3.14.x
+```
+
+The venv imports repo-local MLX native outputs under:
+
+```text
+~/src/mlx-m1-qmv/python/mlx/
 ```
 
 ### Homebrew oMLX
@@ -38,11 +47,17 @@ branch: project51-q8-verifier
 command: /opt/homebrew/bin/omlx
 version: 0.6.3rc2
 owning Python: /opt/homebrew/Cellar/omlx/0.6.3rc2/libexec/bin/python3.11
-mlx-vlm in oMLX runtime: 0.6.3
-mlx in oMLX runtime: 0.32.0
+mlx-vlm metadata in oMLX runtime: 0.6.3
+mlx metadata in oMLX runtime: 0.32.0
 ```
 
-Do not assume the activated `mlx-dspark` Python owns `omlx`.
+The actual oMLX process owns a separate CPython-3.11 MLX extension and native
+library set under its `libexec` site-packages. It does **not** automatically use
+the Python-3.14 repo-local `core.so` merely because the shell venv was
+activated.
+
+Never copy a CPython-3.14 extension into the Python-3.11 runtime. Both ABIs must
+be built separately from the same promoted source.
 
 ## Current promoted verifier stack
 
@@ -69,13 +84,7 @@ Recorded patch:
 experiments/p51-q8-verifier/patches/0011-p58-fp16-gdn-verify-prework.patch
 ```
 
-Live file:
-
-```text
-.../site-packages/omlx/patches/qwen35_gdn_prework.py
-```
-
-Required structural signatures include:
+Required live signatures include:
 
 ```text
 OMLX_GDN_VERIFY_PREWORK_FP16
@@ -85,7 +94,7 @@ self.conv1d.weight.dtype != inputs.dtype
 dtype=inputs.dtype
 ```
 
-### P61 — MLX source and compiled/imported MLX runtime
+### P61 — MLX source plus both compiled MLX ABIs
 
 Recorded patch:
 
@@ -93,17 +102,19 @@ Recorded patch:
 experiments/p51-q8-verifier/patches/0013-p61-headpair-hpt2-sdpa.patch
 ```
 
-Required source/runtime signatures include:
+Required host / Metal signatures:
 
 ```text
 MLX_SDPA_GQA6_M4_HPT2_HEADPAIR
 sdpa_vector_2pass_1_gqa6_m4_hpt2_headpair
 ```
 
-The validator checks both the repository source and the imported MLX package
-for the compiled gate string.
+These must exist in both:
 
-### P69B3 — MLX source and compiled/imported MLX runtime
+- the Python-3.14 venv `libmlx.dylib` / `mlx.metallib`;
+- the Python-3.11 oMLX-owned `libmlx.dylib` / `mlx.metallib`.
+
+### P69B3 — MLX source plus both compiled MLX ABIs
 
 Recorded patch:
 
@@ -111,11 +122,11 @@ Recorded patch:
 experiments/p51-q8-verifier/patches/0012-p69b-q8-m4-shared-weight-sg2r4.patch
 ```
 
-Required source/runtime signatures include:
+Required host / Metal signatures:
 
 ```text
 MLX_P69B2_Q8_M4_SHARED
-P69B2B_Q8_M4_SHARED_WEIGHT
+affine_qmv_fast_m4_q8_shared_sg2r4
 ```
 
 The promoted runtime value is `sg2r4`.
@@ -138,14 +149,16 @@ P69B6_E4_DUAL64
 _apply_p69b6_dual64_mlp
 ```
 
-Important: the Metal kernel name is represented in the Python source as two
-adjacent string literals. Do not validate the source by searching for the
-concatenated runtime kernel name as one contiguous source token.
+The Metal kernel name is represented as two adjacent Python string literals;
+do not validate the source by requiring the concatenated runtime name as one
+contiguous source token.
 
-## 2026-08-25 runtime-drift incident
+## 2026-08-25 runtime-drift incidents
 
-While beginning P69B11-A, Git was clean and synchronized, but the live
-Homebrew file `qwen35_gdn_prework.py` was discovered to be pre-P58.
+### Incident 1 — P58 Homebrew source drift
+
+While beginning P69B11-A, Git was clean and synchronized, but live
+`qwen35_gdn_prework.py` was pre-P58.
 
 Observed pre-P58 SHA256:
 
@@ -159,103 +172,99 @@ Recorded P58 patch SHA256:
 f3e3a99a8caf363821570db10b7d73d00aed0cdca4af8628a299fa5c3eb95c02
 ```
 
-The live source had:
-
-- zero `OMLX_GDN_VERIFY_PREWORK_FP16` occurrences;
-- zero `mx.float16` occurrences;
-- the old BF16-only eligibility checks.
-
-The new validator then exposed a second independent drift domain: repository
-MLX source contained P61/P69B3, while the imported native `libmlx.dylib` had
-been built before those promoted source changes. The source checkout was clean,
-but the compiled runtime lacked the promoted gate markers.
-
-This proves Git cleanliness alone is insufficient for this project. The cause
-of the earlier Homebrew overwrite was not established and must not be guessed.
-
-### Recovery completed
-
-The recovery path was exercised end-to-end on 2026-08-25.
-
-Compiled MLX was rebuilt in place from the synchronized promoted source and
-then verified to contain both compiled markers in:
+P58 was restored successfully. Current restored live SHA256:
 
 ```text
-~/src/mlx-m1-qmv/python/mlx/lib/libmlx.dylib
-```
-
-Verified compiled markers:
-
-```text
-MLX_P69B2_Q8_M4_SHARED
-MLX_SDPA_GQA6_M4_HPT2_HEADPAIR
-```
-
-Homebrew-side promoted runtime was restored and verified with these live
-SHA256 fingerprints:
-
-```text
-P58 qwen35_gdn_prework.py:
 2706ed6443c748026acd813c266c8c18eef9157adb5950036b5cba0c0cbda6b5
-
-P69B6 qwen35_vlm_runtime.py wrapper:
-4d684aa135ba535333717218d540316e6d05f436d749e9f8f39291da08beb435
-
-P69B6 qwen35_dual64_mlp.py:
-8f76c8afaee9027bcde2a52cf7457ca83f73bfcffd8ceff37cd16bd428f5c42a
 ```
 
-At Git checkpoint:
+### Incident 2 — Python-3.14 compiled MLX drift
+
+Repository MLX source contained P61/P69B3 while the venv-imported native
+`libmlx.dylib` had been built before those changes. The repo source was clean,
+but the compiled runtime lacked both promoted host markers.
+
+The current source was rebuilt in place under Python 3.14. The rebuilt venv
+runtime then exposed both promoted markers and passed the original compiled
+runtime gate.
+
+### Incident 3 — actual oMLX executable owned a second stale MLX build
+
+P69B11-B1 provenance capture revealed that `/opt/homebrew/bin/omlx` does not
+use the Python-3.14 extension. Its shebang launches:
 
 ```text
-d1a9f311786dda74910cff4ad275a2e9bef3e262
+/opt/homebrew/Cellar/omlx/0.6.3rc2/libexec/bin/python3.11
 ```
 
-the canonical validator completed with:
+That interpreter imported:
 
 ```text
-GIT_DOMAIN_PASS
-REPO_MLX_SOURCE_PASS
-COMPILED_MLX_RUNTIME_PASS
-P58_RUNTIME_PASS
-P69B6_RUNTIME_PASS
-HOMEBREW_OMLX_RUNTIME_PASS
-PROMOTED_STACK_PASS
-PROMOTED_STACK_RESTORE_PASS
+.../site-packages/mlx/core.cpython-311-darwin.so
 ```
 
-This is the first fully validated dual-domain promoted-stack checkpoint after
-the drift incident.
+B1 observed:
+
+```text
+homebrew_P69B3_compiled_hits=[]
+homebrew_P61_compiled_hits=[]
+```
+
+Therefore the earlier validator's `PROMOTED_STACK_PASS` was insufficient: it
+proved the venv compiled MLX runtime, P58, and P69B6, but not the compiled MLX
+runtime actually used by the oMLX executable.
+
+This is now treated as a distinct ABI/state domain.
+
+## P69B11-B1 exact source capture
+
+B1 successfully captured the exact Homebrew verifier-QMM implementation:
+
+```text
+omlx/patches/qwen35_verify_qmm.py
+SHA256: 9375a8f380f14803075605c971533fa34a5ad08ff5b6c2e8bf2c029db4fbc2f8
+```
+
+Verified verifier shapes / routing contract:
+
+```text
+QKV: M4 K5120 N10240 Q8 GS64 KP2
+Z:   M4 K5120 N6144  Q8 GS64 KP1
+```
+
+The stock split-K kernel performs:
+
+- independent per-projection Q8 traversal;
+- FP32 accumulation;
+- `simd_sum` within each K part;
+- threadgroup partial storage;
+- ordered reduction `p=0..K_PARTS-1`;
+- FP16 output store.
+
+P69B11-B must preserve independently:
+
+- QKV KP2 traversal/reduction order;
+- Z KP1 traversal/reduction order;
+- separate FP16 projection output boundaries.
+
+Do **not** implement a homogeneous N16384 concatenated QMM.
+
+B1 artifact:
+
+```text
+~/src/mlx-m1-qmv-artifacts/p69/p69b11b1-exact-qmm-source.txt
+SHA256: 0fb8ea5251d4433475d23fc127708c759bf8b6fe0e1eeed91f7f39edc56d1a82
+```
 
 ## Current experiment handoff
 
-P69B11-A selected the next candidate from the remaining measured high-leverage
-structure:
+**P69B11-B2 is paused until the actual oMLX-owned Python-3.11 MLX runtime
+contains P61 and P69B3 and the strengthened validator returns
+`PROMOTED_STACK_PASS`.**
 
-**asymmetric GDN QKV + Z input-projection bundle**.
+After that pass, continue directly to:
 
-The exact installed Qwen3.5 source confirmed both projections consume the same
-GDN input through `_target_verify_linears`.
-
-Measured frozen verifier populations remain:
-
-- QKV: M4 K5120 N10240 Q8 GS64 KP2, 48 calls/cycle;
-- Z: M4 K5120 N6144 Q8 GS64 KP1, 48 calls/cycle.
-
-The verifier-QMM router and K-parts machinery were also confirmed in the exact
-Homebrew oMLX runtime.
-
-P69B11-B must preserve:
-
-- QKV KP2 reduction/arithmetic order;
-- Z KP1 reduction/arithmetic order;
-- independent FP16 projection output boundaries.
-
-Do **not** implement a naive homogeneous N16384 concatenated QMM.
-
-The promoted-stack gate is now satisfied. The next experiment is:
-
-**P69B11-B — asymmetric KP2-QKV + KP1-Z bundled projection isolated exactness
+**P69B11-B2 — single-dispatch asymmetric KP2-QKV + KP1-Z isolated exactness
 and balanced microbenchmark.**
 
 Do not rerun P69B7 profiling and do not reopen P69B8, P69B9, or P69B10-C.
@@ -268,23 +277,23 @@ Validate all state domains:
 bash experiments/p51-q8-verifier/scripts/verify-promoted-stack.sh
 ```
 
-Repair Homebrew Python-side P58/P69B6 drift, then revalidate:
-
-```bash
-bash experiments/p51-q8-verifier/scripts/restore-promoted-stack.sh
-```
-
-Rebuild repository MLX source into the imported native runtime when the
-compiled-domain markers are stale:
+Repair Python-3.14 repo-local compiled MLX drift:
 
 ```bash
 bash experiments/p51-q8-verifier/scripts/rebuild-promoted-mlx.sh
 ```
 
-The Homebrew restore script intentionally refuses to conceal Git/source or
-compiled MLX runtime drift. Compiled-domain failure requires the controlled
-native rebuild path; Git-domain failure requires synchronization/checkpoint
-repair.
+Repair the actual oMLX-owned Python-3.11 compiled MLX runtime:
+
+```bash
+bash experiments/p51-q8-verifier/scripts/rebuild-omlx-owned-mlx.sh
+```
+
+Repair Homebrew Python-side P58/P69B6 drift:
+
+```bash
+bash experiments/p51-q8-verifier/scripts/restore-promoted-stack.sh
+```
 
 ## Checkpoint discipline
 
