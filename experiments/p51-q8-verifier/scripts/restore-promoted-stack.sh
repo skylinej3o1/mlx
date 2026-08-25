@@ -150,7 +150,11 @@ QKVZ_VLMRT_HAS=0
 QKVZ_HAS=0
 grep -Fq "_apply_p69b11_qkvz_dual" "$STAGE/omlx/patches/mlx_vlm_mtp/qwen35_vlm_runtime.py" && QKVZ_VLMRT_HAS=1 || true
 if [[ -f "$STAGE/omlx/patches/qwen35_qkvz_dual.py" ]] && \
-   grep -Fq "OMLX_VERIFY_GDN_QKVZ_DUAL" "$STAGE/omlx/patches/qwen35_qkvz_dual.py"; then
+   grep -Fq "OMLX_VERIFY_GDN_QKVZ_DUAL" "$STAGE/omlx/patches/qwen35_qkvz_dual.py" && \
+   grep -Fq "_ENABLED" "$STAGE/omlx/patches/qwen35_qkvz_dual.py" && \
+   grep -Fq "_KERNEL" "$STAGE/omlx/patches/qwen35_qkvz_dual.py" && \
+   grep -Fq "_EXACT_DONE" "$STAGE/omlx/patches/qwen35_qkvz_dual.py" && \
+   grep -Fq "_ENGAGE_COUNT" "$STAGE/omlx/patches/qwen35_qkvz_dual.py"; then
     QKVZ_HAS=1
 fi
 
@@ -246,6 +250,29 @@ import ast
 import hashlib
 
 tree = ast.parse(qkvzs)
+
+assigned_state = set()
+
+for node in tree.body:
+    if isinstance(node, ast.Assign):
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                assigned_state.add(target.id)
+    elif isinstance(node, ast.AnnAssign):
+        if isinstance(node.target, ast.Name):
+            assigned_state.add(node.target.id)
+
+for name in (
+    "_ENABLED",
+    "_KERNEL",
+    "_EXACT_DONE",
+    "_ENGAGE_COUNT",
+):
+    if name not in assigned_state:
+        raise SystemExit(
+            f"staged P69B11 state assignment missing: {name}"
+        )
+
 source = None
 for node in tree.body:
     if isinstance(node, ast.Assign):

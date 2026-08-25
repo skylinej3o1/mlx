@@ -198,8 +198,68 @@ start = s.index("SOURCE_PATH = Path.home()")
 end_token = "_SOURCE = _load_source()\n"
 end = s.index(end_token, start) + len(end_token)
 
+state_names = (
+    "_ENABLED",
+    "_KERNEL",
+    "_EXACT_DONE",
+    "_ENGAGE_COUNT",
+)
+
+cert_tree = ast.parse(s)
+state_parts = {}
+
+for node in cert_tree.body:
+    if not isinstance(
+        node,
+        (ast.Assign, ast.AnnAssign),
+    ):
+        continue
+
+    names = []
+
+    if isinstance(node, ast.Assign):
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                names.append(target.id)
+    else:
+        if isinstance(node.target, ast.Name):
+            names.append(node.target.id)
+
+    for name in names:
+        if name in state_names:
+            segment = ast.get_source_segment(
+                s,
+                node,
+            )
+
+            if not segment:
+                raise SystemExit(
+                    f"cannot preserve state {name}"
+                )
+
+            state_parts[name] = segment
+
+missing_state = [
+    name
+    for name in state_names
+    if name not in state_parts
+]
+
+if missing_state:
+    raise SystemExit(
+        "certified state assignment(s) missing: "
+        + ", ".join(missing_state)
+    )
+
+state_block = "\n\n".join(
+    state_parts[name]
+    for name in state_names
+)
+
 replacement = (
-    "_SOURCE = " + repr(metal) + "\n\n"
+    state_block
+    + "\n\n"
+    + "_SOURCE = " + repr(metal) + "\n\n"
     "if hashlib.sha256(Path(vq.__file__).resolve().read_bytes()).hexdigest() != EXPECTED_QMM_SHA:\n"
     "    raise RuntimeError(\n"
     "        \"P69B11 verifier-QMM SHA mismatch\"\n"
@@ -230,6 +290,30 @@ compile(packaged, str(out_path), "exec")
 out_path.write_text(packaged)
 
 tree = ast.parse(packaged)
+
+assigned_state = set()
+
+for node in tree.body:
+    if isinstance(node, ast.Assign):
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                assigned_state.add(target.id)
+    elif isinstance(node, ast.AnnAssign):
+        if isinstance(node.target, ast.Name):
+            assigned_state.add(node.target.id)
+
+missing_state = [
+    name
+    for name in state_names
+    if name not in assigned_state
+]
+
+if missing_state:
+    raise SystemExit(
+        "packaged state assignment(s) missing: "
+        + ", ".join(missing_state)
+    )
+
 source_value = None
 for node in tree.body:
     if isinstance(node, ast.Assign):

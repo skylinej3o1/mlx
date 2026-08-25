@@ -86,3 +86,15 @@ Do not rerun P69B7 profiling.
 existing P69B7/P69B10 measurements. Do not rerun profiling.**
 
 Start from the now-promoted P58/P61/P69B3/P69B6/P69B11 stack.
+
+## P69B11 packaging repair
+
+B4 remains certified. A permanent promotion-packaging defect stripped
+four runtime state assignments from the packaged module and caused the
+dense VLM runtime patch to raise during startup, triggering LLM
+fallback.
+
+The durable patch, promoter, restorer, and validator now preserve and
+verify the certified runtime state.
+
+Immediate next step: absolute frozen 29,297-token champion measurement.

@@ -8681,3 +8681,21 @@ Runtime gate:
 
 Next work is P69B12: select the next remaining verifier seam from existing
 P69B7/P69B10 measurements without rerunning profiling.
+
+### P69B11 packaging-state repair
+
+The first absolute permanent-stack warmup exposed a promotion-only
+packaging defect. The P69B11 module lost four certified module state
+assignments: `_ENABLED`, `_KERNEL`, `_EXACT_DONE`, and
+`_ENGAGE_COUNT`.
+
+The B2/B3/B4 certification remains valid; this does not rerun or alter
+the certified algorithm. The promoter now preserves those exact
+assignments from the completed certified B4 module.
+
+The canonical validator now requires all four state assignments and
+executes the dense Qwen3.5 runtime hook, preventing the previous
+false-positive static runtime pass.
+
+Next: rerun the single frozen 29,297-token absolute champion
+measurement before P69B12.

@@ -188,6 +188,7 @@ echo "===== HOMEBREW OMLX PYTHON PATCH DOMAIN ====="
     cd /tmp
     env -u PYTHONPATH "$OMLX_PY" - <<'PY'
 from pathlib import Path
+import ast
 import importlib.metadata as md
 import omlx
 
@@ -258,6 +259,30 @@ if not qkvz.is_file():
 
 qkvzs = qkvz.read_text()
 
+qkvz_tree = ast.parse(qkvzs)
+qkvz_assigned = set()
+
+for node in qkvz_tree.body:
+    if isinstance(node, ast.Assign):
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                qkvz_assigned.add(target.id)
+    elif isinstance(node, ast.AnnAssign):
+        if isinstance(node.target, ast.Name):
+            qkvz_assigned.add(node.target.id)
+
+for name in (
+    "_ENABLED",
+    "_KERNEL",
+    "_EXACT_DONE",
+    "_ENGAGE_COUNT",
+):
+    if name not in qkvz_assigned:
+        raise SystemExit(
+            f"PROMOTED_STACK_FAIL: "
+            f"P69B11 state assignment missing: {name}"
+        )
+
 for token in (
     "OMLX_VERIFY_GDN_QKVZ_DUAL",
     "P69B11_B3_QKVZ_DUAL",
@@ -295,6 +320,31 @@ if source_sha != (
         "PROMOTED_STACK_FAIL: P69B11 embedded Metal source SHA mismatch"
     )
 
+from omlx.patches.mlx_vlm_mtp import (
+    qwen35_vlm_runtime as q35_dense_runtime,
+)
+
+if not q35_dense_runtime.apply():
+    raise SystemExit(
+        "PROMOTED_STACK_FAIL: "
+        "dense Qwen3.5 runtime hook did not apply"
+    )
+
+from mlx_vlm.models.qwen3_5 import (
+    language as q35_lang,
+)
+
+if not getattr(
+    q35_lang,
+    "_p69b11_b3_qkvz_dual",
+    False,
+):
+    raise SystemExit(
+        "PROMOTED_STACK_FAIL: "
+        "P69B11 dense hook not installed"
+    )
+
+print("P69B11_DENSE_HOOK_PASS")
 print("P69B11_RUNTIME_PASS")
 print("HOMEBREW_OMLX_RUNTIME_PASS")
 PY
