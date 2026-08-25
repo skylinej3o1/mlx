@@ -28,7 +28,7 @@ git fetch --quiet fork "$BRANCH"
 
 [[ -f "$P58_PATCH" ]] || fail "missing P58 patch"
 [[ -f "$P69B6_PATCH" ]] || fail "missing P69B6 patch"
-[[ -x "$VERIFY" ]] || fail "validator is missing or not executable"
+[[ -f "$VERIFY" ]] || fail "validator is missing"
 
 OMLX_CMD="$(command -v omlx || true)"
 [[ -n "$OMLX_CMD" ]] || fail "omlx command not found"
