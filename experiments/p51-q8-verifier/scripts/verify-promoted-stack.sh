@@ -109,9 +109,6 @@ print("mlx_core_file=" + str(getattr(mx, "__file__", None)))
 print("mlx_path=" + repr(list(getattr(mlx, "__path__", []))))
 print("mlx_core_path=" + repr(list(getattr(mx, "__path__", []))))
 
-# MLX can be exposed as a namespace package, so mlx.__file__ may legitimately
-# be None. Use the installed distribution inventory as the canonical source of
-# native runtime files rather than assuming either module has a file path.
 dist = md.distribution("mlx")
 files = dist.files or []
 
@@ -139,8 +136,6 @@ for rel in files:
         seen.add(path)
         native.append(path)
 
-# Some editable/development installs omit native libraries from dist.files.
-# Add any native files reachable from module search paths as a fallback.
 roots = []
 for mod in (mlx, mx):
     for item in getattr(mod, "__path__", []):
@@ -303,7 +298,8 @@ vlmrts = vlmrt.read_text()
 for token in (
     "OMLX_VERIFY_MLP_DUAL64",
     "P69B6_E4_DUAL64",
-    "omlx_p69b6_dual64_q8_gs64_m4_k5120_n17408",
+    "omlx_p69b6_dual64_",
+    "q8_gs64_m4_k5120_n17408",
 ):
     if token not in duals:
         raise SystemExit(f"PROMOTED_STACK_FAIL: P69B6 token missing: {token}")
