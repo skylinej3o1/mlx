@@ -113,6 +113,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -146,17 +147,41 @@ r0 = b4.index(replace_marker, m1) + len(replace_marker)
 r1 = b4.index(end_marker, r0)
 replace_script = b4[r0:r1]
 
-raw = out_path.with_suffix(".raw.py")
-raw.write_text(module_text)
+# Re-run the exact certified B4 shell fragment that originally
+# constructed and completed qwen35_qkvz_dual.py.
+#
+# This is deliberately safer than emulating the old placeholder
+# mutation: the B4 fragment already succeeded in every certified
+# CAND process.
+build_start = b4.index(module_marker)
+build_end = r1 + len(end_marker)
+
+builder = b4[
+    build_start:build_end
+]
+
+env = os.environ.copy()
+env["TMP"] = str(
+    out_path.parent
+)
+env["OMLX_PY"] = sys.executable
 
 subprocess.run(
-    [sys.executable, "-", str(raw)],
-    input=replace_script,
-    text=True,
+    [
+        "/bin/bash",
+        "-c",
+        builder,
+    ],
+    env=env,
     check=True,
 )
 
-s = raw.read_text()
+if not out_path.is_file():
+    raise SystemExit(
+        "certified B4 module builder did not create output"
+    )
+
+s = out_path.read_text()
 
 required = (
     "P69B11_B3_QKVZ_DUAL",
