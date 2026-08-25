@@ -200,7 +200,7 @@ end = s.index(end_token, start) + len(end_token)
 
 replacement = (
     "_SOURCE = " + repr(metal) + "\n\n"
-    "if _sha(Path(vq.__file__).resolve()) != EXPECTED_QMM_SHA:\n"
+    "if hashlib.sha256(Path(vq.__file__).resolve().read_bytes()).hexdigest() != EXPECTED_QMM_SHA:\n"
     "    raise RuntimeError(\n"
     "        \"P69B11 verifier-QMM SHA mismatch\"\n"
     "    )\n\n"
