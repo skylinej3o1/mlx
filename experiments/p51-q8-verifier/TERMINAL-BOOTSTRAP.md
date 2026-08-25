@@ -117,9 +117,13 @@ Do not use a Python-side patch restorer to conceal compiled MLX drift.
 
 A new chat should read, in this order:
 
-1. `experiments/p51-q8-verifier/STATUS.md`
-2. `experiments/p51-q8-verifier/TERMINAL-BOOTSTRAP.md`
-3. `experiments/p51-q8-verifier/RUNTIME-STATE.md`
+1. `experiments/p51-q8-verifier/CURRENT.md`
+2. `experiments/p51-q8-verifier/STATUS.md`
+3. `experiments/p51-q8-verifier/TERMINAL-BOOTSTRAP.md`
+4. `experiments/p51-q8-verifier/RUNTIME-STATE.md`
+
+`CURRENT.md` is the compact latest handoff and names the exact next experiment.
+`STATUS.md` remains the longer experimental history.
 
 Then require a fresh `verify-promoted-stack.sh` result before issuing the next
 benchmark or source-modifying experiment block.
