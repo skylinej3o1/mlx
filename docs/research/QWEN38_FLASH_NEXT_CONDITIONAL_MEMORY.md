@@ -1,181 +1,282 @@
 # Qwen3.8-Flash-Next conditional memory / SSD-tier research note
 
-Status: **CORE / architecture research lead**
+Status: **CORE / released architecture / high-leverage MXFORGE lead**
 
-Updated: 2026-08-26
+Updated: 2026-08-26 after official weight release
 
-## Why this matters
+## Release status
 
-Qwen has officially announced `Qwen3.8-Flash-Next` as an **upcoming release and preview of the Qwen4 architecture**:
+The August 26 release confirms the previously previewed numbers and makes the storage/offload thesis substantially stronger.
+
+Primary sources:
 
 - https://huggingface.co/Qwen/Qwen3.8-Flash-Next
+- https://qwen.ai/blog?id=qwen3.8-flash-next
+- https://huggingface.co/docs/transformers/model_doc/qwen4_exp
+- https://www.lmsys.org/blog/2026-08-26-qwen-flash-next/
+- https://github.com/QwenLM/Qwen3.8-Flash-Next
 
-A now-edited ModelScope preview, repeated in the NVIDIA DGX Spark forum, described the model as roughly:
+Confirmed language-model topology:
 
-- 125B main-model parameters
-- +51B N-gram embedding parameters
-- ~6B parameters active per token
+- 125B main-model parameters;
+- 6B activated per token;
+- +51B / 51.2B N-gram PLE parameters;
+- +4B one-layer MTP module;
+- hidden size 2560;
+- 48 decoder layers;
+- 36 Gated DeltaNet layers + 12 Qwen Sparse Attention layers;
+- 512 routed experts, top-10 routed + one shared expert;
+- MoE intermediate size 640;
+- native 262,144 context, extensible to 1M with YaRN;
+- QSA compression ratio 4, selecting 512 blocks / 2048 logical tokens per full-attention layer.
 
-Forum thread:
+The Hugging Face BF16 checkpoint is about 360 GB, consistent with roughly 180B total parameters across the main model, PLE and MTP.
 
-- https://forums.developer.nvidia.com/t/qwen3-8-flash-next/381228
+## The PLE is exactly the kind of memory we hoped it was
 
-Treat those exact `125B + 51B / 6B active` numbers as **preview / not-yet-certified** until the released config and checkpoint can be inspected. The official Hugging Face countdown currently confirms the Qwen4-preview status but not those sizes.
+The official config places a single Per-Layer Embedding (PLE) memory at configured layer ID 2, near the start of the decoder.
 
-The important architectural lead is the possibility that the extra 51B are not ordinary compute weights, but a large sparse conditional-memory table analogous to DeepSeek's Engram / Deep Sparse Embedding work.
+Exact released PLE structure:
 
-## Primary architectural precedent: Engram / DSE
+- `ngram_size = 3`;
+- 8 bigram hash heads using `(x[t-1], x[t])`;
+- 8 trigram hash heads using `(x[t-2], x[t-1], x[t])`;
+- 16 selected embedding rows per token total;
+- each row contributes 160 values;
+- concatenated PLE vector width = 2560;
+- total PLE parameters = 51.2B;
+- BF16 table footprint = about 95.4 GiB;
+- fixed read-only model weights, not KV cache or mutable attention state.
 
-Paper:
+SGLang documents two small request-local PLE states: the recent token IDs needed for hashing and a short-convolution history. The target model uses PLE during prefill, decode and target verification; the one-layer MTP draft disables PLE.
 
-- https://arxiv.org/abs/2601.07372
-- https://aclanthology.org/2026.acl-long.226.pdf
+This is materially better for speculative decoding than having the draft repeatedly touch the giant table.
 
-Key properties:
+## Production proof: sparse host-memory offload already works
 
-- classic N-gram-style embedding lookup modernized as conditional memory;
-- deterministic addressing rather than learned expert routing;
-- bigram/trigram hash mappings in the demonstrated system;
-- only activated lookup rows need to move per token;
-- total table capacity can therefore be much larger than the working set.
+The strongest day-0 result comes from SGLang's implementation for the actual released model.
 
-Most important systems result:
+SGLang keeps each rank's vocabulary-parallel PLE table shard in **pinned host memory** and gathers only the 16 selected rows into a small BF16 GPU buffer. A dedicated CUDA stream overlaps the gather with the first decoder block.
 
-The paper inserted a **100B-parameter DSE table entirely in host DRAM** and asynchronously prefetched the required rows while preceding transformer compute ran. Reported throughput penalty was only:
+On H200, TP4, MTP-213:
 
-- 1.9% on a 4B dense backbone;
-- 2.8% on an 8B dense backbone.
+- target-model GPU weight footprint: 83.91 -> 60.45 GiB per GPU;
+- PLE offload freed 23.46 GiB/GPU;
+- allocated KV capacity: 1.84M -> 3.28M tokens (+78.54%);
+- matched throughput at concurrency 1/2/4: effectively unchanged, -0.07% geometric mean;
+- four fixed prompts matched exactly in output token IDs;
+- first-case chosen-token logprob trace also matched exactly.
 
-The paper explicitly states that effective communication volume scales with **activated slots rather than total embedding-table size**.
+Therefore these points are now **measured on Qwen3.8-Flash-Next itself**, not merely inferred from Engram:
 
-It then proposes a multi-level hierarchy exploiting Zipfian N-gram frequency:
+1. the PLE can live entirely outside accelerator memory;
+2. only sparse selected rows need to cross the slow-memory boundary;
+3. asynchronous prefetch can hide essentially all of the transfer cost in a tuned implementation;
+4. offload preserves model math / output exactness.
 
-```text
-HBM / unified-memory hot rows
-        ↓
-CPU / system DRAM
-        ↓
-NVMe SSD cold tail
-```
+## Raw transfer volume is tiny; latency is the real problem
 
-The SSD tier is a proposed optimization in this primary paper, not the measured 1.9-2.8% experiment; that experiment used host DRAM.
+Per token, PLE logically retrieves:
 
-## Stronger SSD precedent: TF-Engram
+- 16 rows;
+- 160 BF16 values/row;
+- 2560 BF16 values total;
+- about 5 KiB of useful embedding payload per token.
 
-Paper:
+At 20 tok/s this is only about 100 KiB/s of useful data. Even at 150 tok/s it is under 1 MiB/s.
 
-- https://arxiv.org/abs/2607.07388
+So SSD feasibility is not fundamentally a sequential-bandwidth problem. It is a **random-latency, page-granularity, cache-hit and prefetch-timing problem**.
 
-`TF-Engram` explicitly stores large phrase-memory tables across a **GPU -> DRAM -> SSD hierarchy** and uses predictive prefetching to hide external-memory latency. It is not evidence for Qwen3.8-Flash-Next specifically, and its model-scale evaluation uses Qwen3-0.6B, but it materially strengthens the feasibility of SSD-backed phrase memory as a systems primitive.
+This is favorable for MXFORGE because token IDs deterministically define the lookup addresses.
 
-## Capacity math if the preview 51B figure is real
+## Checkpoint layout is promising but stock Transformers is not enough
 
-Approximate storage for a 51B-parameter N-gram table:
+The released config contains:
+
+- `ngram_vocab_size_base = 20_000_000`;
+- `ple_embed_dim = 2560`;
+- `heads_per_ngram = 8`;
+- `split_ngram_parts = 128`.
+
+Transformers documentation explicitly says `split_ngram_parts` controls logical checkpoint shards for the giant PLE table, **but current Transformers concatenates those parts into one runtime embedding weight**.
+
+That means:
+
+- checkpoint separability: **confirmed**;
+- stock HF runtime keeping the table SSD-backed: **no**;
+- custom MXFORGE loader/runtime needed for true SSD-resident sparse lookup: **yes**.
+
+The 128-way checkpoint split is nevertheless extremely convenient for building a non-concatenating loader.
+
+## Capacity math
+
+Approximate storage for the 51.2B PLE table:
 
 | Representation | Decimal GB | GiB |
 |---|---:|---:|
-| FP16/BF16 | 102.0 | ~95.0 |
-| Q8 | 51.0 | ~47.5 |
-| Q6 ideal | 38.25 | ~35.6 |
-| Q4 ideal | 25.5 | ~23.7 |
+| BF16 | 102.4 | ~95.4 |
+| Q8 | 51.2 | ~47.7 |
+| Q6 ideal | 38.4 | ~35.8 |
+| Q4 ideal | 25.6 | ~23.8 |
 
-This is unusually SSD-friendly capacity. Even an ideal-Q4 copy of the entire rumored table is only ~23.7 GiB.
+Main 125B body, idealized:
 
-By contrast, if the main body is truly 125B parameters, ideal Q4 alone is ~58.2 GiB. Therefore the **main backbone, not the N-gram table, is likely the harder single-M1-Max capacity problem**.
+| Representation | GiB |
+|---|---:|
+| BF16 | ~232.8 |
+| Q8 | ~116.4 |
+| Q6 | ~87.3 |
+| Q4 | ~58.2 |
 
-## MXFORGE design hypothesis
+The separate 4B MTP module is another ~7.45 GiB BF16 / ~1.86 GiB ideal Q4.
 
-Do **not** require the whole conditional-memory table to be resident.
+So a single 64GB M1 Max still does **not** comfortably fit a fully resident Q4 main body + Q4 MTP + runtime/KV/hot PLE cache. PLE SSD offload solves the extra 51B capacity problem, but not by itself the 125B main-model residency problem.
 
-Preferred experiment topology:
+## The main model is itself unusually offload-friendly
+
+The released config strongly suggests that most of the 125B body is the routed expert pool.
+
+For a standard SwiGLU expert with three `2560 x 640` matrices:
+
+- ~4.915M parameters/expert;
+- x512 experts;
+- x48 layers;
+- ~120.8B routed-expert parameters.
+
+This is a derived estimate from the config, not an official parameter decomposition, but it is consistent with the advertised 125B total and 6B active-per-token figure.
+
+If correct, roughly 97% of the nominal main body is routed-expert capacity while only 10/512 routed experts are selected per layer for a token.
+
+That makes Flash-Next an unusually strong candidate for combining:
+
+1. sparse PLE offload;
+2. hot/cold MoE expert residency;
+3. DwarfStar / FreeToken-style expert prefetch and retention;
+4. MTP speculative decoding;
+5. QSA long-context sparsity.
+
+In other words, **both giant sources of parameter count are sparse-access structures**.
+
+## MXFORGE M1 hierarchy hypothesis
+
+Apple Silicon has unified memory, so there is no separate large CPU-DRAM tier analogous to an H200 server. The natural hierarchy becomes:
 
 ```text
-full conditional-memory table
-        ↓
-internal NVMe SSD (authoritative backing)
-        ↓
-mmap / page cache
-        ↓
-explicit hot-row cache in unified memory
-        ↓
-lookup consumer layers
+M1 unified memory
+  - dense/core weights
+  - hot routed experts
+  - hot PLE rows/pages
+  - KV / GDN / QSA state
+        |
+        v
+macOS page cache / explicit caches
+        |
+        v
+internal NVMe SSD
+  - cold PLE table
+  - cold routed experts
 ```
 
-Initial hot-cache sweep:
+The PLE table can be treated as read-only SSD backing with sparse promotion. MoE experts can use a separate retention/prefetch policy driven by router behavior.
 
-- 1 GiB
-- 2 GiB
-- 4 GiB
-- 8 GiB
+The research question is no longer whether 51B PLE offload is architecturally legitimate. It is:
 
-Do not assume the optimum hot fraction from total-table size. Measure the real coding-agent access distribution.
+> **Can NVMe latency be hidden nearly as well as SGLang hides pinned-host latency, using deterministic PLE addressing, page/cache locality and overlap with layer-0 compute?**
 
-## Why prefill is especially favorable
+## Prefill is especially favorable
 
-For a known prompt, all token IDs are known before model execution. If lookup addresses are deterministic, MXFORGE can in principle:
+For a known prompt, all token IDs are available in advance, therefore every PLE hash lookup is knowable before execution.
 
-1. compute every N-gram lookup address for the prompt;
-2. deduplicate addresses;
-3. sort/coalesce SSD ranges;
-4. prefetch required pages before or while prompt chunks execute;
-5. keep high-frequency rows resident for later turns.
+MXFORGE can in principle:
 
-This is materially easier than predicting ordinary MoE expert selection.
+1. hash the entire prompt;
+2. enumerate the exact 16 PLE row IDs/token;
+3. deduplicate rows/pages;
+4. sort/coalesce disk requests;
+5. prefetch pages before or during prompt chunks;
+6. retain frequently reused coding/tool N-grams for later turns.
 
-Decode is less deterministic because each next token is not known until sampled, but immediately after token selection the N-gram addresses become known. If the memory lookup occurs after enough early-layer compute, that interval can be used as a prefetch window.
+Decode has less lookahead because the next token is unknown until sampled, but PLE is placed near the start of the model and SGLang already demonstrates overlapping its gather with the first decoder block. On M1 we need to determine whether an SSD/page-cache pipeline leaves enough overlap window.
 
 ## Coding-agent locality hypothesis
 
-Code/tool traffic should be tested separately from prose because it may have exceptionally strong N-gram locality:
+Code/tool traffic should be measured separately from prose because it may show unusually favorable N-gram locality:
 
-- language syntax;
-- JSON / XML / tool envelopes;
-- Git and shell commands;
-- repeated repository identifiers;
-- common programming idioms;
+- programming syntax;
+- JSON/XML/tool envelopes;
+- shell/Git commands;
+- repeated repository names and paths;
+- framework idioms;
 - repeated agent scaffolding.
 
-The hypothesis is not that most of the 51B table becomes resident. The desired outcome is:
+Desired outcome:
 
-> **most table capacity stays on SSD while most actual accesses hit RAM/page cache.**
+> **nearly all PLE capacity can remain SSD-backed while nearly all recurring accesses are served from unified-memory/page-cache hot state.**
 
-Those are compatible because phrase frequencies are strongly non-uniform.
+## QSA / rolling-agent relevance
 
-## Measurements required when weights land
+QSA itself is another major agentic lever:
 
-First inspect:
+- only 12/48 layers maintain growing attention K/V;
+- 36/48 GDN layers use fixed-size recurrent state;
+- QSA indexes roughly `L/4` compressed blocks but performs final sparse attention over only ~2K original K/V positions;
+- the index is not a lossy replacement for the selected values: final attention reads original K/V entries.
 
-- exact model parameter count;
-- exact active-parameter count;
-- names/shapes/dtypes of N-gram tensors;
-- N-gram orders;
-- hash/addressing scheme;
-- number of tables / lookup heads;
-- rows fetched per token;
-- embedding row width;
-- layers that consume conditional memory;
-- whether tables are separable checkpoint tensors;
-- whether runtime quantization of those tables is supported;
-- context and multimodal memory overhead.
+Qwen also preserves historical thinking by default and explicitly frames this as beneficial for decision continuity and KV-cache utilization in agent scenarios.
 
-Then benchmark:
+This architecture therefore aligns unusually well with MXFORGE's rolling-agent work: stable prefix/KV continuity, external artifact memory, sparse long-context retrieval and conditional parameter memory can all reduce the need to treat the physical attention window as the agent's lifetime memory.
 
-- table representation: FP16/Q8/Q6/Q4 if supported;
-- SSD-only backing + 1/2/4/8 GiB hot cache;
-- demand misses/token;
+## First MXFORGE experiments
+
+### A. PLE-only storage characterization
+
+Sweep:
+
+- full resident baseline;
+- mmap/SSD backing with OS page cache;
+- explicit 1/2/4/8 GiB hot cache;
+- BF16/Q8/Q6/Q4 PLE representations if exact/quality-safe paths exist.
+
+Measure:
+
+- unique PLE rows/token;
+- page working set;
 - hit rate by tier;
+- demand misses/token;
 - bytes read/token;
-- page-fault / read latency;
+- SSD read latency;
 - prefetch hit rate;
-- prefill throughput and TTFT;
+- TTFT / prompt processing;
 - decode tok/s;
-- memory pressure / swapouts;
-- SSD write amplification (ideally near-zero because the table is read-only);
-- complete coding-agent task time.
+- swapouts / memory pressure;
+- SSD write amplification (should be near-zero for read-only weights).
+
+### B. Expert-cache characterization
+
+Measure routed-expert locality separately:
+
+- experts touched/token;
+- reuse distance;
+- layer-specific hot sets;
+- coding vs prose routing locality;
+- cache size vs miss curve;
+- prefetch accuracy using current-layer / prior-token router history.
+
+### C. Combined heterogeneous-memory runtime
+
+Only after A/B are characterized:
+
+```text
+core + hot experts + hot PLE -> unified memory
+cold experts + cold PLE      -> SSD
+MTP                           -> resident if beneficial
+```
+
+Evaluate complete coding-agent task time, not just tok/s.
 
 ## Two-M1-Max implication
 
-If the preview 125B main-body figure is correct, two 64GB M1 Max machines become more attractive than one for quality-preserving target execution:
+Two 64GB M1 Max systems remain attractive because they give the main model much more comfortable residency while allowing PLE to stay external:
 
 ```text
 M1 Max #1         M1 Max #2
@@ -183,21 +284,23 @@ M1 Max #1         M1 Max #2
      \ main backbone/
       TP / PP / custom
            |
-  conditional memory
-  hot: RAM / UM
-  cold: SSD
+  PLE hot: UM/cache
+  PLE cold: SSD
 ```
 
-The key point is that the extra conditional-memory capacity should **not automatically be counted as resident model weight** when judging fit.
+But the release makes a **single 64GB M1 more interesting than before** because a custom runtime may not need either the 51B PLE table or the full ~121B expert pool resident simultaneously.
 
-## Promotion rule
-
-Promote the SSD-tier design only after the released checkpoint proves that Flash-Next really exposes a sparse deterministic N-gram/conditional-memory structure compatible with offload.
-
-Until then:
+## Evidence status
 
 - Qwen4-preview status: **confirmed**;
-- exact 125B + 51B / 6B-active configuration: **preview / unconfirmed**;
-- Engram host-memory offload viability: **primary-paper measured**;
-- NVMe hierarchy: **primary-paper proposed + TF-Engram separately demonstrated**;
-- M1 Max performance: **unknown; benchmark locally**.
+- 125B main + 51B PLE + 4B MTP / 6B-active: **confirmed**;
+- single PLE layer near decoder start: **confirmed**;
+- 16 PLE rows/token, 8 bigram + 8 trigram heads: **confirmed by SGLang day-0 implementation**;
+- whole PLE resident in host RAM instead of GPU: **measured on released model**;
+- host-offload performance penalty: **~0.07% geometric mean in SGLang H200 TP4 test**;
+- exact output preservation under host offload: **measured**;
+- checkpoint PLE split into 128 logical parts: **confirmed config**;
+- current Transformers concatenates PLE shards at runtime: **confirmed docs**;
+- NVMe SSD as cold PLE tier on M1: **not yet measured**;
+- custom expert streaming on M1: **not yet measured**;
+- M1 performance: **unknown; benchmark locally**.
