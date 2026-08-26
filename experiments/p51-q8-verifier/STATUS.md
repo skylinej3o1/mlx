@@ -8833,3 +8833,72 @@ Do not rerun P69B11 or P69B12 certification.
 
 Next after permanent restore:
 one absolute frozen 29,297-token P69B12 champion run.
+
+## P69B12 absolute permanent-stack ruler — neutral cross-session absolute
+
+The permanently restored P69B12 stack was measured once on the frozen
+29,297-token / 512-token / temperature-0 / seed-1 D3/M4 ruler.
+
+P69B12 absolute:
+- TG: 19.551316818 tok/s
+- BPC: 137.820430108 ms/cycle
+- backbone: 25634.600 ms
+- decode window: 26.187494 s
+- wall: 32.101787 s
+- hash: 101ae2aec9793dfe
+- cycles: 186
+- acceptance: 325/442
+- depths: 155/101/69
+
+Previous P69B11 absolute:
+- TG: 19.555088384 tok/s
+- BPC: 137.827956989 ms/cycle
+
+Cross-session delta:
+- TG: -0.0193%
+- BPC: +0.007527 ms/cycle saving
+
+Interpretation:
+
+This single absolute run is effectively neutral relative to the earlier
+P69B11 absolute run. It does not reproduce the full +0.417204301 ms/cycle
+saving measured in the balanced P69B12 4+4 certification.
+
+The absolute comparison is cross-session and is not a paired causal
+measurement. The balanced 4+4 certification remains the stronger evidence:
++0.417204301 ms/cycle mean, +0.401612903 median, 3/4 pair wins, and frozen
+exactness/hash/trajectory.
+
+Therefore:
+- retain P69B12 as PROMOTED;
+- do not claim a new absolute TG record;
+- the raw single-run absolute TG record remains P69B11 at 19.555088384,
+  ahead by only 0.003772 tok/s / 0.0193%;
+- treat that difference as noise-scale rather than a P69B12 regression.
+
+All permanent-stack engagement checks passed:
+- P58 engaged;
+- P69B6 engaged;
+- P69B11 exact/engaged;
+- P69B12 exact/engaged.
+
+Absolute artifact directory:
+~/src/mlx-m1-qmv-artifacts/p69/p69b12-champion-absolute
+
+Artifact SHA256:
+- CHAMP-server.log:
+  755c602641c930d526c7bb576e79beeee0fd74e15161aa2b658efd1e97f519d3
+- CHAMP-warm.json:
+  aebb95faaeeff9fb42bcfbe072e8c32333eb20ce746fc2b732071ee68a26634f
+- CHAMP-result.json:
+  b28996cee69b55aef77919eb4f259a67870506bc9a335508401473080cca509d
+- CHAMP-metrics.json:
+  6b27d3e79bd9cd2acb6c068c04a9dbb984ad55740db5154da9ccf4efa4e2c181
+
+P69B12 is complete. Do not rerun its certification or absolute ruler merely
+to chase cross-session noise.
+
+Next optimization series:
+P69B13 — choose the next remaining high-leverage verifier seam from existing
+P69B7/P69B10 measurements. Do not rerun profiling and do not reopen closed
+P69B8/P69B9/P69B10-C/P69B12-A work.

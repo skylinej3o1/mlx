@@ -146,3 +146,31 @@ OMLX_VERIFY_GDN_BA_PIGGYBACK=1
 Immediate next step:
 commit/push this promotion checkpoint, run the updated canonical restorer,
 then perform one absolute frozen 29,297-token permanent-stack measurement.
+
+## P69B12 absolute result
+
+Permanent P69B12 absolute ruler:
+- 19.551316818 tok/s
+- 137.820430108 ms/cycle
+- 186 cycles
+- 325/442
+- depths 155/101/69
+- hash 101ae2aec9793dfe
+
+P69B11 prior absolute:
+- 19.555088384 tok/s
+- 137.827956989 ms/cycle
+
+The two absolute runs are effectively tied:
+- P69B12 TG delta: -0.0193%
+- P69B12 BPC saving: +0.007527 ms/cycle
+
+P69B12 remains promoted because its balanced 4+4 paired certification is the
+stronger causal measurement (+0.417204301 ms/cycle mean, 3/4 wins).
+
+Do not label P69B12 a new raw absolute TG record. P69B11 retains that single
+number by 0.003772 tok/s, a noise-scale margin.
+
+Current live/promoted stack remains P58/P61/P69B3/P69B6/P69B11/P69B12 D3/M4.
+
+Next: P69B13 using existing profiling data only.

@@ -422,3 +422,30 @@ the independent P69B12 gate/state.
 
 Next:
 commit/push, exercise the durable restorer, then run one absolute ruler.
+
+## P69B12 absolute live validation
+
+The promoted P69B12 Homebrew runtime completed the frozen absolute ruler with:
+- TG 19.551316818 tok/s
+- BPC 137.820430108 ms/cycle
+- hash 101ae2aec9793dfe
+- 186 cycles
+- acceptance 325/442
+- depths 155/101/69
+
+Live log confirmed:
+- P69B11_B3_PATCH enabled=1
+- P69B12_B3_PATCH enabled=1
+- P69B11_B3_EXACT_PASS
+- P69B12_B3_EXACT_PASS
+- P69B11_B3_ENGAGED
+- P69B12_B3_ENGAGED
+- P58 verifier prework engaged
+- P69B6 DUAL64 engaged
+
+Post-run canonical promoted-stack validation passed.
+
+The live module remains the exact promoted P69B12 package:
+4722354e6c4b97822540c013b3874991e8ba1e75847b90d9a0160e707e486864
+
+No runtime rollback is required.
