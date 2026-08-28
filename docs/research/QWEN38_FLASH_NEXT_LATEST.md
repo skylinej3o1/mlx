@@ -25,3 +25,5 @@ Current highest-leverage takeaways as of Aug 28:
 - first action on return should be another ecosystem rescan before custom implementation because upstream is moving daily.
 
 Current research branch: `mxforge-research-20260826`.
+
+When resuming from another chat, read this index first, then the current high-signal delta before updating forecasts or selecting implementation work.
