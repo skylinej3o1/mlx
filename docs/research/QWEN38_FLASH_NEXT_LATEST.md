@@ -17,9 +17,10 @@ Read these in order when resuming Flash-Next work:
 
 ## Qwen3.8-27B tuning resume
 
-For the active Q8 verifier project, also read:
+For the active Q8 verifier project, read:
 
-- **`QWEN38_27B_AUG28_TUNING_REFRESH.md` — CURRENT EXTERNAL TUNING REFRESH.** Maps new 27B ecosystem work onto the post-P69B12 project state: Layr Labs' live native-MTP Apple challenge, upstream MLX GQA K/V reuse, native-MTP + `ngram-mod` composition, DFlash2, Cider W8A8, and the recommended P69B13/future-work split.
+1. **`QWEN38_27B_AUG28_TUNING_REFRESH.md`** — fresh ecosystem scan mapped onto the post-P69B12 project state: Layr Labs' native-MTP Apple challenge, upstream MLX GQA K/V reuse, native-MTP + `ngram-mod`, DFlash2, Cider W8A8, and the P69B13/future-work split.
+2. **`QWEN38_27B_LAYR_MTP_CHALLENGE_MINING_AUG28.md`** — mechanism-level mining of the challenge frontier. Most important receipt: officially promoted producer-side QMV xsums fusion (#1197); equally important negative receipt: rejected SwiGLU -> `mlp.down` xsums extension (#1474). Includes a concrete P69B13 pre-implementation checklist.
 
 The authoritative local experiment state remains:
 
@@ -45,7 +46,9 @@ Flash-Next:
 Qwen3.8-27B:
 
 - keep P69B13 disciplined around the already-measured GDN/projection/downstream-tail remainder;
-- mine the Layr `qwen3.8-27b-mtp-v1` challenge for same-geometry Apple kernel/verifier ideas;
+- mine the Layr challenge for same-geometry Apple kernel/verifier ideas, but separate official promotions from local-only/rejected probes;
+- the strongest fresh structural pattern is producer-side exact auxiliary-data fusion that deletes a standalone downstream dispatch while preserving producer launch geometry;
+- Layr #1197 is positive evidence for that class; rejected #1474 warns against rewriting a cheap compiler-generated producer into a barrier-heavy custom kernel just to save the next dispatch;
 - P60/P61 HEADPAIR K/V reuse is independently validated by upstream MLX #4076/#4077 and should remain closed unless upstream exposes a genuinely new trick;
 - after the structural P69 series, measure native MTP + `ngram-mod` on both novel-code and copy/edit agent rulers;
 - treat batched native MTP as a high-value later 3-5-agent serving workstream;
