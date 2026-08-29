@@ -2,7 +2,7 @@
 
 Status: **LATEST POINTER**
 
-Updated: 2026-08-28 evening ET.
+Updated: 2026-08-29 morning ET.
 
 ## Flash-Next resume order
 
@@ -21,6 +21,7 @@ For the active Q8 verifier project, read:
 
 1. **`QWEN38_27B_AUG28_TUNING_REFRESH.md`** — fresh ecosystem scan mapped onto the post-P69B12 project state: Layr Labs' native-MTP Apple challenge, upstream MLX GQA K/V reuse, native-MTP + `ngram-mod`, DFlash2, Cider W8A8, and the P69B13/future-work split.
 2. **`QWEN38_27B_LAYR_MTP_CHALLENGE_MINING_AUG28.md`** — mechanism-level mining of the challenge frontier. Most important receipt: officially promoted producer-side QMV xsums fusion (#1197); equally important negative receipt: rejected SwiGLU -> `mlp.down` xsums extension (#1474). Includes a concrete P69B13 pre-implementation checklist.
+3. **`QWEN38_27B_5070TI_MEMORY_HIERARCHY_AUG29.md`** — RTX 5070 Ti serving architecture update: jrell asymmetric IQ4/IQ3 neural quant, BeeLlama KVarN + precision tail + native MTP, adaptive host-RAM KV as the deep-context tier, and Tameru/RAG/web as semantic-memory layers. Includes the current non-drop-in integration caveat and a certification matrix.
 
 The authoritative local experiment state remains:
 
@@ -53,7 +54,10 @@ Qwen3.8-27B:
 - after the structural P69 series, measure native MTP + `ngram-mod` on both novel-code and copy/edit agent rulers;
 - treat batched native MTP as a high-value later 3-5-agent serving workstream;
 - DFlash2 is worth a separate later A/B, not a reason to interrupt P69;
-- Cider W8A8 is a promising non-exact prefill lane, not a candidate for the current exact Q8 verifier contract.
+- Cider W8A8 is a promising non-exact prefill lane, not a candidate for the current exact Q8 verifier contract;
+- on the RTX 5070 Ti, the preferred normal-agent starting point is now the jrell asymmetric quant + Bee KVarN/precision-tail + native-MTP stack, with adaptive host-KV retained as the 100-262K exception tier rather than the default daily-driver path;
+- a future Bee + adaptive-residency integration is architecturally attractive because compressed KV should reduce both VRAM per resident page and host<->GPU transfer payload, but current branches are not drop-in composable and must be integrated/certified deliberately;
+- Tameru-style compaction should remain policy above the runtime hierarchy: compact based on semantic redundancy, use RAG/web/repo retrieval for recoverable knowledge, and retain raw long history only when its exact form still matters.
 
 Current research branch: `mxforge-research-20260826`.
 
