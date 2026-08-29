@@ -2,7 +2,7 @@
 
 Status: **LATEST POINTER**
 
-Updated: 2026-08-29 morning ET.
+Updated: 2026-08-29 evening ET.
 
 ## Flash-Next resume order
 
@@ -13,51 +13,48 @@ Read these in order when resuming Flash-Next work:
 3. `QWEN38_FLASH_NEXT_LATE_DAY1_RERUN.md` — late day-one corrections and rerun evidence.
 4. `QWEN38_FLASH_NEXT_DAY2_RUNTIME_DELTA.md` — M1 Ultra/tarruda anchor, AtomicChat quant audit, oMLX 0.6.3 MTP, revised 2x-M1 forecast.
 5. `QWEN38_FLASH_NEXT_AUG28_FIELD_DELTA.md` — exact direct Metal QSA, cold SSD-PLE batching, llama.cpp native MTP, PLE rollback correctness, mixed-length batching, `ngram-mod`, distributed-MTP warning, and adjacent 5070 Ti adaptive-KV evidence.
-6. **`QWEN38_FLASH_NEXT_AUG28_LATE_DELTA.md` — CURRENT FLASH-NEXT ADDENDUM.** Batched depth-1 MTP under concurrency, layer-streamed Flash-Next imatrix calibration at ~21 GB active memory, stricter SSD-PLE cold rerun, and exact no-thinking/prefix-cache API reconstruction.
+6. `QWEN38_FLASH_NEXT_AUG28_LATE_DELTA.md` — batched depth-1 MTP under concurrency, layer-streamed Flash-Next imatrix calibration at ~21 GB active memory, stricter SSD-PLE cold rerun, and exact no-thinking/prefix-cache API reconstruction.
+7. **`QWEN38_AUG29_EVENING_DUAL_TRACK_DELTA.md` — CURRENT DUAL-TRACK ADDENDUM.** M1/M2 FP16 leaf recast, concurrent-`pread` SSD PLE, 64GB QSA long-context memory fixes, PLE-residency model-swap bug, current Flash-Next DFlash incompatibility, and fresh scored/unqualified 27B challenge receipts.
 
 ## Qwen3.8-27B tuning resume
 
 For the active Q8 verifier project, read:
 
-1. **`QWEN38_27B_AUG28_TUNING_REFRESH.md`** — fresh ecosystem scan mapped onto the post-P69B12 project state: Layr Labs' native-MTP Apple challenge, upstream MLX GQA K/V reuse, native-MTP + `ngram-mod`, DFlash2, Cider W8A8, and the P69B13/future-work split.
-2. **`QWEN38_27B_LAYR_MTP_CHALLENGE_MINING_AUG28.md`** — mechanism-level mining of the challenge frontier. Most important receipt: officially promoted producer-side QMV xsums fusion (#1197); equally important negative receipt: rejected SwiGLU -> `mlp.down` xsums extension (#1474). Includes a concrete P69B13 pre-implementation checklist.
-3. **`QWEN38_27B_5070TI_MEMORY_HIERARCHY_AUG29.md`** — RTX 5070 Ti serving architecture update: jrell asymmetric IQ4/IQ3 neural quant, BeeLlama KVarN + precision tail + native MTP, adaptive host-RAM KV as the deep-context tier, and Tameru/RAG/web as semantic-memory layers. Includes the current non-drop-in integration caveat and a certification matrix.
+1. `QWEN38_27B_AUG28_TUNING_REFRESH.md` — ecosystem scan mapped onto the post-P69B12 project state.
+2. `QWEN38_27B_LAYR_MTP_CHALLENGE_MINING_AUG28.md` — mechanism-level mining of the Layr frontier and producer-side sidecar lessons.
+3. `QWEN38_27B_5070TI_MEMORY_HIERARCHY_AUG29.md` — RTX 5070 Ti serving plan: jrell asymmetric quant + Bee KVarN/MTP + adaptive-KV overflow + Tameru/RAG/web.
+4. **`QWEN38_AUG29_EVENING_DUAL_TRACK_DELTA.md`** — fresh negative controls for narrow-QMV and producer-rewrite fusions, plus corrections separating scored rejections from timeout/infrastructure failures.
 
 The authoritative local experiment state remains:
 
 - `experiments/p51-q8-verifier/STATUS.md` on branch `project51-q8-verifier`.
 
-At the Aug-28 evening scan, GitHub `project51-q8-verifier` is at commit `5d6325f8747f8634061d1ea2e9bedf57a1010588`, P69B12 is complete/promoted, and P69B13 is next. Always re-read STATUS and re-check the branch head before resuming experiments.
+At the Aug-28 evening scan, GitHub `project51-q8-verifier` was at `5d6325f8747f8634061d1ea2e9bedf57a1010588`, with P69B12 promoted and P69B13 next. Always re-read STATUS and re-check the branch head before resuming experiments.
 
 ## Current highest-leverage takeaways
 
-Flash-Next:
+### Flash-Next
 
-- direct exact QSA on Apple has much more headroom than the earlier M1-generation branch alone implied;
-- SSD PLE can be made dramatically cheaper in cold prefill by batching/deduplicating page requests rather than serial row faults;
-- layer-streamed imatrix/sensitivity calibration makes a custom architecture-aware quant practical without full-model residency;
-- native MTP is a major coding-speed lever, but workload-adaptive policy is required;
-- PLE history + short-convolution state must participate in speculative rollback, not only QSA/GDN state;
-- context-derived `ngram-mod` is a separate high-value speculation lane for copy/edit/transform-heavy agent work;
-- mixed-length continuous batching and batched MTP are first-class agent-server problems;
-- exact prompt-template/API reconstruction is part of prefix-cache correctness;
-- **distributed Qwen Flash-Next MTP remains unqualified / fail-closed in current evidence**, so single-Ultra MTP gains must not be copied into the 2x-M1 forecast;
-- architecture-aware quant + Q5_1/~6-bit SSD PLE remains the preferred quality-oriented starting point until coding certification says otherwise.
+- M1/M2-specific BF16-leaf -> FP16 recast is now a first-class performance lane: reported M1 Ultra gains were about +5% novel TG, +14% rewrite TG and +60% PP without increasing model storage width; it is not bit-identical and belongs to a production-quality profile rather than an exact-numerics ruler.
+- SSD PLE is increasingly an active runtime-optimization surface rather than a fixed tax. Concurrent `pread()` reportedly exposed ~11x random-read IOPS on M4 Max NVMe and cut a 40K cold Flash-Next TTFT from ~217s to ~6.5s while also improving decode.
+- the old ~43K ceiling on a 64GB Mac was substantially caused by QSA mask routing and full-prefix snapshotting pathologies; the fixed path reached ~96K cleanly on M4 Pro 64GB. Full 262K on 64GB still requires real QSA KV quantization.
+- PLE residency decisions must use stable capacity and be observable; a model-swap admission bug could silently force resident PLE to SSD and cut reported M1 Ultra decode from ~35 to ~14 tok/s.
+- oMLX DFlash is **not currently a real Flash-Next (`qwen4_exp`) path**; count native MTP and context/ngram drafting instead.
+- direct exact QSA, layer-streamed quant calibration, batched MTP, rollback correctness, and prompt-cache reconstruction remain important.
+- **distributed Flash-Next MTP remains the unresolved two-M1 risk.** None of the Aug-29 findings removes the Thunderbolt verifier/state problem.
+- revised two-M1 confidence is mildly higher because M1 compute and SSD-PLE paths improved: ~400-550 tok/s at normal 20-30K PP is increasingly credible; 40-50+ TG still depends on competent distributed MTP.
 
-Qwen3.8-27B:
+### Qwen3.8-27B
 
-- keep P69B13 disciplined around the already-measured GDN/projection/downstream-tail remainder;
-- mine the Layr challenge for same-geometry Apple kernel/verifier ideas, but separate official promotions from local-only/rejected probes;
-- the strongest fresh structural pattern is producer-side exact auxiliary-data fusion that deletes a standalone downstream dispatch while preserving producer launch geometry;
-- Layr #1197 is positive evidence for that class; rejected #1474 warns against rewriting a cheap compiler-generated producer into a barrier-heavy custom kernel just to save the next dispatch;
-- P60/P61 HEADPAIR K/V reuse is independently validated by upstream MLX #4076/#4077 and should remain closed unless upstream exposes a genuinely new trick;
-- after the structural P69 series, measure native MTP + `ngram-mod` on both novel-code and copy/edit agent rulers;
-- treat batched native MTP as a high-value later 3-5-agent serving workstream;
-- DFlash2 is worth a separate later A/B, not a reason to interrupt P69;
-- Cider W8A8 is a promising non-exact prefill lane, not a candidate for the current exact Q8 verifier contract;
-- on the RTX 5070 Ti, the preferred normal-agent starting point is now the jrell asymmetric quant + Bee KVarN/precision-tail + native-MTP stack, with adaptive host-KV retained as the 100-262K exception tier rather than the default daily-driver path;
-- a future Bee + adaptive-residency integration is architecturally attractive because compressed KV should reduce both VRAM per resident page and host<->GPU transfer payload, but current branches are not drop-in composable and must be integrated/certified deliberately;
-- Tameru-style compaction should remain policy above the runtime hierarchy: compact based on semantic redundancy, use RAG/web/repo retrieval for recoverable knowledge, and retain raw long history only when its exact form still matters.
+- keep P69B13 constrained to the already-measured GDN/projection/downstream-tail remainder; no reprofile/reopen merely because an external challenge explores a similar surface.
+- do **not** generalize wide QMV geometry to narrow attention K/V: Layr #1478 kept parity but scored 3.6353 vs 3.7291 frontier.
+- do **not** replace an efficient compiled flat elementwise producer with a barrier-heavy custom row kernel merely to emit xsums: both FA `o_proj` (#1476, 3.6490) and GDN postnorm `out_proj` (#1477, 3.6469) were parity-clean but materially slower than the 3.7291 frontier.
+- refined sidecar rule: producer-side auxiliary-data fusion is attractive only when it rides an already-required/good producer without materially changing launch geometry.
+- prior positive evidence from the promoted residual/RMSNorm xsums producer remains valid; the new failures define where the pattern stops working.
+- PR #1470's trained hybrid MTP head is **unqualified**, not a scored negative: its official run timed out after three hours despite promising local M3 Max acceptance results.
+- PR #1472's one-pass M=6/7/8 QMV is also **unqualified**, not a scored negative: the benchmark failed during workspace preparation.
+- PR #1481 broad compiled-shapeless elementwise fusion was cancelled before scoring and is not benchmark evidence.
+- current finished-P69 Q8 M1 target remains roughly 20.0-20.3 tok/s central; this sweep improves candidate-selection discipline rather than revealing a new guaranteed throughput step.
 
 Current research branch: `mxforge-research-20260826`.
 
