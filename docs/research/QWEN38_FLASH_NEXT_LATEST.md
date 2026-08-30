@@ -14,7 +14,8 @@ Read these in order when resuming Flash-Next work:
 4. `QWEN38_FLASH_NEXT_DAY2_RUNTIME_DELTA.md` — M1 Ultra/tarruda anchor, AtomicChat quant audit, oMLX 0.6.3 MTP, revised 2x-M1 forecast.
 5. `QWEN38_FLASH_NEXT_AUG28_FIELD_DELTA.md` — exact direct Metal QSA, cold SSD-PLE batching, llama.cpp native MTP, PLE rollback correctness, mixed-length batching, `ngram-mod`, distributed-MTP warning, and adjacent 5070 Ti adaptive-KV evidence.
 6. `QWEN38_FLASH_NEXT_AUG28_LATE_DELTA.md` — batched depth-1 MTP under concurrency, layer-streamed Flash-Next imatrix calibration at ~21 GB active memory, stricter SSD-PLE cold rerun, and exact no-thinking/prefix-cache API reconstruction.
-7. **`QWEN38_AUG29_EVENING_DUAL_TRACK_DELTA.md` — CURRENT FLASH-NEXT ADDENDUM.** M1/M2 FP16 leaf recast, concurrent-`pread` SSD PLE, 64GB QSA long-context memory fixes, PLE-residency model-swap bug, current Flash-Next DFlash incompatibility, and fresh scored/unqualified 27B challenge receipts.
+7. `QWEN38_AUG29_EVENING_DUAL_TRACK_DELTA.md` — M1/M2 FP16 leaf recast, concurrent-`pread` SSD PLE, 64GB QSA long-context memory fixes, PLE-residency model-swap bug, current Flash-Next DFlash incompatibility, and fresh scored/unqualified 27B challenge receipts.
+8. **`QWEN38_AUG30_MORNING_RUNTIME_DELTA.md` — CURRENT FLASH-NEXT ADDENDUM.** Context/history drafting promoted to an early two-M1 PP lane; fresh M5 Metal long-context recovery; predecessor-index and QSA bookkeeping lessons; higher-bit affine MoE fast-path evidence; route-prep profiling; DFlash benchmark-hygiene warning; and latest Flash-Next correctness follow-ups.
 
 ## Qwen3.8-27B tuning resume
 
@@ -25,6 +26,7 @@ For the active Q8 verifier project, read:
 3. `QWEN38_27B_5070TI_MEMORY_HIERARCHY_AUG29.md` — RTX 5070 Ti serving plan: jrell asymmetric quant + Bee KVarN/MTP + adaptive-KV overflow + Tameru/RAG/web.
 4. `QWEN38_AUG29_EVENING_DUAL_TRACK_DELTA.md` — fresh negative controls for narrow-QMV and producer-rewrite fusions, plus corrections separating scored rejections from timeout/infrastructure failures.
 5. **`QWEN38_27B_M4MAX_EXTERNAL_CALIBRATION_AUG30.md` — CURRENT 27B EXTERNAL CALIBRATION.** M4 Max 32K/64K/128K/256K production-ish decode receipts across oQ8e native MTP, 8-bit+DFlash2, ~5-bpw target-only and MTPLX; conservative M4→M1 bandwidth normalization; revised P69 confidence; DFlash2 priority bump; context-aware speculation; and cache/edit-agent implications.
+6. `QWEN38_AUG30_MORNING_RUNTIME_DELTA.md` — no new scored Layr frontier; adds DFlash effective-engine validation and reinforces context/history drafting as a post-P69 serving lane.
 
 The authoritative local experiment state remains:
 
@@ -36,14 +38,20 @@ At the Aug-28 evening scan, GitHub `project51-q8-verifier` was at `5d6325f8747f8
 
 ### Flash-Next
 
-- M1/M2-specific BF16-leaf -> FP16 recast is now a first-class performance lane: reported M1 Ultra gains were about +5% novel TG, +14% rewrite TG and +60% PP without increasing model storage width; it is not bit-identical and belongs to a production-quality profile rather than an exact-numerics ruler.
+- **Promote context/history drafting to the first distributed serving experiments rather than deferring it until after native MTP.** The new Apple receipts show large exact-output gains on repeated code/edit workloads while novel prose stays near baseline. A two-M1 PP system can potentially verify copied spans in one wide target pass and amortize the Thunderbolt boundary without requiring a distributed neural MTP head.
+- Fresh M5 Max Metal evidence shows meaningful long-context software tax remains removable: predecessor lookup, QSA selected-window materialization, indexer reductions and used-cell bookkeeping all deserve explicit profiling. At ~74K the reported #27977 path recovered about 18% TG over its baseline.
+- Indexed predecessor lookup is powerful but must be integrated carefully: the alternative `(seq,pos)` index and the broader #27977 cleanup both help, while carrying both together regressed 32K M5 TG. Preserve integrated A/B certification; do not assume optimization composition.
+- M1/M2-specific BF16-leaf -> FP16 recast remains a first-class performance lane: reported M1 Ultra gains were about +5% novel TG, +14% rewrite TG and +60% PP without increasing model storage width; it is not bit-identical and belongs to a production-quality profile rather than an exact-numerics ruler.
 - SSD PLE is increasingly an active runtime-optimization surface rather than a fixed tax. Concurrent `pread()` reportedly exposed ~11x random-read IOPS on M4 Max NVMe and cut a 40K cold Flash-Next TTFT from ~217s to ~6.5s while also improving decode.
 - the old ~43K ceiling on a 64GB Mac was substantially caused by QSA mask routing and full-prefix snapshotting pathologies; the fixed path reached ~96K cleanly on M4 Pro 64GB. Full 262K on 64GB still requires real QSA KV quantization.
 - PLE residency decisions must use stable capacity and be observable; a model-swap admission bug could silently force resident PLE to SSD and cut reported M1 Ultra decode from ~35 to ~14 tok/s.
-- oMLX DFlash is **not currently a real Flash-Next (`qwen4_exp`) path**; count native MTP and context/ngram drafting instead.
-- direct exact QSA, layer-streamed quant calibration, batched MTP, rollback correctness, and prompt-cache reconstruction remain important.
-- **distributed Flash-Next MTP remains the unresolved two-M1 risk.** None of the Aug-29 findings removes the Thunderbolt verifier/state problem.
-- revised two-M1 confidence is mildly higher because M1 compute and SSD-PLE paths improved: ~400-550 tok/s at normal 20-30K PP is increasingly credible; 40-50+ TG still depends on competent distributed MTP.
+- higher-bit quality quant no longer implies permanent generic affine fallback: oMLX now has group-64 Q4/Q6/Q8 native block-list MoE machinery with real Q6 prefill gains on another MoE architecture. Portability to Qwen4-exp remains future work, not an existing Flash-Next fast path.
+- token->expert route preparation can become first-order: the fresh CUDA top-10 helper fix found a small grouping kernel consuming 13.3% of Flash-Next prefill. Profile router preparation explicitly on Metal instead of assuming matmuls/attention dominate.
+- oMLX DFlash is **not currently a real Flash-Next (`qwen4_exp`) path**; count native MTP and context/history drafting instead.
+- when later qualifying DFlash2 on 27B, verify the effective loaded engine and draft counters rather than trusting the requested settings flag; a fresh oMLX bug showed silent fallback could still be tagged `dflash`.
+- direct exact QSA, layer-streamed quant calibration, batched MTP, rollback correctness, prompt-cache reconstruction, and sequence-aware cache/indexer state remain important.
+- **distributed Flash-Next native MTP remains the unresolved two-M1 risk, but it is no longer the only plausible path to high effective coding-agent throughput.** PP + history-derived wide verification is now an explicit risk-reduction lane.
+- keep roughly 400-550 tok/s as the normal 20-30K PP target and roughly 40-50 tok/s as the mature central two-M1 TG band until local measurement. Confidence is higher that 64-100K can remain an interactive mode after software cleanup.
 
 ### Qwen3.8-27B
 
@@ -54,10 +62,10 @@ At the Aug-28 evening scan, GitHub `project51-q8-verifier` was at `5d6325f8747f8
 - prior positive evidence from the promoted residual/RMSNorm xsums producer remains valid; the new failures define where the pattern stops working.
 - PR #1470's trained hybrid MTP head is **unqualified**, not a scored negative: its official run timed out after three hours despite promising local M3 Max acceptance results.
 - PR #1472's one-pass M=6/7/8 QMV is also **unqualified**, not a scored negative: the benchmark failed during workspace preparation.
-- PR #1481 broad compiled-shapeless elementwise fusion was cancelled before scoring and is not benchmark evidence.
+- PR #1481 broad compiled-shapeless elementwise fusion remains unqualified and did not establish a new scored frontier; the latest scored frontier remains 3.7291100105909.
 - the Aug-30 M4 Max field calibration raises confidence modestly: a comparable oQ8e native-MTP stack reports ~30.8 tok/s at ~32K on 546 GB/s-class M4 Max hardware. A bandwidth-only normalization is ~22.6 tok/s on a 400 GB/s M1 Max, **not a forecast**, but it makes 20.5 and low-21s more credible residual targets on the frozen M1 ruler.
-- revised rough frozen-ruler confidence after that calibration: >=20.0 ~80-85%, >=20.5 ~55-60%, >=21.0 ~35-40%, >=21.5 ~20%, ~22+ ~10%.
-- DFlash2 becomes a high-priority post-P69 A/B: an 8-bit target + DFlash2 external M4 Max result reports ~38.3 tok/s at 32K and remains competitive through 256K. Do not interrupt P69 for it.
+- revised rough frozen-ruler confidence remains: >=20.0 ~80-85%, >=20.5 ~55-60%, >=21.0 ~35-40%, >=21.5 ~20%, ~22+ ~10%.
+- DFlash2 remains a high-priority post-P69 A/B: an 8-bit target + DFlash2 external M4 Max result reports ~38.3 tok/s at 32K and remains competitive through 256K. Do not interrupt P69 for it.
 - speculative policy should eventually be context-aware. The external field curves show aggressive native-MTP advantages shrinking and sometimes reversing at extreme context; measure 32K/64K/128K/256K crossover instead of assuming one verifier depth everywhere.
 - a separate quality-certified ~5-bpw speed profile remains attractive because field evidence shows target-byte economics can beat higher-precision speculative decoding. Keep that separate from the exact-Q8 research ruler.
 - real coding-agent qualification must include repeat/append/middle-edit/tool-turn cache behavior and total task wall time, not only decode TPS.
