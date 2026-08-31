@@ -184,9 +184,12 @@ A fresh Qwen3.8-27B / Qwen3.8-Flash-Next external sweep is recorded in:
 Key decision-level deltas:
 
 - Layr-Labs 27B MTP frontier remains `3.7291100105909`; no new promotion changes P69B13 selection.
-- oMLX direct-QSA long-context MTP, cached-drafter priming, and new latent-Metal keepwarm results strengthen the long-agent Flash-Next path.
-- A new M1 Max 64 GB field report reaches roughly 22 decode tok/s with MTP and reports roughly 150 prefill tok/s at 256K using SSD-streamed tensors/ngrams/MTP plus custom sparse attention.
-- M1/M2 FP16 activation recast remains a high-priority isolated A/B before any distributed-MTP work.
+- oMLX direct-QSA long-context MTP, cached-drafter priming, latent-Metal keepwarm, and compiled multi-row decode strengthen the long-agent Flash-Next path.
+- A single M1 Max 64 GB field report reaches roughly 22 decode tok/s with MTP and reports roughly 150 prefill tok/s at 256K using SSD-streamed tensors/ngrams/MTP plus custom sparse attention.
+- An exact 2x M1 Max 64 GB / point-to-point TB4 llama.cpp RPC deployment now works coherently after RPC buffer-allocation PR #27960; no throughput or completed deep-context result has been posted yet.
+- New llama.cpp measurements show host-backed recurrent speculative checkpoints can consume ~73% of a round; keeping rollback checkpoints on-device changes MTP from a severe regression to a real speedup. Distributed design should therefore keep GDN/recurrent rollback state local to each PP stage and send only activation/acceptance metadata across TB4.
+- PP2 is now the preferred dual-M1 topology. TP2 remains a controlled benchmark rather than the primary plan because frequent cross-TB4 collectives are a poor fit for Flash-Next's light/stateful per-layer work.
+- M1/M2 FP16 activation recast remains a high-priority isolated A/B before distributed-MTP tuning.
 - Mixed/per-layer or workload-aware quantization is increasingly favored over a uniform-bit Flash-Next quant.
 
 These external results do **not** modify the certified P69B12 exact-Q8 ruler.
