@@ -177,18 +177,20 @@ Next: P69B13 using existing profiling data only.
 
 ## External runtime watch — 2026-08-31
 
-A fresh Qwen3.8-27B / Qwen3.8-Flash-Next external sweep is recorded in:
+A fresh Qwen3.8-27B / Qwen3.8-Flash-Next / DeepSeek-V4-Flash-0731 sweep is recorded in:
 
 `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-08-31.md`
 
 Key decision-level deltas:
 
 - Layr-Labs 27B MTP frontier remains `3.7291100105909`; no new promotion changes P69B13 selection.
-- oMLX direct-QSA long-context MTP, cached-drafter priming, latent-Metal keepwarm, and compiled multi-row decode strengthen the long-agent Flash-Next path.
+- oMLX direct-QSA long-context MTP, cached-drafter priming, latent-Metal keepwarm, compiled multi-row decode, dead-snapshot suppression, and GDN hot-cache compression strengthen the long-agent Flash-Next path.
 - A single M1 Max 64 GB field report reaches roughly 22 decode tok/s with MTP and reports roughly 150 prefill tok/s at 256K using SSD-streamed tensors/ngrams/MTP plus custom sparse attention.
 - An exact 2x M1 Max 64 GB / point-to-point TB4 llama.cpp RPC deployment now works coherently after RPC buffer-allocation PR #27960; no throughput or completed deep-context result has been posted yet.
 - New llama.cpp measurements show host-backed recurrent speculative checkpoints can consume ~73% of a round; keeping rollback checkpoints on-device changes MTP from a severe regression to a real speedup. Distributed design should therefore keep GDN/recurrent rollback state local to each PP stage and send only activation/acceptance metadata across TB4.
-- PP2 is now the preferred dual-M1 topology. TP2 remains a controlled benchmark rather than the primary plan because frequent cross-TB4 collectives are a poor fit for Flash-Next's light/stateful per-layer work.
+- PP2 is the preferred dual-M1 Flash-Next topology. TP2 remains a controlled benchmark rather than the primary plan because frequent cross-TB4 collectives are a poor fit for Flash-Next's light/stateful per-layer work.
+- DS4 Flash 0731 provides the counterexample that explains the topology rule rather than weakening it: tuned target-only TP on 2x M3 Ultra reached 33.12 tok/s versus 26.80 tok/s for two-node RDMA layer parallelism, but DSpark TP verification measured 210–250 ms for a six-row window against ~68 ms/token plain TP and was intentionally abandoned as net-negative.
+- The DS4 result means topology must be selected per execution mode: target-only TP can win while pipeline speculation wins the communication economics on the same model.
 - M1/M2 FP16 activation recast remains a high-priority isolated A/B before distributed-MTP tuning.
 - Mixed/per-layer or workload-aware quantization is increasingly favored over a uniform-bit Flash-Next quant.
 
