@@ -1,6 +1,6 @@
 # P51 verifier current checkpoint
 
-## Promoted champion after P69B11
+## Promoted verifier lineage
 
 The complete promoted verifier stack is now:
 
@@ -174,3 +174,21 @@ number by 0.003772 tok/s, a noise-scale margin.
 Current live/promoted stack remains P58/P61/P69B3/P69B6/P69B11/P69B12 D3/M4.
 
 Next: P69B13 using existing profiling data only.
+
+## External runtime watch — 2026-08-31
+
+A fresh Qwen3.8-27B / Qwen3.8-Flash-Next external sweep is recorded in:
+
+`experiments/p51-q8-verifier/RESEARCH-WATCH-2026-08-31.md`
+
+Key decision-level deltas:
+
+- Layr-Labs 27B MTP frontier remains `3.7291100105909`; no new promotion changes P69B13 selection.
+- oMLX direct-QSA long-context MTP, cached-drafter priming, and new latent-Metal keepwarm results strengthen the long-agent Flash-Next path.
+- A new M1 Max 64 GB field report reaches roughly 22 decode tok/s with MTP and reports roughly 150 prefill tok/s at 256K using SSD-streamed tensors/ngrams/MTP plus custom sparse attention.
+- M1/M2 FP16 activation recast remains a high-priority isolated A/B before any distributed-MTP work.
+- Mixed/per-layer or workload-aware quantization is increasingly favored over a uniform-bit Flash-Next quant.
+
+These external results do **not** modify the certified P69B12 exact-Q8 ruler.
+
+Current verifier next step remains **P69B13 using existing profiling data only**.
