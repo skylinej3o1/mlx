@@ -1,16 +1,18 @@
-# External Qwen runtime watch — 2026-08-31
+# External Qwen + DS4 runtime watch — 2026-08-31
 
-This note records external runtime/quantization evidence relevant to the P51/P69 exact-Q8 verifier work and the separate Qwen3.8-Flash-Next dual-Mac research plan.
+This note records external runtime/quantization evidence relevant to the P51/P69 exact-Q8 verifier work, the separate Qwen3.8-Flash-Next dual-Mac research plan, and DeepSeek-V4-Flash-0731 distributed-topology lessons.
 
 These are upstream PR descriptions and community field reports, not measurements produced by this repository. Do not turn them into local performance claims without reproduction.
 
 ## Executive delta
 
 - Qwen3.8-27B Layr-Labs MTP challenge frontier remains `3.7291100105909`; no new promoted result changes the P69 direction.
-- Qwen3.8-Flash-Next runtime evidence improved materially again, especially for long-context MTP, warm agent turns, M1-class hardware, and recurrent-state handling.
-- The strongest new M1-specific field report shows a single M1 Max 64 GB running Flash-Next with SSD-streamed tensors/ngrams/MTP, custom sparse attention, and dynamic MTP at roughly 22 decode tok/s with MTP, while reporting roughly 150 prefill tok/s at 256K context.
-- A separate exact-topology report now proves that 2x M1 Max 64 GB systems can run Flash-Next split over a point-to-point Thunderbolt 4 RPC link after a llama.cpp transient-buffer allocation bug was fixed. Throughput is still unreported.
+- Qwen3.8-Flash-Next runtime evidence improved materially again, especially for long-context MTP, warm agent turns, M1-class hardware, recurrent-state handling, and multi-row agent serving.
+- The strongest M1-specific field report shows a single M1 Max 64 GB running Flash-Next with SSD-streamed tensors/ngrams/MTP, custom sparse attention, and dynamic MTP at roughly 22 decode tok/s with MTP, while reporting roughly 150 prefill tok/s at 256K context.
+- A separate exact-topology report proves that 2x M1 Max 64 GB systems can run Flash-Next split over a point-to-point Thunderbolt 4 RPC link after a llama.cpp transient-buffer allocation bug was fixed. Throughput is still unreported.
 - Fresh llama.cpp MTP measurements show that recurrent speculative rollback must stay device-resident: host-serializing the full recurrent checkpoint can dominate the round and turn high-acceptance MTP into a severe regression.
+- Late-day oMLX work removes substantial host dispatch and recurrent-cache overhead from multi-agent Flash-Next serving, but does not yet establish a new B1 end-to-end TG ceiling.
+- DS4 Flash 0731 now has a useful topology split: on 2x M3 Ultra, tuned target-only TP reached 33.12 tok/s versus 26.80 tok/s for two-node RDMA layer parallelism at short context; however, distributed DSpark measurements found TP speculative verification net-negative while pipeline speculation could amortize multi-row verify work.
 - This strengthens the case that the eventual dual-M1 Flash-Next bottleneck is implementation/distribution quality rather than an obvious single-node compute wall. Distributed MTP is still unmeasured on the exact two-M1 topology and remains the major uncertainty.
 
 ## Flash-Next: exact long-context MTP verification
@@ -34,15 +36,15 @@ Source: https://github.com/jundot/omlx/pull/3320
 
 ## Flash-Next: cached-drafter priming
 
-Upstream oMLX PR #3328 (`perf(qwen4): prime verified MTP drafter from cached suffix`) addresses a warm-agent seam: the target backbone can restore a huge prefix while the memory-only MTP drafter lacks history.
+Upstream oMLX PR #3328 (`perf(qwen4): prime verified MTP drafter from cached suffix`) addresses a warm-agent seam: the target backbone can restore a huge prefix while the memory-only Lightning-MTP head history is absent.
 
 Reported deterministic 100K restart case:
 
-- 98,304 target prompt tokens restored from prefix cache;
-- 1,668 exact suffix tokens used to prime the drafter;
+- 98,304 prompt tokens restored from the target prefix cache;
+- 1,668 exact local suffix tokens primed into the drafter;
 - 97.6% draft acceptance;
 - 5.32 committed tokens/target cycle;
-- 60.35 tok/s decode;
+- 60.35 tok/s decode for 500 generated tokens;
 - exact output hash matched the unmodified target result.
 
 This is directly relevant to persistent-agent/Tameru-style compaction and restoration: large target-prefix reuse does not have to imply a long MTP cold-start penalty.
@@ -199,7 +201,19 @@ MTPLX PR #413 reports three complementary long-context mechanisms on M5 Max 128 
 - quantized pooled-key mirrors (q8/q4), reducing the stated pooled-key traffic from ~805 MB/step to ~200 MB/step in the q4 configuration;
 - automatic MTP history-window cap at 16,384 tokens when context exceeds 262K, keeping speculative verification rounds bounded below ~5 ms.
 
-Reported decode remains 43.55 tok/s at ~220K prompt tokens (262K rung) and 36.63 tok/s at the ~458K-token 546K rung, with 100% NIAH recall in the reported sweep. These are M5 numbers and do not transfer to M1, but the policy lesson is useful: **deep-context speculation should be context-adaptive, and QSA pooled-key bandwidth can be quantized separately from the model trunk**.
+Reported sweep:
+
+| rung | prompt tokens | prefill | decode | peak RAM | NIAH |
+|---:|---:|---:|---:|---:|---:|
+| 16K | 13,851 | 1410.6 | 58.26 | 73.09 GB | 100% |
+| 32K | 27,567 | 1301.4 | 41.97 | 75.00 GB | 100% |
+| 64K | 55,061 | 1178.7 | 54.63 | 75.46 GB | 100% |
+| 131K | 109,994 | 1122.6 | 46.34 | 75.46 GB | 100% |
+| 262K | 219,925 | 1050.9 | 43.55 | 78.48 GB | 100% |
+| 524K | 439,776 | 1011.1 | 26.50 | 85.51 GB | 100% |
+| 546K | 457,961 | 1030.1 | 36.63 | 86.00 GB | 100% |
+
+These are M5 numbers and do not transfer to M1, but the policy lesson is useful: **deep-context speculation should be context-adaptive, and QSA pooled-key bandwidth can be quantized separately from the model trunk**.
 
 Source: https://github.com/youssofal/MTPLX/pull/413
 
@@ -237,13 +251,98 @@ The Layr-Labs `qwen-3.8-mtp-challenge` frontier remains:
 
 `3.7291100105909`
 
-The newest visible candidate (#1481) is an unmeasured compiled-elementwise-fusion proposal without an Apple-Silicon local timing receipt. There is no newly promoted external result that should change the P69B13 selection or reopen closed verifier seams.
+The newest visible candidate (#1481) remains an unmeasured compiled-elementwise-fusion proposal without an Apple-Silicon local timing receipt. There is no newly promoted external result that should change the P69B13 selection or reopen closed verifier seams.
 
 Source: https://github.com/Layr-Labs/qwen-3.8-mtp-challenge/pull/1481
 
 A separate quantization development is worth cataloging but does not alter the exact-Q8 verifier campaign: GSQ+RCO 2.5–3.0 bpw GGUFs use learned scalar grids plus per-tensor constrained precision assignment. The architecture-level lesson again supports non-uniform bit allocation for future compact deployments.
 
 Source: https://www.reddit.com/r/LocalLLaMA/comments/1w13vse/release_sota_ggufs_for_qwen3827b_gsqrco_at_25_to/
+
+### 27B operational memory note: ANE bank release
+
+oMLX PR #3340 fixes a lifecycle bug in `release_qwen35_ane_prefill`: per-module ANE compile caches retained a second reference, so releasing procedure banks did not actually reclaim the memory the long-context path expected to recover. The PR describes roughly 13 GB of ANE procedure banks for a 27B configuration at representative MLP/GDN offload fractions and adds weak-reference tests proving native handles are collected after release.
+
+This does not change the exact-Q8 verifier result or justify enabling ANE in P69. It is an operational reminder that a future long-context 27B server must validate actual resident-memory reclamation, not only logical “release” state.
+
+Source: https://github.com/jundot/omlx/pull/3340
+
+## DeepSeek-V4-Flash-0731: why target-only TP really did win
+
+DS4 PR #743 provides the cleanest same-model evidence for the topology discussion. On **2x M3 Ultra**, no MTP, using the 0731 Flash checkpoint, optimizing the TP synchronization/fence path materially changed the result:
+
+- ordinary TP baseline: ~16.56 tok/s;
+- fast polled release fence: ~20.44 tok/s (+~23%);
+- fast fence plus `DS4_TP_NO_KEEPALIVE=1`: **33.12 tok/s**.
+
+The author explicitly reports that this tuned TP result eclipsed their two-node layer-parallel decode, including the RDMA implementation from #715.
+
+Source: https://github.com/antirez/ds4/pull/743
+
+DS4 PR #715 reports the corresponding layer-parallel RDMA curve on 2x M3 Ultra:
+
+| Context | steady decode |
+|---:|---:|
+| 2,048 | **26.80 tok/s** |
+| 18,432 | 24.30 |
+| 34,816 | 23.08 |
+| 51,200 | 22.46 |
+| 65,536 | 21.45 |
+
+Two-node TCP short-context steady decode was ~24.06 tok/s. A three-node RDMA configuration remained near the two-node result (~24.80 tok/s short), showing limited B1 pipeline scaling from adding another stage. The same work reports ~711 tok/s average prefill on an 80K prompt across 3x M3 Ultra.
+
+Source: https://github.com/antirez/ds4/pull/715
+
+Decision-level interpretation: the earlier DS4 conclusion that **TP was the better target-only topology was real**, not a mistaken extrapolation. DS4 had enough useful per-layer work to amortize the synchronization once the fence/keepalive path was fixed, and TP kept both large memory systems active concurrently rather than serializing the layer pipeline.
+
+## DeepSeek-V4-Flash-0731: speculation flips the topology economics
+
+DS4 PR #835 is the important counterweight. It implements distributed DSpark for the layer/pipeline split and explicitly measures why the same target-only TP result does not imply that TP is also best for speculative verification.
+
+Reported environment:
+
+- 2x AMD Strix Halo nodes;
+- Thunderbolt-network TCP around 9 Gbit/s, ~0.4 ms RTT;
+- DeepSeek V4 Flash, 43 layers, split 0:22 / 23:output;
+- greedy decode.
+
+Pipeline DSpark results on code generation were roughly:
+
+- plain: ~13.0 tok/s;
+- speculative: ~13.4 tok/s, with 28 fused spans, 18 full five-draft spans, 16 fully accepted, and zero fallback/hash errors.
+
+Prose was approximately parity/slightly negative. A 4–6-row verify span cost ~290 ms through both slices plus wire versus ~102 ms/token base decode, so roughly three or more accepted drafts were needed to pay for a speculative round.
+
+The critical topology result is explicit: **tensor-parallel DSpark was measured and intentionally not pursued**. Per-layer TP gate exchanges put a six-row verify floor around **210–250 ms** against plain TP at roughly **68 ms/token**, making speculation net-negative on that hardware even at favorable acceptance.
+
+Source: https://github.com/antirez/ds4/pull/835
+
+This resolves the apparent contradiction:
+
+- DS4 0731 **target-only B1**: TP can win because the model has enough per-layer work to amortize synchronization and both nodes compute the same layer concurrently.
+- DS4 0731 **multi-row speculation**: repeated per-layer TP communication can erase the batching gain; pipeline/layer ownership can amortize a whole verify span across a much coarser boundary.
+- Flash-Next pushes still harder toward PP over TB4 because its active neural workload is smaller and its GDN/QSA/recurrent state makes fine-grained synchronization relatively more expensive.
+
+## DeepSeek-V4-Flash-0731: distributed speculation correctness is solvable, speed is not automatic
+
+DS4 PR #861 consolidates the current Strix-Halo distributed v3/DSpark work and is a useful caution against assuming that correct speculative transport implies acceleration.
+
+Reported bilateral validation includes:
+
+- 3,784-token prompt, 15 chunks, ~225.87 tok/s prefill with ACK enabled and ~225.71 without;
+- exact speculative path executed with 20 proposed / 20 accepted drafts;
+- exact canonical response hashes matched v3 speculative and v2 fallback paths.
+
+But the end-to-end decode measurements remained negative:
+
+- short no-spec: ~14.4 tok/s;
+- short exact speculation: ~12.95 tok/s;
+- 160K no-spec: 8.75 tok/s;
+- 160K shared speculation: 7.54 tok/s.
+
+Accordingly, the PR leaves speculative decode default-off. The architectural lesson transfers directly to Flash-Next: distributed state/transport correctness is necessary, but speculative scheduling must still beat its verification, synchronization, and rollback costs in the full system.
+
+Source: https://github.com/antirez/ds4/pull/861
 
 ## Decision impact
 
@@ -269,12 +368,14 @@ Evidence priority now looks like:
 6. bring up PP + context/ngram wide verification as the lower-risk speculative path;
 7. add native MTP with coarse-grained stage handoff and acceptance/rollback metadata only;
 8. port/bound direct-QSA verify so long-context speculation does not inherit general-mask scaling;
-9. test continuous-batching / multi-agent PP utilization once single-stream correctness is stable;
+9. test compiled continuous-batching / multi-agent PP utilization once single-stream correctness is stable;
 10. profile coding-agent expert/tensor hotness before choosing a final mixed-precision quant;
 11. add cached-drafter priming and optional GPU keepwarm only after cache/distributed correctness is stable.
 
-The new dual-M1 receipt retires “can Flash-Next execute across two M1 Max machines over TB4?” as a primary feasibility risk. The remaining question is **performance scaling**, especially whether distributed MTP can turn PP's otherwise sequential B1 stages into a useful overlapped verification pipeline.
+The dual-M1 receipt retires “can Flash-Next execute across two M1 Max machines over TB4?” as a primary feasibility risk. The remaining question is **performance scaling**, especially whether distributed MTP can turn PP's otherwise sequential B1 stages into a useful overlapped verification pipeline.
 
 The on-device checkpoint findings sharpen that further: TB4 bandwidth is not the obvious MTP blocker if state ownership is designed correctly. The likely failure mode is excessive synchronization or host/state movement, not the activation payload itself.
 
-None of the current external evidence establishes a two-node 40+ tok/s result. That remains a target, not a measured claim.
+The DS4 receipts add an important guardrail: do not generalize a topology verdict across execution modes. TP can be the target-only winner and still be the speculative loser on the same model. For Flash-Next on TB4, measure one TP2 target-only control, but spend engineering effort on PP2 + coarse-grained speculation unless the control is unexpectedly strong.
+
+None of the current external evidence establishes a two-node 40+ tok/s Flash-Next result. That remains a target, not a measured claim.
