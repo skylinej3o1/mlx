@@ -1,10 +1,6 @@
-# Latest external runtime research watch
+# Latest external runtime watch
 
-Read these in order:
+Read:
+`experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-01-EARLY-AM.md`
 
-1. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-08-31.md`
-2. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-08-31-LATE-EVENING.md`
-
-The late-evening delta is the newest external evidence checkpoint.
-
-Verifier campaign state is still governed by `CURRENT.md` / `STATUS.md`; external research notes do not modify the certified exact-Q8 ruler unless a later experiment explicitly promotes a local result.
+This pointer tracks the newest external Qwen3.8-Flash-Next / Qwen3.8-27B / DeepSeek-V4-Flash-0731 research delta. External evidence does not modify the certified P69 checkpoint; consult `CURRENT.md` for verifier state.
