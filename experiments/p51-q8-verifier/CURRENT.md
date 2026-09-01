@@ -197,3 +197,38 @@ Key decision-level deltas:
 These external results do **not** modify the certified P69B12 exact-Q8 ruler.
 
 Current verifier next step remains **P69B13 using existing profiling data only**.
+
+## External runtime watch — 2026-09-01 post-early-evening
+
+Latest delta:
+
+`experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-01-POST-EARLY-EVENING.md`
+
+Decision-level changes:
+
+- oMLX 0.6.4 provides direct Metal evidence that exact QSA scoring/block selection,
+  selected-K/V decode, resident PLE/GDN/hyperconnection projections, and MTP
+  warm-prefix restoration still contain meaningful Flash-Next software headroom.
+- An exact **2x M1 Max 64 GB / TB4** DS4-0731 layer-split deployment now reports
+  a 34,384-token distributed prefill at **~152 tok/s** and successful 51K CLI
+  operation. This upgrades PP2 feasibility from correctness-only to a
+  quantitative long-prefill receipt.
+- That DS4 report still publishes **no sustained decode TG**, so the dual-M1 B1
+  decode forecast is intentionally unchanged.
+- The long-prefill server SIGBUS was traced to a sleeping external-USB model
+  mmap and disappeared after moving the model to internal NVMe. TB4 TSO state
+  and background-memory hygiene also mattered to stability and are now explicit
+  bring-up checks.
+- DS4 PR #621 strengthens the case for per-projection mixed quantization by
+  converting the 215 dense 0731 attention projections Q8_0 -> Q4_K and saving
+  ~2.14 GiB while showing a Metal decode advantage. This is a separate lossy
+  capacity/performance track and is **not** admissible in frozen exact-Q8 P69.
+- DS4 #913 reinforces that speculative verifier QSA/indexer thresholds must be
+  semantically identical to ordinary decode and that one-row verify economics
+  need an explicit fallback measurement.
+- Layr 27B frontier remains `3.7291100105909`; #1481 is still the newest visible
+  submission. No external result changes the exact verifier plan.
+
+These findings do **not** modify P69B12 certification or reopen closed work.
+
+Current verifier next step remains **P69B13 using existing profiling data only**.
