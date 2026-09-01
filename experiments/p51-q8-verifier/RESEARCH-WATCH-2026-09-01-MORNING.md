@@ -46,15 +46,9 @@ Source: https://github.com/jundot/omlx/pull/3330
 
 Implication: persistent-agent warm-turn latency keeps improving independently of the decode ruler. This is especially relevant to Tameru-style compaction, prefix reuse, and durable long sessions.
 
-### llama.cpp #28136 — keep the B1 path synchronous and lean
+### Correction recorded in the midday delta
 
-This patch restricts asynchronous compute scheduling to multi-token batches instead of paying its overhead on B1 single-token decode.
-
-On Qwen3.8-Flash-Next with an RTX Pro 6000, real-run single-token generation improved by roughly 6% on average across short/medium/long contexts, with individual rows reaching ~8%. Multi-token / PP behavior was essentially unchanged.
-
-Source: https://github.com/ggml-org/llama.cpp/pull/28136
-
-Implication: the desired topology becomes even clearer: keep ordinary B1 decode minimal, but use asynchronous overlap where MTP, context drafting, or multi-request batching creates enough rows to amortize scheduling.
+An earlier version of this note mistakenly attributed a lean-B1 async-scheduling result to llama.cpp PR #28136. The current upstream #28136 is actually the Qwen4Exp direct-PLE-read work (`--lazy-mode on-direct`). The incorrect attribution has been removed here; see `RESEARCH-WATCH-2026-09-01-MIDDAY.md` for the verified #28136 details and current measurements.
 
 ## DeepSeek V4 Flash 0731
 
