@@ -8,7 +8,7 @@
 
 2. Then read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-02-0945.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-02-1350.md`
 
 3. Because the canonical state was last consolidated at 05:30 ET, also read every dated
    `RESEARCH-WATCH-*` delta newer than that consolidation point when reconstructing the
@@ -18,49 +18,54 @@
 
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-01-IQ-PANEL.md`
 
-## Current newest delta — 2026-09-02 09:45 ET
+## Current newest delta — 2026-09-02 13:50 ET
 
-This pass adds new Flash-Next capacity/headroom evidence and fresh long-context QSA/MTP leads
-without changing the certified verifier state or the dual-M1 throughput forecast bands.
+This pass adds strong physical cache/agent-turn evidence, a new Flash-Next MTP verify-cost
+breakdown, a long-context bottleneck correction, and a more conservative multi-agent memory
+qualification rule. It does **not** change the certified verifier state or dual-M1 throughput
+forecast bands.
 
 Material deltas:
 
-- **NEW — oMLX #3359 SSD expert streaming:** exact-routing streamed MoE now has a substantial
-  Qwen3.8-Flash-Next implementation. An independent M5 Pro 64 GB validation ran Flash-Next
-  oQ2-MTP at ~32.7 GB resident and ~25-28 tok/s warm after correctness fixes. The PR's best
-  development run reports 32.23/34.09 GiB loaded/peak, 362.3 tok/s PP and 40.36 tok/s TG,
-  but its hardware is not named, so those absolutes are not M1 evidence.
-- **NEW CAUTION — native-demand route floor:** M5 Pro follow-up measures ~217 us/layer total
-  native-demand turnaround versus ~67 us for plain gather. The incremental ~150 us/layer is
-  roughly a **7 ms extra 48-layer decode-step floor** even before servicing a true SSD miss.
-  Therefore full-resident experts remain preferable on our 2x M1 Max pair when capacity allows.
-- **NEW — PLE prefaulting:** the streamed Qwen4-Exp path could swing from 3.6 s to 6-10 s on a
-  1023-token prompt because 16,368 random PLE rows faulted synchronously from mmap. Parallel
-  prefaulting stabilized seven runs to 3.57-3.89 s. Cold-page testing is now a bring-up gate.
-- **UPDATE — llama.cpp #28213:** independent ~60K-context test confirms gathered selected-K/V
-  at 15.5 -> 19.6 tok/s (+26%). Once attention is compact, full-context QSA top-k/indexer
-  selection becomes the next context-scaling bottleneck.
-- **NEW sibling #28244:** guarded selected-cell gather keeps 4K decode unchanged at 103.4 tok/s
-  and raises 50K 73.2 -> 78.9 on RTX PRO 6000, but depth output is not bit-identical to master.
-- **NEW lead #28243:** dedicated upstream llama.cpp Flash-Next MTP draft claims 1.3-2x and
-  shared-module/RAM savings, but currently provides no benchmark/hardware table. Track only;
-  do not price it into forecasts yet.
-- llama.cpp #27993, DS4 #922 and DS4 #861 have no new dual-M1 throughput updates. oMLX #3370
-  still has no maintainer response on the temp>0 acceptance-collapse report. mlx-dspark has
-  no new code push in the pass window.
+- **RECOVERED + UPDATE — oMLX #3330 ExactResident/prompt-tail keepwarm:** physical M3 Ultra
+  Flash-Next integration drops an 18,174-token rewritten agent/tool turn from 4.17 s visible
+  TTFT to 0.62 s with exact output parity; structured tool follow-up is ~0.51 s. A fresh
+  Qwen3.8-27B MTP-terminal fix reduces MTP-on TTFT from 4.831 s to 0.197 s, essentially equal
+  to the 0.208 s MTP-off control.
+- **RECOVERED — oMLX #3328:** a ~100K Flash-Next restart restored 98,304 prompt tokens from
+  target prefix cache, primed only a 1,689-token exact suffix into MTP, then measured 98.3%
+  acceptance, 5.38 tokens/target-cycle and 65.25 tok/s decode with the exact target output.
+- **NEW — oMLX #3382:** measured M3 Ultra Flash-Next B1/depth-5 verify cost is ~2.3x a base
+  forward, decomposed approximately into +0.5x GDN sequential recurrence, +0.6x MoE expert
+  union and +0.2x QSA indexer. Reported prose acceptance (~2.4 tok/cycle) is near break-even;
+  tool-call acceptance (~3.1) is ~1.35x net. Proposed expert-union/TreeWY gains are estimates.
+- **CORRECTION — llama.cpp #28213:** the prior statement that QSA top-k is the demonstrated
+  next residual bottleneck was too strong. On the follow-up host, shrinking top-k work did not
+  move throughput; merged #28040's O(N)->O(log n) KV previous-token lookup did, moving
+  19.6 -> 21.6 tok/s at ~60K. Keep indexer optimization as a seam, not a proven dominant one.
+- **NEW MEMORY CAUTION — llama.cpp #27941:** dense QSA-mask compute buffering can reserve
+  ~9 GB at 128K / 4K ubatch in that runtime. oMLX gathered-QSA is materially more memory
+  efficient, but raw K/V arithmetic alone is insufficient for Hermes capacity planning.
+  **4 x 128K simultaneously hot on 2x M1 Max is a design target, not a proven comfortable
+  resident configuration.**
+- **UPDATE — DS4 #861:** four concurrent clients now execute bit-exactly and a fifth queues
+  cleanly, but aggregate is still ~13.2 tok/s because only part of the expensive path is row
+  batched. The contributor's 1.5-1.8x wider-batching ceiling is an estimate, not a result.
+- **UPDATE — DS4 #621:** AProjQ4 remains a strong lossy/capacity track (Metal median decode
+  +15.5%, 2.14 GiB smaller), but an order-balanced GB10 series requalifies long-context prefill
+  to near parity rather than a multi-percent Q4 win.
+- Exact dual-M1 Flash-Next #27993 and dual-M1 0731 #922 still have no new sustained TG.
+  Layr remains at best score `3.7291100105909` with #1481 newest; mlx-dspark has no new push.
 
 ## Forecast consequence
 
-B1 short/medium, B1 ~128K, and mature B2-B4 aggregate confidence bands are **unchanged**.
+B1 short/medium, B1 ~128K, and mature B2-B4 aggregate confidence bands remain **unchanged**.
+There is still no exact M1-Max Flash-Next B2/B4 receipt and no dual-M1 Flash-Next TG.
 
-The design implication is more specific now: SSD streaming strengthens the case that the
-primary 64-GB Mac can retain real workstation/Hermes headroom, but it is a capacity mode with
-measurable host/I/O tax. For the mature 2x M1 Max system, prefer asymmetric PP with a resident
-hot execution path; selectively SSD-back PLE or colder expert capacity only when memory/headroom
-requires it.
-
-The ~400 tok/s mature prefill target plus strong prompt/prefix caching remains sensible, but
-this pass does not supply a dual-M1 400-PP receipt.
+The Hermes architecture case improves in a different dimension: exact prefix ownership,
+suffix-local MTP reconstruction and prompt-tail keepwarm now have strong physical evidence for
+low-TTFT long-lived agents. At the same time, real runtime/transient/cache-snapshot memory must
+be measured before fixing the default per-agent context ceiling.
 
 External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen and
 `CURRENT.md` remains authoritative for exact-verifier state; **P69B13 remains next using
