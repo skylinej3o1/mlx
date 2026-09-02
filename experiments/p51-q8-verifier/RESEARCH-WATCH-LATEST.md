@@ -1,18 +1,47 @@
 # Latest external runtime watch
 
-Read:
-`experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-01-EARLY-EVENING.md`
+## Read order for every new research pass
 
-Also read:
-`experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-01-LATE-AFTERNOON.md`
+1. Read the durable canonical state first:
 
-Also read the focused kernel-mining note:
-`experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-01-IQ-PANEL.md`
+   `experiments/p51-q8-verifier/RESEARCH-STATE.md`
 
-The mining note records the portable large-batch quantized-weight panel-reuse pattern: store weights compactly, decode/repack a compute panel once, reuse it across enough activation/expert rows to amortize conversion, and gate the path by measured batch geometry.
+2. Then read the newest dated delta:
 
-The early-evening runtime watch adds the first clean reproducible M1 Max 64 GB Flash-Next target-only/MTP context sweep, records the same author's ~22 tok/s tuned configuration as same-source headroom rather than an independent receipt, recalibrates the mature dual-M1 >=40 tok/s B1 forecast, and adds DS4's resident-session versus active-request scheduler split.
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-01-2030.md`
 
-The preceding late-afternoon watch retains the M3 Ultra ~220K near-flat gathered-QSA prefill result, reasoning-stream/MTP rollback protocol-state safety, DS4 verify-threshold and small-width verifier economics, and the latest GB10 comparison status.
+3. If reconstructing history or validating whether a source is genuinely new, scan all
+   dated `RESEARCH-WATCH-*` files newer than the canonical state's consolidation point.
 
-This pointer tracks the newest external Qwen3.8-Flash-Next / Qwen3.8-27B / DeepSeek-V4-Flash-0731 research delta plus focused optimization mining. External evidence does not modify the certified P69 checkpoint; consult `CURRENT.md` for verifier state.
+4. Also read the focused kernel-mining note when looking for portable optimization ideas:
+
+   `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-01-IQ-PANEL.md`
+
+## Why this pointer changed
+
+The previous version of this file was stale at the 2026-09-01 Early-Evening watch even
+though Post-Early-Evening and Night deltas already existed. In addition, the Night pass
+rediscovered DS4 issue #607 as though it were new even though that exact dual-M1 report
+had already been found and used in the project on 2026-08-01; it had simply fallen out of
+the later formal watch-note chain.
+
+`RESEARCH-STATE.md` now carries durable architecture/runtime anchors forward so a dated
+note cannot silently erase project knowledge.
+
+## Current newest delta — 2026-09-01 20:30 ET
+
+The latest pass records:
+
+- correction: DS4 #607 is a historical known dual-M1 anchor, not a new discovery;
+- llama.cpp #28213: gathered selected-K/V QSA decode, with reported +6% at 31K,
+  +19% at 62K, and +50% at 130K on dual A6000;
+- oMLX #3320: long-context wide-MTP/direct-QSA evidence now requires technical
+  requalification after a low-margin parity failure;
+- oMLX #3364/#3365: Qwen3.8-27B ANE long-prefill admission/escalation repair;
+- DS4 #922 rechecked: still no sustained 0731 dual-M1 decode TG;
+- Layr exact 27B frontier still `3.7291100105909`, #1481 newest visible submission;
+- updated B1, long-context B1, and B2-B4 aggregate confidence ladders.
+
+External evidence does **not** modify the certified P69 checkpoint.
+Consult `CURRENT.md` for verifier state; P69B13 remains next using existing profiling data
+only.
