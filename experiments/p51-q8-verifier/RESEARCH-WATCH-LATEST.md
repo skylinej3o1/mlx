@@ -8,7 +8,7 @@
 
 2. Then read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-02-MIDNIGHT.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-02-0530.md`
 
 3. If reconstructing history or validating whether a source is genuinely new, scan all
    dated `RESEARCH-WATCH-*` files newer than the canonical state's consolidation point.
@@ -17,38 +17,40 @@
 
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-01-IQ-PANEL.md`
 
-## Current newest delta — 2026-09-02 Midnight ET
+## Current newest delta — 2026-09-02 05:30 ET
 
-This pass focuses on concurrency and distributed serving economics rather than another
-isolated B1 kernel result.
+This pass corrects the midnight continuous-batching interpretation and records two new
+Flash-Next serving/performance leads.
 
 Material deltas:
 
-- **NEW oMLX #3368:** fixes Qwen4-exp QSA indexer per-row `past_len`; B>1 continuous
-  batching could crash because a per-row cache offset was treated as scalar. This is a
-  correctness prerequisite for real Flash-Next B2/B4.
-- **NEW oMLX #3369:** fixes BatchQSAKVCache join rank/length handling across text/MRoPE
-  state and separates indexer length from KV offset.
-- **RECOVERED oMLX #3265:** batched depth-1 MTP is not automatically profitable on
-  M1-generation silicon. An M1 Ultra B8 run measured 36.03-38.50 tok/s with batched MTP
-  versus 57.09 tok/s plain batching because draft-head cost was approximately verifier
-  cost.
-- **UPDATE/new-to-project oMLX #3118:** physical M3 Ultra + M5 Max / TB5 Cluster-v2
-  evidence shows a mature distributed server can preserve speculative throughput by
-  serializing one profitable MTP lane and arbitrating concurrent requests around it,
-  rather than forcing simultaneous batched MTP.
-- **UPDATE DS4 #861:** distributed multi-session serving now shares a worker registry,
-  but decode remains serialized until true row-batched spans/coalescing land.
-- **RECOVERED M1 Max 27B benchmark baselines:** ordinary target batching can show strong
-  B2/B4 aggregate scaling on M1 Max, but the multiplier is highly runtime/configuration
-  sensitive.
-- Layr exact Qwen3.8-27B frontier remains `3.7291100105909`, #1481 newest visible.
+- **CORRECTION — oMLX #3368 was superseded.** Already-merged #3246 had fixed the real
+  production qwen4_exp ragged-QSA / `to_batch` / join path. #3368 was closed without merge;
+  its proposed tests passed unchanged on current main. Plain B>1 correctness was therefore
+  more mature than the midnight note implied.
+- **UPDATE — #3369 merged.** Mixed text/MRoPE BatchQSAKVCache joins and indexer-length vs
+  KV-offset handling are now hardened on main.
+- **UPDATE — #3355 + #3351 merged.** Gathered-QSA long text prefill now survives mRoPE
+  rebinds and is priced correctly by memory admission. A 233,472-token cached-prefix +
+  5,244-token continuation scenario that was falsely rejected is now explicitly covered.
+- **NEW — #3372 SSD-PLE gather:** M5 Max 128 GB at 92K warm prefix measured
+  35.42 -> 37.32 tok/s (+5.4%) by removing per-forward host readback and row-at-a-time shard
+  faulting. Treat this as a portable SSD-PLE design signal, not an M1 percentage forecast.
+- **NEW CAUTION — #3370:** one M3 Ultra Qwen3.8-Flash-Next-oQ8-MTP report shows 100%
+  acceptance / ~70.7 tok/s at temp=0 but 0% acceptance / ~21 tok/s at temp=0.3 and 0.7.
+  The proposed greedy-only acceptance root cause is not maintainer-confirmed. Future M1
+  qualification must test real agent sampling separately from temp=0.
+- **KNOWN #3334:** compiled B4 decode reduces host dispatch 77% and pure step time 18% on
+  M3 Ultra, but controlled HTTP E2E remains 0.93-1.02x, so no aggregate speed claim yet.
+- DS4 #922 still has no sustained 0731 dual-M1 TG; llama.cpp #27993 still has no dual-M1
+  Flash-Next throughput/deep-context follow-up; Layr exact 27B remains 3.7291100105909 with
+  #1481 newest visible.
 
 ## Forecast consequence
 
 B1 short/medium and long-context confidence bands are unchanged.
 
-Mature B2-B4 aggregate confidence is now:
+Mature B2-B4 aggregate confidence also remains unchanged from the midnight trim:
 
 - >=50 tok/s: ~85%
 - >=60 tok/s: ~70-75%
@@ -56,10 +58,14 @@ Mature B2-B4 aggregate confidence is now:
 - >=80 tok/s: ~30-35%
 - >=90 tok/s: ~15%
 
-The updated serving hypothesis is: prove plain multi-row batching first; under concurrency,
-measure plain batching versus a singleton profitable MTP lane versus batched depth-1 MTP,
-and dynamically disable speculation when its economics turn negative.
+The rationale is now cleaner: **plain continuous batching is more mature than we thought**;
+the uncertainty is M1-generation speculative economics and the absence of an actual M1-Max
+Flash-Next B2/B4 end-to-end receipt.
 
-External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen
-and `CURRENT.md` remains authoritative for exact-verifier state; **P69B13 remains next
-using existing profiling data only**.
+Updated serving test policy: benchmark plain batching, singleton-MTP arbitration, and batched
+depth-1 MTP separately; test MTP at both temp=0 and the intended agent sampling configuration;
+A/B SSD-PLE gather before distributed tuning when PLE is offloaded.
+
+External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen and
+`CURRENT.md` remains authoritative for exact-verifier state; **P69B13 remains next using
+existing profiling data only**.
