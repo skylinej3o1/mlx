@@ -1,282 +1,344 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-01 20:30 ET.
+Last consolidated: 2026-09-02 00:08 ET.
 
-Purpose: this file is the durable baseline for all future external research passes.
-Dated `RESEARCH-WATCH-*` files are deltas; this file carries forward the facts that
-must not be rediscovered or accidentally reclassified as new.
+Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
+DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
+this file carries forward the facts and decisions that must not be rediscovered or
+silently dropped.
 
 ## Required research-pass protocol
 
-Before any new Qwen3.8-27B / Qwen3.8-Flash-Next / DeepSeek-V4-Flash search:
+Before any new search:
 
 1. Read this file first.
 2. Read `RESEARCH-WATCH-LATEST.md`.
-3. Read every dated `RESEARCH-WATCH-*` delta newer than this file's last consolidation.
-4. Classify each external hit as one of:
-   - **KNOWN** — already in the canonical state or an earlier project discussion;
-   - **UPDATE** — same source/idea, but materially newer data or status;
-   - **NEW** — genuinely new source/architecture/result.
-5. Never call an old source "new" merely because it was missing from a later dated note.
-6. After a useful pass, update the dated delta, this canonical state when a durable
-   decision changes, and `RESEARCH-WATCH-LATEST.md`.
+3. Read every dated watch newer than this file's consolidation point.
+4. Classify each hit as **KNOWN**, **UPDATE**, **NEW**, or **RECOVERED OLDER EVIDENCE**.
+5. Never call an old source new merely because it was absent from a later note.
+6. After a useful pass, update the dated delta, this state when a durable conclusion
+   changes, and `RESEARCH-WATCH-LATEST.md`.
 
-This protocol exists because the 2026-09-01 Night pass rediscovered DS4 issue #607,
-which had already been found and used as an empirical anchor in the project on
-2026-08-01, but had not been carried into the later formal `RESEARCH-WATCH-*` files.
-`RESEARCH-WATCH-LATEST.md` was also stale and pointed only through Early Evening.
+This protocol was added after DS4 issue #607 was rediscovered on 2026-09-01 even though
+it had already been found and used in the project on 2026-08-01.
 
-## Certified 27B verifier state — separate from external research
+## Certified exact 27B verifier state — external research cannot modify this
 
-External research does **not** change the exact-Q8 P69 certification state.
-
-Current promoted verifier stack:
+Current promoted stack:
 
 - P58 FP16 GDN verifier prework
 - P61 HPT2 HEADPAIR SDPA
 - P69B3 SG2R4 Q8 M4 projection
 - P69B6 DUAL64 verifier MLP
-- P69B11 QKV(KP2)+Z(KP1) bundle
+- P69B11 QKV(KP2)+Z(KP1) projection bundle
 - P69B12 B/A idle-SIMD piggyback
 - fixed D3 / verifier M4
 
-Current absolute ruler remains effectively the P69B11/P69B12 tie near 19.55 tok/s
-at the frozen 29,297-token ruler.
+P69B11/P69B12 remain effectively tied near 19.55 tok/s on the frozen 29,297-token ruler;
+P69B12 remains promoted because its paired certification is stronger causal evidence.
 
-**Next exact-verifier work remains P69B13 using existing profiling data only.**
-Do not rerun P69B7 profiling or reopen closed P69B8/P69B9/P69B10-C/P69B12 work.
+**Next exact-verifier work is P69B13 using existing profiling only.** Do not rerun P69B7
+profiling or reopen closed P69B5/P69B6-D/P69B8/P69B9/P69B10-C/P69B11/P69B12 work.
 
 ## Durable exact-hardware anchors — 2x M1 Max 64 GB / Thunderbolt 4
 
-### KNOWN since 2026-08-01 — DS4 issue #607, pre-0731
+### KNOWN since 2026-08-01 — DS4 #607, pre-0731
 
 Source: https://github.com/antirez/ds4/issues/607
 
-This was one of the project's earliest direct dual-M1 calibration points. It is
-**historical known context, not a 2026-09-01 discovery**.
-
-Hardware/topology:
-
 - 2x MacBook Pro M1 Max 64 GB
-- direct Thunderbolt 4
-- layer/pipeline split 0:23 / 24:output
-- fully resident `q2-q4-imatrix`
-- context 65,536
-- 32-bit distributed activations
-
-Measured:
-
+- direct TB4
+- serial layer/pipeline split 0:23 / 24:output
+- fully resident q2-q4-imatrix, ctx 65,536, 32-bit distributed activations
 - long-document decode: 10.03 / 10.07 tok/s
 - code decode: 11.00-12.95 tok/s
 - long-prompt prefill: 153.7-162.7 tok/s
 
-Interpretation:
+This predates the 0731 checkpoint. It is a topology/economics anchor, not a 0731 result.
+Plain serial layer PP on the exact M1-Max/TB4 hardware class is a low-teens dependent-chain
+decode system, not a near-2x multiplier.
 
-- this predates the 0731 checkpoint and must not be quoted as 0731 performance;
-- it is the strongest direct historical anchor for **plain serial layer-split
-  economics** on the exact M1-Max/TB4 hardware class;
-- plain PP/layer splitting by itself does not produce a near-2x dependent B1 decode
-  multiplier.
-
-### KNOWN — DS4 issue #922, exact 0731 long-context receipt
+### KNOWN — DS4 #922, exact 0731 long-context receipt
 
 Source: https://github.com/antirez/ds4/issues/922
 
-Hardware/topology:
-
 - 2x M1 Max 64 GB / TB4
-- DeepSeek-V4-Flash-0731 DS4-Quality128, 95.76 GiB
+- DeepSeek-V4-Flash-0731 Quality128, 95.76 GiB
 - layers 0:22 / 23:output
 - 8-bit distributed activations
 - ctx allocation 262,144
-
-Measured/confirmed:
-
 - 34,384-token distributed prefill: ~152 tok/s, ~225 s
-- 51K CLI prompt works
-- after moving the model mmap from external USB SSD to internal NVMe,
-  34K prefill + generation completed successfully
-- TSO=0 and removal of a large background-memory consumer mattered to stability
+- 51K CLI prompt succeeds
+- external USB SSD mmap caused post-prefill SIGBUS; internal NVMe removed the failure
+- TSO=0 and removal of a ~46 GB background memory consumer also mattered to stability
 
-Still missing:
-
-- generated-token count
-- sustained decode TG
-
-The 257-second end-to-end completion after the storage fix cannot be converted into
-TG. Rechecked 2026-09-01 20:30 ET: no newer comment supplies it.
+Still no completion-token count or sustained decode TG. Never infer TG from the reported
+257-second successful end-to-end completion.
 
 ### KNOWN — exact dual-M1 Flash-Next RPC correctness
 
 Source: https://github.com/ggml-org/llama.cpp/issues/27993
 
-Exact 2x M1 Max 64 GB / point-to-point TB4 with Qwen3.8-Flash-Next UD-IQ4_XS.
-PR #27960 fixed an RPC allocation/state bug that caused deterministic all-zero output
-past ~2K prompt length. 2.5K/4K and q8 KV tests then passed; a 115K/256K needle run
-was started. No sustained TG has been published in that issue.
+Exact 2x M1 Max 64 GB / point-to-point TB4 with Qwen3.8-Flash-Next UD-IQ4_XS. PR #27960
+fixed deterministic all-zero output beyond roughly 2K prompt length. 2.5K/4K and q8 KV
+runs then became coherent. No sustained TG has been published.
 
-Interpretation: distributed recurrent/QSA correctness is a mandatory bring-up gate
-before throughput claims.
+Distributed recurrent/QSA correctness is a mandatory bring-up gate before throughput.
 
-## Durable single-M1 Flash-Next anchors
+## Durable single-M1 Flash-Next calibration
 
-### Reproducible M1 Max 64 GB custom llama.cpp sweep
+Reproducible M1 Max 64 GB custom llama.cpp work currently anchors the hardware class:
 
-Known current calibration:
-
-- target-only ~10.9 tok/s at 4K, ~10.0 at 32K, ~9.2 at 64K, ~8.0 at 128K
-- native MTP ~17.6 tok/s at 4K and ~13 tok/s at 128K in the reproducible sweep
-- later tuned configuration from the same author reaches roughly 12.9 target-only
-  and ~22 tok/s with MTP
+- target-only ~10.9 tok/s @4K, ~10.0 @32K, ~9.2 @64K, ~8.0 @128K
+- native MTP ~17.6 tok/s @4K and ~13 tok/s @128K in the reproducible sweep
+- later tuned same-author configuration around 12.9 target-only / ~22 MTP
 - prefill roughly 150-180+ tok/s depending on context/configuration
 
-This is the most relevant direct single-node calibration for a 400-GB/s M1 Max.
+Flash-Next's sparse PLE/n-gram table is a much better SSD-offload candidate than routed
+experts: tiny indexed reads can be cheap while expert streaming repeatedly touches much
+larger weight volumes.
 
-### Storage asymmetry
+## Established Flash-Next optimization seams
 
-Flash-Next's sparse n-gram/PLE table is a much better SSD-offload candidate than
-routed experts: tiny indexed PLE reads can be serviced efficiently while expert
-streaming touches much larger recurring weight volumes. PLE direct-read/concurrent
-pread work in llama.cpp/oMLX reinforces this distinction.
+Future passes should look for status/performance updates rather than rediscover these:
 
-## Flash-Next architecture seams already established
-
-These are known directions; future search passes should look for status/performance
-updates rather than rediscovering the ideas.
-
-- exact/direct QSA scoring and deterministic block selection
-- gather/selected-KV sparse attention rather than full-context masked attention
+- exact/direct QSA scoring and deterministic selection
+- gathered/selected-KV sparse attention instead of full-context masked attention
 - QSA/indexer top-k acceleration
 - resident PLE / GDN / hyperconnection projections
-- MTP head/history warm-prefix restoration
+- MTP prompt-history sidecar / warm-prefix restoration
 - recurrent speculative checkpoints kept on-device
 - context-adaptive verify width/depth
-- compiled multi-row decode / host-dispatch reduction
-- n-gram history speculation for repeated agent/code workloads
-- exact resident prefix/cache reuse for agent turns
-- per-projection / workload-aware mixed quantization as a separate lossy capacity track
-- stage-local recurrent state for distributed PP; avoid chatty cross-TB4 collectives
+- compiled multi-row decode and reduced host dispatch
+- n-gram-history self-speculation for repeated code/agent workloads
+- exact resident prefix/cache reuse
+- per-projection mixed quantization as a separate lossy capacity track
+- stage-local recurrent state under PP; avoid chatty TB4 collectives
+- continuous-batching QSA state must be explicitly per-row
 
-## Freshly consolidated 2026-09-01 late-evening deltas
+## Long-context QSA evidence
 
-### UPDATE — llama.cpp PR #28213: gather-based QSA decode
+### llama.cpp #28213 — gathered selected-K/V decode
 
 Source: https://github.com/ggml-org/llama.cpp/pull/28213
 
-A newer qwen4exp implementation gathers only indexer-selected K/V instead of applying
-a sparse mask over the full KV history.
-
-Dual RTX A6000, IQ4_XS, q8 KV, temp 0:
+Dual A6000, IQ4_XS, q8 KV, temp 0:
 
 - 31K: 36.5 -> 38.5 tok/s (+6%)
 - 62K: 26.5 -> 31.6 tok/s (+19%)
 - 130K: 15.7 -> 23.6 tok/s (+50%)
 
-At 130K it also avoids roughly 17 MB of attention-mask upload per token.
-This is not an Apple result, but it strongly confirms that **selected-KV gather** is
-one of the highest-leverage long-context Flash-Next seams.
+At 130K it also removes roughly 17 MB of attention-mask upload per token. Not Apple
+evidence, but strong architecture evidence that selected-KV gather is the correct
+long-context shape.
 
-### UPDATE / caution — oMLX PR #3320 requalification
+### oMLX #3320 — direct-QSA wide-MTP evidence is under requalification
 
 Source: https://github.com/jundot/omlx/pull/3320
 
-The long-context direct-QSA MTP PR now explicitly remains draft for a technical
-requalification gate because a later low-margin workload exposed a parity failure in
-the prior fast wide-verifier evidence. The unqualified experimental path is not being
-promoted until exact 10K-220K output-hash/cache-state/selector/prefill/decode gates
-pass again.
+A later low-margin workload exposed a parity failure in the prior fast wide-verifier
+evidence. The PR remains draft until the exact 10K-220K output-hash/cache-state/selector/
+prefill/decode gates are refreshed. Preserve the architecture signal, but do not overweight
+its most aggressive throughput numbers until requalified.
 
-The reported high-acceptance M3 Ultra results remain valuable architectural evidence,
-but aggressive throughput extrapolations should carry less weight until requalified.
+## Flash-Next continuous batching — current state
 
-### UPDATE — oMLX PRs #3364/#3365: 27B ANE long-prefill admission repair
+### NEW #3368 — per-row QSA indexer past length
 
-Qwen3.8-27B oQ4e-mtp could reject long prefill because ANE-bank transient reserve and
-retry escalation were stale/misclassified. The repaired source path completes a
-65,536-token context benchmark at roughly 397 tok/s where the captured v0.6.4 path
-rejected at 4,096 tokens.
+Source: https://github.com/jundot/omlx/pull/3368
 
-This is a serving/memory-admission improvement, not an exact-P69 decode result.
+At B>1 `BatchQSAKVCache.offset` is per-row, but the QSA indexer treated it as a scalar,
+causing wrong axis broadcasting and batch-formation crashes. The fix builds true
+`[batch, seq_len]` per-row state and preserves B1 numerics; 14 tests verify selected-mask
+contents.
 
-### UPDATE — Layr exact 27B frontier unchanged
+Practical implication: current upstream Qwen4-exp continuous batching was not generally
+safe merely by setting `max_concurrent_requests >= 2`. This fix is foundational, not yet a
+throughput receipt.
 
-Rechecked 2026-09-01 20:30 ET:
+### NEW #3369 — BatchQSAKVCache join rank/length correctness
 
-- best score: 3.7291100105909
+Source: https://github.com/jundot/omlx/pull/3369
+
+Follow-up fixes make rank-2 text and rank-3 MRoPE/image position joins promote to the
+widest rank and stop conflating KV offset with indexer length. This removes both crash and
+silent-mis-slice classes in B>1 joins. Again: correctness foundation, no throughput claim.
+
+### RECOVERED #3265 — batched depth-1 MTP is silicon/economics sensitive
+
+Source: https://github.com/jundot/omlx/pull/3265
+
+Opt-in depth-1 always-advance MTP across a multi-row batch reports on M3 Ultra:
+
+- batched acceptance ~56% vs ~61% single-stream
+- four concurrent requests roughly +70-90% aggregate vs plain batching in the reported
+  setup
+
+But an independent **M1 Ultra** run is directly relevant to our M1-generation plan:
+
+- 8 concurrent
+- 580 cycles
+- acceptance 52.4%, zero fallbacks
+- batched MTP 38.50 / 36.03 tok/s
+- plain-batched baseline 57.09 tok/s
+- draft-head work ~12,226 ms vs verifier ~10,196 ms
+
+The draft head cost approximately as much as verification, so MTP was net-negative despite
+reasonable acceptance. Do not make MTP mandatory under concurrency on M1 Max.
+
+## Distributed concurrency evidence
+
+### oMLX Cluster v2 #3118 — stronger-hardware architecture calibration
+
+Source: https://github.com/jundot/omlx/pull/3118
+
+Physical pair is **M3 Ultra 256 GB + M5 Max 128 GB / TB5 JACCL-RDMA**, measured around
+6.1-6.5 GB/s and 27-31 us. Absolute numbers must not be transferred to M1 Max/TB4.
+
+DeepSeek-V4 TP2 evidence:
+
+- cold prefill ~732.49 tok/s @30K, ~684.66 @100K
+- non-MTP B1 decode ~29-31 tok/s
+- non-MTP aggregate B1/B2/B4 ~31.22 / 47.35 / 75.22 tok/s
+- fixed-depth-5 high-acceptance MTP ~79.8-80.6 tok/s raw
+
+The most transferable result is the final concurrency policy. Until true N x M speculative
+verification exists, the implementation caps the MTP lane to one and queues/arbitrates
+concurrent work around it. Cached physical aggregate wall rates are approximately:
+
+- B1 75.1 tok/s
+- B2 75.2 tok/s
+- B4 73.1 tok/s
+
+The PR explicitly calls this **serialized throughput arbitration, not simultaneous batched
+MTP scaling**.
+
+Qwen3.8-27B Phase-split evidence in the same branch:
+
+- 9,410-token cold prefill compute ~991.36 tok/s
+- decode ~29.59 tok/s
+- cache handoff 7.34 GB/s
+- exact-prefix wall 12.31 s -> 1.40 s
+- B4 queued throughput ~1.29x sequential stage time
+
+Single-node donor-head Lightning MTP works, but Qwen TP2 MTP physically stalled at the
+first `return_hidden`/rollback graph and was reverted/fail-closed. Distributed target
+execution and distributed speculative lifecycle are separate qualification problems.
+
+### DS4 #861 — distributed batched-serving L0
+
+Source: https://github.com/antirez/ds4/pull/861
+
+Known Strix-Halo topology result remains: layer-split pipeline ~222 tok/s average prefill /
+260 peak and 13.6 tok/s decode, while TP is link/RTT-heavy. Current update adds a shared
+worker registry for `--batched-session N` and multiplexed session/request IDs, but decode
+remains serialized and coalescing/mixed-prefill are disabled until row-batched spans land.
+
+Correct multi-session distributed serving is advancing; true distributed batched throughput
+is still a separate milestone.
+
+## M1 Max 27B ordinary-batching feasibility anchors
+
+Recovered existing oMLX benchmark records show that M1 Max itself can expose useful
+aggregate target-batching headroom, but results are highly configuration-sensitive.
+Observed B1/B2/B4 rows include examples around:
+
+- 18.9 / 22.0 / 44.9 tok/s
+- 18.1 / 31.0 / 63.8 tok/s
+- 16.2 / 26.4 / 45.1 tok/s
+- 15.5 / 31.9 / 61.7 tok/s
+
+Another M1 Max 64 GB record showed only ~19.0 / 22.3 / 23.7. Durable conclusion:
+plain multi-row execution can scale significantly on M1 Max, but the multiplier is runtime,
+model, and configuration sensitive. These 27B records are not direct Flash-Next proof.
+
+## Qwen3.8-27B external exact frontier
+
+Layr challenge remains unchanged as of this consolidation:
+
+- best score `3.7291100105909`
 - #1481 newest visible submission
-- no #1482+ promoted result
+- no newer promoted exact result
 
-## Current dual-M1 Flash-Next target ladder
+No external result changes P69B13 selection.
 
-These are **engineering planning probabilities**, not statistical confidence intervals.
-They assume a mature 2x M1 Max 64 GB / TB4 stack, batch-one coding/agent workload,
-roughly short-to-medium active context (about 4K-32K), best available single-node
-Flash-Next kernels first, MTP enabled, recurrent state kept local, and PP overlap used
-where it actually pays.
+## Current dual-M1 Flash-Next planning ladder
 
-| Mature B1 target | Current confidence | Interpretation |
-|---|---:|---|
-| >=30 tok/s | ~90% | base success target |
-| >=35 tok/s | ~75-80% | strong target |
-| >=40 tok/s | ~55-60% | stretch, still plausible |
-| >=45 tok/s | ~30-35% | aggressive |
-| >=50 tok/s | ~15% | upside case, not planning baseline |
+These are engineering planning probabilities, not statistical confidence intervals.
+Assumptions: mature 2x M1 Max 64 GB / TB4, short-to-medium B1 coding/agent workload,
+best single-node kernels first, recurrent state kept local, and PP overlap used where it
+actually pays.
 
-Change from the Early-Evening ladder: the >=40 and >=45 bands are trimmed slightly.
-The new QSA-gather evidence is positive, but oMLX #3320's requalification warning means
-we should not overweight the most aggressive long-context MTP numbers until they pass
-again. The exact dual-M1 Flash-Next TG is still missing, so no large forecast move is
-justified.
+### B1 short/medium context — unchanged
 
-### Long-context B1 planning band (~128K active context)
+| Mature B1 target | Confidence |
+|---|---:|
+| >=30 tok/s | ~90% |
+| >=35 tok/s | ~75-80% |
+| >=40 tok/s | ~55-60% |
+| >=45 tok/s | ~30-35% |
+| >=50 tok/s | ~15% |
 
-| Mature B1 target | Current confidence |
+### B1 around 128K — unchanged
+
+| Mature B1 target | Confidence |
 |---|---:|
 | >=20 tok/s | ~85% |
 | >=25 tok/s | ~65% |
 | >=30 tok/s | ~40% |
 | >=35 tok/s | ~20% |
 
-The direct-QSA gather results support meaningful long-context upside, but the exact M1
-calibration still falls from ~17.6 at 4K toward ~13 at 128K on one streamed node.
+### Mature B2-B4 aggregate — trimmed after concurrency evidence
 
-### Multi-agent aggregate throughput
-
-Independent requests can fill otherwise idle PP stages, so aggregate throughput has a
-stronger outlook than a single dependent decode chain. For a mature B2-B4 server:
-
-| Aggregate target | Current confidence |
+| Aggregate target | Confidence |
 |---|---:|
-| >=50 tok/s | ~90% |
-| >=60 tok/s | ~80% |
-| >=70 tok/s | ~65% |
-| >=80 tok/s | ~45% |
-| >=90 tok/s | ~25% |
+| >=50 tok/s | ~85% |
+| >=60 tok/s | ~70-75% |
+| >=70 tok/s | ~50-55% |
+| >=80 tok/s | ~30-35% |
+| >=90 tok/s | ~15% |
 
-The key validation ladder remains B1 -> B2 -> B4 -> B6 with per-agent throughput,
-aggregate throughput, stage idle time, MTP acceptance/tokens-per-cycle, and TB4 traffic
-recorded separately.
+Reason for trim: previous aggregate forecasts blended plain batching, speculative batching,
+and singleton-lane speculative arbitration. #3368/#3369 show Flash-Next B>1 correctness is
+only now being repaired, #3265 shows batched MTP can lose badly on M1-generation silicon,
+and #3118 shows a mature distributed system may intentionally serialize the profitable
+MTP lane instead of speculating every concurrent row.
 
-## Current topology decision
+The outlook remains favorable because ordinary M1 Max batching can scale and independent
+requests can fill otherwise idle pipeline work. The adjustment means **concurrency is a
+scheduler/topology optimization, not an automatic MTP multiplier**.
 
-- **PP2 remains primary** for the dual-M1 Flash-Next project.
-- **TP2 remains a falsification/control benchmark**, not the default plan.
-- Plain layer PP should be expected to resemble the old DS4 low-teens dependent-chain
-  behavior unless MTP/overlap creates useful pipeline work.
-- Multi-agent service is the strongest opportunity because independent requests create
-  pipeline depth that B1 inherently lacks.
+## Current topology / serving decision
 
-## Bring-up invariants
+- **PP2 remains primary** for the dual-M1 Flash-Next experiment.
+- **TP2 remains a falsification/control benchmark.**
+- First prove single-M1 and PP2 target-only correctness/performance.
+- Then benchmark B2/B4 plain target batching separately from MTP.
+- Under load, prefer the best measured policy among:
+  1. plain multi-row target batching;
+  2. singleton profitable MTP lane plus queued/arbitrated independent work;
+  3. batched depth-1 MTP;
+  4. context/acceptance-driven dynamic MTP disable.
 
-For the eventual two-M1 benchmark:
+Do not assume "MTP everywhere" is optimal on M1 Max.
 
-- internal NVMe for long-lived mapped model/vocab files
+## Bring-up invariants / highest-value missing measurements
+
+- internal NVMe for long-lived model/vocab mappings
 - explicit TB4 TSO check
-- quiet/background-memory audit
-- deep-context needle/correctness test before speed testing
+- background-memory audit
+- deep-context needle/correctness before speed
 - single-M1 target-only + MTP baselines first
 - PP2 target-only before PP2+MTP
 - B1/B2/B4/B6 ladder
-- per-stage recurrent/GDN rollback state remains local
-- separate resident-session count from active-decode concurrency
+- stage-local recurrent/GDN rollback state
+- separate resident-session count from active decode
 - record acceptance, committed tokens/cycle, stage idle %, and actual TB4 bytes/round
+
+Highest-value missing measurements now are:
+
+1. exact Flash-Next 2x M1 Max/TB4 target-only B1 TG;
+2. exact Flash-Next 2x M1 Max/TB4 MTP B1 TG;
+3. single-M1 Flash-Next B2/B4 plain batching after #3368/#3369;
+4. M1 Max plain batching vs singleton-MTP-lane vs batched-depth-1 MTP;
+5. PP2 B2/B4 aggregate with stage-idle % and actual TB4 traffic.
