@@ -8,9 +8,9 @@
 
 2. Then read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-02-2320.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-03-0340.md`
 
-3. Because the canonical state was last consolidated at 05:30 ET, also read every dated
+3. Because the canonical state was last consolidated at 05:30 ET on 2026-09-02, also read every dated
    `RESEARCH-WATCH-*` delta newer than that consolidation point when reconstructing the
    current state.
 
@@ -18,58 +18,25 @@
 
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-01-IQ-PANEL.md`
 
-## Current newest delta — 2026-09-02 23:20 ET
+## Current newest delta — 2026-09-03 03:40 ET
 
-This pass adds independent Apple persistent-cache evidence, a pre-M5 Metal optimization bundle,
-a pipeline-shard mapping hazard/fix under review, and calibrated evidence that Flash-Next MTP
-can be either strongly positive or net-negative depending hardware/quant/branch. It does
-**not** change the certified verifier state or dual-M1 throughput forecast bands.
+This pass materially sharpens Hermes state ownership, rewind behavior, and speculative safety. It does **not** change the certified verifier state or dual-M1 throughput forecast bands.
 
 Material deltas:
 
-- **NEW — llama.cpp #28092 persistent Flash-Next cache:** M5 Max 128 GB / ~90 GB Flash-Next
-  restored a ~33K-token hybrid+draft state after full restart in **0.09 s** versus 39.2 s cold;
-  disk cost was ~900 MiB for that prompt. Independent confirmation that cold Hermes agents do
-  not need full-history replay.
-- **NEW — DS4 #954 pre-M5 Metal bundle:** explicitly targets M1-M4 paths; M3 Ultra validation
-  reports bit-exact **+5.0–8.6% greedy decode**, ~+4% prefill at 4K-8K and 28.1 -> 24.3 ms
-  first-token latency. Portable Apple lead, not direct Flash-Next/M1-Max calibration.
-- **NEW — DS4 #957 / #845 PP shard-map hazard:** a two-host Apple pipeline run with `--layers`
-  fragmented a shard into ~156 Metal buffers and measured 10.01 -> 0.13 tok/s (~77x). #957
-  now coalesces adjacent spans, but has **no post-fix throughput receipt yet**. Add a coalesced
-  model-map startup gate to eventual PP2 bring-up.
-- **UPDATE — llama.cpp #28243 MTP:** 5090+5060Ti gets 36.4 -> 45.3 tok/s average with 0.767
-  acceptance, while 2x A6000 falls to ~0.37 acceptance and never beats a 41-42.5 baseline.
-  MTP remains quant/workload/hardware/branch-qualified, never mandatory.
-- **RECOVERED/UPDATE — llama.cpp #28136:** direct PLE reads raise realistic GB10 prefill from
-  ~300 to ~750-800 tok/s; repeated-token microbench prompts under-touch PLE. Reinforces using
-  realistic code/agent prompts and avoiding random mmap faults on the inference thread.
-- **NEW cross-model memory caution — oMLX #3394:** M5 Max 64 GB / Qwen3.8-27B newer source
-  build rejects a 128K run at 114,688 despite forced bounded hd256 attention; static KV math is
-  not enough to determine context admission.
-- **UPDATE correctness caution — oMLX #3181:** a community Flash-Next oQ8 conversion still
-  produces degenerate constant output even after RMSNorm canonicalization. Qualify checkpoint
-  lineage/output before benchmarking; do not assume arbitrary community MLX conversions work.
-- **NEW instrumentation — oMLX #3391:** adds timing for previously invisible prefill boundary
-  snapshot capture implicated in ~5-6 s hybrid block-crossing premiums. Await physical
-  attribution before changing cache policy.
-- **UPDATE — DS4 #861:** rebased current distributed branch measures ~250-274 PP and ~14-15.5
-  TG on 2x gfx1151/TB5; B2 partial batching +3-14%. Decode kernels measure near DRAM limits.
-- **NO CHANGE — exact dual-M1 receipts:** llama.cpp #27993 and DS4 #922 still have no new
-  sustained dual-M1 Flash-Next/0731 TG result. No new Layr submission; mlx-dspark still has no
-  code push after 2026-09-01 10:54 UTC.
+- **NEW — llama.cpp #28302 hybrid-agent rewind checkpoint retention:** draft PR physically tested on M1 Pro 32 GB. Editing an earlier turn after advancing the conversation changes from **704 tokens / 3355 ms** of prompt work on master to **26 tokens / 264 ms** with the fix; a master-again control reproduces 704 / 3323 ms. An M5 hybrid coding-agent replay drops warm reprocessed tokens 2436 -> 1776 and wall time 18.25 -> 17.12 s (-6.2%). Rewind checkpoints need a byte budget as well as a count bound.
+- **UPDATE — llama.cpp #28243 Apple MTP caution:** M5 Pro 64 GB / Flash-Next IQ3_XXS measures 26.8 tok/s no-spec, 26.3 at draft depth 2 with identical greedy output, and 22.1 (-18%) at depth 5 with a different greedy token stream. Do not transfer this to oMLX's separate exact MTP implementation, but require both identity and wall-clock qualification before enabling speculative depth.
+- **RECOVERED OLDER EVIDENCE — DS4 #765 session-aware subagent slot routing:** old August work directly relevant to Hermes. On M3 Ultra / Metal, preserving the main session while placing a subagent into an empty second slot changes the main continuation from 2,881-token reprefill / 5.06 s TTFB to a 12-token suffix / 0.27 s. Use exact session-aware reuse plus staleness-aware eviction; do not let short subagents trash expensive long main-agent state.
+- **RECOVERED + UPDATE — oMLX #2628/#2630 SSD-cache hardening:** future recurrent/boundary snapshots are now explicitly priced in long-prefill admission, and SSD persistence teardown is bounded so a saturated cache writer cannot let one memory-pressure eviction kill the entire multi-model process. Relevant to cold-agent/unload reliability, not raw TG.
+- **UPDATE — reasoning-effort discovery:** oMLX #2746/#3395 can advertise model-specific effort vocabularies (Qwen3.8: xhigh/medium/low; DeepSeek V4: low/high/max), but `none/off` semantics remain under discussion. Useful for future Hermes workload routing; do not assume a stable cross-provider off token yet.
+- **NO CHANGE — exact dual-M1 receipts:** llama.cpp #27993 and DS4 #922 still have no new sustained 2x M1 Max Flash-Next/0731 TG result. DS4 #957 has no post-fix throughput receipt. No new Layr submission; mlx-dspark still has no code push after 2026-09-01 10:54 UTC.
 
 ## Forecast consequence
 
-B1 short/medium, B1 ~128K, and mature B2-B4 aggregate confidence bands remain **unchanged**.
-There is still no exact dual-M1 Flash-Next TG calibration.
+B1 short/medium, B1 ~128K, and mature B2-B4 aggregate confidence bands remain **unchanged**. There is still no exact dual-M1 Flash-Next TG calibration.
 
-Hermes lifecycle confidence improves again: independent runtimes now physically demonstrate
-persistent hybrid state across restart/unload. For PP2, explicitly reject fragmented per-tensor
-Metal shard mappings before measuring performance. The mature target remains 3-4 logical
-agents, 2-3 active compute slots, exact hot/cold state, asymmetric resident PP, and roughly
-400+ tok/s cold prefill as a design target rather than a measurement.
+Hermes policy becomes more explicit: 3-4 logical agents, 2-3 active compute slots, session-aware hot-state ownership, staleness-aware eviction, rewind-capable recurrent checkpoints under a byte budget, durable SSD exact-terminal fallback, and speculative depth enabled only after identity + wall-clock gates on the exact runtime/hardware/quant/workload.
 
-External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen and
-`CURRENT.md` remains authoritative for exact-verifier state; **P69B13 remains next using
-existing profiling data only**.
+The user's mature-system target of roughly **400+ tok/s cold prefill plus excellent prompt/prefix caching** remains sensible and unproven on dual M1 Max.
+
+External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen and `CURRENT.md` remains authoritative for exact-verifier state; **P69B13 remains next using existing profiling data only**.
