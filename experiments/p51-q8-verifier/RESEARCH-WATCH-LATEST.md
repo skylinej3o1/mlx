@@ -8,7 +8,7 @@
 
 2. Then read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-03-0730.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-03-1030.md`
 
 3. Because the canonical state was last consolidated at 05:30 ET on 2026-09-02, also read every dated
    `RESEARCH-WATCH-*` delta newer than that consolidation point when reconstructing the
@@ -18,25 +18,27 @@
 
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-01-IQ-PANEL.md`
 
-## Current newest delta — 2026-09-03 07:30 ET
+## Current newest delta — 2026-09-03 10:30 ET
 
-This pass adds two fresh DS4 state-correctness results that are directly relevant to long-lived Hermes agents. It does **not** change the certified verifier state or dual-M1 throughput forecast bands.
+This pass recovers an important older M1-generation Flash-Next **Prompt Lookup Decoding** receipt and adds fresh multimodal cache-correctness evidence. It does **not** change the certified verifier state or generic dual-M1 throughput forecast bands.
 
 Material deltas:
 
-- **NEW — DS4 #960 cancellation-safe prompt frontier:** snapshots model-owned mutable state before decode so cancelled requests can restore raw KV/recurrent/indexer state exactly rather than merely trimming transcript tokens. M3 Ultra/Metal validation reproduced 607 full-logit vectors after full ring overwrite; an image/tool cancellation restored **1,272 tokens** and exact retry reused all 1,272 with zero suffix prefill. Snapshot capture averaged **2.717 ms** and ~22.39 MiB GPU backup tensors plus host state. Add cancellation/retry as an explicit hot transactional checkpoint layer for Hermes.
-- **NEW — DS4 #961 multimodal conditioning provenance:** identical text tokens do not imply identical KV after image conditioning. Cache keys include image count/spans, final conditioning hashes and canonical token text. M3 Ultra/Metal restored a **1,044-token image-conditioned checkpoint across restart in 9.2 ms**; changed-image controls rebuilt. Future Hermes multimodal cache identity must include all non-text conditioning provenance.
-- **STATUS UPDATE — oMLX #2595 generic MoE expert offload:** remains a useful capacity/reference mechanism but is currently open/out-of-sync with main (`mergeable=false`); the fresh activity is a rebase request, not a new performance receipt. No Flash-Next forecast change.
-- **NEW but non-material — oMLX #3401/#3400:** quant-size UI estimation and GLM affine-quant loading issues; no current Flash-Next runtime consequence.
-- **NO CHANGE — exact dual-M1:** llama.cpp #27993 and DS4 #922 still have no sustained 2x M1 Max Flash-Next/0731 TG receipt. DS4 #957 still has no post-fix Apple mapping throughput result. No new #28243/#28302/#861 measurement.
-- **NO CHANGE — Layr / mlx-dspark / broader sweep:** no new Layr submission; mlx-dspark still reports last code push at 2026-09-01 10:54 UTC; web/Reddit/Hugging Face produced no new physical dual-M1 calibration.
+- **RECOVERED OLDER EVIDENCE + STATUS UPDATE — oMLX #3203 Prompt Lookup Decoding:** on M1 Ultra 128 GB / Flash-Next oQ4e MTP / resident PLE, repeated agent workloads measured **36.5 -> 56.5 tok/s (1.55x)** while novel prose was unaffected. Independent M5 Max 128 GB evidence with SSD-PLE gather/prefetch measured a copy-heavy Python rewrite **48.3 -> 108.4 tok/s (2.24x)** at default draft_max=16, while novel prose was inside noise. This evidence dates to August and is not new today; the fresh Sep-3 commit only renames the feature from n-gram lookup drafting to **Prompt Lookup Decoding** to distinguish it from Flash-Next's unrelated PLE n-gram table. Hermes should treat prompt lookup as a first-class conditional optimization for copy/rewrite-heavy agent turns, with memory-pressure width limits and fenced cross-request history.
+- **NEW — DS4 #962 live multimodal replay correctness:** same-image live-KV checkpoints now keep visible and raw checkpoint boundaries aligned when pending thinking tags are removed, and refuse to checkpoint unfinished reasoning as a completed visible turn. M5 Max / Metal server regressions pass. State correctness only; no raw-speed claim.
+- **UPDATE — DS4 #961 hot-path overhead recheck:** fresh M3 Ultra paired checks show conditioning-complete vision persistence within <0.5% of main at 2K and 16K frontiers, with byte-identical frontier logits. This removes an obvious concern that complete multimodal cache provenance materially taxes normal prefill/decode.
+- **NEW COMMUNITY LEAD — stochastic MTP + lookup tuning:** fresh Strix Halo/llama.cpp 50-trial tuning at temp=1.0 reports a best point of 29.8 tok/s and 65.84% acceptance with MTP max depth 5 plus lookup match/max settings 48/18. No clean baseline and non-Apple hardware, so not a forecast input; it reinforces exact-runtime/sampling/workload qualification and does not resolve oMLX #3370.
+- **NO CHANGE — exact dual-M1:** llama.cpp #27993 and DS4 #922 still have no sustained 2x M1 Max Flash-Next/0731 TG receipt. DS4 #957 still has no post-fix Apple mapping throughput result.
+- **NO CHANGE — Layr / mlx-dspark:** no new Layr submission; mlx-dspark still reports last code push at 2026-09-01 10:54 UTC.
 
 ## Forecast consequence
 
-B1 short/medium, B1 ~128K, and mature B2-B4 aggregate confidence bands remain **unchanged**. There is still no exact dual-M1 Flash-Next TG calibration.
+B1 short/medium, B1 ~128K, and mature B2-B4 aggregate confidence bands remain **unchanged** because there is still no exact dual-M1 Flash-Next TG calibration.
 
-Hermes policy now explicitly separates three state layers: (1) cheap resident transactional frontier checkpoint for cancellation/retry, (2) bounded rewind checkpoints for edits/branching/compaction, and (3) durable SSD exact-terminal/paged state for unload/restart/slot eviction. Cache identity must be conditioning-complete for multimodal turns.
+Maintain a separate **copy-heavy agent upside** track: Prompt Lookup has physically delivered 1.55x on M1 Ultra and 2.24x on an independent M5 Max setup, but those single-node workload-specific multipliers must not be applied directly to PP2 forecasts.
 
-The mature target remains 3-4 logical agents, 2-3 active compute slots, session-aware hot ownership, staleness-aware eviction, asymmetric resident PP2, and roughly **400+ tok/s cold prefill plus excellent prompt/session caching** as a design target rather than a dual-M1 measurement.
+Hermes policy remains 3-4 logical agents, normally 2-3 active compute slots, session-aware hot ownership, transactional cancellation frontier snapshots, bounded rewind checkpoints, durable SSD cold state, conditioning-complete multimodal cache identity, asymmetric resident PP2, and speculation/Prompt Lookup enabled only after exact workload/hardware/runtime qualification.
+
+The mature target remains roughly **400+ tok/s cold prefill plus excellent prompt/prefix caching** as a design target rather than a dual-M1 measurement.
 
 External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen and `CURRENT.md` remains authoritative for exact-verifier state; **P69B13 remains next using existing profiling data only**.
