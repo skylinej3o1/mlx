@@ -8,13 +8,13 @@
 
 2. Then read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-03-1725.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-03-1950.md`
 
 3. Because the canonical state was last consolidated at 05:30 ET on 2026-09-02, also read every dated
    `RESEARCH-WATCH-*` delta newer than that consolidation point when reconstructing the current state.
-   Retain `RESEARCH-WATCH-2026-09-03-1330.md` for its broader machine-specific backfill receipts and
-   `RESEARCH-WATCH-2026-09-03-1530.md` for the Blackwell verify trace / M1 serving-memory findings,
-   but use the narrower scope below for future recurring scans.
+   Retain `RESEARCH-WATCH-2026-09-03-1330.md` for broader machine-specific backfill,
+   `RESEARCH-WATCH-2026-09-03-1530.md` for Blackwell verify / M1 serving-memory findings, and
+   `RESEARCH-WATCH-2026-09-03-1725.md` for DS4 AProjQ4 + request-adaptive DSpark policy.
 
 4. Also read the focused kernel-mining note when looking for portable optimization ideas:
 
@@ -24,53 +24,52 @@
 
 Recurring scans are intentionally narrow:
 
-- **Flash-Next:** primarily the exact planned **2x M1 Max 64 GB / TB4** cluster — sustained decode, PP2/layer ownership, MTP/verification, QSA/PLE placement, cache/state lifecycle, and multi-agent pipeline filling.
-- **DS4-0731:** primarily the same **2x M1 Max 64 GB / TB4** cluster — distributed decode, PP-vs-TP, Metal shard mapping, activation transport, speculation policy, multi-session bubble fill, and portable pre-M5 Metal work.
+- **Flash-Next:** exact planned **2x M1 Max 64 GB / TB4** cluster — sustained decode, PP2/layer ownership, MTP/verification, QSA/PLE placement, sparse long-context prefill, cache/state lifecycle, and multi-agent pipeline filling.
+- **DS4-0731:** same **2x M1 Max 64 GB / TB4** cluster — distributed decode, PP-vs-TP, Metal shard mapping, sparse-attention/activation economics, speculation policy, multi-session bubble fill, and portable pre-M5 Metal work.
 - **Qwen3.8-27B / Apple:** one **M1 Max 64 GB**, especially exact/native verifier/runtime/kernel work and serving-memory behavior.
-- **Qwen3.8-27B / NVIDIA:** the user's **RTX 5070 Ti 16 GB + 64 GB host RAM** rig, especially low-bit fit, native MTP/DFlash, verify economics, Blackwell kernels, and coding/tool throughput.
+- **Qwen3.8-27B / NVIDIA:** user's **RTX 5070 Ti 16 GB + 64 GB host RAM** rig, especially low-bit fit, native MTP/DFlash, Blackwell verify kernels, and coding/tool throughput.
 
 Other machines should be promoted only when they expose a mechanism likely to transfer into one of those four lanes.
 
-## Current newest delta — 2026-09-03 17:25 ET
+## Current newest delta — 2026-09-03 19:50 ET
 
-Freshness boundary: branch checkpoint `bd752888fea910b34df0059a9b369dcfd542766b` / 2026-09-03 19:32:49 UTC.
+Freshness boundary: branch checkpoint `c079ac2a69315526fde9d90e507ad65caa917ea0` / 2026-09-03 21:31:01 UTC.
 
 Material deltas:
 
-- **FRESH — DS4 #965 / Metal DSpark policy:** DeepSeek-V4-Flash-0731 on M5 Max shows that low-predictability requests can repeatedly lose to speculation. A new deterministic lifetime rule disables DSpark for the rest of a request after two probe windows when lifetime average falls below **0.5 accepted drafts per scheduler cycle**. Italian prose improved **35.9 -> 38.5 tok/s** versus 40.6 plain after bypass, while profitable reasoning/code lanes stayed speculative. Treat the policy as transferable; do not transfer M5 rates to M1.
-- **NEW-TO-REPO BACKFILL / FORMALIZATION — DS4 #952 AProjQ4:** imatrix-guided Q4_K for the 215 dense attention projections shrinks the same 0731 layout **80.76 -> 78.62 GiB (-2.14 GiB / -2.65%)**. Fully resident M5 Max Metal measurements show a **1.155x / +15.5% paired decode median**, +14.7% independent hot-start median, **32/32 frontiers** favoring Q4, and practical prefill parity. A separate third-party M5 validation reproduced 1.155x. The limited quality fixture shows no measured regression. This is directly relevant DS4/Metal model-layout evidence, but not an M1 speed forecast.
-- **FRESH AProjQ4 caveat:** quoted results are from `6a20b131`; the branch has since merged newer main state. Current-head requalification is required. Use balanced/interleaved arm order because measurement-order drift can exceed sub-percent effects.
-- **NEW-TO-REPO BACKFILL — llama.cpp #26705 / Blackwell verify candidate:** branchless Q4_K/Q5_K scale unpack attacks repeated work inside multi-column `mmvq`. A Qwen3.8-27B RTX PRO 4000 Blackwell end-to-end A/B measured **41.76 -> 43.11 tok/s (+3.22%)** with 78.73% acceptance unchanged and matching response hashes. Pure Q4_K kernel gains on RTX 4090 rise from ~+4.8% at ncols=5 to ~+16.5% at ncols=8. This directly complements the previous pass's 3-5-column verify bottleneck and is now a concrete exact-5070-Ti A/B candidate, but no 5070-Ti uplift is assumed.
-- **FRESH SECONDARY — llama.cpp #28346:** proposes swapping speculative-draft and multimodal-projection weights so they are not simultaneously VRAM-resident. Potentially useful for 27B+MTP+vision on a 16-GB 5070 Ti, but currently only a capacity mechanism with no physical performance gate.
-- **FRESH REFINEMENT — DS4 #964:** its GLM-only exact indexed-attention path now documents a problem-size crossover (-0.4% at 36 selected rows, +2.2% at 308, +10.7% at 1,500). DeepSeek V4 remains within 0.5% of main. Carry the gated-kernel methodology, not the speedup.
-- **NO CHANGE — exact dual-M1 Flash-Next:** no sustained 2x M1 Max/TB4 decode receipt appeared. Flash probability bands remain unchanged.
-- **NO CHANGE — exact dual-M1 DS4-0731:** #922 remains ~152 tok/s at 34K distributed prefill with successful long generation but no sustained generated-token TG denominator. No current 0731 dual-M1 decode ruler appeared.
-- **NO CHANGE — exact frontier:** the direct 5070-Ti Q3+native-MTP result remains ~97.2 tok/s mixed at 8K / ~111-115 tok/s tool-call generation at 24K. `ARahim3/mlx-dspark` still has no code push after 2026-09-01 10:54 UTC, and Layr has no post-cutoff submission update.
+- **FRESH / MATERIAL — llama.cpp #28349:** Qwen3.8-Flash-Next now passes QSA indexer top-k as `n_kv_max`, allowing the merged Metal/CUDA sparse-FA backends to **gather only selected K/V rows instead of masking the full cache**. M5 Max / IQ4_XS / q8 KV physical results: `pp2048 @ 65K` **388.1 -> 702.2 tok/s**, `@131K` **340.0 -> 588.7**; server cold prefill across three ~33K prompts **664 -> 760 tok/s** with matching 36K greedy output. Long-context TG moved only slightly: 32K 34.5->35.1, 65K 28.3->28.7, 131K 20.6->20.7. Therefore this is a major **prefill/scaling** result, not a decode-band result.
+- **RECOVERED OLDER EVIDENCE — merged llama.cpp #28098:** the Metal sparse-FA backend underlying #28349 was missing from the canonical/recent chain. On M2 Ultra DSv4 it transformed long-context prefill: 8K 323.58->373.49, 16K 248.67->362.21, 32K 170.35->347.85, 65K **107.08->323.54 (~3x)**. 65K decode improved 20.36->23.84. This is llama.cpp/M2-Ultra DSv4 mechanism evidence, not antirez/ds4 or M1 calibration.
+- **FRESH SUPPORTING — adaptive MTP #27210:** another mixed-workload datapost reproduces the already-recorded conclusion that adaptive [3..12] beats globally deep fixed drafting on mixed code/prose. Treat as confirmation, not a new 5070-Ti ruler.
+- **FRESH BUT GLM-ONLY — DS4 #964:** new quantized GLM-5.3-Flash ABBA runs show ~35-37% Metal decode gains with flat prefill; DeepSeek V4 remains explicitly near main, so this remains kernel-mining only.
+- **NO CHANGE — exact dual-M1 Flash-Next:** #27993 still has no sustained 2x M1 Max/TB4 TG or published 115K follow-up.
+- **NO CHANGE — exact dual-M1 DS4-0731:** #922 still has ~152 tok/s at 34K distributed prefill and successful long generation but no sustained TG denominator; #957 still lacks a physical post-coalescing Apple `--layers` throughput gate.
+- **NO CHANGE — exact 5070-Ti / Apple exact frontier:** direct 5070-Ti Q3+native-MTP repo remains ~97.2 tok/s mixed at 8K / ~111-115 tok/s 24K tool calls and has not pushed since Aug 20. `mlx-dspark` has no code push after Sep 1 10:54 UTC. Layr has no post-cutoff PR update. #28196 has no new Blackwell verify trace after the prior pass.
+- **BROADER SEARCH:** no independent new sustained 2x M1 Flash-Next or DS4-0731 decode receipt surfaced.
 
 ## Current consequences
 
-### Dual-M1 DS4
-
-**Test-plan priority changes, forecast does not.** Keep PP2/layer ownership primary and TP2 as control, but promote current-head **AProjQ4** into the first physical PP2 matrix with **AProjQ8 as the same-checkpoint control**. Qualify coalesced Metal shard mapping first, use interleaved model-order A/B, measure per-stage memory + prefill + B1/B2-B4, and classify DSpark economics separately for prose, reasoning, and code/tool traffic. Add a sticky low-lifetime-acceptance bypass equivalent to #965 where supported.
-
-AProjQ4 is topologically attractive because the changed attention projections are stage-local under layer ownership; it reduces local model bytes without adding a TB4 collective. The M5 +15.5% ratio is **not** an M1 forecast.
-
 ### Dual-M1 Flash-Next
 
-No topology or confidence-band change. Keep **PP2/layer ownership primary, TP2 control**, stage-local recurrent/QSA state, TB4 carrying activations/compact metadata rather than recurrent snapshots, gathered selected-KV, separate PLE/offload qualification, workload-gated speculation, and 3-4 logical agents with normally 2-3 compute-active slots.
+**Test-plan priority changes; decode forecast does not.** The #28349-equivalent sparse-QSA FA path is now a mandatory baseline before accepting long-context or multi-agent results. Verify exactness first, then measure cold prefill/cached continuation/B1/B2-B4. Each PP stage should gather its selected KV locally; TB4 should continue carrying activations/compact metadata rather than dense cache material.
+
+The new result is especially operationally relevant when a long-prefill agent joins while other agents decode: faster sparse prefill may reduce how long the new request occupies a stage even if steady TG barely changes.
+
+### Dual-M1 DS4
+
+Keep the 17:25 plan: PP2/layer ownership primary, TP2 control, current-head AProjQ4 primary serving candidate with AProjQ8 control, coalesced Metal shard-map gate first, and request-adaptive speculation by workload. Mine #28098/#964 for sparse-attention/exact-dispatch ideas, but credit no speedup until antirez/ds4 physical validation exists.
 
 ### RTX 5070 Ti 27B
 
-The direct low-bit/native-MTP receipt remains primary. Add **#26705-equivalent branchless Q4_K/Q5_K scale unpack** to the exact-rig candidate list, but first inspect the target tensor mix to prove the 3-5-column verify path reaches those quant types. A/B at 8K and 24K, preserve response hashes/acceptance, and keep fit/residency telemetry first-order. If multimodal serving becomes important, #28346 deserves a separate swap-latency/high-water-VRAM test before production use.
+No new exact-rig result. Keep 3-bit residency first-order, native MTP as baseline, adaptive/shallow draft profiling by workload, and the #26705-equivalent Q4_K/Q5_K small-N verify A/B where the target tensor mix reaches it. Do not project other Blackwell/ROCm absolute rates to the 5070 Ti.
 
 ### Single M1 Max 64 GB 27B
 
-No new physical M1 rate. Preserve the prior operational rule: MTP/session terminal construction must be bounded in peak memory and must not replay complete histories merely to manufacture reusable state.
+No new physical rate. Preserve bounded MTP/session state construction, no full-history replay solely to manufacture reusable cache state, and process/system/transient memory telemetry in addition to MLX-active memory.
 
 ## Forecast consequence
 
-Do **not** change the canonical dual-M1 Flash-Next B1, ~128K B1, or B2-B4 confidence bands. The missing physical ruler remains sustained Flash-Next TG on the real 2x M1 Max 64 GB / TB4 topology.
+Do **not** change the canonical dual-M1 Flash-Next B1, ~128K B1, or B2-B4 confidence bands. #28349 strongly validates the selected-KV sparse-attention prefill path but its own long-context TG is nearly unchanged.
 
-Do **not** synthesize DS4-0731 dual-M1 decode from M5 AProjQ4 or DSpark results. Instead, AProjQ4 + request-adaptive speculation are now high-priority physical experiments. The historical exact-M1/TB4 pre-0731 low-teens decode anchor and exact 0731 ~152 tok/s prefill receipt remain the physical topology rulers until current sustained 0731 generation is measured.
+The mature-system target remains roughly **400+ tok/s cold prefill plus excellent exact prefix/session reuse**. #28349 strengthens confidence in the architecture needed to reach that target on Apple, but the target remains unmeasured on the real 2x M1 Max 64 GB / TB4 pair.
 
 External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen and `CURRENT.md` remains authoritative for exact-verifier state; **P69B13 remains next using existing profiling data only**.
