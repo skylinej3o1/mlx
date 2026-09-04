@@ -8,13 +8,14 @@
 
 2. Then read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-03-1950.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-03-2205.md`
 
 3. Because the canonical state was last consolidated at 05:30 ET on 2026-09-02, also read every dated
    `RESEARCH-WATCH-*` delta newer than that consolidation point when reconstructing the current state.
    Retain `RESEARCH-WATCH-2026-09-03-1330.md` for broader machine-specific backfill,
-   `RESEARCH-WATCH-2026-09-03-1530.md` for Blackwell verify / M1 serving-memory findings, and
-   `RESEARCH-WATCH-2026-09-03-1725.md` for DS4 AProjQ4 + request-adaptive DSpark policy.
+   `RESEARCH-WATCH-2026-09-03-1530.md` for Blackwell verify / M1 serving-memory findings,
+   `RESEARCH-WATCH-2026-09-03-1725.md` for DS4 AProjQ4 + request-adaptive DSpark policy, and
+   `RESEARCH-WATCH-2026-09-03-1950.md` for Flash-Next sparse-QSA FA / long-context prefill.
 
 4. Also read the focused kernel-mining note when looking for portable optimization ideas:
 
@@ -24,43 +25,57 @@
 
 Recurring scans are intentionally narrow:
 
-- **Flash-Next:** exact planned **2x M1 Max 64 GB / TB4** cluster — sustained decode, PP2/layer ownership, MTP/verification, QSA/PLE placement, sparse long-context prefill, cache/state lifecycle, and multi-agent pipeline filling.
+- **Flash-Next:** exact planned **2x M1 Max 64 GB / TB4** cluster — sustained decode, PP2/layer ownership, MTP/verification, QSA/PLE placement, sparse long-context prefill, compiled low-occupancy decode, cache/state lifecycle, and multi-agent pipeline filling.
 - **DS4-0731:** same **2x M1 Max 64 GB / TB4** cluster — distributed decode, PP-vs-TP, Metal shard mapping, sparse-attention/activation economics, speculation policy, multi-session bubble fill, and portable pre-M5 Metal work.
 - **Qwen3.8-27B / Apple:** one **M1 Max 64 GB**, especially exact/native verifier/runtime/kernel work and serving-memory behavior.
-- **Qwen3.8-27B / NVIDIA:** user's **RTX 5070 Ti 16 GB + 64 GB host RAM** rig, especially low-bit fit, native MTP/DFlash, Blackwell verify kernels, and coding/tool throughput.
+- **Qwen3.8-27B / NVIDIA:** user's **RTX 5070 Ti 16 GB + 64 GB host RAM** rig, especially low-bit fit, native MTP/DFlash, MTP-head quantization, Blackwell verify kernels, context headroom, and coding/tool throughput.
 
 Other machines should be promoted only when they expose a mechanism likely to transfer into one of those four lanes.
 
-## Current newest delta — 2026-09-03 19:50 ET
+## Current newest delta — 2026-09-03 22:05 ET
 
-Freshness boundary: branch checkpoint `c079ac2a69315526fde9d90e507ad65caa917ea0` / 2026-09-03 21:31:01 UTC.
+Freshness boundary: branch checkpoint `9d48c7096cb34123be4120d699c154a7f147494d` / 2026-09-03 23:53:02 UTC.
 
 Material deltas:
 
-- **FRESH / MATERIAL — llama.cpp #28349:** Qwen3.8-Flash-Next now passes QSA indexer top-k as `n_kv_max`, allowing the merged Metal/CUDA sparse-FA backends to **gather only selected K/V rows instead of masking the full cache**. M5 Max / IQ4_XS / q8 KV physical results: `pp2048 @ 65K` **388.1 -> 702.2 tok/s**, `@131K` **340.0 -> 588.7**; server cold prefill across three ~33K prompts **664 -> 760 tok/s** with matching 36K greedy output. Long-context TG moved only slightly: 32K 34.5->35.1, 65K 28.3->28.7, 131K 20.6->20.7. Therefore this is a major **prefill/scaling** result, not a decode-band result.
-- **RECOVERED OLDER EVIDENCE — merged llama.cpp #28098:** the Metal sparse-FA backend underlying #28349 was missing from the canonical/recent chain. On M2 Ultra DSv4 it transformed long-context prefill: 8K 323.58->373.49, 16K 248.67->362.21, 32K 170.35->347.85, 65K **107.08->323.54 (~3x)**. 65K decode improved 20.36->23.84. This is llama.cpp/M2-Ultra DSv4 mechanism evidence, not antirez/ds4 or M1 calibration.
-- **FRESH SUPPORTING — adaptive MTP #27210:** another mixed-workload datapost reproduces the already-recorded conclusion that adaptive [3..12] beats globally deep fixed drafting on mixed code/prose. Treat as confirmation, not a new 5070-Ti ruler.
-- **FRESH BUT GLM-ONLY — DS4 #964:** new quantized GLM-5.3-Flash ABBA runs show ~35-37% Metal decode gains with flat prefill; DeepSeek V4 remains explicitly near main, so this remains kernel-mining only.
-- **NO CHANGE — exact dual-M1 Flash-Next:** #27993 still has no sustained 2x M1 Max/TB4 TG or published 115K follow-up.
-- **NO CHANGE — exact dual-M1 DS4-0731:** #922 still has ~152 tok/s at 34K distributed prefill and successful long generation but no sustained TG denominator; #957 still lacks a physical post-coalescing Apple `--layers` throughput gate.
-- **NO CHANGE — exact 5070-Ti / Apple exact frontier:** direct 5070-Ti Q3+native-MTP repo remains ~97.2 tok/s mixed at 8K / ~111-115 tok/s 24K tool calls and has not pushed since Aug 20. `mlx-dspark` has no code push after Sep 1 10:54 UTC. Layr has no post-cutoff PR update. #28196 has no new Blackwell verify trace after the prior pass.
-- **BROADER SEARCH:** no independent new sustained 2x M1 Flash-Next or DS4-0731 decode receipt surfaced.
+- **FRESH / MATERIAL — oMLX #3334 full-model compiled decode:** M3 Ultra 256 GB, full 104 GB Flash-Next oQ4e + TurboQuant KV + depth-6 MTP. Alternating eager/compiled physical A/B reports per-token latency speedups **B1 +79.6%, B2 +21.9%, B4 +0.9%, B8 +9.6%**, with no observed correctness divergence. This strongly promotes compiled low-occupancy decode into the Hermes test plan, but the M3 percentages are not an M1/TB4 forecast.
+- **FRESH / MECHANISM — llama.cpp #28351:** `llama-imatrix --process-mtp` now lets the collector run the separate NextN/MTP head against trunk tokens + hidden states so MTP-head weights can receive real activation-importance data. No speed/quality A/B yet; treat as a future low-bit MTP-head quantization seam for the 5070 Ti.
+- **FRESH CAUTION — adaptive MTP #27210:** a two-MI50 sampled test shows rapid draft-width changes can create backend graph-record/cache churn and erase adaptive-depth gains on code/prose even while helping a file-rewrite workload. For Blackwell/Apple, prewarm widths, count graph captures/compiles, use hysteresis, and compare narrow adaptive ranges against fixed shallow depth.
+- **NEW-TO-REPO BACKFILL / DIRECT 5070-TI CONTEXT-QUALITY LANE:** community GSQ-RCO + native-MTP physical testing on RTX 5070 Ti 16 GB shows roughly **74-78 tok/s sampled E2E** while keeping MTP-active context headroom of **160K-224K**, depending on quant. This does not replace the existing Q3_K_XL ~97.2 mixed / 111-115 tool-call tok/s speed ruler; it establishes a second quality/context operating point.
+- **CURRENT OFFICIALIZATION — ISTA-DASLab GSQ-RCO:** official optional `-mtp` files are now published. IQ3_XXS is the first quality/context A/B candidate; IQ3_S is the quality-first control. The official repo supplies artifact/quality evidence, while the community card supplies the current exact-5070-Ti physical speed/context receipt.
+- **FRESH SECONDARY — DS4 #967:** fixes a CUDA build break introduced by shared Metal/TP changes; GB10 build/help gate passes, no inference speed claim yet.
+- **UPDATE / NO NEW NUMBER — DS4 #861:** rebased/consolidated; known two-node 8060S/TB5 PP/TP/batching measurements remain unchanged.
+- **NO CHANGE — exact dual-M1 Flash-Next:** still no sustained physical 2x M1 Max/TB4 Flash TG or published 115K result.
+- **NO CHANGE — exact dual-M1 DS4-0731:** #922 still has ~152 tok/s @34K distributed prefill and successful generation without sustained TG denominator; #957 still lacks a physical Apple post-coalescing `--layers` gate.
+- **NO CHANGE — exact P69 / current direct 5070-Ti speed ruler:** P69B12 remains frozen and P69B13 remains next using existing profiling only. `aipruner` Q3 + native-MTP remains the direct 5070-Ti speed ruler. `mlx-dspark` still has no push after Sep 1 10:54 UTC; Layr has no post-cutoff submission.
 
 ## Current consequences
 
 ### Dual-M1 Flash-Next
 
-**Test-plan priority changes; decode forecast does not.** The #28349-equivalent sparse-QSA FA path is now a mandatory baseline before accepting long-context or multi-agent results. Verify exactness first, then measure cold prefill/cached continuation/B1/B2-B4. Each PP stage should gather its selected KV locally; TB4 should continue carrying activations/compact metadata rather than dense cache material.
+**Two architecture gates are now mandatory before accepting a mature result:**
 
-The new result is especially operationally relevant when a long-prefill agent joins while other agents decode: faster sparse prefill may reduce how long the new request occupies a stage even if steady TG barely changes.
+1. #28349-equivalent selected-KV sparse FA for long-context QSA/prefill.
+2. #3334-equivalent compiled B1/B2 decode with cache positions, recurrent GDN state and QSA/indexer state represented as explicit tensor state.
 
-### Dual-M1 DS4
-
-Keep the 17:25 plan: PP2/layer ownership primary, TP2 control, current-head AProjQ4 primary serving candidate with AProjQ8 control, coalesced Metal shard-map gate first, and request-adaptive speculation by workload. Mine #28098/#964 for sparse-attention/exact-dispatch ideas, but credit no speedup until antirez/ds4 physical validation exists.
+Keep PP2/layer ownership primary and TP2 as control. Measure B1/B2 separately from B4, because dispatch savings are strongly occupancy-sensitive. The operational test where a long-prefill agent joins while other agents decode remains especially important.
 
 ### RTX 5070 Ti 27B
 
-No new exact-rig result. Keep 3-bit residency first-order, native MTP as baseline, adaptive/shallow draft profiling by workload, and the #26705-equivalent Q4_K/Q5_K small-N verify A/B where the target tensor mix reaches it. Do not project other Blackwell/ROCm absolute rates to the 5070 Ti.
+Split the campaign into two resident lanes:
+
+- **Speed lane:** existing Q3_K_XL + native MTP; retain the ~97.2 tok/s mixed / ~111-115 tool-call ruler and #26705 small-N verify work.
+- **Context/quality lane:** official GSQ-RCO **IQ3_XXS-mtp** first, then IQ2_S-mtp for context-per-quality and IQ3_S-mtp as quality-first control. Benchmark real sampled agent traffic, acceptance, VRAM high-water and no-offload fit at 8K/24K/64K/128K plus the highest surviving context.
+
+When #28351 matures, add MTP-head imatrix quantization as a separate A/B axis; judge it by acceptance + equivalence + VRAM, not file size alone.
+
+### Adaptive speculation
+
+Keep workload/acceptance-adaptive depth, but now explicitly price width-transition overhead. Prewarm candidate widths, count graph/command captures, use sticky/hysteretic transitions, and compare narrow adaptive bands against fixed depth 3. DS4 #965's lifetime bypass remains complementary: bypass controls whether speculation stays active; width hysteresis controls how much runtime churn adaptation creates.
+
+### Dual-M1 DS4
+
+No forecast change. Keep PP2/layer ownership primary, TP2 control, current-head AProjQ4 with AProjQ8 control, coalesced Metal mapping as a prerequisite, and request-adaptive speculation by workload. No new exact M1 physical rate appeared.
 
 ### Single M1 Max 64 GB 27B
 
@@ -68,8 +83,8 @@ No new physical rate. Preserve bounded MTP/session state construction, no full-h
 
 ## Forecast consequence
 
-Do **not** change the canonical dual-M1 Flash-Next B1, ~128K B1, or B2-B4 confidence bands. #28349 strongly validates the selected-KV sparse-attention prefill path but its own long-context TG is nearly unchanged.
+Do **not** change the canonical dual-M1 Flash-Next B1, ~128K B1, or B2-B4 confidence bands. The new compiled-decode evidence is M3 Ultra, and the missing physical ruler remains sustained Flash-Next TG on the real 2x M1 Max 64 GB / TB4 pair.
 
-The mature-system target remains roughly **400+ tok/s cold prefill plus excellent exact prefix/session reuse**. #28349 strengthens confidence in the architecture needed to reach that target on Apple, but the target remains unmeasured on the real 2x M1 Max 64 GB / TB4 pair.
+The mature-system target remains roughly **400+ tok/s cold prefill plus excellent exact prefix/session reuse**. Sparse QSA and compiled low-occupancy decode now have strong physical Apple evidence as separate building blocks, but neither is a measured dual-M1 result.
 
-External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen and `CURRENT.md` remains authoritative for exact-verifier state; **P69B13 remains next using existing profiling data only**.
+External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen and `CURRENT.md` remains authoritative; **P69B13 remains next using existing profiling data only**.
