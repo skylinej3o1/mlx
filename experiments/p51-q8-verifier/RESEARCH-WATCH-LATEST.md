@@ -15,10 +15,10 @@
 
 3. Read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-04-0915.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-04-1550.md`
 
-   **The 09:15 note is authoritative for current promotion level, safe MTP concurrency policy and
-   qualification order.**
+   **The 15:50 note is authoritative for current promotion level, topology preference, cache policy,
+   safe MTP concurrency and qualification order.**
 
 4. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, retain the dated
    deltas newer than that consolidation point when reconstructing the evidence chain:
@@ -33,7 +33,9 @@
    - `RESEARCH-WATCH-2026-09-04-0625.md` — PLE residency, DS4 command-buffer/OS diagnostic,
      Blackwell ubatch stability and short-turn cache granularity;
    - `RESEARCH-WATCH-2026-09-04-0915.md` — llama.cpp 0.4.0 packaging baseline, parallel-MTP
-     isolation gate, Apple SSD-expert-streaming backfill and concrete MTP-head quant A/B.
+     isolation gate, Apple SSD-expert-streaming backfill and MTP-head quant A/B;
+   - `RESEARCH-WATCH-2026-09-04-1550.md` — fresh PP-vs-TP structural evidence, production
+     coding-agent cache-granularity failure, CUDA link/toolchain preflight and DS4-agent compaction.
 
 5. Also read the focused kernel-mining note when looking for portable optimization ideas:
 
@@ -41,30 +43,27 @@
 
 ## Current watch scope
 
-Recurring scans remain narrow:
-
 - **Flash-Next:** exact planned **2x M1 Max 64 GB / TB4** cluster — sustained decode, PP2/layer
   ownership, recurrent rollback, MTP/verification and slot isolation, QSA/PLE placement and
   residency, sparse long-context prefill, compiled decode, cache/state lifecycle, optional
   SSD-streaming controls, and multi-agent pipeline filling.
-- **DS4-0731:** same **2x M1 Max 64 GB / TB4** cluster — distributed decode, PP-vs-TP, Metal shard
-  mapping, command-buffer/OS behavior, sparse-attention/activation economics, speculation policy,
-  multi-session bubble fill and portable pre-M5 Metal work.
+- **DS4-0731:** same **2x M1 Max 64 GB / TB4** cluster — sustained distributed decode, PP-vs-TP,
+  Metal shard mapping, command-buffer/OS behavior, AProjQ4, speculation policy, multi-session bubble
+  fill and agent-shell lifecycle/context behavior.
 - **Qwen3.8-27B / Apple:** one **M1 Max 64 GB**, especially exact/native verifier/runtime/kernel
-  work, ANE prefill economics, cache/session granularity and serving-memory/admission behavior.
+  work, ANE prefill economics, workload-aware cache/session granularity and serving-memory behavior.
 - **Qwen3.8-27B / NVIDIA:** user's **RTX 5070 Ti 16 GB + 64 GB host RAM** rig, especially low-bit
-  fit, native MTP/DFlash, MTP-head quantization, Blackwell verify kernels/stability, context
-  headroom and coding/tool throughput.
+  fit, native MTP/DFlash, MTP-head quantization, Blackwell verify kernels/stability, exact CUDA
+  build/runtime provenance, context headroom and coding/tool throughput.
 
-Other machines should be promoted only when they expose a mechanism likely to transfer into one of
-those four hardware lanes.
+Other machines promote only when they expose a mechanism likely to transfer into one of those four
+hardware lanes.
 
 ---
 
-# Canonical target calibration — 2026-09-04 06:40 ET
+# Canonical target calibration — unchanged
 
-These are mature-system engineering probabilities, not statistical confidence intervals. Full
-threshold ladders and assumptions live in `RESEARCH-TARGETS.md`.
+Full threshold ladders and assumptions live in `RESEARCH-TARGETS.md`.
 
 | Model / hardware | Working TG | Confidence | Working cold PP | Confidence |
 |---|---:|---:|---:|---:|
@@ -73,100 +72,109 @@ threshold ladders and assumptions live in `RESEARCH-TARGETS.md`.
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 09:15 pass does not move any row.** It changes packaging and correctness policy, not the
-calibrated performance distribution.
+**The 15:50 pass moves no row.** Fresh evidence changes topology confidence, cache policy and
+qualification hygiene, not the calibrated exact-rig performance distribution.
 
 Important qualifiers remain:
 
-- Flash keeps its B1 short/medium, ~128K B1 and B2-B4 aggregate ladders in `RESEARCH-TARGETS.md`;
+- Flash keeps its short/medium B1, ~128K B1 and B2-B4 aggregate ladders in `RESEARCH-TARGETS.md`;
 - M1 27B ANE-assisted PP is a separate approximate lane, not P69 exact work;
 - 5070 Ti targets require a fully resident target; a spilled configuration is disqualified;
-- DS4 remains deliberately conservative until an exact sustained 0731 TG receipt exists.
+- DS4 remains conservative until an exact sustained 0731 dual-M1 TG receipt exists.
 
 ---
 
-# Current newest evidence delta — 2026-09-04 09:15 ET
+# Current newest evidence delta — 2026-09-04 15:50 ET
 
-Freshness boundary: branch checkpoint `9f24f1eabadfcad661174bc4b4bd8c126386858d` /
-2026-09-04 10:43:57 UTC.
+Freshness boundary: `205d81a5bd0109d80948c3727d53e0d4f119365f` /
+2026-09-04 13:22:48 UTC.
 
 ## Fresh / material
 
-### llama.cpp 0.4.0 version bump merged
+### DS4 #861 strengthens PP2/layer ownership over TP2
 
-llama.cpp #28386 was created and merged after the cutoff. Its version notes collect initial
-Qwen3.8-Flash-Next support, lazy/on-demand tensor reading, sparse FA infrastructure, Qwen4Exp
-recurrent rollback, Qwen4Exp graph/indexer work, Apple RDMA RPC transport, RPC event/async APIs,
-KV-cell state tracking, n-gram lookup and DFlash2 into one 0.4.0-era baseline.
+Fresh post-rebase two-node Strix-Halo/TB5 evidence compares pipeline over TCP against TP over the
+lower-latency NHI path on the same hosts:
 
-The version notes still call Flash-Next optimization incomplete, so this is not throughput evidence.
-At check time the version bump was merged but a stable GitHub `v0.4.0` release/tag was not yet
-visible. For a turnkey community recipe, qualify and pin one exact 0.4.0-era build rather than
-silently mixing moving-master patches.
+- ~4–5K prefill: **242 PP vs 166 TP**;
+- 1024-token short-context decode: **15.08 vs 13.86**;
+- 128-token decode around 4–5K context: **14.01 vs 12.93**.
 
-## New-to-repo backfill / material correctness
+This is not an M1 rate ruler. It is strong topology/mechanism evidence: on two nodes, one activation
+handoff can beat many TP gate exchanges even when the TP wire is faster. Keep **PP2/layer ownership
+primary, TP2 control** for both DS4 and Flash. Multi-session pipeline filling remains the preferred
+aggregate-throughput direction.
 
-### Parallel qwen4exp MTP requires a slot-isolation gate
+### oMLX #3443 turns cache block size into a workload-adaptive requirement
 
-llama.cpp #28286 reports plausible **cross-slot content contamination** under
-`draft-mtp + --parallel > 1` with Qwen3.8-Flash-Next: one concurrent request can drift into another
-slot's code/prose while still producing valid-looking text. Graph disable did not remove the
-reported failure; `--parallel 1` did not reproduce it, and trivial repetitive prompts could pass.
+Fresh real coding-agent traffic on M3 Ultra256 with hybrid GDN/ArraysCache models, including
+Flash-Next, reports:
 
-This was reported on another backend/build and does not prove the current 0.4.0 baseline is still
-affected. It does prove that casual smoke tests are insufficient.
+- 51.7K requests / 88M prompt tokens;
+- median prompt **1,514 tokens**;
+- automatic block enlargement to **4096**;
+- 32,542 boundary-unavailable skips vs 1,325 stores;
+- only **3.9%** successful store rate.
 
-**Safe default until the real dual-M1 gate passes: one active MTP lane at a time.** Other concurrent
-work may use plain target batching, PP pipeline filling and queued/arbitrated requests. Parallel MTP
-must pass distinct high-entropy prompts, temp-0 and real sampling, repeated parallel-2/4 runs,
-join/leave/cancel/cache-restore cases and explicit cross-slot attribution checks before promotion.
+The cache is effective when a full boundary exists, so the failure is granularity versus workload,
+not a broken cache. A >=64 GB RAM heuristic can actually choose coarser granularity on the larger
+machine.
 
-### Recurrent rollback is a mechanism, not a parallel-safety certificate
+For Hermes/coding-agent qualification, record prompt-length distribution, attempted/successful
+stores, boundary-unavailable skips, cached-token ratio, exact-prefix hit rate, cold/hot wall time,
+boundary-capture overhead and serialization continuity. Prefer an exposed/workload-selected or
+adaptive block size over a RAM-derived constant.
 
-Merged llama.cpp #28123 fixes qwen4exp recurrent rollback planes for GDN/PLE convolution history
-and showed large single-slot RTX PRO 6000 speculative gains. Absolute rates do not transfer to M1.
-The current policy is to A/B recurrent rollback + singleton MTP on the M1 pair, while treating
-multi-slot isolation as a separate correctness problem.
+### llama.cpp #28403 adds a CUDA build/link/runtime preflight
 
-## New-to-repo backfill / portable Apple mechanism
+A fresh qwen4exp SOFT_MAX crash on RTX PRO 4500 Blackwell was resolved with **no source change**:
+CUDA 13.3 compiled the binary, but it had silently linked CUDA 12 runtime libraries. Explicit
+`CUDAToolkit_ROOT`/compiler/architecture produced CUDA-13 links and removed the failure on the same
+commit/model/driver.
 
-### oMLX SSD expert streaming is a useful secondary capacity lane
+Before any exact 5070-Ti stability/performance run, record driver/toolkit/SM/build flags and inspect
+the actual linked `cudart`, `cublas` and `cublasLt` majors. Fail the benchmark on unintended
+linkage. Then run the existing ubatch 256/512 + neutral/code/tool prompt-shape matrix. This does not
+supersede #28377; not every similar CUDA failure is a linkage mismatch.
 
-oMLX #3359 implements exact-routing SSD expert streaming with bounded resident expert banks,
-route-frequency/LRU caches, direct Metal I/O and native-demand callbacks. An independent M5 Pro
-64 GB reviewer run after correctness fixes reported Flash-Next oQ2 MTP around 32.7 GB resident and
-25-28 tok/s warm. More important for architecture selection, native-demand turnaround measured
-about 150 us/layer, implying roughly a 7 ms/step host-mediated floor across 48 layers even when the
-needed expert rows are resident.
+### DS4 #973 separates agent-shell compaction from model context
 
-Therefore:
+Fresh M1 Ultra128 report: `ds4-agent -c 32768` compacted a large tool read around ~1.8K old context,
+rebuilt to ~1.96K, then reported context full. Treat this as agent/tool-result compaction behavior,
+not a DS4 engine/KV context ceiling.
 
-- mine direct Metal publication and PLE prefaulting techniques;
-- keep exact SSD expert streaming as a **one-Mac / fallback / capacity** control;
-- do not replace resident stage-owned experts with host-mediated demand in the primary dual-M1
-  topology when aggregate 128 GB residency can avoid that per-layer round trip.
+The eventual coding-agent recipe needs a separate shell gate for large tool results, compaction,
+summary+tail reconstruction, continuation and repeated post-compaction tool calls.
 
-## Backfill / concrete 5070 candidate
+### llama.cpp #28213 remains live after API churn
 
-### MTP-head quantization A/B
+The selected-K/V gather branch was freshly rebased for a graph API change. No new Apple performance
+result accompanied it, so promotion level stays experimental.
 
-llama.cpp #28351 now gives concrete head-only agreement numbers. Q4_K + imatrix is about 240 MB
-with 0.7216 agreement in the reported table, Q6_K about 350 MB / 0.7233, and BF16 about 850 MB /
-0.7239. There is no direct 5070-Ti end-to-end result.
+## New-to-repo backfill that changes the Flash A/B plan
 
-After the existing ubatch/prompt-shape stability gate, test BF16 vs Q6_K vs Q4_K+imatrix MTP heads
-on the exact 5070 Ti with identical target quant, sampled acceptance, TG, VRAM, maximum healthy
-context and agent-quality checks.
+- **oMLX #3428:** on M5, gathered QSA is a poor choice for tiny MTP verify/history widths but becomes
+  useful for wider query batches; retaining completed pooled QSA index blocks across `trim()` avoids
+  expensive full re-pooling. Portable policy: gather wide prefill, keep tiny verify rows on the
+  cheap official path by default, and preserve immutable pooled-prefix state across rollback.
+- **oMLX #3437:** M4 Pro64 mmap expert streaming can make Flash fit where full residency cannot, but
+  single-request prefill declines with context and the measured ceiling was ~121–122K. Keep
+  SSD/mmap expert streaming as a fallback/capacity lane; prefer resident stage-owned experts on the
+  dual-M1 aggregate-128-GB deployment when possible.
 
 ## Exact-rig no-change confirmations
 
-- **Dual-M1 Flash:** #27993 remains correctness/topology only; no sustained TG or completed 115K
-  follow-up surfaced.
-- **Dual-M1 DS4-0731:** #922 remains ~152 tok/s at 34,384-token prefill with no sustained TG
-  denominator; #957 still has no physical exact-M1 post-coalescing result.
-- **RTX 5070 Ti 27B:** the direct test repo still has `pushed_at=2026-08-20T19:16:50Z`.
-- **Apple 27B external frontier:** `mlx-dspark` still has `pushed_at=2026-09-01T10:54:45Z` and
-  Layr's challenge repo still has `pushed_at=2026-08-29T07:05:19Z`.
+- **Dual-M1 Flash:** no new sustained TG and no completed ~115K exact follow-up surfaced; #27993
+  remains topology/correctness evidence only.
+- **Dual-M1 DS4-0731:** #922 remains ~152 tok/s for 34,384-token prefill with no sustained generated
+  denominator; no exact-M1 post-#957 physical throughput result surfaced.
+- **RTX 5070 Ti 27B:** direct repo remains `pushed_at=2026-08-20T19:16:50Z`; no new exact single-card
+  receipt displaced the current Q3_K_XL/native-MTP ruler.
+- **Apple 27B:** `mlx-dspark` remains `pushed_at=2026-09-01T10:54:45Z`; Layr remains
+  `pushed_at=2026-08-29T07:05:19Z`.
+- **llama.cpp release surface:** the prior 0.4.0 version bump remains merged and fresh automated
+  build releases continue, but a stable GitHub `v0.4.0` release/tag was still absent at this check.
+  Pin an exact commit/build.
 
 ---
 
@@ -176,65 +184,57 @@ context and agent-quality checks.
 
 Current qualification order:
 
-1. **Pin/certify one 0.4.0-era baseline** on both Macs.
-2. Plain exact PP2/layer-owned baseline: correctness, B1/B2/B4, cold PP, long context.
-3. PLE residency policy A/B: lazy/page-cache vs stage-local resident/direct-read/quantized.
-4. Sparse-QSA experimental A/B.
-5. Recurrent rollback + **singleton MTP** A/B at temp 0 and intended agent sampling.
-6. **Parallel-MTP slot-isolation gate before any `parallel > 1` MTP serving.**
-7. Compiled-decode B2/B4 E2E A/B; do not restore the non-reproduced large B1 claim.
-8. Short-turn cache granularity / exact replay A/B.
-9. SSD-expert-streaming/direct-I/O as a secondary capacity/control lane.
-10. Combine only passing mechanisms, then run long-prefill-arrives-while-other-agents-decode stress.
+1. pin/certify one exact 0.4.0-era baseline on both Macs;
+2. plain exact **PP2/layer-owned** baseline; TP2 is control;
+3. PLE residency/page-cache policy A/B;
+4. sparse-QSA wide-prefill A/B;
+5. pooled-QSA-prefix retention across trim; tiny MTP verify windows stay official-path by default;
+6. recurrent rollback + **singleton MTP** A/B;
+7. adversarial parallel-MTP slot-isolation gate before MTP concurrency >1;
+8. compiled-decode B2/B4 end-to-end A/B;
+9. **workload-derived cache granularity** using real prompt distribution + store/hit rates;
+10. SSD expert streaming/direct I/O only as secondary capacity/control lane;
+11. combine passing mechanisms, then long-prefill-arrives-during-decode multi-agent stress.
 
-PP2/layer ownership remains primary; TP2 remains a falsification/control benchmark.
+Safe serving posture remains: profitable singleton MTP lane + plain concurrent work until slot
+isolation is physically certified.
 
-**Safe serving posture now: singleton profitable MTP lane + plain concurrent work until slot
-isolation is physically certified.**
-
-Canonical working center remains **40 TG / 400 PP**.
+Canonical center remains **40 TG / 400 cold PP**.
 
 ## Dual-M1 DS4-0731
 
-No topology or target change. Keep:
+Keep:
 
-- PP2/layer ownership primary;
-- TP2 control;
-- current-head AProjQ4 serving candidate with AProjQ8 control;
-- request/workload-adaptive speculation.
+- **PP2/layer ownership primary; TP2 control** — now with stronger cross-hardware structural support;
+- AProjQ4 primary serving candidate, AProjQ8 control;
+- request/workload-adaptive speculation;
+- Metal mapping + OS build + command-buffer completion + GPU-busy + residency diagnostic gate.
 
-Mandatory diagnostic order remains:
+If DS4 itself is the coding-agent shell, add a separate `ds4-agent` tool-result/compaction gate.
 
-1. sane/coalesced Metal mappings;
-2. macOS build and command-buffer completion/wait behavior;
-3. GPU-busy fraction and wired residency;
-4. same-host non-distributed control;
-5. then PP bubbles/interconnect and multi-session filling.
+Canonical center remains **15 TG / 180 cold PP**.
 
-Canonical working center remains **15 TG / 180 PP**.
+## Single M1 Max64 Qwen3.8-27B
 
-## Single M1 Max 64 GB Qwen3.8-27B
-
-Canonical working center remains **25 TG / 110 native PP**. The optional ANE-assisted PP lane is
-separate and quality/memory-gated. Hidden compiled ANE banks remain first-order admission memory.
+Canonical center remains **25 TG / 110 native PP**. If ArraysCache is used, block granularity must
+fit the real conversation-turn distribution and be judged by store/hit rates. ANE remains a
+separate approximate lane.
 
 P69 remains separate and unchanged: **P69B12 frozen/promoted; P69B13 next from existing profiling
 only**.
 
-## RTX 5070 Ti 16 GB Qwen3.8-27B
-
-Canonical working center remains **120 TG / 250 PP**.
+## RTX 5070 Ti16 Qwen3.8-27B
 
 Current qualification order:
 
-1. ubatch 256/512 + neutral/code/tool prompt-shape stability matrix;
-2. Q3_K_XL + native MTP speed lane;
-3. small-N Blackwell verify A/B;
-4. BF16/Q6_K/Q4_K-imatrix **MTP-head** A/B for context headroom;
-5. GSQ-RCO stays the separate context/quality lane.
+1. **CUDA build/link/runtime provenance preflight**;
+2. ubatch 256/512 + neutral/code/tool prompt-shape stability matrix;
+3. fully resident Q3_K_XL + native MTP speed lane;
+4. small-N Blackwell verify A/B;
+5. BF16/Q6_K/Q4_K-imatrix MTP-head A/B for context headroom;
+6. GSQ-RCO context/quality controls.
 
-A head-quant change promotes only if it increases usable headroom without enough acceptance/quality
-loss to erase the wall-time benefit.
+Canonical center remains **120 TG / 250 PP**.
 
 ---
 
@@ -244,13 +244,15 @@ loss to erase the wall-time benefit.
 - Stage-local recurrent/GDN/QSA/expert state is preferred over per-token TB4 or host-mediated state
   exchange when residency permits.
 - Multi-agent throughput is separate from B1 TG; independent requests can fill pipeline bubbles.
-- **MTP concurrency is now a correctness-gated feature, not merely a throughput option.**
-- Speculation remains workload/acceptance/sampling dependent; do not assume MTP everywhere.
+- MTP concurrency is correctness-gated, not merely throughput-gated.
+- **Cache granularity is workload geometry.** Do not derive it from RAM size alone.
 - Prefix/session reuse is a separate latency objective and must not be counted as cold PP.
+- CUDA benchmark provenance includes the **actually linked runtime libraries**, not just `nvcc` and
+  driver banners.
 - Stronger-chip percentages and microbenchmarks do not move exact-machine targets by themselves.
-- For the eventual community recipe, pin a physically certified runtime/release and provide a
-  self-test that fails visibly on correctness, paging/residency, cross-slot leakage or broken
-  lifecycle behavior.
+- For the eventual community recipe, pin a physically certified runtime/build and provide a
+  self-test that fails visibly on correctness, paging/residency, cross-slot leakage, broken
+  lifecycle, cache-store starvation or agent-shell compaction failure.
 
 The detailed rationale, confidence ladders and target-change rules remain centralized in
 `RESEARCH-TARGETS.md`.
