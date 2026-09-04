@@ -2,125 +2,188 @@
 
 ## Read order for every new research pass
 
-1. Read the durable canonical state first:
+1. Read the durable canonical research state first:
 
    `experiments/p51-q8-verifier/RESEARCH-STATE.md`
 
-2. Then read the newest dated delta:
+2. Read the canonical performance targets and planning-confidence ladders:
+
+   `experiments/p51-q8-verifier/RESEARCH-TARGETS.md`
+
+   **This file is authoritative for TG / PP working targets and confidence.** Do not reconstruct
+   model targets from older watch-note prose when the target file has a newer calibration date.
+
+3. Then read the newest dated delta:
 
    `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-04-0625.md`
 
-3. Because the canonical state was last consolidated at 05:30 ET on 2026-09-02, also read every dated
-   `RESEARCH-WATCH-*` delta newer than that consolidation point when reconstructing the current state.
-   Retain `RESEARCH-WATCH-2026-09-03-1330.md` for broader machine-specific backfill,
-   `RESEARCH-WATCH-2026-09-03-1530.md` for Blackwell verify / M1 serving-memory findings,
-   `RESEARCH-WATCH-2026-09-03-1725.md` for DS4 AProjQ4 + request-adaptive DSpark policy,
-   `RESEARCH-WATCH-2026-09-03-1950.md` for the original Flash sparse-QSA M5 measurements,
-   `RESEARCH-WATCH-2026-09-03-2205.md` for GSQ-RCO / MTP-imatrix leads, and
-   `RESEARCH-WATCH-2026-09-04-0115.md` for the compiled-decode reproduction correction, #28349 downgrade, and hidden ANE-bank accounting.
+4. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, also read every
+   dated `RESEARCH-WATCH-*` delta newer than that consolidation point when reconstructing the
+   evidence chain. In particular retain:
 
-   **The 06:25 note is authoritative for current promotion level and diagnostic order.**
+   - `RESEARCH-WATCH-2026-09-03-1330.md` — broader machine-specific backfill;
+   - `RESEARCH-WATCH-2026-09-03-1530.md` — Blackwell verify / M1 serving-memory findings;
+   - `RESEARCH-WATCH-2026-09-03-1725.md` — DS4 AProjQ4 + request-adaptive DSpark policy;
+   - `RESEARCH-WATCH-2026-09-03-1950.md` — original Flash sparse-QSA M5 measurements;
+   - `RESEARCH-WATCH-2026-09-03-2205.md` — GSQ-RCO / MTP-imatrix leads;
+   - `RESEARCH-WATCH-2026-09-04-0115.md` — compiled-decode reproduction correction,
+     #28349 downgrade and hidden ANE-bank accounting;
+   - `RESEARCH-WATCH-2026-09-04-0625.md` — PLE residency, DS4 command-buffer/OS diagnostic,
+     Blackwell ubatch stability and short-turn cache granularity.
 
-4. Also read the focused kernel-mining note when looking for portable optimization ideas:
+5. Also read the focused kernel-mining note when looking for portable optimization ideas:
 
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-01-IQ-PANEL.md`
 
 ## Current watch scope
 
-Recurring scans are intentionally narrow:
+Recurring scans remain narrow:
 
-- **Flash-Next:** exact planned **2x M1 Max 64 GB / TB4** cluster — sustained decode, PP2/layer ownership, MTP/verification, QSA/PLE placement and residency, sparse long-context prefill, compiled-decode experiments, cache/state lifecycle, and multi-agent pipeline filling.
-- **DS4-0731:** same **2x M1 Max 64 GB / TB4** cluster — distributed decode, PP-vs-TP, Metal shard mapping, command-buffer/OS behavior, sparse-attention/activation economics, speculation policy, multi-session bubble fill, and portable pre-M5 Metal work.
-- **Qwen3.8-27B / Apple:** one **M1 Max 64 GB**, especially exact/native verifier/runtime/kernel work, ANE prefill economics, cache/session granularity, and serving-memory/admission behavior.
-- **Qwen3.8-27B / NVIDIA:** user's **RTX 5070 Ti 16 GB + 64 GB host RAM** rig, especially low-bit fit, native MTP/DFlash, MTP-head quantization, Blackwell verify kernels/stability, context headroom, and coding/tool throughput.
+- **Flash-Next:** exact planned **2x M1 Max 64 GB / TB4** cluster — sustained decode, PP2/layer
+  ownership, MTP/verification, QSA/PLE placement and residency, sparse long-context prefill,
+  compiled-decode experiments, cache/state lifecycle and multi-agent pipeline filling.
+- **DS4-0731:** same **2x M1 Max 64 GB / TB4** cluster — distributed decode, PP-vs-TP, Metal shard
+  mapping, command-buffer/OS behavior, sparse-attention/activation economics, speculation policy,
+  multi-session bubble fill and portable pre-M5 Metal work.
+- **Qwen3.8-27B / Apple:** one **M1 Max 64 GB**, especially exact/native verifier/runtime/kernel
+  work, ANE prefill economics, cache/session granularity and serving-memory/admission behavior.
+- **Qwen3.8-27B / NVIDIA:** user's **RTX 5070 Ti 16 GB + 64 GB host RAM** rig, especially low-bit
+  fit, native MTP/DFlash, MTP-head quantization, Blackwell verify kernels/stability, context
+  headroom and coding/tool throughput.
 
-Other machines should be promoted only when they expose a mechanism likely to transfer into one of those four lanes.
+Other machines should be promoted only when they expose a mechanism likely to transfer into one of
+those four hardware lanes.
 
-## Current newest delta — 2026-09-04 06:25 ET
+---
 
-Freshness boundary: branch checkpoint `7672162d1ae45a90a6a10fe6d1457bdcd7cf8057` / 2026-09-04 05:21:00 UTC.
+# Canonical target calibration — 2026-09-04 06:40 ET
 
-Material deltas:
+These are mature-system engineering probabilities, not statistical confidence intervals. Full
+threshold ladders and assumptions live in `RESEARCH-TARGETS.md`.
 
-- **FRESH / MATERIAL — llama.cpp #28355 resolution:** Flash-Next's ~27 GiB `per_layer_token_embd` / n-gram table can now be lazy by default under `--lazy-mode auto`. `--no-mmap` alone does not force it resident. The reporter saw prefill fall roughly **2400 -> 1000 tok/s** after page-cache eviction from competing model/disk activity. Flash qualification must now record PLE residency/lazy mode and page-cache condition explicitly; compare stage-local resident/direct-read/quantized variants on the real 64 GB nodes rather than assuming one universal placement.
-- **FRESH / MATERIAL DIAGNOSTIC — DS4 #845:** on 2x M3 Ultra 512 GB / direct TB, DeepSeek-V4-Pro-Q4K reportedly ran **10-13 tok/s** on earlier macOS 27 betas but **0.14-0.19 tok/s** on Beta 8. Local coalescing of ~156 Metal shard buffers to **4** did not recover speed (~0.16 tok/s); GPU-busy time was ~412 ms during ~6.1 s/token wall time with stable wired residency and negligible wire cost. Therefore #957-style mapping coalescing remains necessary hygiene but is **not sufficient** as a distributed-performance gate; OS build and command-buffer completion behavior must be measured too. This is not M1/0731 calibration.
-- **FRESH / MATERIAL BLACKWELL CAUTION — llama.cpp #28377:** DGX Spark GB10 qwen4exp has a deterministic prompt/content-dependent `cublasGemmEx` prefill failure at `-ub 512`; `-ub 256` passed the reporter's 1..600-token sweep and failing HumanEval case. Add prompt-shape + ubatch fuzzing to the exact 5070-Ti campaign before promoting a build. Do not transfer the GB10 failure rate or performance to the 5070 Ti.
-- **FRESH / MATERIAL SERVING POLICY — oMLX #3430:** hybrid ArraysCache's hard-coded 2048-token whole-block commit can prevent short repeated turns from reusing prefix state. M5 Pro testing shows smaller 256/128/64 blocks improve repeated short-turn latency at higher cold snapshot/boundary cost, and exact prior assistant serialization affects cached-prefix length. Add cache-block granularity + exact replay to Hermes serving A/B; no M5 number transfers to M1.
-- **FRESH / SECONDARY OPERATIONAL — oMLX #3431:** `omlx stop` can report success while a server remains alive/listening with Metal memory retained on the reporter's machine. Shutdown/reload qualification must verify process exit, port release and memory release rather than trusting CLI status.
-- **NO CHANGE — exact dual-M1 Flash-Next:** #27993 still has no sustained physical 2x M1 Max/TB4 TG or completed 115K-class follow-up.
-- **NO CHANGE — exact dual-M1 DS4-0731:** #922 is unchanged: ~152 tok/s @34K distributed prefill, no sustained TG denominator. #957 itself still has no physical post-fix Apple throughput result.
-- **NO CHANGE — direct RTX 5070-Ti ruler:** `aipruner/qwen3.8-3bit-test-in-16GB-GPU` remains unpushed since 2026-08-20. Q3_K_XL + native MTP remains the direct speed lane; GSQ-RCO remains the context/quality lane.
-- **NO CHANGE — Apple exact frontier:** `mlx-dspark` still has no push after 2026-09-01 10:54 UTC. Layr's challenge repo still has no push after 2026-08-29. P69B12 remains frozen and **P69B13 remains next using existing profiling only**.
-- **BROADER SEARCH:** no independent fresh sustained exact 2x M1 Max Flash-Next/DS4 decode receipt surfaced. Additional 5070-Ti-class vLLM/NVFP4 cards use different runtimes/quants/topologies and do not supersede the current exact single-card GGUF rulers.
+| Model / hardware | Working TG | Confidence | Working cold PP | Confidence |
+|---|---:|---:|---:|---:|
+| **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s** | **~55-60%** | **400 tok/s** | **~55-60%** |
+| **Qwen3.8-27B — M1 Max 64** | **25 tok/s** | **~55-60%** | **110 tok/s native/exact-runtime** | **~60%** |
+| **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
+| **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-## Current consequences
+Important qualifiers:
 
-### Dual-M1 Flash-Next
+- Flash retains its previous B1 TG ladder and ~128K ladder; the new work formalizes the **PP
+  probability ladder** around the prior 400+ design target.
+- M1 27B PP above is the native/exact-runtime planning lane. Experimental ANE-assisted PP has a
+  separate ladder because the demonstrated ANE path uses approximate INT8 work; it must not be
+  called P69/exact merely because one benchmark preserved top-1.
+- 5070 Ti targets assume a **fully resident Q3-class target**. Spilled higher-bit configurations do
+  not count as target candidates.
+- DS4 remains intentionally conservative: the exact-hardware pre-0731 decode anchor is only
+  ~10-13 tok/s, while current 0731 has exact distributed PP evidence but no sustained TG receipt.
 
-Current bring-up order:
+The target recalibration is a planning normalization across all three model families. It does not
+claim that the 06:25 search pass itself produced new exact Flash/DS4 TG measurements.
 
-1. **Plain exact PP2/layer-owned baseline first**: correctness, sustained B1/B2/B4, cold prefill, long context and multi-agent behavior.
-2. **PLE residency policy A/B**: lazy/page-cache vs stage-local resident/direct-read/quantized. Record page-cache state and deliberately add competing I/O/model eviction.
-3. **Sparse-QSA A/B**: #28349-equivalent wiring remains an experimental patch, not an assumed upstream baseline.
-4. **Compiled-decode A/B**: qualify #3334-equivalent explicit tensor-state compilation using real end-to-end B1/B2 serving metrics; do not credit the non-reproduced +79.6% B1 result.
-5. **Short-turn cache granularity / exact replay A/B**: 64/128/256/2048-style state blocks or the closest runtime equivalents, measured on real agent/control traffic.
-6. Combine only mechanisms that pass separately, then run the long-prefill-arriving-while-other-agents-decode stress test.
+---
 
-Keep PP2/layer ownership primary and TP2 as control. Every prefill result should record PLE residency policy; every stop/reload result should prove actual memory release.
+# Current newest evidence delta — 2026-09-04 06:25 ET
 
-### Dual-M1 DS4
+Freshness boundary: branch checkpoint `7672162d1ae45a90a6a10fe6d1457bdcd7cf8057` /
+2026-09-04 05:21:00 UTC.
 
-Keep topology and artifact policy unchanged:
+Material findings:
+
+- **Flash PLE residency:** llama.cpp #28355 confirms the ~27 GiB
+  `per_layer_token_embd` / n-gram table can be lazy under `--lazy-mode auto`; `--no-mmap` alone
+  does not force it resident. Reported prefill fell roughly **2400 -> 1000 tok/s** after page-cache
+  eviction from competing activity. Every Flash PP measurement must record PLE placement/lazy mode
+  and page-cache condition.
+- **DS4 mapping is necessary but not sufficient:** fresh #845 two-M3-Ultra evidence on macOS 27
+  Beta 8 remained around **0.16 tok/s** even after locally reducing ~156 Metal shard buffers to 4.
+  GPU busy time was tiny versus wall time, with stable residency and negligible wire traffic.
+  Distributed qualification must therefore record OS build and command-buffer completion behavior
+  in addition to map coalescing.
+- **Blackwell stability:** llama.cpp #28377 reports prompt/content-dependent qwen4exp
+  `cublasGemmEx` prefill failures on GB10 at ubatch 512; ubatch 256 passed the reporter's sweep and
+  failing HumanEval-shaped prompt. Add prompt-shape + ubatch fuzzing to the 5070-Ti promotion gate;
+  do not transfer the GB10 failure rate or speed numerically.
+- **Short-turn state granularity:** oMLX #3430 shows 2048-token whole-block cache commits can miss
+  reusable short turns; smaller 256/128/64 blocks reduce repeat latency at higher cold boundary
+  cost. Exact assistant serialization also changes reusable-prefix length.
+- **Lifecycle:** oMLX #3431 shows a stop command can report success while process/port/Metal memory
+  remain live. Stop/reload qualification must verify actual resource release.
+
+No fresh sustained physical 2x-M1 Flash-Next TG or DS4-0731 TG surfaced. #922 remains the exact
+0731 cluster PP anchor at ~152 tok/s for 34,384 tokens with no generated-token denominator. The
+direct 5070-Ti repo remains the primary speed ruler.
+
+---
+
+# Current consequences by lane
+
+## Dual-M1 Flash-Next
+
+Bring-up order:
+
+1. plain exact PP2/layer-owned baseline;
+2. PLE residency policy A/B: lazy/page-cache vs stage-local resident/direct-read/quantized;
+3. sparse-QSA experimental A/B;
+4. compiled-decode A/B using real end-to-end B1/B2 serving metrics;
+5. short-turn cache granularity / exact replay A/B;
+6. combine only passing mechanisms, then test long-prefill-arriving-while-other-agents-decode.
+
+PP2/layer ownership remains primary; TP2 remains a falsification/control benchmark. The canonical
+working center is **40 TG / 400 PP**.
+
+## Dual-M1 DS4-0731
+
+Keep:
 
 - PP2/layer ownership primary;
 - TP2 control;
 - current-head AProjQ4 primary serving candidate with AProjQ8 control;
 - request/workload-adaptive speculation.
 
-Update the mandatory distributed diagnostic gate:
+Mandatory diagnostic gate before interpreting TG/PP:
 
-1. verify sane/coalesced Metal shard mapping;
-2. record macOS build and command-buffer completion/wait behavior;
-3. record GPU-busy fraction and wired residency through decode;
-4. run a same-host non-distributed/control path before blaming TB4;
-5. only then evaluate PP bubbles/interconnect and multi-session filling.
+1. sane/coalesced Metal shard mapping;
+2. macOS build and command-buffer completion/wait behavior;
+3. GPU-busy fraction and wired residency;
+4. same-host non-distributed control;
+5. only then PP bubbles/interconnect and multi-session filling.
 
-The fresh M3-Ultra/Beta-8 report means mapping coalescing is necessary but not sufficient. It does **not** change the M1/0731 forecast.
+Canonical working center: **15 TG / 180 PP**.
 
-### RTX 5070 Ti 27B
+## Single M1 Max 64 GB Qwen3.8-27B
 
-Keep two resident lanes:
+Canonical working center: **25 TG / 110 native PP**. The optional ANE-assisted PP lane is separate
+and quality/memory-gated. Hidden compiled ANE banks remain first-order admission memory; record full
+system/process high-water, not only MLX-active memory.
 
-- **Speed:** Q3_K_XL + native MTP, plus #26705 small-N verify work.
-- **Context/quality:** official GSQ-RCO IQ3_XXS-mtp first, IQ2_S-mtp and IQ3_S-mtp controls.
+P69 remains separate and unchanged: **P69B12 frozen/promoted; P69B13 next from existing profiling
+only**.
 
-Add a Blackwell stability matrix before performance promotion:
+## RTX 5070 Ti 16 GB Qwen3.8-27B
 
-- ubatch 256 and 512;
-- neutral prompt-length ladder plus code/tool-shaped prompts;
-- MTP off/on;
-- repeated cold/warm prefill with zero CUDA/cuBLAS faults;
-- then normal 8K/24K agent throughput and acceptance measurement.
+Canonical working center: **120 TG / 250 PP**.
 
-#28351 MTP-aware imatrix remains a separate future quantization axis.
+Keep:
 
-### Single M1 Max 64 GB 27B
+- speed lane = Q3_K_XL + native MTP + small-N Blackwell verify work;
+- context/quality lane = GSQ-RCO controls;
+- prompt-shape/ubatch stability matrix before speed promotion;
+- fit is first-order: a quant/runtime that spills is disqualified regardless of nominal quality.
 
-Retain the 01:15 ANE admission rule: hidden compiled ANE banks are first-order memory. Add short-turn state-block granularity and stop/reload resource-release checks to the serving qualification matrix.
+---
 
-Record process/system peak, MLX-active peak, ANE-bank estimate/measurement, context headroom and actual post-stop memory release.
+# Standing architecture decisions
 
-## Forecast consequence
+- Flash and DS4 dual-M1 experiments remain **PP2/layer ownership first, TP2 control**.
+- Stage-local recurrent/GDN/QSA state is preferred over per-token TB4 state exchange.
+- Multi-agent throughput must be measured separately from B1 TG; independent requests may fill
+  bubbles even when one dependent stream cannot.
+- Speculation is workload/acceptance/sampling dependent; do not assume MTP everywhere.
+- Prefix/session reuse is a separate latency objective and must not be counted as cold PP.
+- Stronger-chip percentages and microbenchmarks do not move exact-machine targets by themselves.
 
-**Do not change the canonical dual-M1 Flash-Next B1, ~128K B1, or B2-B4 confidence bands. Do not change the DS4 or direct 5070-Ti rulers.**
-
-The fresh evidence changes diagnostics and serving policy, not calibrated throughput:
-
-- Flash prefill must control PLE residency/page-cache state;
-- DS4 coalesced mapping is necessary but not sufficient;
-- Blackwell qwen4exp needs prompt-shape/ubatch fuzzing;
-- short-turn cache block size and exact replay are now explicit serving variables.
-
-The mature-system target remains roughly **400+ tok/s cold prefill plus excellent exact prefix/session reuse**, still unmeasured on the real 2x M1 Max 64 GB / TB4 pair.
-
-External evidence does **not** modify the certified P69 checkpoint. P69B12 remains frozen and `CURRENT.md` remains authoritative; **P69B13 remains next using existing profiling data only**.
+The detailed rationale, confidence ladders and target-change rules are now centralized in
+`RESEARCH-TARGETS.md`.
