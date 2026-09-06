@@ -14,21 +14,22 @@
 
 3. Read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-05-1943.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-0243.md`
 
-   **The 19:43 note is authoritative for speculative-checkpoint provenance / greedy answer-equivalence gates and for the first-repeat MTP prefix-cache backfill. It moves no performance target.**
+   **The 02:43 note is authoritative for whole-round speculative economics, QSA selected-set/order determinism and the resulting Flash/5070 experiment ordering. It moves no performance target.**
 
 4. The immediately previous delta remains essential:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-05-1512.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-05-1943.md`
 
-   It remains authoritative for real-agent cache-capture efficacy, Qwen3.8-27B MTP-head/vocabulary experiment ordering, ds4 reusable-scratch transfer, allocator-identity monitoring and benchmark-TG provenance.
+   It remains authoritative for speculative-checkpoint provenance, greedy verifier-only answer equivalence and first-repeat MTP prefix-cache qualification.
 
-5. The 12:00 delta remains important for ordinary recurrent rollback, per-slot MTP context sizing, DS4 fresh-prefill semantics, M1/M2 FP16 activation experimentation and persistent-cache identity:
+5. The 15:12 and 12:00 deltas remain important for real-agent cache-capture efficacy, MTP-head/vocabulary ordering, reusable-scratch transfer, ordinary recurrent rollback, per-slot MTP context sizing and persistent-cache identity:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-05-1200.md`
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-05-1512.md`
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-05-1200.md`
 
-6. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, retain dated deltas newer than that point when reconstructing the evidence chain. The most recent relevant sequence is:
+6. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, retain dated deltas newer than that point when reconstructing the evidence chain. The recent sequence is:
 
    - `RESEARCH-WATCH-2026-09-04-0115.md` — compiled-decode correction / hidden ANE-bank accounting;
    - `RESEARCH-WATCH-2026-09-04-0625.md` — PLE residency, DS4 command-buffer/OS, Blackwell ubatch and cache granularity;
@@ -40,7 +41,8 @@
    - `RESEARCH-WATCH-2026-09-05-0500.md` — production-layout invariance correction, low-level runtime provenance and Strix-Halo AProjQ4 smoke;
    - `RESEARCH-WATCH-2026-09-05-1200.md` — recurrent multi-turn rollback, per-slot draft context, chunk-size-dependent AProjQ4 PP, M1/M2 FP16 activation lane and persistent-state identity;
    - `RESEARCH-WATCH-2026-09-05-1512.md` — real-agent cache-capture efficacy, independent 27B FR-Spec correction, exact ds4 CUDA scratch-reuse receipt, allocator-identity watch and TG-log provenance;
-   - `RESEARCH-WATCH-2026-09-05-1943.md` — speculative-loader provenance, greedy answer equivalence, 4-bit MTP-loop behavior and first-repeat MTP cache-boundary backfill.
+   - `RESEARCH-WATCH-2026-09-05-1943.md` — speculative-loader provenance, greedy answer equivalence, 4-bit MTP behavior and first-repeat MTP cache-boundary backfill;
+   - `RESEARCH-WATCH-2026-09-06-0243.md` — whole-round MTP decomposition, marginal multi-position verify cost, QSA order determinism and M5 TensorOps approximate-lane backfill.
 
 7. Also read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when looking for portable kernel candidates.
 
@@ -55,83 +57,107 @@
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 19:43 pass moves no row.** It adds no sustained physical receipt from the four target rigs.
+**The 02:43 pass moves no row.** It adds no sustained physical receipt from the four target rigs.
 
 Important qualifiers:
 
 - Flash retains the B1 short/medium, ~128K B1 and B2-B4 aggregate ladders in `RESEARCH-TARGETS.md`.
-- M1/M2 activation-FP16 remains a separate approximate serving lane; it does not alter P69 or exact-runtime targets.
+- M1/M2 activation-FP16 and hardware-specific approximate matrix routes remain separate from exact-runtime evidence.
 - 5070 targets require full residency and measured net VRAM/context headroom.
 - DS4 remains conservative until exact sustained 0731 dual-M1 generated-token throughput is measured.
 
 ---
 
-# Current newest evidence delta — 2026-09-05 19:43 ET
+# Current newest evidence delta — 2026-09-06 02:43 ET
 
-Starting freshness boundary: `d3e7de243bf604558e508a9a44ce5b2c0116da16` / **2026-09-05 19:18:28 UTC**.
+Starting freshness boundary: `6a338ab826e620a7d45407b04cb303cb353f0180` / **2026-09-05 23:49:49 UTC**.
 
 ## FRESH / material
 
-### rMLX `7bc69130c275de3540dcfa1d39e9b71676ce3549` / #515 — speculative provenance and deterministic answer equivalence
+### rMLX `fd33c684a8b4deefb78df2c9ae46e69b5856a02a` / #518 — optimize the speculative round, not just the drafter
 
-Fresh commit time: **2026-09-05 20:18:01 UTC**.
+A charged diagnostic run on a 4-bit Qwen3.8-27B verifier + MTP sidecar decomposed 86 block-3 rounds:
 
-The material Qwen3.8-27B findings are:
+| round class | n | round ms | draft | verify | rollback | other |
+|---|---:|---:|---:|---:|---:|---:|
+| partial/replayed | 34 | 76.68 | 4.16 | 40.47 | **31.99** | 0.055 |
+| full accept | 52 | 46.09 | 4.18 | 41.81 | **0.027** | 0.066 |
 
-- a published Qwen3.8 DFlash 2 checkpoint contained a candidate selector and per-layer dynamic convolutions the loader did not support; the old path silently ignored unsupported weight families and benchmarked an earlier DFlash architecture under the checkpoint name;
-- the reviewed loader now fails closed: a supported Qwen3.6 drafter consumes all 91 tensors, while the Qwen3.8 checkpoint leaves **23 unread tensors** and is refused;
-- on the same verifier, the DFlash temperature-0 arm diverged from its own no-drafter verifier answer at the **fourth token**, while the MTP sidecar remained byte-identical over 160 tokens;
-- first reported 4-bit Qwen3.8 MTP cells produced about **1.19x** block-2 speedup versus **1.36x** for a prior MXFP8 pair, with acceptance **0.730 vs 0.877**; block-depth profitability also became more workload-dependent after quantization.
+The material findings are:
 
-**Promotion for the 27B speculative lane:**
+- partial-accept rollback re-runs the accepted prefix through the full verifier stack, effectively paying another verifier weight read;
+- recurrent snapshot/bookkeeping itself is only about **0.06 ms**;
+- the acceptance walk had been re-deriving the quantized LM head position by position instead of consuming the block result; reusing the block argmax produced a measured **+1.96% decode** on this pair with output identity preserved;
+- one extra verified position costs about **0.236x of a plain step** on the 27B GDN hybrid and **0.242x** on an MXFP8 full-attention model, far above the ~0.04x roofline intuition;
+- removing replay alone therefore projects to about **1.56x**, not the old 2.2x aspiration;
+- block-2 -> block-3 round growth was roughly +7.27 ms verify, +6.24 ms replay and +2.03 ms draft.
 
-1. require checkpoint/tensor-consumption provenance and fail closed on unsupported weight families;
-2. at deterministic/greedy settings, require full answer equivalence against the same verifier with speculation disabled;
-3. continue measuring acceptance, accepted tokens/cycle, true drafting share, TG, E2E wall and memory after every verifier/drafter quantization change.
+Fresh #496 analysis also identifies depth-scaling draft costs: a full 248,320-vocab head read per drafted token (~1.3 GB on the cited 4-bit checkpoint), one host sync per drafted token, and a trailing sidecar step.
 
-This is runtime/speculation evidence, not an exact 5070 Ti or M1 rate receipt.
+**Promotion:** before deeper MTP or aggressive vocab trimming, measure/attack accepted-prefix replay, verify M=1 vs M>1 kernel economics, redundant full-head reads and host synchronizations. Add replay fraction/ms, marginal verify-position ms, head bytes and sync count to the speculative receipt.
 
-## BACKFILL / material
+**Instrumentation rule:** charged phase timing forces evaluations and changes scheduling. Charged rows are diagnostic only and must not enter ordinary champion tables.
 
-### `wtdcode/vllm-backport` `4995d9c7a42018246ead0624ee4d120a3149956d` — MTP first-repeat prefix hits can fail despite later cache success
+This is measured runtime evidence, not an exact M1-Max or 5070 rate receipt.
 
-Commit time **2026-09-05 17:43:37 UTC**, so this is explicitly backfill, not fresh.
+### vLLM #54521 — correct top-k set can still be numerically wrong downstream if emitted order is nondeterministic
 
-Physical report: Qwen3.8-Flash-Next-AWQ, TP4 A6000, MTP3, block 1024, 13.4K-token repeated prompt.
+Fresh GB10 investigation corrected the earlier `indexer_budget` diagnosis. Greedy divergence was reproduced below the budget and with MTP disabled.
 
-With sparse recurrent-boundary retention, the recurrent replay boundary and the EAGLE/MTP-shifted full-attention cache boundary landed one block apart. The result was **zero cache hit on the first repeat**, with the second repeat finally succeeding after a shared-prefix junction existed.
+The decisive isolated test used the real QSA geometry (`columns=65,536`, `k=512`) and found that when `visible > k`, ten identical `persistent_topk` calls returned:
 
-Reported repeated-prompt sequence:
+- the **same selected set 10/10**;
+- but the **same exact order only 1/10** across row counts 1 through 512.
 
-- before: 12.21 s | 9.81 s / hits 0 | 1.23 s / hits 12,288;
-- after retaining the shifted boundary: 13.51 s | 1.15 s / hits 12,288 | 1.14 s / hits 12,288.
+At `visible=480 < k`, both set and order were 10/10 stable.
 
-**Promotion to Flash qualification:** explicitly test first repeat, second repeat and growing-agent reuse with MTP on/off. Verify that recurrent-state retained boundaries intersect the attention-side reusable prefix. A cache that only becomes effective on the second repeat does not pass the turnkey-agent gate.
+Existing tests can miss this because they compare sets/sorted values. QSA consumes the raw selected order in sparse-attention accumulation, so changing block order changes floating-point reduction order and can perturb near-tied logits.
 
-This strengthens the oMLX #3462 rule from the 15:12 pass: **cache enabled != cache effective**.
+**Promotion to Flash QSA:** require selected-set equality, selected-order determinism, canonical-order logit equivalence, prefill/decode separation, MTP on/off, serial/concurrent scheduling and narrow-range/near-tie indexer-score stress. Structurally valid indices/no duplicates are not sufficient.
+
+If selection order is not semantically meaningful, normalize it before an order-sensitive floating accumulation.
+
+This is NVIDIA/GB10 evidence, not an Apple bug or a target-rate ruler.
+
+## BACKFILL / separate approximate lane
+
+### M5-Max ds4 Metal TensorOps can be faster in agent work while remaining non-exact
+
+The previously reproduced TensorOps route has real long-prompt numerical drift (worst RMS about 1.386, max-abs about 7.27, with first-token greedy flips in long cases). A pre-registered 15-task x 3-sweep route A/B nevertheless found:
+
+- T/R wall ratios **0.900, 0.768, 0.690**; pooled **0.786**;
+- T 43/45 task-run passes vs R 38/45;
+- the pre-registered “route buys with no measured agent-task break” screen fired.
+
+The lower-level drift remains. Therefore agent-task parity cannot substitute for a logit/greedy equivalence gate. Stamp the exact Metal route and keep hardware-specific approximate paths separate from exact-runtime evidence. Do not transfer this M5 result to M1 Max.
+
+## FRESH / monitor only
+
+### llama.cpp `971595d6697f53b215d02a8381f8b5af142a4d86`
+
+More M2-Max FA-vector tuning for Q4_0/Q4_1/Q5_0/Q5_1 landed upstream. The inspected PR contains no rate receipt or M1 mapping, so monitor only.
 
 ---
 
 # Focused follow-up status
 
-- **oMLX #3462:** still open, 0 comments; no post-cutoff maintainer change surfaced.
-- **oMLX #3464:** still open, 0 comments; no post-cutoff change surfaced.
-- **jundot/omlx main:** no commits after the cutoff in the checked window.
-- **llama.cpp #28425:** no post-cutoff update surfaced.
-- **llama.cpp #28433:** no post-cutoff update surfaced.
-- **llama.cpp #28448:** no post-cutoff maintainer update surfaced; remains a monitored correctness seam, not an Apple/Flash blocker.
-- **llama.cpp #25187:** latest material activity remains pre-cutoff.
-- **llama.cpp main:** only unrelated repository/issue-template maintenance surfaced after the cutoff; no new Flash/Qwen rate receipt.
+- **oMLX #3462:** still open, 0 comments; no fix or maintainer response surfaced.
+- **oMLX #3464:** still open, 0 comments; no logging fix surfaced.
+- **jundot/omlx main:** no commits after the cutoff.
+- **llama.cpp #28425:** unchanged; ordinary no-spec recurrent rollback gate remains active.
+- **llama.cpp #28433:** unchanged; per-slot MTP draft-context sizing gate remains active.
+- **llama.cpp #28448:** unchanged; allocator identity remains monitored, not an Apple/Flash blocker.
+- **llama.cpp #25187:** no fresh activity; full-head quantization before aggressive FR-Spec remains active.
 - **antirez/ds4 main:** no commits after the cutoff.
-- **ml-explore/mlx main:** no commits after the cutoff.
+- **ml-explore/mlx main:** only a fresh CUDA completion-worker fix surfaced; no Apple/M1 runtime receipt.
 - **MLX #4409:** still open; no fresh M1 result surfaced.
-- **vLLM #55375:** remains merged; no fresh post-cutoff material surfaced in this pass.
+- **wtdcode/vllm-backport:** no commits after the cutoff.
 
 ---
 
 # Exact-rig no-change confirmations
 
-- **Dual-M1 Flash:** no fresh sustained exact 2x M1 Max64/TB4 TG receipt or completed new exact-rig cold-PP result.
+- **Dual-M1 Flash:** no fresh sustained exact 2x M1 Max64/TB4 TG receipt or new exact-rig cold-PP result.
 - **Dual-M1 DS4-0731:** no fresh sustained generated-token denominator on 2x M1 Max64/TB4.
 - **RTX 5070 Ti 27B:** no fresh exact-card TG/PP receipt.
 - **M1 Max64 27B:** no fresh exact single-M1-Max serving receipt.
@@ -142,42 +168,40 @@ This strengthens the oMLX #3462 rule from the 15:12 pass: **cache enabled != cac
 
 ## Dual-M1 Flash-Next
 
-Keep the existing bootstrap/qualification order. Strengthen the cache gate:
+Keep PP2/layer ownership primary and TP2 as control. Qualification now explicitly includes:
 
-1. exact PP2/layer-owned baseline; TP2 control;
-2. ordinary no-spec recurrent partial-prefix rollback / growing-session correctness;
-3. growing coding-agent cache-capture efficacy with short completions and long reused prefixes;
-4. **first-repeat / second-repeat cache effectiveness with MTP on/off and recurrent/attention boundary intersection**;
-5. PLE residency/page-cache/direct-read A/B;
-6. sparse-QSA wide-prefill and neighboring-row reuse;
-7. QSA known-horizon reservation and recurrent-checkpoint budgeting;
-8. pooled session restore / persistent identity gates;
-9. MTP recurrent commit plus per-slot draft-context sizing and slot isolation;
-10. activation-FP16 approximate lane only after exact baseline freeze;
-11. compiled/multi-agent/long-prefill-during-decode stress.
+1. ordinary no-spec recurrent rollback correctness;
+2. real-agent cache-capture frontier + first-repeat/second-repeat effectiveness;
+3. selected-QSA **set + order determinism**, canonical-order logits and near-tie stress;
+4. PLE/QSA residency, page-cache and known-horizon controls;
+5. MTP recurrent commit/replay correctness and per-slot draft context;
+6. speculative-round replay/verify/head/sync economics;
+7. only then deeper MTP / compiled multi-agent combinations.
 
 Canonical center remains **40 TG / 400 cold PP**.
 
 ## RTX 5070 Ti16 Qwen3.8-27B
 
-No target change. Preserve full residency first-order and the full-head-quantization-before-aggressive-vocab-trim ordering.
+Preserve full residency first. Updated speculative order:
 
-Add two promotion gates to every external drafter experiment:
-
-- **checkpoint completeness/provenance**;
-- **greedy verifier-only answer equivalence**.
+1. native/full-head baseline with checkpoint completeness + greedy verifier-only equivalence;
+2. measure replay fraction/cost, marginal verify-position cost, head bytes and host syncs;
+3. eliminate avoidable replay/head/sync overhead if reproduced;
+4. full-head MTP-head quantization A/B with memory/context headroom;
+5. only then aggressive FR-Spec/vocab trimming or deeper draft depth;
+6. judge by acceptance, accepted tokens/cycle, true drafting share, TG, E2E wall and peak VRAM.
 
 Canonical center remains **120 TG / 250 cold PP**.
 
 ## Single M1 Max64 Qwen3.8-27B
 
-P69 remains separate: **P69B12 frozen/promoted; P69B13 next from existing profiling only**. Do not contaminate P69 with external speculative work.
+P69 remains separate: **P69B12 frozen/promoted; P69B13 next from existing profiling only**.
 
 Canonical center remains **25 TG / 110 native cold PP**.
 
 ## Dual-M1 DS4-0731
 
-No lane change. Metal scratch/temp-allocation lifecycle remains a transfer candidate; no exact dual-M1 update surfaced.
+No exact-rig update. Metal scratch/temp allocation remains a transfer candidate. M5 TensorOps remains a separate approximate hardware lane.
 
 Canonical center remains **15 TG / 180 cold PP**.
 
@@ -185,11 +209,14 @@ Canonical center remains **15 TG / 180 cold PP**.
 
 # Standing decisions strengthened this pass
 
-- A benchmark row named after a drafter checkpoint is not provenance; prove all required tensor families were consumed or fail closed.
-- Greedy speculative decoding must be equivalent to the same verifier with speculation disabled; coherent output and acceptance are insufficient.
-- Quantization can change speculative acceptance and optimal block depth materially; re-measure the full loop.
-- Flash prefix-cache certification must include the **first repeat**, not merely a later warmed repeat.
-- **Cache enabled != cache effective:** require advancing reusable-prefix frontier, bounded fresh-prefill work and recurrent/attention boundary compatibility under MTP.
-- Existing gates remain active: ordinary recurrent rollback is separate from MTP rollback; draft context is per slot; concurrent pure-prefill state isolation is mandatory; persistent state carries tokenizer/model/runtime identity; explicit TG source + generated-token denominator are required for promoted receipts.
-- Stronger/different hardware and non-bit-exact mechanisms do not move exact-machine targets by themselves.
+- Optimize speculative decoding as a **whole-round system**, not a drafter-only kernel.
+- Partial-accept recurrent replay can cost another full verifier read; measure replay fraction and milliseconds.
+- Measure M=1 vs M>1 verifier geometry on the actual target kernel/runtime; roofline assumptions are not receipts.
+- Full-head bytes and host synchronization count are first-class speculative metrics.
+- Charged/forced diagnostic timing must be excluded from ordinary benchmark leaderboards.
+- Sparse-QSA correctness requires deterministic accumulation behavior, not merely the right selected set.
+- Near-tie score distributions belong in QSA certification.
+- Hardware-specific approximate matrix routes must be labeled/quality-certified separately from exact-runtime evidence.
+- Previous gates remain active: cache effectiveness/frontier, first-repeat reuse, ordinary recurrent rollback, per-slot MTP context, concurrent state isolation, persistent runtime identity, checkpoint/tensor completeness, greedy verifier-only equivalence and explicit TG denominator/provenance.
+- No target movement without exact target-topology evidence or exceptional explicit justification.
 - P69 remains isolated.
