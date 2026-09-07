@@ -14,13 +14,14 @@
 
 3. Read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-0655.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-1510.md`
 
-   **The 06:55 note is authoritative for recurrent tape/refold MTP optimization, cold long-prefill -> first-spec-cycle handoff, multi-step MTP cache restore, content-addressed distributed model identity, explicit recurrent-layer manifests and graph/compile route provenance. It moves no performance target.**
+   **The 15:10 note is authoritative for the oMLX #3494 attribution correction, physical recurrent-checkpoint materialization/nullness, restored-boundary finite-state/logit certification, persistent request-slot ownership, state-index stride handling, overlapped-step happens-before ordering, and PP+MTP distributed-state certification. It moves no performance target.**
 
 4. The immediately previous deltas remain essential:
 
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-2333.md` — physical recurrent-block concurrency corroboration, MLX lazy-phase materialization, request-row metadata ownership, real-consumer cache publication, offload-slot ownership and agent qualification;
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-0655.md` — recurrent tape/refold MTP optimization candidate, multi-step MTP cache restore, content-addressed distributed model identity, explicit recurrent-layer manifests and graph/compile route provenance. **Its stock-oMLX #3494 attribution is superseded by the 15:10 correction.**
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-2333.md` — physical recurrent-block concurrency, MLX lazy-phase materialization, request-row metadata ownership, real-consumer cache publication, offload-slot ownership and agent qualification;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1951.md` — MTP/recurrent capacity hypothesis, no-MTP batch-composition certification, version-qualified long-context small-N routing and greedy benchmark answer-equivalence;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1832.md` — corrected GDN baseline semantics, typed recurrent/attention/draft cache geometry, warm unified-KV PP qualification, persistent-vs-draft state ownership, full-vector frontier validation and byte-faithful session snapshots;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1245.md` — QSA tie-set correctness, PLE request/step epoch ownership, Apple batch-composition invariance, stochastic speculative-sampling certification, warm-slot PP and small-N routing;
@@ -46,7 +47,7 @@
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 06:55 pass moves no row.** It adds no sustained physical receipt from the exact target rigs.
+**The 15:10 pass moves no row.** It adds no sustained physical receipt from the exact target rigs.
 
 Important qualifiers:
 
@@ -57,66 +58,59 @@ Important qualifiers:
 
 ---
 
-# Current newest evidence delta — 2026-09-07 06:55 ET
+# Current newest evidence delta — 2026-09-07 15:10 ET
 
-Starting freshness boundary: `377501fa9c7bec9662803c926d97f6aad3e0c1c5` / **2026-09-07 03:42:29 UTC**.
+Starting freshness boundary: `6d9161e180d04667c3f2eea4360cf05520704154` / **2026-09-07 11:17:04 UTC**.
+
+## UPDATE / correction
+
+### oMLX #3494 — do not attribute the cold-head failure to stock oMLX
+
+The reporter traced the bad priming handoff to the reporter's own open batched-verify patch path, not stock oMLX main/v0.6.4 or PR #3469. The custom hook dropped a primed context into an adoption queue whose consumer was not reachable on every control-flow arm.
+
+**Standing correction:** keep a custom/experimental primed-state handoff test, but do not carry a standing claim that stock oMLX has the reported first-long-prefill failure.
 
 ## FRESH / material
 
-### rMLX `0cec5a187fb2716d5f45c4bd105b572b6da0aa6e` — recurrent tape/refold removes the second full-model replay on partial MTP rounds
+### vLLM #55766 — restored recurrent boundary can poison later generation
 
-Partial speculative acceptance previously rebuilt recurrent state by restoring the pre-round snapshot and replaying the accepted prefix through the full layer stack, causing another model-weight read. The new path tapes causal recurrent inputs during the original round and refolds only the accepted prefix through the recurrence kernel.
+A Qwen3.8-27B TP2 prefix-cache reproducer reports a deterministic bad restored GDN checkpoint producing all-NaN logits on a later request. Cache salt or shifting the reusable boundary avoids the failure; preserving the same hit preserves it.
 
-Real recurrent-stack tests report exact agreement with the replay it replaced at every accepted length for both one-verify-forward and forward-per-token draft geometry.
+**Promotion:** a reusable recurrent boundary is certified only if its state physically exists, restored state/logits are finite, semantic/frontier evidence matches, and generation crosses at least one full fresh block after restore.
 
-**Promotion:** after Flash replay correctness is frozen, test recurrent tape/refold before deeper drafting. Measure whole-round wall time, acceptance, refold cost, weight traffic and semantic equivalence.
+### LMCache #5004 — unmaterialized recurrent boundaries are null state
 
-### oMLX #3494 — cold long-prefill -> first MTP verify cycle can collapse under eager-dispatch contention
+With MTP, a merged final full block + tail can leave no recurrent state physically written at an intermediate aligned boundary. LMCache previously retained a moved speculative block there and later restored it as a valid checkpoint. The fix clears the old slot to null and stops the reusable frontier unless every required object group physically exists.
 
-On M3 Ultra / Flash-Next, the first MTP cycle after >=16K prefill intermittently accepted 0/6 under eager dispatch. The reported collapses occurred on first long-prefill requests under contention; quiet and short-context cases were healthy. Root cause remains unproven.
+Direct validation on the reported 2x RTX 5090 / Qwen3.5 hybrid configuration restores MTP-on output identity after the fix. Treat this as **mechanism-transfer evidence** for Apple Flash.
 
-**Promotion:** certify a distinct cold engine -> short warmup -> first long prefill -> first MTP-cycle seam under quiet and contended conditions, including explicit state materialization before speculative step 1.
+**Promotion:** physical checkpoint existence/materialization is typed state. Null/unwritten boundaries stop reuse.
 
-### LMCache #4984 — multi-step cached restore requires a separate MTP-on gate
+### vLLM #53613 UPDATE — overlapping serving requires happens-before before mutation
 
-After a base hybrid-layout fix, no-MTP long cached restores were reported bit-identical, including multi-chunk and 258K cases. The same base with MTP on was 0/10 identical when the retrieve crossed more than one scheduler step; single-step retrieves were fine.
+Async/overlapped serving could mutate block tables and speculative/recurrent metadata while the previous step's speculative postprocess still consumed them. The proposed fix waits on the prior accepted-token/postprocess event before mutation.
 
-**Promotion:** external/session-cache qualification requires completed-store proof, no-MTP multi-step restore equivalence, then MTP-on multi-step restore equivalence. Single-step success is insufficient.
+**Promotion:** before arrivals, retirements, compaction, block-table rewrites or state-index changes, prove the previous consumer has completed.
 
-### Mesh-LLM #1680 — distributed model identity must be content/revision-addressed
+### vLLM #46994 UPDATE — PP+MTP is one distributed state machine
 
-Identical local GGUF bytes on two nodes failed split eligibility because synthetic identity included file mtime. Matching mtimes made the nodes agree. The reported M4+M5 rate is not dual-M1 evidence.
+The current PP+MTP work documents multiple independent failure classes: collective-width mismatch, missing draft-token relay to non-last PP ranks, stale sparse/indexer-buffer ownership and missing last-stage draft projection, in addition to model-interface support.
 
-**Promotion:** distributed startup identity derives from content digest / canonical revision plus tokenizer/runtime identity; path and mtime never define semantic model identity.
+**Promotion:** certify PP+MTP jointly. Every rank proves collective shape/op order, every consumer receives the same draft tokens, sparse/indexer buffers retain live ownership, and the last-stage draft head/projection is semantically correct.
 
-### llama.cpp `9a7570587ce908b0073a0458877205b80627f393` — explicit recurrent-layer manifests are now conversion metadata
+## BACKFILL / high-value Flash-specific
 
-The converter now emits explicit recurrent-layer metadata instead of relying only on a uniform full-attention interval. A non-uniform Qwen3.8-27B test reported zero layer-type mismatches after the fix. Real-MTP padding still needs an exact check.
+### vLLM #55506 — persistent request-slot identity beats transient batch-row identity
 
-**Promotion:** conversion/startup certification compares explicit recurrent/full-attention manifests against runtime interpretation and tests MTP-padded metadata.
+Flash-Next + PP>=2 + MTP + prefix cache failed at the 2 -> 3 concurrency transition when persistent recurrent/speculative state was indexed through a stale batch-row mapping. Reindexing by persistent request slot removed the reported loops and recovered acceptance.
 
-### vLLM #55272 — graph/compile/eager route is benchmark provenance
+**Promotion:** persistent state belongs to persistent request/session slots; explicitly test c1/c2/c3/c4, especially 2 -> 3, unequal prompts and arrivals/retirements.
 
-The NVIDIA Flash-Next path removed model-level torch.compile/custom-op wrappers. The PR also reports a large temporary n-gram-table autotune memory peak under the prior route and mixed/noisy throughput changes after removal.
+### vLLM #55467 — state-index tensors may be strided views
 
-**Promotion:** benchmark receipts stamp graph/compile/eager route and dependency revision; results across execution-route changes are not silently combined.
+The Flash-Next PLE path consumed a strided state-index view as if contiguous when MTP configured multiple columns per request, corrupting simultaneous prefill rows after row 0. The fix honors the actual stride.
 
-### ds4 PR #990 UPDATE — Metal Flash port remains a mechanism-mining control, not a target ruler
-
-A single M5 Pro 64 GB Q2+Q8-PLE configuration reports 30-33 TG and 58-73 PP, plus sparse-path equivalence testing below its selection budget. It has no MTP and no serialized recurrent/PLE session state and is proven on only one M5 Pro host.
-
-**Classification:** alternative-runtime / other-hardware mechanism evidence only. It does not calibrate dual-M1 targets.
-
-Useful mining surfaces: QSA pooled selection, PLE row-store/no-cache access, 64 GB residency strategy, GDN gate details and sparse-path equivalence tests.
-
----
-
-# Focused follow-up status
-
-- **vLLM #55533 / #55617:** no post-cutoff result; prior physical recurrent-block concurrency corroboration remains standing evidence but is not double-counted as fresh.
-- **oMLX #3462 / #3464:** no fresh target-rate result surfaced.
-- **llama.cpp #25187 / #28425 / #28433 / #28448:** no fresh target-rate result surfaced.
-- **Tiel Coder:** no fresh exact RTX 5070 Ti result.
+**Promotion:** state-index stride is semantic metadata. Honor it or explicitly materialize a contiguous copy and prove identity. Test simultaneous prefill c2/c3/c5.
 
 ---
 
@@ -126,7 +120,7 @@ Useful mining surfaces: QSA pooled selection, PLE row-store/no-cache access, 64 
 - **Dual-M1 DS4-0731:** no fresh sustained current-head generated-token denominator on 2x M1 Max64/TB4.
 - **M1 Max64 Qwen3.8-27B:** no fresh exact target-model TG/PP receipt.
 - **RTX 5070 Ti Qwen3.8-27B:** no fresh exact single-card target-lane receipt.
-- **RTX 5070 Ti Tiel Coder:** no fresh exact-card receipt.
+- **RTX 5070 Ti Tiel Coder:** no fresh exact-card Q4/Q5 partial-offload receipt.
 
 ---
 
@@ -136,37 +130,44 @@ Useful mining surfaces: QSA pooled selection, PLE row-store/no-cache access, 64 
 
 Keep PP2/layer ownership primary and TP2 as control. Current high-level order:
 
-1. historical pinned llama control;
-2. corrected-GDN semantic baseline + reference frontier/state certification;
-3. explicit recurrent/full-attention layer-manifest identity + distributed content-addressed model identity;
-4. exact PP2/layer-owned baseline; TP2 control;
-5. ordinary no-spec recurrent rollback / growing-session correctness;
-6. typed cache/state-grid identity + unequal-grid restore;
-7. no-MTP batch-composition invariance at concurrency 1/2/3/4, including actual scheduled occupancy;
-8. cold-first request + PLE/state epoch ownership;
-9. QSA selected-set/tie/order oracle;
-10. real-agent cache capture + canonical reusable boundary + async-store follower tests;
-11. **multi-step session/cache restore: no-MTP first, then MTP-on**;
-12. realistic-depth profiler + explicit MLX carry materialization;
-13. QSA horizon / route / footprint accounting + PLE residency;
-14. chunk-faithful MTP reconcile;
-15. pre-verify snapshot / commit / replay with temporary drafts excluded from persistent history;
-16. **cold long-prefill -> first MTP-cycle handoff under quiet and contention**;
-17. MTP off/on physical recurrent-capacity accounting;
-18. per-slot draft context + adversarial multi-slot isolation + sampler-law certification;
-19. **recurrent tape/refold candidate after replay correctness is frozen**;
-20. full-vector/frontier/session fingerprints; approximate FP16 lane only after exact freeze;
-21. compiled B2/B4, combine passing mechanisms, long prefill while other sessions decode.
+1. pinned historical llama control;
+2. corrected-GDN semantic baseline + explicit recurrent/full-attention manifest;
+3. exact PP2/layer-owned baseline; TP2 control;
+4. ordinary no-spec recurrent rollback / growing-session correctness;
+5. typed cache/state-grid identity + unequal-grid restore;
+6. no-MTP c1/c2/c3/c4 with persistent request-slot ownership;
+7. state-index stride/materialization oracle, including simultaneous prefill c2/c3/c5;
+8. model/tokenizer/runtime/GDN/content identity across both nodes;
+9. cold-first request + PLE/state epoch ownership;
+10. QSA selected-set/tie/order oracle;
+11. real-agent cache capture + canonical reusable boundary;
+12. physical checkpoint-existence/nullness oracle;
+13. async store -> real follower + eviction/pause progress;
+14. restored-boundary finite-state/logit + frontier/state + one-full-fresh-block gate;
+15. warm-slot PP + Metal interior-mask-skip proof;
+16. realistic-depth + charged-phase profiler with MLX carry materialization;
+17. QSA horizon / route / footprint + PLE residency;
+18. chunk-faithful MTP reconcile;
+19. **freeze pre-verify snapshot / commit / replay semantic baseline**;
+20. **only after replay correctness freeze: tape/refold A/B**;
+21. MTP off/on physical recurrent-capacity accounting;
+22. PP+MTP distributed-state certification;
+23. overlapped-step happens-before certification;
+24. per-slot draft context + adversarial isolation, especially c2 -> c3;
+25. sampler-law, strict benchmark identity and full-vector/state fingerprints;
+26. session byte identity + semantic restore; concurrent pure-prefill isolation;
+27. approximate M1/M2 FP16 lane only after exact freeze;
+28. compiled B2/B4; combine passing mechanisms; long prefill while other sessions decode.
 
-Safe serving remains profitable singleton MTP + plain concurrent work until multi-slot state isolation, physical-capacity behavior and multi-step MTP restore are certified.
+Safe serving remains **profitable singleton MTP + plain concurrent work** until multi-slot isolation, physical recurrent capacity and PP+MTP distributed ownership are certified.
 
 The appliance concurrency claim remains strict:
 
-> B2/B3/B4 means that many independent requests are simultaneously physically scheduled with their own correct state. Configured, admitted or queued slots alone do not count.
+> B2/B3/B4 means that many independent requests are simultaneously physically scheduled with their own correct persistent state. Configured, admitted, batched or queued slots do not count.
 
 ## RTX 5070 Ti Qwen3.8-27B / Tiel Coder
 
-No target movement. Keep the Qwen resident control and Tiel Q4/Q5 partial-expert-offload plan. Preserve realized backend/placement, offload-slot ownership, whole-round speculative economics and real coding-agent wall time.
+No target movement. Preserve the Qwen resident baseline and Tiel Q4/Q5 partial-expert-offload plan using 64 GB host RAM. Record realized placement/backend provenance, offload-slot ownership, VRAM/context headroom and real coding-agent wall time.
 
 ## Single M1 Max64 Qwen3.8-27B
 
@@ -180,12 +181,15 @@ No exact-rig target update. Continue using DS4 as topology/mechanism evidence un
 
 # Standing decisions strengthened this pass
 
-- Partial speculative acceptance should not imply a second full model replay when recurrent inputs can be refolded safely.
-- A cold long-prefill -> first speculative cycle is a distinct correctness phase and is tested under contention.
-- Single-step cache/session restore does not certify multi-step MTP restore.
-- Distributed model identity is content/revision identity, never mtime identity.
-- Recurrent/full-attention layer layout is explicit model metadata and part of runtime identity.
-- Graph/compile/eager route is benchmark provenance.
+- A reusable recurrent boundary exists only if its state was physically materialized.
+- Null/unmaterialized boundaries are first-class typed state and stop reuse.
+- A cache hit is not a correctness proof; restored state and logits must be finite and semantically checked.
+- Persistent recurrent/speculative state belongs to persistent request/session slots, never transient batch rows.
+- State-index stride is semantic metadata; kernels may not assume contiguity.
+- Overlapped scheduling requires explicit happens-before edges before shared-state mutation.
+- PP+MTP is one distributed state machine and is certified jointly.
+- Experimental/custom patch failures are not promoted to stock-runtime claims without provenance.
+- Tape/refold remains a post-baseline optimization candidate, not a replacement for the replay correctness oracle.
 - Cross-runtime / other-hardware gains remain mechanism evidence until exact target-hardware reproduction.
 - No target movement without exact target-topology evidence or exceptional explicit justification.
 - P69 remains isolated.
