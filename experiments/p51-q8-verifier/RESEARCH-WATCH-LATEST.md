@@ -14,15 +14,16 @@
 
 3. Read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1951.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-2333.md`
 
-   **The 19:51 note is authoritative for physically backed MTP/recurrent concurrency accounting, no-MTP batch-composition certification, version-qualified long-context small-N routing and benchmark answer-equivalence requirements. It moves no performance target.**
+   **The 23:33 note is authoritative for physical recurrent-block concurrency corroboration, MLX lazy-phase materialization, request-row metadata ownership, real-consumer cache publication, offload slot ownership, strict benchmark identity vs near-tie diagnosis, and large-schema parallel-tool agent qualification. It moves no performance target.**
 
 4. The immediately previous deltas remain essential:
 
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1832.md` — corrected GDN baseline semantics, typed recurrent/attention/draft cache geometry, warm unified-KV PP root-cause qualification, persistent-vs-draft state ownership, full-vector frontier validation, byte-faithful session snapshots and physically backed recurrent-state capacity;
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1245.md` — QSA tie-set correctness, PLE request/step epoch ownership, Apple batch-composition invariance, stochastic speculative-sampling certification, warm-slot PP qualification and small-N decode/MTP kernel routing;
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-0956.md` — eviction/pause progress, chunk-faithful MTP reconciliation, QSA known-horizon reservation, route-aware long-context memory accounting, immediate-follow-up cache-store freshness and ds4 Flash mechanism mining;
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1951.md` — MTP/recurrent capacity hypothesis, no-MTP batch-composition certification, version-qualified long-context small-N routing and greedy benchmark answer-equivalence;
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1832.md` — corrected GDN baseline semantics, typed recurrent/attention/draft cache geometry, warm unified-KV PP qualification, persistent-vs-draft state ownership, full-vector frontier validation and byte-faithful session snapshots;
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1245.md` — QSA tie-set correctness, PLE request/step epoch ownership, Apple batch-composition invariance, stochastic speculative-sampling certification, warm-slot PP and small-N routing;
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-0956.md` — eviction/pause progress, chunk-faithful MTP reconciliation, QSA known-horizon reservation, route-aware memory accounting, immediate-follow-up cache-store freshness and ds4 Flash mining;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-0658.md` — actual MTP scheduler occupancy, canonical recurrent/attention first-repeat cache boundaries, realistic-depth Apple Flash attribution and CUDA backend-placement provenance;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-0243.md` — whole-round speculative economics, marginal multi-position verify cost and QSA selected-set/order determinism;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-05-1943.md` — speculative-checkpoint provenance, greedy verifier-only equivalence and first-repeat MTP cache backfill;
@@ -44,7 +45,7 @@
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 19:51 pass moves no row.** It adds no sustained physical receipt from the exact target rigs.
+**The 23:33 pass moves no row.** It adds no sustained physical receipt from the exact target rigs.
 
 Important qualifiers:
 
@@ -55,65 +56,67 @@ Important qualifiers:
 
 ---
 
-# Current newest evidence delta — 2026-09-06 19:51 ET
+# Current newest evidence delta — 2026-09-06 23:33 ET
 
-Starting freshness boundary: `9804a511b1adfaa1726b1858fb7a58c101fccd1b` / **2026-09-06 22:41:15 UTC**.
+Starting freshness boundary: `d2ca23f5082b0a2dfede97fe480c8ddbe26cc1b7` / **2026-09-06 23:55:24 UTC**.
 
 ## FRESH / material
 
-### vLLM #55533 + WIP PR #55617 — MTP recurrent-state reserve may be the physical concurrency limiter
+### vLLM #55533 / WIP #55617 UPDATE — recurrent-block capacity strongly corroborates the MTP concurrency cap
 
-The fresh issue update and diagnostic PR now test a concrete mechanism: MTP reserves extra recurrent/mamba state blocks per sequence, increasing `per_req_blocks` and lowering `max_concurrency = num_blocks / num_blocks_per_request`.
+An independent 48 GB Qwen3.8-27B experiment pinned physical recurrent/KV capacity and observed scheduled width track block count almost exactly:
 
-The requested A/B is identical Qwen3.8-27B hybrid GDN workload with MTP on versus completely off, logging mamba mode, speculative blocks, per-request block count and computed concurrency.
+- 22–28 blocks -> 3 requests;
+- 29–35 -> 4;
+- 36 -> 5;
+- 43 -> 6;
+- 57 -> all 8.
 
-**Status:** hypothesis under test, not yet proven. PR #55617 is diagnostic-only.
+This is strong corroboration, not yet the original reporter's decisive MTP-on/off proof and not a merged fix.
 
-**Promotion:** B2-B4 certification records target recurrent rows, speculative reserve, total physical capacity, realized per-request footprint, actually scheduled sequences, emitted tokens/sequence/iteration, aggregate TG and TTFT. MTP off/on becomes a physical-capacity A/B, not only an acceptance/speed A/B.
+**Promotion:** B2-B4 certification records physical state blocks, per-request footprint, speculative reserve, configured slots, actually scheduled sequences, emitted tokens/sequence/iteration, aggregate TG and TTFT. Configured or queued slots do not count as active concurrency.
 
-### vLLM #53257 UPDATE — base batched decode remains nondeterministic without speculation
+### rMLX #532 / `e14a1d5c...` — MLX speculative sub-phase clocks require explicit carry materialization
 
-DeepSeek-V4 Flash temperature-0 concurrency tests remain nondeterministic after swapping MoE backend, sparse-attention backend, indexer-cache precision, graph mode and prefix caching. With speculative decoding completely disabled, the reported mean minority-output rate increased to **2.36%** across five 500-request concurrency-32 runs.
+Charged profiling found lazy carry work crossing timing boundaries and materially contaminating attribution. Corrected drafter over-attribution was roughly 10% DFlash2, 58% MTP sidecar and 8% Gemma4 assistant on the reported host.
 
-**Promotion:** no-MTP batch-composition invariance must pass before MTP is enabled. Treat per-step batch metadata/state ownership as an independent correctness surface. A speculative verifier can partially mask an underlying base-path defect by rejecting bad proposals.
+**Promotion:** draft/verify/rollback/capture timings are inadmissible for optimization ordering unless all state carried across each measured boundary is proven materialized.
 
-### vLLM #55615 — long-context small-N route guards require dependency-version provenance
+### vLLM #55637 — request-row metadata is typed concurrent state
 
-Fresh ROCm evidence shows a >64K sparse top-k fallback justified by old AITER 0.1.19 behavior remains active after AITER 0.1.21.post1 can run the shape faster. Operator delta is ~20-24% at 65K/131K but only ~1.1% of reported total decode TPOT.
+Fresh sparse-attention debugging shows producer/consumer request-row cardinality disagreement can map an invalid logical request onto another valid KV row instead of immediately crashing.
 
-**Promotion:** version-stamp kernel-route guards and re-evaluate long-context small-N routes at B1/MTP/B2/B4. Record operator share of TPOT before promoting work.
+**Promotion:** bound request-row and block-column indices at both producer and consumer seams; impossible request IDs fail closed and never alias another request. Include graph warmup and request arrival/retirement transitions.
 
-## BACKFILL / benchmark integrity
+### rMLX #533 / `3b18eb9a...` — cache publication requires a real concurrent consumer
 
-### rMLX `128932f3379baaf7e4923ddd24cbf50d1dd7b26e` — greedy speed rows require whole-answer equivalence
+Bookkeeping publication order alone does not prove a newly stored prefix is usable. The strengthened race drives a follower through the seam and checks restored content / next-token behavior.
 
-A speculative benchmark now refuses to file a greedy throughput row unless:
+**Promotion:** async-cache certification requires store ordering, concurrent follower consumption, semantic/state identity and one canonical telemetry record per logical request.
 
-- the plain reference repeats itself;
-- the speculative arm matches the whole plain completion run-by-run;
-- sampler disposition is unambiguous.
+### vLLM #54975 / `1f778486...` — offload buffers require persistent slot ownership
 
-Sampled runs are explicitly marked instead of being required to match independent draws token-for-token.
+Circular prefetch wraparound could refill a static slot belonging to another logical owner. The fix preserves ownership class across prefetch steps.
 
-**Promotion:** greedy performance rows require semantic equivalence before recording; sampled rows require sampling-law certification and explicit labeling.
+**Promotion:** Tiel expert offload, PLE offload and SSD/host-resident paths record a logical-owner -> physical-slot invariant. This is transfer evidence, not target-rig speed evidence.
 
----
+### rMLX #531 / `2275ab878...` — strict benchmark identity and near-tie diagnosis are separate layers
 
-# Focused follow-up status
+A near-tie arithmetic divergence can change greedy output without proving state corruption.
 
-- **oMLX #3462 / #3464:** no post-cutoff activity surfaced.
-- **llama.cpp #25187 / #28425 / #28433 / #28448:** no post-cutoff activity surfaced.
-- **llama.cpp / oMLX / ds4 / rMLX:** no new post-cutoff relevant commit surfaced in this pass.
-- **MLX #4409:** no new target-relevant result surfaced.
-- **vLLM #55533:** materially updated; diagnostic PR #55617 active, no root-cause proof/fix yet.
-- **vLLM #53257:** materially updated; no-spec concurrent base path still corrupts under the reported workload.
-- **Tiel Coder:** no fresh exact RTX 5070 Ti result.
+**Promotion:** keep whole-completion identity as a strict greedy benchmark-admission gate, but diagnose failures with first divergent frontier, top-two margin and full-vector/state evidence before labeling corruption.
+
+### llama.cpp #28522 — large-schema parallel-tool qualification added to agent readiness
+
+A fresh multi-Qwen report describes malformed parallel tool calls and a hang on a ~48-optional-parameter tool schema; smaller schemas work and MTP-off did not fix it. A contributor could not reproduce from the schema alone, so mechanism remains unproven.
+
+**Promotion:** qualify large optional schemas, compiled grammar field coverage, parallel tool calls, duplicate/missing keys, timeout/hang behavior and an MTP-off control. Treat as runtime/tool-grammar evidence, not model-quality evidence.
 
 ---
 
 # Exact-rig no-change confirmations
 
-- **Dual-M1 Flash:** no fresh sustained exact 2x M1 Max64/TB4 TG or new exact-topology cold-PP receipt.
+- **Dual-M1 Flash:** no fresh sustained exact 2x M1 Max64/TB4 TG or exact-topology cold-PP receipt.
 - **Dual-M1 DS4-0731:** no fresh sustained current-head generated-token denominator on 2x M1 Max64/TB4.
 - **M1 Max64 Qwen3.8-27B:** no fresh exact single-M1-Max target-model TG/PP receipt.
 - **RTX 5070 Ti Qwen3.8-27B:** no fresh exact single-card target-lane TG/PP receipt.
@@ -132,36 +135,39 @@ Keep PP2/layer ownership primary and TP2 as control. Current order:
 3. exact PP2/layer-owned baseline; TP2 control;
 4. ordinary no-spec recurrent rollback / growing-session correctness;
 5. typed cache/state-grid identity + unequal-grid restore;
-6. **no-MTP batch-composition invariance at concurrency 1/2/3/4 before speculative testing**;
+6. **plain no-MTP batch-composition invariance at concurrency 1/2/3/4, including request-row cardinality/bounds and actual scheduled occupancy**;
 7. cache-layout/handler + model/tokenizer/runtime/GDN identity;
 8. cold-first request + PLE/state epoch ownership;
 9. QSA selected-set/tie/order oracle;
-10. real-agent cache capture + canonical recurrent/attention reusable boundary;
-11. immediate async-store race + forced eviction/pause progress;
-12. warm-slot PP + Metal interior-mask-skip proof;
-13. realistic-depth profiler + long-context small-N route/version matrix;
-14. QSA known-horizon reservation + route/footprint accounting;
-15. PLE residency/page-cache/direct-read;
-16. chunk-faithful MTP reconcile;
-17. pre-verify snapshot / commit / replay with temporary drafts excluded from persistent history;
-18. **MTP off/on recurrent-capacity accounting: target rows + speculative rows + actually scheduled sequences**;
-19. per-slot draft context + adversarial multi-slot isolation;
-20. production sampler-law certification;
-21. full-vector frontier/state fingerprints;
-22. file/memory session byte identity + semantic restore equivalence;
-23. concurrent pure-prefill isolation;
-24. M1/M2 activation-FP16 approximate lane after exact freeze;
-25. compiled B2/B4; combine passing mechanisms; long prefill while other sessions decode.
-
-Mild concurrency remains a core upside hypothesis, but the production claim is now explicit:
-
-> aggregate scaling is measured only over requests simultaneously physically scheduled with independent correct state; configured or queued slots do not count as active concurrency.
+10. **large-schema + parallel-tool-call agent correctness gate**;
+11. real-agent cache capture + canonical recurrent/attention reusable boundary;
+12. **async store -> real concurrent follower usability**, forced eviction/pause progress;
+13. warm-slot PP + Metal interior-mask-skip proof;
+14. realistic-depth profiler + long-context small-N route/version matrix;
+15. **charged-phase profiler with explicit MLX carry-materialization proof**;
+16. QSA known-horizon reservation + route/footprint accounting;
+17. PLE residency/page-cache/direct-read with explicit slot ownership;
+18. chunk-faithful MTP reconcile;
+19. pre-verify snapshot / commit / replay with temporary drafts excluded from persistent history;
+20. **MTP off/on physical recurrent-capacity accounting: total blocks, per-request blocks, speculative reserve and actually scheduled sequences**;
+21. per-slot draft context + adversarial multi-slot isolation;
+22. production sampler-law certification;
+23. strict greedy benchmark identity + near-tie diagnostic classifier;
+24. full-vector frontier/state fingerprints;
+25. file/memory session byte identity + semantic restore equivalence;
+26. concurrent pure-prefill isolation;
+27. M1/M2 activation-FP16 approximate lane after exact freeze;
+28. compiled B2/B4; combine passing mechanisms; long prefill while other sessions decode.
 
 Safe serving remains profitable singleton MTP + plain concurrent work until multi-slot state isolation and physical-capacity behavior are proven.
 
+The appliance concurrency claim remains strict:
+
+> B2/B3/B4 means that many independent requests are simultaneously physically scheduled with their own correct state. Configured, admitted or queued slots alone do not count.
+
 ## RTX 5070 Ti Qwen3.8-27B / Tiel Coder
 
-No target movement. Preserve the Qwen resident baseline; test Tiel Q4/Q5 partial expert offload with 64 GB host RAM. Keep realized placement, whole-round MTP economics, corrected GDN semantics, long-context behavior and real coding-agent wall time explicit.
+No target movement. Preserve the Qwen resident baseline; test Tiel Q4/Q5 partial expert offload with 64 GB host RAM. Add explicit offload-slot ownership, realized placement/backend provenance and real coding-agent wall time.
 
 ## Single M1 Max64 Qwen3.8-27B
 
@@ -169,21 +175,21 @@ P69 remains isolated: **P69B12 frozen/promoted; P69B13 next from existing profil
 
 ## Dual-M1 DS4-0731
 
-No exact-rig target update. Continue using DS4 as mechanism/topology evidence until sustained current-head exact dual-M1 generated-token throughput exists.
+No exact-rig target update. Continue using DS4 as mechanism/certification evidence until sustained current-head exact dual-M1 generated-token throughput exists.
 
 ---
 
 # Standing decisions strengthened this pass
 
-- MTP can consume recurrent-state capacity as well as compute; measure both.
-- Configured parallelism is not scheduled parallelism.
-- Greedy batch-composition invariance must pass before speculation is credited with correctness.
-- A speculative verifier may partially mask corruption in the underlying batched path.
-- Per-step batch metadata/state ownership is first-class correctness state.
-- Dependency-version route guards carry provenance and are re-qualified after upgrades.
-- Long-context small-N optimization priority depends on share of total TPOT.
-- Greedy speed rows require semantic equivalence to a repeatable plain reference before recording.
-- Sampled performance requires sampling-law certification rather than token identity.
+- Physical recurrent-state capacity is part of concurrency, not merely a memory statistic.
+- Configured/admitted slots do not count without simultaneous scheduling and independent correct state.
+- MLX sub-phase clocks require explicit lazy-carry materialization.
+- Request-row metadata carries typed ownership and is bounded at producer and consumer seams.
+- Invalid request IDs fail closed; they never alias another valid request.
+- Cache publication is not proven until a real concurrent follower consumes it correctly.
+- Static offload buffers require persistent logical slot ownership across wraparound.
+- Strict greedy benchmark identity and semantic near-tie classification are different evidence layers.
+- Agent readiness includes large-schema grammar compilation, parallel tool semantics and hang guards.
 - Cross-runtime / other-hardware gains remain mechanism evidence until exact target-hardware reproduction.
 - No target movement without exact target-topology evidence or exceptional explicit justification.
 - P69 remains isolated.
