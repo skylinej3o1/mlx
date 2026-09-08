@@ -14,17 +14,18 @@
 
 3. Read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-0238.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-0843.md`
 
-   **The 02:38 note is authoritative for the fresh M5-Max Flash-Next Q4_K routed-expert double-buffer/chunk-width A/B, cross-request MTP carry/hidden-state ownership failure, distributed cancellation/cache-agreement lifecycle findings, depth-sensitive QSA `top_k` benchmark provenance and quant-layout-aware ParoQuant/DFlash2 rollback-hook qualification. It moves no performance target.**
+   **The 08:43 note is authoritative for the landed oMLX distributed request-safety integration, rMLX bounded speculative capture / commit-scoped conditioning result, hybrid recurrent+MTP mixed-phase ordering bug, deterministic-QSA TopK monitor, speculative backend-context placement cleanup and the DGX-Spark n=1/2/3 MTP depth backfill. It moves no performance target.**
 
 4. The immediately previous deltas remain essential:
 
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-0238.md` — M5-Max Flash-Next Q4_K routed-expert double-buffer/chunk-width A/B, cross-request MTP carry/hidden-state ownership failure, distributed cancellation/cache-agreement lifecycle review, depth-sensitive QSA `top_k` provenance and ParoQuant/DFlash2 rollback-hook qualification;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-2157.md` — Apple grammar-constrained MTP serving A/B, merged prefill/decode fairness enforcement, distributed sampler-backend ownership/fallback evidence, HC-prefill microbench-vs-E2E correction and Apple MTP-drafter loader CI hardening;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-1919.md` — M3-Ultra ds4 Flash-Next prefill-structure A/B: block-history GDN convolution, repeated-work elimination, wider routed-down tiling and retained negative candidates;
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-1753.md` — actual-resolved MTP block/depth benchmark provenance, post-baseline explicit depth sweeps, QSA low-bit indexer-cache backfill and speculative external-cache group/lifecycle ownership;
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-1753.md` — actual-resolved MTP block/depth provenance, post-baseline explicit depth sweeps, QSA low-bit indexer-cache backfill and speculative external-cache group/lifecycle ownership;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-1510.md` — oMLX #3494 stock-runtime attribution correction, physical recurrent-checkpoint materialization/nullness, restored-boundary finite-state/logit certification, persistent request-slot ownership, state-index stride, overlapped-step happens-before and PP+MTP distributed-state certification;
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-0655.md` — recurrent tape/refold MTP optimization candidate, multi-step MTP cache restore, content-addressed distributed model identity, explicit recurrent-layer manifests and graph/compile route provenance. **Its stock-oMLX #3494 attribution is superseded by the 15:10 correction.**
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-07-0655.md` — recurrent tape/refold MTP candidate, multi-step MTP cache restore, content-addressed distributed model identity, explicit recurrent-layer manifests and graph/compile route provenance. **Its stock-oMLX #3494 attribution is superseded by the 15:10 correction.**
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-2333.md` — physical recurrent-block concurrency, MLX lazy-phase materialization, request-row metadata ownership, real-consumer cache publication, offload-slot ownership and agent qualification;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1951.md` — MTP/recurrent capacity hypothesis, no-MTP batch-composition certification, version-qualified long-context small-N routing and greedy benchmark answer-equivalence;
    - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-06-1832.md` — corrected GDN baseline semantics, typed recurrent/attention/draft cache geometry, warm unified-KV PP qualification, persistent-vs-draft state ownership, full-vector frontier validation and byte-faithful session snapshots;
@@ -51,7 +52,7 @@
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 02:38 pass moves no row.** It adds no sustained physical receipt from an exact target rig.
+**The 08:43 pass moves no row.** It adds no sustained physical receipt from an exact target rig.
 
 Important qualifiers:
 
@@ -62,69 +63,80 @@ Important qualifiers:
 
 ---
 
-# Current newest evidence delta — 2026-09-08 02:38 ET
+# Current newest evidence delta — 2026-09-08 08:43 ET
 
-Starting freshness boundary: `11996bac754e4818f702b75bd1a060ff010df022` / **2026-09-08 02:04:05 UTC**.
+Starting freshness boundary: `51a5b0ed65657ac4d0ea337ce81d2cc5abf0afe0` / **2026-09-08 06:47:16 UTC**.
 
-## FRESH / measured Flash prefill transfer evidence
+## FRESH / distributed lifecycle lands
 
-### ds4 #991 / `a30ed072fc9dc77eeba65a4c4d1a6984cc44be74`
+### oMLX #3258 / `94530d8d49541ede9e99ef04a4431ee4953117a6`
 
-On **M5 Max 137 GB**, Qwen3.8 Flash-Next Q4_K routed experts gained about **+3.8%** in the report's contamination-controlled warm-pair analysis from a double-buffered TensorOps `mm_id` staging path. An isolation control with TensorOps but old staging was ~-0.9%, making the double buffering the useful mechanism rather than the API switch itself.
+Merged to main at **06:57:56 UTC**. The request-scoped cancellation, drain confirmation, orphan-generator reaping, cancellation-before-batch-mutation fencing, rank-aware cache maintenance, persisted prompt snapshots, peer-local unloaded-cache clearing, rank acknowledgements, synchronized prompt-cache plans and request/response identity surfaces captured in the 02:38 review are now landed mainline behavior.
 
-The higher-leverage result is the chunk sweep at a 16K frontier:
+The current merged pipeline path explicitly documents that **MTP is inactive on distributed serving** (`n_confirmed == 0`). Cluster request-safety therefore does not imply PP+MTP support.
 
-- Q2 path: best at **8192** tokens, ~1064 tok/s, ~+35% over the 1024-token convention;
-- Q4 path: best at **4096**, ~1000 tok/s, ~2.2x the 1024 result;
-- Q4 regressed sharply at 8192 (~537 tok/s).
+**Promotion:** use #3258 as the current lifecycle reference, but retain exact dual-M1 cancellation/cache/restart/slot-reuse certification and record distributed-MTP active/inactive as realized provenance.
 
-**Promotion:** chunk width is now an explicit **per-quant/per-kernel/topology sweep**. Sweep it before judging routed-expert kernels, and choose PP2 cluster chunking jointly from stage balance, scratch/occupancy and actual TB4 bubbles/traffic. The M5 percentages do not transfer to M1.
+## FRESH / Apple speculative capture + conditioning
 
-## FRESH / speculative-state ownership
+### rMLX #545 / `c86e45dbf9c6eaefbafa050df567382f8dec7915`
 
-### Atlas #968 — cross-turn MTP carry / hidden rows lacked sufficient provenance
+Merged at **10:45:40 UTC**.
 
-A model-global carry slot and shared hidden-row interval could be reused across requests while proving only prefix/range coverage, not which request/generation owned the state. The repair stamps carry/session identity and hidden intervals with generation ownership and separates "configured" from actually `armed` execution.
+DFlash2 now bounds verifier hidden capture **during chunked prefill** to the exact drafter-readable tail instead of materializing the full prompt and trimming afterward. On the shipped DFlash2 pair at a **16K prompt**, this reduced **Metal peak by ~600 MB**, reproduced twice per arm.
 
-The PR explicitly leaves device ordering unproven: a host ownership stamp does not establish the capture/copy -> consumer happens-before relation.
+DFlash1/DFlash2 also carry row-wise conditioning projection across rounds and project only the rows the round actually committed. A shared identity-checked `committed_rows` becomes the single producer of the accepted capture prefix used by state updates and accounting.
 
-**Promotion:** every cross-turn/cross-request speculative buffer carries owner identity + generation/epoch + valid range; coverage and provenance are separate predicates; common template prefixes are not generic request identity; host ownership and device happens-before are certified independently; composed foreign-write/foreign-read negative controls are mandatory.
+Fresh-vs-carried projection is not byte-identical in all cases because dispatch-height rounding can move a few bf16 ULPs and occasionally a near-tie draft proposal; the PR qualifies this with model-level answer equivalence rather than pretending the numerical path is unchanged.
 
-## FRESH / distributed PP2 lifecycle
+**Promotion:** capture horizon is semantic provenance; bound capture at production time; one committed frontier drives all derived state; compare carried projection to a fresh reference; record realistic-context peak Metal memory; and do not promote trip-count reduction to speed without wall/TG A/B.
 
-### oMLX #3258 — cancellation / cache-agreement integration review
+## FRESH / mixed-phase recurrent + MTP correctness
 
-A fresh restack looked substantially complete but maintainer review still found missing cancellation vote/drain/arm wiring, stale-cancel scoping, terminal response signaling, live/SSD cache maintenance, peer-local path resolution, request-ID propagation and prompt-cache agreement.
+### vLLM #55894
 
-The reported repair order is: validate cancel epoch -> complete shared votes -> drain Metal work -> authenticated rank barrier -> arm exact epoch/UID set -> only then permit batch removal. Focused validation after restoration reports 335 passed / 3 skipped; no original two-Mac hardware rerun was available.
+A fresh RTX PRO 6000 Blackwell Nemotron hybrid Mamba2+attention+MoE MTP report isolates silent corruption when the independently selected drafter backend lowers the global batch-reorder threshold from the recurrent target's required `1+k` to 1. Continuing prefill can then remain ahead of speculative decode rows; the recurrent builder positionally treats those decode rows as prefill and writes the wrong state slots.
 
-**Promotion:** distributed cancellation/cache maintenance are synchronized state-machine transitions. PP2 qualification adds cancellation during prefill/decode, all-request/watchdog cancellation, stale markers/worker restart, rank barrier before reuse, terminal response signaling, loaded/unloaded local+remote cache clear and post-lookup cross-stage prompt-cache agreement.
+Controls report 0/400 with MTP off, 0/400 when the global threshold is forced to `1+k`, and 0/400 when the drafter backend is pinned to a compatible route, versus repeated corruption in the production arm.
 
-## FRESH / QSA benchmark provenance
+**Promotion:** stateful decode-before-prefill ordering is a correctness invariant. B2/B3/B4 certification adds staggered admission where a short request's **first speculative decode** shares a physical batch with another request's continuing chunked prefill. Record realized target/drafter backends and each scheduler threshold; do not let a permissive backend weaken a stateful backend's required ordering.
 
-### llama.cpp #28591 — depth-sensitive QSA `top_k`
+## FRESH / QSA deterministic route monitor
 
-A fresh benchmark-harness PR exposes `qwen4exp.attention.indexer.top_k` as model metadata in `llama-bench`. Its motivating Vulkan evidence reports the prefill difference for `top_k=1024` versus 2048 growing from about **8% near 29K** to **25% near 120K** context.
+### vLLM #55872
 
-**Promotion:** actual indexer `top_k` / selection budget, context depth and realized metadata override become benchmark provenance. Sweep at realistic depths including the ~128K lane and pair speed with selected-set/tie/quality certification; short-context PP cannot establish long-context economics.
+Open PR adds an opt-in deterministic FlashInfer TopK backend for tied sparse-attention selection. It does not change the default and currently makes no performance/quality claim. Fresh #54521 discussion points at it for live validation.
 
-## FRESH / bounded Apple quantized-target correctness
+A companion client parity collector reinforces provenance discipline: endpoint-observed prompt logprobs/token IDs can be canonicalized while unobserved server launch/runtime config remains unresolved rather than guessed.
 
-### oMLX #3515 — ParoQuant DFlash2 target-op / rollback hooks
+**Promotion:** keep deterministic TopK as a separately named route pending live E2E validation; separate observed evidence from user-supplied/unresolved runtime configuration.
 
-A fresh Qwen3.8-27B ParoQuant DFlash2 PR shows that loading and dimensional compatibility are insufficient. In an ablation with real nonzero rotations, suppressing all speculative-hook installation changed the next-token argmax after partial rejection, while correct hook installation preserved it. The PR reports related tests plus earlier M3-Max full-model greedy/forced-rejection/prefix/cancellation/reload validation but explicitly makes **no controlled serving-performance claim**.
+## FRESH / speculative placement hygiene
 
-**Promotion:** speculative compatibility binds the actual quantized module classes and realized hook/rewrite coverage, not just model dimensions. Forced-rejection rollback and unload/reload re-arming are mandatory. P69 remains isolated.
+### llama.cpp #28390 / `415e909d84334a7b1f582229c166aa98be6c4678`
 
-## UPDATE / screened
+Merged at **12:44:33 UTC**. A single-device speculative drafter could create an unused Meta backend context when the target used tensor split, consuming unnecessary VRAM. The merged change avoids that wrapper.
 
-- vLLM #55557 has fresh fp8-QSA review corrections around V scaling/normalizer semantics and realistic test-memory construction, but its headline performance/capacity data predates this cutoff. **KNOWN/BACKFILL; no target movement.**
-- oMLX #3508 reinforces that source-content identity is not sufficient cache identity when materialized representation geometry depends on transformation/request regime. Useful later multimodal cache rule only.
-- rMLX: no post-cutoff PR update.
-- Rapid-MLX: no post-cutoff Qwen3.8 update.
-- NInfer: no post-cutoff Qwen3.8 issue update.
-- TurboQuant-MLX: no post-cutoff commit.
-- llama.cpp #28243 Flash-Next MTP had no post-cutoff commit in the inspected commit list; existing claims remain KNOWN.
+**Promotion:** requested split/device flags do not define realized placement. Record actual target/drafter backend contexts and peak VRAM/context headroom. No rate claim or target movement.
+
+## BACKFILL / MTP depth economics
+
+### Ling single-DGX-Spark n=1/2/3 sweep
+
+Underlying runs are described as **2026-08-22**, so this is backfill despite the new Reddit post.
+
+Reported mean acceptance length rises **1.87 -> 2.39 -> 2.77**, while freeform throughput falls **38.7 -> 34.8 -> 33.6 tok/s** at 512 output tokens and **37.3 -> 33.6 -> 31.6** at 2048. Code stays roughly flat. The checkpoint reportedly has one native NextN layer, so n>1 autoregressively reuses the same drafter.
+
+**Promotion:** acceptance length is diagnostic, not objective. Optimize useful emitted tokens / wall-second; qualify depth by workload; record native head count, requested/resolved n and how deeper proposals are formed; segment long-generation acceptance/TG over the output.
+
+## SCREENED / no-change
+
+- rMLX #546 is docs/process cleanup only.
+- antirez/ds4 main has no post-cutoff main commit; prior #991 transfer evidence remains current.
+- Avarok Atlas: no post-cutoff commit surfaced.
+- vllm-mlx: no post-cutoff commit surfaced.
+- vLLM #54521 has fresh validation-methodology discussion but no new proven end-to-end fix receipt.
+- broad same-day searches found no new exact dual-M1 Flash/DS4, M1-Max64 27B or RTX5070Ti 27B rate receipt.
 
 ---
 
@@ -142,67 +154,76 @@ A fresh Qwen3.8-27B ParoQuant DFlash2 PR shows that loading and dimensional comp
 
 ## Dual-M1 Flash-Next
 
-Keep **PP2/layer ownership primary and TP2 as control**. Preserve the existing semantic/cache/MTP ordering, with these additions:
+Keep **PP2/layer ownership primary and TP2 as control**.
 
-- after exact PP2 semantics/recurrent ownership/cold-PP harness, profile stage-local GDN/routed-MoE/projection/synchronization at realistic chunks;
-- perform a **chunk-width sweep per quant/kernel path before kernel promotion**;
-- retain the 19:19 block-history GDN/repeated-work candidate and add double-buffered routed-expert staging only where exact M1 profiling exposes the same barrier/load bottleneck;
-- choose final PP2 chunking jointly from stage balance + scratch/occupancy + real TB4 bubbles/traffic;
-- every persistent/speculative surface proves coverage **and provenance**: owner identity, generation/epoch, valid range, device happens-before and reset on cancellation/slot reuse/reload/restart;
-- distributed cancellation/cache maintenance follows one cross-rank state machine with barrier/fencing before ownership release;
-- prompt-cache hits require cross-stage boundary/owned-byte agreement after lookup;
-- QSA/indexer `top_k`, depth and realized metadata/cache path are benchmark provenance;
-- quantized target/draft qualification records actual speculative-hook coverage and forced-rejection rollback;
-- retain 21:57 grammar-state, actual-MTP-engagement, sampler-owner/fallback and prefill/decode-fairness gates.
+Current ordering:
 
-For MTP, actual-resolved block/depth remains mandatory provenance. Default depth is certified first; deeper depths are separate correctness + whole-round A/B cells. Tape/refold remains orthogonal and post-replay-baseline.
+1. exact PP2 model/recurrent/QSA identity + landed distributed request lifecycle;
+2. cold-PP harness with real chunking, stage balance and TB4 traffic/bubbles;
+3. mixed-phase batch correctness: first decode joining continuing chunked prefill;
+4. speculative ownership, rollback/replay and one authoritative committed frontier;
+5. bound verifier capture to exact drafter-readable horizon; record realistic-context peak Metal;
+6. default/native MTP depth whole-round baseline;
+7. workload-separated deeper-depth A/Bs and segmented long-generation acceptance/TG;
+8. stage-local GDN/routed-MoE/projection/sync profiling at realistic chunks;
+9. per-quant/per-kernel chunk-width sweep before kernel promotion;
+10. block-history/repeated-work candidate first, double-buffered routed-expert staging only where M1 profiling proves the same exposed barrier/load bottleneck;
+11. combine only passing mechanisms and rerun cluster cold PP, append/live-prefix and agent-wall cells.
+
+Persistent gates:
+
+- current oMLX distributed serving has MTP inactive; PP+MTP remains separately uncertified;
+- target and drafter backends plus scheduler requirements are independent provenance;
+- stateful decode ordering cannot be weakened by a permissive backend;
+- capture horizon, native MTP head count and realized depth are provenance;
+- acceptance length cannot substitute for wall/TG;
+- QSA selected-set + order determinism, actual `top_k`, context depth and realized route remain mandatory;
+- grammar state, sampler owner/fallback, fairness, request-slot ownership, device happens-before, cancellation/reuse/restart resets and quantized-hook coverage remain mandatory;
+- tape/refold stays post-replay-baseline.
 
 Safe serving remains **profitable singleton MTP + plain concurrent work** until multi-slot isolation, physical recurrent capacity and PP+MTP distributed ownership are certified.
 
-The appliance concurrency claim remains strict:
+> B2/B3/B4 means that many independent requests are simultaneously physically scheduled with their own correct persistent state. Configured, admitted, batched or queued slots do not count. The 08:43 evidence adds that they must also remain correct under staggered mixed prefill/decode composition.
 
-> B2/B3/B4 means that many independent requests are simultaneously physically scheduled with their own correct persistent state. Configured, admitted, batched or queued slots do not count.
+## RTX 5070 Ti16 Qwen3.8-27B / Tiel Coder
 
-## RTX 5070 Ti Qwen3.8-27B / Tiel Coder
-
-No target movement and no fresh exact-card receipt. Preserve realized placement/backend, sampler path, VRAM/context headroom and real coding-agent wall-time provenance.
+No target movement and no fresh exact-card receipt. Preserve full residency, realized target/drafter contexts and sampler path, peak VRAM/context headroom, native/default MTP depth first, workload-specific deeper-depth whole-round A/Bs, mixed-phase recurrent/spec cells where applicable and real coding-agent wall/equivalence qualification.
 
 ## Single M1 Max64 Qwen3.8-27B
 
-P69 remains isolated: **P69B12 frozen/promoted; P69B13 next from existing profiling only.** Do not reopen P69B8, P69B9 or P69B10-C. External M3/M5/other-runtime evidence does not rewrite frozen verifier evidence.
+P69 remains isolated: **P69B12 frozen/promoted; P69B13 next from existing profiling only.** Do not reopen P69B8, P69B9 or P69B10-C. External runtime evidence does not rewrite certified verifier results.
 
 ## Dual-M1 DS4-0731
 
-No target movement and no fresh exact sustained current-head dual-M1 generated-token receipt. ds4 #991 remains Flash-Next mining evidence, not DS4-0731 throughput evidence.
+No exact-rig update. rMLX #545 is general speculative-state transfer evidence, not DS4-0731 throughput evidence.
 
 ---
 
 # Standing decisions strengthened this pass
 
-- Chunk width is quant/kernel/topology-specific, not a universal serving constant.
-- Kernel A/Bs explicitly control or label cold paging and heat-soak contamination.
-- Double buffering promotes only when exact profiling proves exposed staging/barrier latency and scratch/occupancy is acceptable.
-- Coverage and provenance are separate state predicates.
-- Every cross-turn/cross-request speculative buffer carries owner identity + generation/epoch.
-- Common prompt prefixes are not generic request identity unless reuse is justified by the exact mathematical dependency of the state.
-- Configured/enabled and actually armed/executed are separate benchmark fields.
-- Host ownership stamps do not establish device happens-before.
-- Distributed cancellation is a synchronized state transition, not rank-zero bookkeeping.
-- Cancellation acknowledgements are plan/epoch/worker scoped so stale all-request state cannot poison later targeted requests.
-- Prompt-cache reuse in PP2 requires cross-stage boundary/owned-byte agreement after lookup.
-- QSA/indexer selection width is long-context benchmark provenance and is paired with semantic selected-set/quality certification.
-- Cache identity binds representation-shaping metadata, not only source content.
-- Quantized target/draft compatibility includes realized module classes and speculative-hook coverage, not dimensions alone.
-- Forced-rejection rollback and unload/reload re-arming are part of speculative compatibility.
-- Structured-output grammar state remains speculative state and is checkpointed/rewound with the emitted frontier.
-- Distributed sampling lives where complete logits exist or uses an explicitly supported reduction path.
-- Silent sampler fallback remains a failed optimized cell even if correctness survives.
-- Prefill/decode fairness remains a serving correctness property, not merely a throughput knob.
-- Isolated component microbench speedups do not become PP gains without production-style wall A/B.
-- Controlled negative experiments remain first-class mining evidence.
+- Acceptance length is diagnostic; useful emitted tokens per wall-second is the objective.
+- MTP depth is workload-specific and evaluated as a whole round.
+- Native trained MTP-head count and requested/resolved depth are benchmark provenance.
+- Long-generation MTP qualification segments acceptance and TG over the output.
+- Capture only verifier hidden history the drafter can mathematically read; capture horizon is model semantics.
+- One authoritative committed frontier drives all derived speculative state.
+- Incremental/carried projection requires a fresh-reference numerical/equivalence test on the real checkpoint.
+- Reduced trip counts are not measured speedups.
+- Realistic-context peak memory is a first-class speculative metric.
+- Stateful decode-vs-prefill row ordering can be a correctness invariant.
+- Target and drafter backend selection and scheduler requirements are independent realized provenance.
+- First-decode-during-continuing-prefill is an explicit concurrency cell.
+- Distributed request safety on main does not imply distributed MTP support.
+- Requested device/split mode does not define actual backend-context allocation.
+- Deterministic QSA TopK remains a separately named route pending end-to-end validation.
+- Endpoint-observed evidence and unresolved/user-supplied runtime configuration remain distinct.
+- Chunk width remains quant/kernel/topology-specific.
+- Coverage and provenance remain separate state predicates.
+- Every cross-request speculative buffer still carries owner identity + generation/epoch + valid range + explicit device happens-before.
+- Structured-output grammar state remains speculative state and rewinds with the emitted frontier.
+- Distributed sampling still lives where complete logits exist or uses an explicitly supported reduction path.
+- Prefill/decode fairness remains serving correctness, not merely throughput.
 - A benchmark cell is defined by what the engine actually executed, not merely what the CLI requested.
-- The 15:10 oMLX #3494 attribution correction remains authoritative.
-- Tape/refold remains a post-baseline optimization candidate, not a replacement for replay correctness.
 - Cross-runtime / other-hardware gains remain mechanism evidence until exact target-hardware reproduction.
 - No target movement without exact target-topology evidence or exceptional explicit justification.
 - P69 remains isolated.
