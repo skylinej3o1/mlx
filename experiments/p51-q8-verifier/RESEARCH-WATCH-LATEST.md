@@ -14,27 +14,25 @@
 
 3. Read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-09-0941.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-09-1402.md`
 
-   **The 09:41 note is authoritative for the fresh rMLX #552 speculative-record/provenance consolidation, llama.cpp quantized-Flash-Attention compiled-capability provenance, routed-MoE active-expert tile-shape mechanism, and the post-10:36:27 UTC no-target-move screening pass. It moves no canonical performance target.**
+   **The 14:02 note is authoritative for fresh Qwen3.8-Flash-Next UVA PLE offload / Engram-parallel evidence, NVFP4 DSpark packed gathered top-k projection evidence, Flash-Next backend dispatch-limit qualification, and the post-13:57:01 UTC no-target-move screening pass.**
 
-4. Retain the immediately previous delta:
+4. Retain the immediately previous runtime deltas:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-09-0628.md`
+   - `RESEARCH-WATCH-2026-09-09-0941.md` — rMLX #552 request-record provenance, quantized-FA compiled-capability provenance, routed-MoE active-expert tile geometry;
+   - `RESEARCH-WATCH-2026-09-09-0628.md` — exact RTX5070Ti IQ4_XS 256K capacity lane, Atlas concurrent-MTP ownership/counter regression, rMLX #549/#550 round/acceptance invariants, oMLX #3520/#3539, vLLM mixed-concurrency/tail-ring/soak attribution;
+   - retain 2026-09-08 and older dated deltas for the remaining QSA, GDN/projection, recurrent rollback, cache lifecycle, concurrency and provenance evidence.
 
-   **The 06:28 note remains authoritative for the exact RTX5070Ti IQ4_XS 256K hot/cold-KV capacity runtime, Atlas concurrency-only MTP ownership/counter regression, rMLX #549/#550 single-source speculative round/acceptance invariants, the M3-Ultra #3520 reproduction and dense-vs-gathered non-equivalence, oMLX recurrent-boundary materialization failure, and vLLM mixed-concurrency/tail-ring/long-soak fault attribution.**
+5. Also retain:
 
-5. Retain the 2026-09-08 deltas in order as needed:
+   `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md`
 
-   - `RESEARCH-WATCH-2026-09-08-1813.md` — corrected extension-built oMLX #3520 matrix, width-dependent QSA routing, indexed split-K evidence, Affine4 capacity lane and DSv4/DSpark drafter-depth provenance;
-   - `RESEARCH-WATCH-2026-09-08-1438.md` — gathered-QSA mechanism, MTP paged-boundary admission and upload happens-before;
-   - `RESEARCH-WATCH-2026-09-08-1048.md` — Apple IQ3 small-width SIMD A/B, recurrent checkpoint retention, cumulative-OOB attribution and recovered M1-Max 27B baseline;
-   - `RESEARCH-WATCH-2026-09-08-0843.md` — distributed lifecycle, bounded verifier capture, mixed-phase recurrent/MTP ordering, QSA monitor and backend-context provenance;
-   - older dated deltas remain part of the evidence chain for rollback, cache lifecycle, concurrency, sampler ownership and benchmark provenance.
+   as **BACKFILL / future serving research**, not fresh target evidence. It does not interrupt P69.
 
-6. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, retain dated deltas newer than that point when reconstructing the evidence chain.
+6. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, dated deltas newer than that remain part of the evidence chain.
 
-7. Also read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when looking for portable kernel candidates.
+7. Read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when mining portable kernel candidates.
 
 ---
 
@@ -47,46 +45,49 @@
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 09:41 pass moves no row.** The RTX 5070 Ti speed target remains the fully-resident Q3_K_XL/native-MTP lane; the 06:28 IQ4_XS host-backed 256K result remains a separate long-context capacity lane.
+**The 14:02 pass moves no row.** Cross-hardware PLE and packed-gather gains are mechanism evidence until reproduced on the exact target topology.
 
 ---
 
-# Current newest evidence delta — 2026-09-09 09:41 ET
+# Current newest evidence delta — 2026-09-09 14:02 ET
 
-Starting canonical head: `1f5e7fa881be71772f9ddd30ebe5a7fd49e7b3ca`.
+Starting canonical head: `e4a832db893151f0694e5230de0dddce355b2d8f`.
 
-Starting hard freshness boundary: **2026-09-09 10:36:27 UTC**.
+Starting hard source-freshness boundary: **2026-09-09 13:57:01 UTC**.
 
-## FRESH / rMLX #552 — one speculative request-record mapping
+The `e4a832db...` cross-model KV/state-transfer note is an intervening **BACKFILL** from a 2026-08-04 paper and is not counted as post-cutoff source evidence.
 
-`0b2a15232124bd961c8423e2ba539a7b7e027b33` at **2026-09-09 13:21:09 UTC** centralizes speculative request-record construction, seed/bonus emission and verifier-resident-KV reporting.
+## FRESH / vLLM #54371 — Qwen3.8-Flash-Next PLE placement and Engram parallelism
 
-The phase-charge decision intentionally stays at the round loop that owns rollback; the shared mapping destructures `RoundTotals` so an unmapped new field becomes a compile failure. Timing/rate fields gain non-vacuous source tests, and a new gate refuses charge decisions that cannot be tied to the loop that ordered them.
+`3116c5d06bfe76501b3dd6b5434bfc7f3274f5e7` at **2026-09-09 14:32:34 UTC** adds pinned-host/UVA PLE offload and separates PLE/Engram sharding from the ordinary TP/DP model topology.
 
-**Promotion:** one authoritative request-record mapping for draft/accept/phase/timing/KV fields; keep semantic ownership decisions attributable to their loop; drive every telemetry field with a fixture capable of distinguishing the intended source from a plausible wrong one; explicitly certify early-exit telemetry population.
+The measured Qwen3.8-Flash-Next-FP8 cells use 8K C2 prefill and C64 / 1024-token / MTP3 decode. TP4/DP1 prefill is **33,544.13 tok/s resident vs 33,322.61 offloaded**; raw decode is **2,261.37 vs 2,245.84**, while acceptance differs. The PR's acceptance-normalized comparison characterizes the offload delta as about **+1.84% TP4 and +2.86% DP2**, effectively flat at single-run precision.
 
-## FRESH / llama.cpp #28079 — compiled quantized-FA capability is provenance
+**Promotion:** PLE is a separately placeable/shardable sparse lookup plane. On dual M1, measure resident vs file-backed placement, selected rows/bytes, page-cache/fault state, overlap, replication/sharding, consuming-stage locality and actual TB4 traffic. Do not transfer NVIDIA rates numerically.
 
-`5a4d0fecae272c9caf0b32eb384fa6a58dddb560` at **2026-09-09 10:50:08 UTC** replaces the broad all-quant Flash-Attention build switch with configurable quantized-FA combinations and adds runtime warning/fallback for an uncompiled combination.
+## FRESH / vLLM #55713 — packed NVFP4 gathered top-k projection
 
-The relevant Qwen3.8-27B fallback measurement predates this cutoff, so it remains **KNOWN/context**, not fresh. Its mechanism is still load-bearing: requesting FA with a KV quant combination absent from the build can benchmark a fallback path rather than the intended kernel.
+`83fe99399ec0603b32393a14324b65c67ad04af2` at **2026-09-09 17:33:46 UTC** makes DSpark's selected-row Markov correction operate directly on retained packed NVFP4 W2 rows/scales: gather packed rows -> local group dequant -> small dot -> scatter.
 
-**Promotion:** route provenance is now explicitly `requested -> configured -> compiled -> armed/admitted -> executed`. Record build/kernel-set hash, compiled dtype/quant/width capability, admission/fallback reason and actual executed backend. A fallback path never defines the intended cell merely because the flag requested it.
+The reported Nemotron 3.5 Lightning A/B is roughly **3-4% faster** with top-k 512 enabled in both T=0 and T=1 cells, with batch-size and CUDA-graph parity coverage.
 
-## FRESH / llama.cpp #28552 — routed-MoE N tiles follow active expert width
+**Promotion:** add packed selected-row quantized kernels to the portable 5.x-bit / Blazer candidate set. Quant packing should be co-designed for sparse gathers as well as dense QMV/GEMV and MTP small-M work.
 
-`d4abd573f6a360201799072384ceec6170fdb60c` at **2026-09-09 11:25:54 UTC** chooses routed-MoE quantized-MMQ N tiling from host-side typical expert width rather than a generic dense shape assumption.
+## FRESH / llama.cpp #28592 — Flash-Next backend dispatch limit
 
-**Promotion:** Apple routed-MoE kernel mining should derive candidate tile geometry from real active-expert M/N/K and verify-width shapes, profile routed vs dense/shared projections separately, and require exact-M1 measurement before numeric promotion.
+`22397c31a00e78f55ae556c41fc78b717c5911bd` at **2026-09-09 14:54:15 UTC** changes Vulkan FILL dispatch to a 2D grid because Qwen3.8-Flash-Next could exceed Intel `maxComputeWorkGroupCount`.
+
+**Promotion:** long-context/large-state qualification includes actual backend grid/dispatch limits; do not extrapolate route viability from small shapes alone. No Apple rate implication.
 
 ## SCREENED / no target move
 
-- oMLX main: no post-cutoff main commit; #3539 has no fresh material comment; #3520's latest reproduction remains in the 06:28 note.
-- Atlas: no post-cutoff commit; `fdc912b...` remains the previous watch's evidence.
-- TurboQuant-MLX, Rapid-MLX, NInfer and antirez/ds4: no post-cutoff target evidence.
-- llama.cpp issue #28648 had a post-cutoff `updated_at` but a pre-cutoff substantive body and no retrievable material post-cutoff comment; **updated_at alone is not fresh evidence**.
-- vLLM post-cutoff main activity produced no stronger exact target-lane rate.
-- exact-rig searches found no new post-cutoff dual-M1 Flash/DS4, single-M1 mature 27B, or fully-resident Q3_K_XL RTX5070Ti receipt.
+- oMLX main: no post-cutoff main commit.
+- rMLX: no post-cutoff commit.
+- antirez/ds4: no post-cutoff commit.
+- TurboQuant-MLX: no post-cutoff commit.
+- vLLM #56037: no new substantive post-cutoff comment.
+- broad exact-rig searches: no timestamp-qualified new exact dual-M1 Flash/DS4, single-M1 mature 27B, or fully-resident Q3_K_XL RTX5070Ti receipt.
+- interesting web-discovered quantized/mmap PLE artifacts were not promoted as FRESH without a substantive post-cutoff timestamp.
 
 ---
 
@@ -98,13 +99,14 @@ Keep **PP2/layer ownership primary and TP2 as control**.
 
 Add/strengthen:
 
-1. compiled-capability identity for every quantized QSA/FA/custom-kernel cell;
-2. `requested/configured/compiled/armed-or-admitted/executed` provenance;
-3. one authoritative speculative request-record mapping with discriminating tests for phase/timing/rate/KV fields;
-4. an explicit telemetry-population contract for early speculative exits;
-5. routed-MoE tile geometry derived from measured active-expert shape rather than dense defaults.
+1. PLE physical-placement and actual selected-row traffic identity;
+2. PLE replication/sharding topology independent of PP layer ownership;
+3. cold/warm page-cache behavior for file-backed PLE;
+4. proof that PLE placement creates no accidental dense/repeated TB4 traffic;
+5. packed selected-row quantized projection kernels alongside dense QMV/GEMV candidates;
+6. backend dispatch/grid-limit qualification at real large-state shapes.
 
-All 06:28 gates remain: distributed identity/lifecycle, stage-local recurrent/QSA state, mixed-phase ordering, one committed frontier, proposal+bonus acceptance shape, B2 admission interleaving, actual boundary materialization/restart reuse, device happens-before, dense-vs-gathered equivalence separation, custom route/build/admission provenance, mixed-long/short and equal-short stress, long soak, and no accidental dense TB4 materialization.
+All existing distributed/MTP/recurrent/QSA correctness and provenance gates remain.
 
 Safe serving remains **profitable singleton MTP + plain concurrent work** until multi-slot state isolation, physical recurrent capacity and PP+MTP distributed ownership are certified.
 
@@ -120,18 +122,18 @@ No target movement. Keep fully-resident Q3_K_XL/native-MTP as the speed lane and
 
 ## Dual-M1 DS4-0731
 
-No target movement.
+No target movement. The new DSpark path is portable sparse-quant kernel evidence only.
 
 ---
 
 # Standing decisions strengthened this pass
 
-- Evidence freshness follows the timestamp of substantive evidence, not a later issue `updated_at`.
-- Requested/configured is insufficient: compiled capability and actual executed route are benchmark facts.
-- Build/kernel-set identity is first-class provenance for quantized attention and custom-kernel cells.
-- Speculative telemetry is part of correctness and needs one authoritative mapping plus non-vacuous source tests.
-- Centralize record mapping without obscuring which loop owns the semantic decision/rollback.
-- Routed-MoE launch geometry follows the active expert shape and is target-backend-specific.
-- Cross-runtime/cross-hardware mechanisms do not move target rates without exact target-lane reproduction.
+- PLE/n-gram tables are a distinct sparse lookup plane, not ordinary streamed weights.
+- Total parameter count is not per-token bandwidth when a large component is selected-row lookup.
+- Offload economics are determined by selected-row traffic, locality, overlap and wall time, not full table size.
+- PLE sharding topology is not automatically the same as PP/TP/DP topology.
+- Sparse selected-row consumers should avoid dense dequantization where packed gathers are viable.
+- The custom 5.x-bit quant objective includes sparse-gather kernel cost, not only dense GEMV/QMV quality/speed.
+- Cross-hardware mechanism evidence does not move exact-target rates.
 - No canonical target movement this pass.
 - P69 remains isolated.
