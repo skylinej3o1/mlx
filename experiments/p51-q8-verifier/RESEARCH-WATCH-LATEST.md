@@ -14,14 +14,15 @@
 
 3. Read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-09-1402.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-09-1752.md`
 
-   **The 14:02 note is authoritative for fresh Qwen3.8-Flash-Next UVA PLE offload / Engram-parallel evidence, NVFP4 DSpark packed gathered top-k projection evidence, Flash-Next backend dispatch-limit qualification, and the post-13:57:01 UTC no-target-move screening pass.**
+   **The 17:52 note is authoritative for fresh full-machine-residency benchmark provenance, PP speculative broadcast operand-lifetime/device-happens-before evidence, rMLX single-source recurrent rollback/state construction, shared-KV read-only ownership, and the post-18:04:46 UTC no-target-move screening pass.**
 
 4. Retain the immediately previous runtime deltas:
 
+   - `RESEARCH-WATCH-2026-09-09-1402.md` — Qwen3.8-Flash-Next UVA PLE offload / Engram parallelism, NVFP4 packed gathered top-k projection, Flash-Next backend dispatch-limit qualification;
    - `RESEARCH-WATCH-2026-09-09-0941.md` — rMLX #552 request-record provenance, quantized-FA compiled-capability provenance, routed-MoE active-expert tile geometry;
-   - `RESEARCH-WATCH-2026-09-09-0628.md` — exact RTX5070Ti IQ4_XS 256K capacity lane, Atlas concurrent-MTP ownership/counter regression, rMLX #549/#550 round/acceptance invariants, oMLX #3520/#3539, vLLM mixed-concurrency/tail-ring/soak attribution;
+   - `RESEARCH-WATCH-2026-09-09-0628.md` — exact RTX5070Ti IQ4_XS 256K capacity lane, Atlas concurrent-MTP ownership/counter regression, rMLX #549/#550 round/acceptance invariants, oMLX #3520/#3539 and vLLM mixed-concurrency/tail-ring/soak attribution;
    - retain 2026-09-08 and older dated deltas for the remaining QSA, GDN/projection, recurrent rollback, cache lifecycle, concurrency and provenance evidence.
 
 5. Also retain:
@@ -45,49 +46,54 @@
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 14:02 pass moves no row.** Cross-hardware PLE and packed-gather gains are mechanism evidence until reproduced on the exact target topology.
+**The 17:52 pass moves no row.** The new evidence materially strengthens qualification and benchmark provenance, but it is not an exact canonical target-lane rate receipt.
 
 ---
 
-# Current newest evidence delta — 2026-09-09 14:02 ET
+# Current newest evidence delta — 2026-09-09 17:52 ET
 
-Starting canonical head: `e4a832db893151f0694e5230de0dddce355b2d8f`.
+Starting canonical head: `1db04e8db706aaa281a82cf29805bd86af8ae574`.
 
-Starting hard source-freshness boundary: **2026-09-09 13:57:01 UTC**.
+Starting hard source-freshness boundary: **2026-09-09 18:04:46 UTC**.
 
-The `e4a832db...` cross-model KV/state-transfer note is an intervening **BACKFILL** from a 2026-08-04 paper and is not counted as post-cutoff source evidence.
+## FRESH / oMLX #3520 — full-machine residency is benchmark provenance
 
-## FRESH / vLLM #54371 — Qwen3.8-Flash-Next PLE placement and Engram parallelism
+Comment `5606588580` at **2026-09-09 18:12:36 UTC** reports M3 Ultra 512GB production validation on `Qwen3.8-Flash-Next-oQ4e-mtp` with gathered/fused/eager paths.
 
-`3116c5d06bfe76501b3dd6b5434bfc7f3274f5e7` at **2026-09-09 14:32:34 UTC** adds pinned-host/UVA PLE offload and separates PLE/Engram sharding from the ordinary TP/DP model topology.
+Full-machine-exclusive single-stream runs report about **74–90 tok/s through 16K–64K**, while merely leaving two sibling engines idle but resident reduces the same 16K workload to roughly **46–62 tok/s**. Controlled c2/c4 × 4K/16K A/Bs also put batched MTP **14–27% below plain batching** in aggregate.
 
-The measured Qwen3.8-Flash-Next-FP8 cells use 8K C2 prefill and C64 / 1024-token / MTP3 decode. TP4/DP1 prefill is **33,544.13 tok/s resident vs 33,322.61 offloaded**; raw decode is **2,261.37 vs 2,245.84**, while acceptance differs. The PR's acceptance-normalized comparison characterizes the offload delta as about **+1.84% TP4 and +2.86% DP2**, effectively flat at single-run precision.
+**Promotion:** record every resident engine/process, keepwarm/preload activity and relevant memory residency as part of the benchmark cell. Batched MTP must beat an equal-residency plain-batching control before promotion. M3 Ultra rates do not transfer numerically to dual M1.
 
-**Promotion:** PLE is a separately placeable/shardable sparse lookup plane. On dual M1, measure resident vs file-backed placement, selected rows/bytes, page-cache/fault state, overlap, replication/sharding, consuming-stage locality and actual TB4 traffic. Do not transfer NVIDIA rates numerically.
+## FRESH / vLLM #55745 — PP draft broadcast source lifetime
 
-## FRESH / vLLM #55713 — packed NVFP4 gathered top-k projection
+`e8064a96d02db70ebc1ca922bc9aba967a654483` at **2026-09-09 19:55:56 UTC** fixes the PP speculative-draft broadcast by recording `input_batch.idx_mapping` on the broadcast stream. Recording only the derived `send` tensor was insufficient because the indexing source remains asynchronously consumed.
 
-`83fe99399ec0603b32393a14324b65c67ad04af2` at **2026-09-09 17:33:46 UTC** makes DSpark's selected-row Markov correction operate directly on retained packed NVFP4 W2 rows/scales: gather packed rows -> local group dequant -> small dot -> scatter.
+**Promotion:** PP/MTP qualification must prove producer -> collective/broadcast -> consumer device-stream happens-before and retain every asynchronously consumed mapping/index/control operand until the consumer completes. Host scope or successful collective issue is not proof.
 
-The reported Nemotron 3.5 Lightning A/B is roughly **3-4% faster** with top-k 512 enabled in both T=0 and T=1 cells, with batch-size and CUDA-graph parity coverage.
+## FRESH / rMLX #553 — one recurrent rollback/refold/state seam
 
-**Promotion:** add packed selected-row quantized kernels to the portable 5.x-bit / Blazer candidate set. Quant packing should be co-designed for sparse gathers as well as dense QMV/GEMV and MTP small-M work.
+`85690ce5208822024e9fa4a71f51b34e7576e66a` at **2026-09-09 20:50:08 UTC** centralizes round emission, rollback/refold-or-disarm, recurrent stack construction and actual rollback-arm reporting.
 
-## FRESH / llama.cpp #28592 — Flash-Next backend dispatch limit
+**Promotion:** one authoritative low-level mutation seam for recurrent rollback/refold/state construction; draft drivers retain semantic ownership and telemetry, but do not duplicate the state mutation machinery. Record which arm actually executed.
 
-`22397c31a00e78f55ae556c41fc78b717c5911bd` at **2026-09-09 14:54:15 UTC** changes Vulkan FILL dispatch to a 2D grid because Qwen3.8-Flash-Next could exceed Intel `maxComputeWorkGroupCount`.
+## FRESH / vLLM #55887 — shared-KV reader must not mutate owner state
 
-**Promotion:** long-context/large-state qualification includes actual backend grid/dispatch limits; do not extrapolate route viability from small shapes alone. No Apple rate implication.
+`dcd544486b7f4672b3c2e60ea289f19d86cf355c` at **2026-09-09 21:51:34 UTC** adds AITER shared-KV prefill/extend support and explicitly validates that the shared layer reads the target cache without changing it, across prefill/extend/mixed shapes and cache layouts/dtypes.
+
+**Promotion:** shared QSA/KV/state provenance identifies owner versus reader; reader paths need read-only/byte-stability checks and mixed-phase qualification. Sharing storage is not ownership transfer.
+
+## UPDATE / exact-rig search
+
+A fresh discussion update exists on a previously known **M1 Max 32GB** Qwen3.8-27B baseline, but its measurement predates this cutoff and does not match the canonical 64GB lane. No exact target receipt is promoted from it.
 
 ## SCREENED / no target move
 
-- oMLX main: no post-cutoff main commit.
-- rMLX: no post-cutoff commit.
-- antirez/ds4: no post-cutoff commit.
-- TurboQuant-MLX: no post-cutoff commit.
-- vLLM #56037: no new substantive post-cutoff comment.
-- broad exact-rig searches: no timestamp-qualified new exact dual-M1 Flash/DS4, single-M1 mature 27B, or fully-resident Q3_K_XL RTX5070Ti receipt.
-- interesting web-discovered quantized/mmap PLE artifacts were not promoted as FRESH without a substantive post-cutoff timestamp.
+- no new post-cutoff exact dual-M1 Max64/TB4 Flash-Next receipt;
+- no new one-M1 Max64 Qwen3.8-27B receipt;
+- no new fully-resident Q3_K_XL/native-MTP RTX5070Ti16 speed-lane receipt;
+- no new dual-M1 Max64/TB4 DS4-0731 receipt;
+- oMLX #3539 and vLLM #56037 have no new substantive post-cutoff result;
+- antirez/ds4 and TurboQuant-MLX have no post-cutoff target-lane rate evidence.
 
 ---
 
@@ -99,16 +105,15 @@ Keep **PP2/layer ownership primary and TP2 as control**.
 
 Add/strengthen:
 
-1. PLE physical-placement and actual selected-row traffic identity;
-2. PLE replication/sharding topology independent of PP layer ownership;
-3. cold/warm page-cache behavior for file-backed PLE;
-4. proof that PLE placement creates no accidental dense/repeated TB4 traffic;
-5. packed selected-row quantized projection kernels alongside dense QMV/GEMV candidates;
-6. backend dispatch/grid-limit qualification at real large-state shapes.
+1. resident-engine-set / keepwarm / memory-residency provenance;
+2. equal-residency plain-batching controls for every concurrent-MTP throughput claim;
+3. lifetime of every PP speculative mapping/index/control operand through device consumer completion;
+4. explicit producer -> collective -> consumer stream happens-before;
+5. one recurrent rollback/refold/state-stack producer with executed-arm reporting;
+6. shared-state owner/reader identity and read-only/byte-stability checks;
+7. all prior PLE, QSA, packed-gather, boundary-materialization, B2 interleaving, mixed-concurrency and long-soak gates remain.
 
-All existing distributed/MTP/recurrent/QSA correctness and provenance gates remain.
-
-Safe serving remains **profitable singleton MTP + plain concurrent work** until multi-slot state isolation, physical recurrent capacity and PP+MTP distributed ownership are certified.
+Safe serving remains **profitable singleton MTP + plain concurrent work** until per-slot state isolation, physical recurrent capacity, distributed PP+MTP ownership and equal-residency throughput benefit are all certified.
 
 ## Single M1 Max64 Qwen3.8-27B
 
@@ -118,22 +123,23 @@ P69 remains isolated: **P69B12 frozen/promoted; P69B13 next from existing measur
 
 ## RTX 5070 Ti16 Qwen3.8-27B
 
-No target movement. Keep fully-resident Q3_K_XL/native-MTP as the speed lane and IQ4_XS host-backed hot/cold-KV as the separate long-context capacity lane.
+No target movement. Keep fully-resident Q3_K_XL/native-MTP as the speed lane; host-backed long-context configurations remain separate capacity evidence.
 
 ## Dual-M1 DS4-0731
 
-No target movement. The new DSpark path is portable sparse-quant kernel evidence only.
+No target movement.
 
 ---
 
 # Standing decisions strengthened this pass
 
-- PLE/n-gram tables are a distinct sparse lookup plane, not ordinary streamed weights.
-- Total parameter count is not per-token bandwidth when a large component is selected-row lookup.
-- Offload economics are determined by selected-row traffic, locality, overlap and wall time, not full table size.
-- PLE sharding topology is not automatically the same as PP/TP/DP topology.
-- Sparse selected-row consumers should avoid dense dequantization where packed gathers are viable.
-- The custom 5.x-bit quant objective includes sparse-gather kernel cost, not only dense GEMV/QMV quality/speed.
-- Cross-hardware mechanism evidence does not move exact-target rates.
-- No canonical target movement this pass.
-- P69 remains isolated.
+- What else is resident on the machine is part of a benchmark cell.
+- Idle resident engines are not equivalent to absent engines.
+- Batched speculative throughput claims require equal-residency plain-batching controls.
+- Derived-output lifetime does not prove source/index operand lifetime under asynchronous execution.
+- PP correctness requires device-stream happens-before, not merely host ownership or successful broadcast issue.
+- Recurrent rollback/refold/state mutation should have one authoritative low-level seam.
+- Shared-state readers must prove they do not mutate owner state.
+- Cross-runtime/cross-hardware mechanisms do not move exact-target rates without exact target-topology reproduction.
+- **No canonical target movement this pass.**
+- **P69 remains isolated.**
