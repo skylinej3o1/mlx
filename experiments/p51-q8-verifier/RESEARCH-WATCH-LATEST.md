@@ -14,17 +14,17 @@
 
 3. Read the newest dated delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-1813.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-09-0628.md`
 
-   **The 18:13 note is authoritative for the corrected extension-built oMLX #3520 long-context QSA matrix and width-dependent routing, fresh independent indexed split-K numerical/performance evidence, Affine4 long-context capacity evidence, and fresh DSv4/DSpark draft-loader/native-depth provenance. Its corrected #3520 matrix supersedes the quantitative #3520 figures in the 14:38 note. It moves no performance target.**
+   **The 06:28 note is authoritative for the fresh exact-RTX5070Ti IQ4_XS 256K hot/cold-KV capacity runtime, Atlas concurrency-only MTP ownership/counter regression, rMLX single-source speculative round/acceptance invariants, the M3-Ultra #3520 reproduction and dense-vs-gathered non-equivalence, oMLX recurrent-boundary materialization failure, and vLLM mixed-concurrency/tail-ring/long-soak fault attribution. It moves no canonical performance target.**
 
 4. Retain the immediately previous deltas:
 
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-1438.md` — gathered-QSA mechanism promotion, short-prompt MTP paged-boundary admission fix and device-upload happens-before correction. **Its #3520 benchmark percentages are superseded by the 18:13 correction; the remaining findings stand.**
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-1048.md` — landed Apple IQ3 small-width SIMD-utilization A/B, recurrent checkpoint-retention / warm-rewind fix, DFlash2 cumulative-OOB attribution correction and recovered M1-Max Qwen3.8-27B baseline;
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-0843.md` — landed oMLX distributed request-safety integration, rMLX bounded speculative capture / commit-scoped conditioning, hybrid recurrent+MTP mixed-phase ordering bug, deterministic-QSA TopK monitor, speculative backend-context placement cleanup and DGX-Spark MTP-depth backfill;
-   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-0238.md` — M5-Max Flash Q4_K routed-expert double-buffer/chunk-width A/B, cross-request MTP state ownership, distributed lifecycle review, QSA `top_k` provenance and ParoQuant/DFlash2 rollback-hook qualification;
-   - retain the 2026-09-07, 2026-09-06 and 2026-09-05 watch deltas for GDN/projection structure, actual MTP depth, recurrent rollback/state geometry, QSA tie/order, scheduler occupancy, whole-round speculative economics, cache lifecycle, sampler ownership, request-row ownership and benchmark-provenance gates.
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-1813.md` — corrected extension-built oMLX #3520 long-context QSA matrix and width-dependent routing, independent indexed split-K numerical/performance evidence, Affine4 long-context capacity evidence and DSv4/DSpark drafter-head/native-depth provenance;
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-1438.md` — gathered-QSA mechanism promotion, short-prompt MTP paged-boundary admission fix and device-upload happens-before correction. **Its #3520 percentages are superseded by the 18:13 correction; the mechanism findings stand.**
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-1048.md` — Apple IQ3 small-width SIMD-utilization A/B, recurrent checkpoint retention / warm-rewind fix, DFlash2 cumulative-OOB attribution correction and recovered M1-Max Qwen3.8-27B baseline;
+   - `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-08-0843.md` — landed oMLX distributed lifecycle work, rMLX bounded speculative capture / commit-scoped conditioning, mixed-phase recurrent+MTP ordering bug, QSA TopK monitor, backend-context placement and MTP-depth backfill;
+   - retain the remaining 2026-09-08, 2026-09-07, 2026-09-06 and 2026-09-05 deltas for GDN/projection structure, recurrent rollback/state geometry, scheduler occupancy, whole-round speculative economics, cache lifecycle, sampler ownership, request-row ownership and benchmark-provenance gates.
 
 5. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, retain the dated deltas newer than that point when reconstructing the evidence chain.
 
@@ -41,80 +41,100 @@
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 18:13 pass moves no row.** No fresh sustained exact target-topology receipt was strong enough to change a planning distribution.
+**The 06:28 pass moves no row.** The new RTX 5070 Ti measurement is exact hardware but a different quantization/residency/workload lane: `UD-IQ4_XS` with a host-backed long-context KV ring. The canonical 120-TG speed target remains defined around a fully-resident Q3_K_XL/native-MTP configuration.
 
 ---
 
-# Current newest evidence delta — 2026-09-08 18:13 ET
+# Current newest evidence delta — 2026-09-09 06:28 ET
 
-Starting freshness boundary: `5452dffc758ba3230ed627e514d06beaeec87d71` / **2026-09-08 18:47:28 UTC**.
+Starting freshness boundary: `3692caf919864cc3a74c49da6eb6f0c92b55ac85` / **2026-09-08 22:21:02 UTC**.
 
-## UPDATE / CORRECTION — oMLX #3520
+## FRESH / exact RTX 5070 Ti long-context capacity lane
 
-The mechanism survives, but an earlier server chain is explicitly withdrawn because the native sparse-attention extension was not built and the fallback route overstated the branch by up to ~20 percentage points at 229K.
+Public `BrunoPPassini/llama.cpp` branch `qwen38-blackwell-256k` landed after the cutoff, beginning with `1a63cbf1220714f7a20a6f139a603f0ccada5a59`.
 
-Current M5-Max 128GB / High-Power / Flash-Next-oQ4e-mtp comparison (`main` `b908f563` -> branch `9e19561b`), with native extensions built in both arms:
+Exact hardware: RTX 5070 Ti 16 GB, PCIe 5 x16, Ryzen 9800X3D / 48 GiB DDR5-6400, Qwen3.8-27B `UD-IQ4_XS`, Q4 target/draft KV, deterministic native MTP3.
 
-- **serial:** +7.5% @63K, +17.7% @134K, +28.1% @229K;
-- **adaptive sampled MTP:** +8.5%, +25.4%, +36.1%;
-- **adaptive greedy MTP:** +14.6%, +28.7%, +32.4%.
+Measured optimized endpoints:
 
-These replace the #3520 percentages in the 14:38 watch.
+- short/GPU-resident controlled path: **82.34 TG**, but the report explicitly separates a **71.16 TG integrated daily reference**;
+- 87,160 input + 64 output: **1104.85 PP / 41.53 TG**;
+- 256,257 input + 64 output: **698.84 PP / 23.97 TG**.
 
-The revised branch also shows that QSA routing is strongly width-dependent on M5/NAX:
+The design keeps 65,536 tokens hot in VRAM and uses pinned host RAM as cold KV capacity, staging 8,192-token tiles over PCIe with copy/convert/attention overlap. It also compresses recurrent-state lifetime via transaction-log / phase-arena ownership rather than duplicating full speculative state planes.
 
-- selected-KV gather switches between token-major amortized copy and stored-layout take by query width/context;
-- native indexer-score gate ~32 rows;
-- native top-k gate ~8 rows;
-- native sparse-GQA attention gate ~24 rows;
-- ordinary MTP verify widths of 4–8 rows can be much faster on gathered SDPA than on the native sparse kernel.
+**Promotion:** add a separate 5070 Ti IQ4_XS long-context capacity lane with explicit hot/cold boundary, VMM content epoch, PCIe/link/staging provenance, output-hash/MTP-counter qualification, and integrated-vs-isolated rate separation. Do not merge these rates into the fully-resident Q3_K_XL 120-TG speed target.
 
-**Promotion:** record extension/build availability, query/verify width, context, selected gather form, each native/fallback kernel route and fallback reason. A custom/native route is not presumed faster merely because it exists.
+## FRESH / Atlas #968 — C1-clean, C2-broken speculative ownership
 
-## FRESH — indexed split-K numerical/performance evidence
+Atlas `fdc912b108ccf7f83dc5283e75b44148f87e15a5` hardens cross-turn MTP carry/session and hidden-interval ownership.
 
-Independent M5-Max comment on #3520 reports an indexed split-K selected-KV attention path:
+A new ownership ticket was initially drawn from the existing capture-generation counter. Interleaved admissions then advanced that counter between another sequence's capture and first propose, silently disabling drafter prefill.
 
-- isolated M=3 attention ~2.8x at 16K -> ~11x at 128K versus gather;
-- M=1 crossover around 32–64K;
-- end-to-end decode +11% @16K, +21% @32K, +42% @64K, digest-identical to the gather baseline.
+Measured:
 
-A mathematically cleaner reduction still shifted a chosen-token logprob by ~0.06 at 16K and flipped a real verify transaction. Matching the deployed native arithmetic path was required for digest equality.
+- C1: **18.5 -> 18.5**;
+- C2: **30.8 -> 23.7**, repeat **23.4** (~24% regression);
+- C2 TPOT: roughly **62 -> 79 ms**.
 
-**Promotion:** custom sparse kernels require real-checkpoint transaction-level equivalence at the exact verify width and deployed MLX build; build hash, admission and silent fallback are benchmark provenance.
+The fixed design uses a separate ticket dispenser and passes its concurrency gates. Accuracy stayed unchanged, which is expected for a lossless speculative acceptance/performance defect.
 
-## UPDATE / optional long-context capacity lane — oMLX #3499 Affine4
+**Promotion:** semantic ownership epochs get distinct counters; B2 includes `A capture -> admit B -> A first propose`; C1 identity cannot certify concurrent speculative state; configured/armed/executed are separate provenance states. Host ownership stamps still do not prove device happens-before.
 
-M5 Pro 48GiB Qwen3.8-27B evidence includes:
+## FRESH / rMLX #549 + #550 — one speculative arithmetic/accounting contract
 
-- 150K: 291.9 PP / 12.3 TG;
-- 200K: 250.0 PP / 11.8 TG;
-- logical attention KV at 200K: 12.21 -> 3.71 GiB (-69.6%);
-- separate Affine4 MTP probe: 16.9 -> 36.1 TG with Lightning MTP, 84/97 considered drafts accepted;
-- a fresh third-party cherry-pick reports fitting 256K Qwen3.8-27B context, but without a controlled rate/quality receipt.
+`9567876605f14cd2b2090689d80000c469c7499e` centralizes round-block sizing and rollback targets, adds a round-stream oracle and pins phase-charge attribution so rollback and reported phase accounting cannot silently diverge.
 
-Affine4 is lossy and chunk-sensitive; keep it a separate optional capacity route pending exact quality/equivalence and MTP/restore certification. It does not alter the native/exact-runtime target.
+`28dc628426acb65f2b56c2ee742faca873e00179` unifies DFlash/EAGLE-3 acceptance and refuses malformed verified blocks unless:
 
-## FRESH — DSv4 / DSpark loader provenance
+`target rows = proposed rows + 1 correction/bonus row`.
 
-A fresh 4x SM80 Vision-Exp DSv4 report with DSpark n=6 gives ~45 -> ~86 tok/s single-stream and ~138 -> ~229 aggregate. The portable finding is loader correctness:
+Verifier codec/context ceiling/cache-stack construction also has one producer.
 
-- resolving `lm_head` from the outer VL wrapper returned `None`, silently leaving the draft head randomly initialized and acceptance near zero;
-- Vision-Exp has `num_nextn_predict_layers=3`, so requested speculative depth must respect the exact checkpoint's native structure.
+**Promotion:** assert proposal/bonus shape and `accepted <= proposed`; keep one authoritative round-width/rollback/phase-charge interpretation; answer equivalence is insufficient to certify work attribution.
 
-**Promotion:** explicitly bind/hash drafter head weights; record wrapper/inner-LM ownership, native MTP/NextN layer count and requested/resolved depth. Nonzero speculative execution is not proof of a valid drafter.
+## UPDATE / oMLX #3520 M3-Ultra reproduction
 
-## BACKFILL / multi-session cache-group economics
+Fresh owner testing on M3 Ultra 512 GiB, Flash-Next-oQ4e-mtp, temperature 0, adaptive Lightning MTP depth <=3, caching disabled:
 
-vLLM #54661 shows a deployment where an EAGLE/DFlash sliding-window draft group dominated a shared prefix-cache pool despite not defining the useful target hit horizon. Per-group retention plus a constrained hit-min exemption recovered substantial multi-conversation capacity in a fork. Treat as mechanism evidence only: occupancy is recorded by semantic cache group, and any hit exemption must prove fresh-window recomputation and no stale draft state.
+- 128K main **753.8 PP / 49.6 TG** -> updated PR **757.1 / 59.2**;
+- 200K main **723.1 / 46.4** -> updated PR **722.3 / 50.1**.
+
+The updated dispatch recovers the previous prefill regression while retaining long-context decode benefit.
+
+Quality tests showed no clear aggregate regression, but exact equivalence is false: repeated gathered runs were deterministic while dense and gathered greedy outputs diverged at token 225, reproduced from cloned KV caches.
+
+**Promotion:** route-local determinism and quality are separate from dense-equivalence; a custom sparse path must name the exact baseline it claims to match.
+
+## FRESH / oMLX #3539 — boundary state not materialized despite crossing blocks
+
+M3 Max 128 GB / Qwen3.8-27B-oQ4e-mtp, block size 4096. A 9,890-token prompt crosses two expected block boundaries but reports `available_boundaries=0` / `boundary_snapshot_unavailable`; persistent boundary snapshots remain absent while other cache artifacts exist.
+
+MTP itself is healthy in the request (one reported depth-3 cell accepts 177/193 drafts), proving that speculative execution does not imply reusable recurrent boundary state exists.
+
+**Promotion:** certify the actual materialized boundary IDs/count and `store -> restart -> prefix reuse`, not just prompt length or cache-enabled configuration. Preserve fail-closed behavior rather than storing non-sliceable live recurrent state.
+
+## FRESH / vLLM #56037 — separate mixed-MTP, tail-seed and long-soak fault shapes
+
+Fresh ROCm GLM-5.3-Flash evidence separates:
+
+- mixed long+short MTP decode failure — scheduler shape measured, exact kernel inferred;
+- chunked-prefill tail-seed failure — `_kpool_tail_seed_kernel` measured and missing local tail-ring bounds;
+- equal-short B2 MTP failure after **46.38 h** — scheduler shape measured, exact asynchronous kernel still unproven.
+
+**Promotion:** mixed long+short B3, non-aligned chunked-prefill tail, equal-short B2 first-token MTP and long serving soak are distinct robustness cells. Scheduler dumps are not asynchronous kernel identity; mark measured vs inferred producer explicitly.
 
 ## SCREENED / no-change
 
-- oMLX, rMLX, antirez/ds4, llama.cpp, Atlas, NInfer, vllm-mlx and TurboQuant-MLX: no post-cutoff main commit relevant to target rates.
-- Rapid-MLX post-cutoff work is service/provider/audit work.
-- oMLX #3372 closed as superseded by #3287; do not promote its title-level +18% prefill claim as fresh E2E evidence.
-- vLLM post-cutoff main activity did not yield a stronger exact target receipt.
-- no new controlled exact dual-M1 Flash/DS4, M1-Max64 27B or RTX5070Ti target-lane receipt surfaced.
+- oMLX main: no post-cutoff main commit.
+- antirez/ds4: no post-cutoff main commit.
+- NInfer, vllm-mlx and TurboQuant-MLX: no post-cutoff commits.
+- Rapid-MLX changes are product/share-compute/model work, not target evidence.
+- llama.cpp upstream changes screened were unrelated to target mechanisms.
+- vLLM main commits did not add a stronger exact target-lane rate.
+- no fresh exact 2x M1 Max64/TB4 Flash or DS4 receipt;
+- no fresh exact M1 Max64 mature Qwen3.8-27B receipt;
+- no fresh exact fully-resident Q3_K_XL RTX 5070 Ti receipt.
 
 ---
 
@@ -124,67 +144,77 @@ vLLM #54661 shows a deployment where an EAGLE/DFlash sliding-window draft group 
 
 Keep **PP2/layer ownership primary and TP2 as control**.
 
-Current ordering:
+Current qualification additions/strengthening:
 
 1. exact PP2 model/recurrent/QSA identity + distributed lifecycle;
 2. cold PP with real chunking, stage balance and TB4 traffic/bubbles;
 3. mixed-phase first speculative decode joining continuing chunked prefill;
 4. speculative ownership / rollback / replay with one authoritative committed frontier;
-5. bound verifier capture to the drafter-readable horizon;
-6. admission-time paged-boundary alignment, including short-prompt first-boundary-during-decode;
-7. recurrent checkpoint retention across branch/edit/retry/compaction/reopen;
-8. rendered-history cacheability for preserved reasoning/tool calls, stream/nonstream parity;
-9. native/default MTP whole-round baseline;
-10. explicit drafter-head binding + native trained MTP/NextN count + requested/resolved depth;
-11. workload-separated deeper-depth A/Bs + segmented long-generation acceptance/TG;
-12. realized QSA route for draft, target decode and target verify;
-13. extension/build/admission receipt before custom-route timing;
-14. row/verify-width x context route matrix, including 1/2/4/8/16/24/32/64 rows;
-15. selected-KV traffic/work accounting; no hidden dense materialization unless deliberately amortized and measured;
-16. custom split-K only after exact-build real-checkpoint digest/equivalence;
-17. serial / sampled-MTP / greedy-deeper threshold sweeps with short-context negative controls;
-18. stage-local GDN/routed-MoE/projection/sync profiling + SIMD occupancy;
-19. quant/kernel chunk-width sweep;
-20. optional compressed-KV long-context lane only after quality/chunk-sensitivity/MTP/restore qualification;
-21. multi-session cache occupancy by semantic group;
-22. combine passing mechanisms, then rerun cluster cold PP, ~128K TG, append/live-prefix, branch/retry and coding-agent wall cells.
+5. one authoritative round-width / rollback-target / phase-charge contract;
+6. verifier acceptance shape = proposals + one bonus/correction row;
+7. verifier capture bounded to drafter-readable horizon;
+8. admission-time paged-boundary alignment;
+9. actual boundary materialization + restart reuse;
+10. recurrent checkpoint retention across branch/edit/retry/compaction/reopen;
+11. rendered-history cacheability and stream/nonstream parity;
+12. native/default MTP whole-round baseline;
+13. explicit drafter-head binding + native MTP/NextN count + requested/resolved depth;
+14. distinct counter/ticket namespace per state ownership meaning;
+15. B2 `A capture -> admit B -> A first propose` interleaving;
+16. configured / armed / executed feature provenance;
+17. workload-separated deeper-depth A/Bs + segmented long-generation TG/acceptance;
+18. realized QSA route for draft, target decode and target verify;
+19. extension/build/admission + row/verify-width x context route matrix;
+20. selected-KV traffic/work accounting with no accidental dense TB4 materialization;
+21. dense-vs-gathered quality separate from exact equivalence;
+22. custom split-K only after exact-build real-checkpoint transaction checks;
+23. mixed long+short B3, equal-short B2 and non-aligned prefill-tail stress;
+24. long soak after short semantic qualification;
+25. stage-local GDN/routed-MoE/projection/sync + SIMD profiling;
+26. quant/kernel chunk-width sweep;
+27. combine passing mechanisms and rerun cluster cold PP, ~128K TG, append/live-prefix, branch/retry and coding-agent wall.
 
-For PP2, selected K/V plus recurrent/QSA state remain stage-local. Sparse attention that turns into dense TB4 traffic fails the intended economics.
+For PP2, selected K/V plus recurrent/QSA state stay stage-local. Sparse attention that becomes dense TB4 traffic fails the intended economics.
 
 Safe serving remains **profitable singleton MTP + plain concurrent work** until multi-slot isolation, physical recurrent capacity and PP+MTP distributed ownership are certified.
 
-> B2/B3/B4 means physically simultaneously scheduled independent requests with correct persistent state. Configured/admitted/batched/queued slots do not count; staggered mixed prefill/decode must remain correct.
+> B2/B3/B4 means physically simultaneously scheduled independent requests with correct persistent state. Configured/admitted/batched/queued slots do not count; admission interleavings and staggered mixed prefill/decode are part of the definition.
 
 ## Single M1 Max64 Qwen3.8-27B
 
-No target movement. Affine4 remains an optional long-context capacity route only.
+No target movement.
 
 P69 remains isolated: **P69B12 frozen/promoted; P69B13 next from existing profiling only.** Do not reopen P69B8, P69B9 or P69B10-C.
 
 ## RTX 5070 Ti16 Qwen3.8-27B / Tiel Coder
 
-No target movement and no fresh exact-card receipt. Record actual kernel/source/build route, target/drafter placement, sampler path, driver/runtime identity and peak VRAM/context headroom; fallbacks must be visible.
+Keep the canonical fully-resident Q3_K_XL speed target unchanged.
+
+Add a separate IQ4_XS **long-context capacity lane** based on the exact-hardware 256K study. Report hot/cold boundary, PCIe/link state, pinned-host memory, VMM content epoch, tile width, copy/convert/attention overlap, recurrent-state memory, output hash and integrated-vs-isolated rate.
 
 ## Dual-M1 DS4-0731
 
-No target movement. Add explicit draft-head binding and native MTP/NextN-depth provenance. CUDA Vision-Exp rates do not transfer numerically to Apple text-0731.
+No target movement. The fresh ROCm failure shapes strengthen concurrency/tail-ring/soak certification only.
 
 ---
 
 # Standing decisions strengthened this pass
 
-- Corrected production-route receipts supersede benchmark chains that exercised a different fallback path.
-- Extension/build availability, admission and fallback identity are benchmark provenance.
-- QSA/sparse routing depends on hardware + phase + query/verify width + context.
-- Native custom kernels are not presumed faster at decode/MTP widths.
-- Custom sparse-attention correctness is transaction-level and can depend on arithmetic-path identity.
-- Verify width is a semantic and performance dimension.
-- Drafter weights are explicitly bound/hashed; `spec enabled` is insufficient.
-- Native trained MTP/NextN structure plus requested/resolved depth is mandatory provenance.
-- Lossy KV compression is a separate capacity lane pending quality/chunk-sensitivity qualification.
-- Cache capacity is measured by semantic group under multi-session load.
-- Existing request ownership, device happens-before, mixed-phase recurrent ordering, grammar rollback, sampler ownership/fallback, fairness, cancellation/reuse/restart, quantized-hook, QSA selected-set/order and tape/refold gates remain active.
-- Acceptance remains diagnostic; useful emitted tokens per wall-second is the objective.
-- Cross-runtime/other-hardware gains remain mechanism evidence until exact target reproduction.
-- No target movement without exact target-topology evidence or exceptional explicit justification.
+- Exact hardware does not automatically move a target if quantization/residency/workload differs from the target lane.
+- Keep RTX 5070 Ti fully-resident speed and host-backed long-context capacity separate.
+- C1 identity can hide severe concurrent speculative regressions.
+- Distinct state ownership meanings use distinct counters/ticket namespaces.
+- Configured, armed and executed are separate benchmark provenance.
+- Host ownership metadata does not prove device completion/order.
+- Acceptance refuses verified blocks not equal to proposals + one bonus/correction row.
+- Per-round work attribution is an auditable correctness dimension.
+- Boundary reuse is certified by actual materialization and restart recovery.
+- Healthy MTP does not prove reusable recurrent snapshots exist.
+- Dense and gathered attention may both be deterministic without being equivalent.
+- Aggregate quality similarity is not bit/token equivalence.
+- Scheduler evidence is not asynchronous kernel identity.
+- Mixed-long/short, equal-short, non-aligned-prefill-tail and long-soak are separate robustness cells.
+- Acceptance is diagnostic; useful emitted tokens per wall-second is the objective.
+- Cross-runtime/other-hardware gains remain mechanism evidence until exact target-lane reproduction.
+- No canonical target movement without exact target-lane evidence or exceptional explicit justification.
 - P69 remains isolated.
