@@ -14,36 +14,24 @@
 
 3. Read the newest genuinely fresh/update search delta:
 
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-10-1414.md`
+
+   **The 14:14 note is authoritative for workload-shaped cache-block sizing and agent TTFT/task-wall evidence, rMLX single-producer round telemetry/sink truth, packaged custom-kernel ABI provenance, per-step fast-prefill target/draft eligibility, UVA buffer-generation lifetime, hybrid attention-vs-recurrent distributed state mapping, small-M shape-aware dispatch, the official DeepSeek V4.1 Flash architecture update, and the refreshed Affine4 long-context backfill.**
+
+4. Retain the immediately previous search delta:
+
    `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-10-0911.md`
 
-   **The 09:11 note is authoritative for the completed oMLX #3553 Flash-Next bit-exact-vs-tolerance benchmark decomposition, equal-acceptance cycle-cost methodology, DeepSeek V4.1 Flash architecture/Engram implications, independently quantized MTP-head evidence, V4.1 quant-block/streamed-conversion requirements, and the current exact-target screening result.**
+   **The 09:11 note remains authoritative for the completed oMLX #3553 Flash-Next bit-exact-vs-tolerance benchmark decomposition, equal-acceptance cycle-cost methodology, independently quantized MTP-head evidence, V4.1 streamed conversion/quant-block requirements, and its exact-target screening result.**
 
-4. Retain the immediately previous genuinely fresh search delta:
+5. Retain the 06:01 and 00:16 deltas:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-10-0601.md`
+   - `RESEARCH-WATCH-2026-09-10-0601.md` — M5-Max Flash-Next cold-prefill/PLE-overlap, two-Mac reliable Metal synchronization, execution-shape-specific decode/MTP/QSA work, K-only sparse-indexer memory, graph-address identity, replay-boundary retention and benchmark-window provenance;
+   - `RESEARCH-WATCH-2026-09-10-0016.md` — BACKFILL / SOURCE-CORRECTION for the previously under-mined r/oMLX Flash-Next thread: realistic 120K/150K harness receipts, oQ5e memory/robustness, MTPLX speed-versus-reliability, 64-GB-class viability, PLE/N-gram residency and task-wall consequences.
 
-   **The 06:01 note remains authoritative for M5-Max Flash-Next cold-prefill/PLE-overlap evidence, two-Mac Metal fast-sync correctness, initial execution-shape-specific Flash decode/MTP/QSA work, K-only sparse-indexer memory, equal-total-token graph-address correctness, replay-boundary retention and benchmark-window provenance.**
+6. Retain the 2026-09-09 deltas for DS4 selective projection/quant-shape behavior, full-machine-residency provenance, PP speculative ownership, recurrent rollback, UVA PLE/Engram work, quantized-FA compiled capability, routed-MoE tile geometry, RTX5070Ti capacity evidence, Atlas concurrency ownership, oMLX replay boundaries and vLLM concurrency/soak attribution.
 
-5. Retain the source-correction/backfill delta:
-
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-10-0016.md`
-
-   **The 00:16 note fully incorporates the previously under-mined r/oMLX Flash-Next thread: realistic 120K/150K harness receipts, oQ5e memory/robustness evidence, MTPLX speed-versus-reliability evidence, 64-GB-class viability, conditional PLE/N-gram residency, runtime-engine deltas, and tokens-to-solution/task-wall-clock consequences. It is BACKFILL / USER RECEIPT / TRANSFER evidence and moves no target.**
-
-6. Retain the previous runtime deltas:
-
-   - `RESEARCH-WATCH-2026-09-09-2034.md` — DS4 selective-projection Q4 phase/shape behavior, fused sparse-index score/top-k/attend contracts, quant-format matrix-shape cliffs, direct-visible versus staged-copy control traffic, Blazer co-design implications;
-   - `RESEARCH-WATCH-2026-09-09-1752.md` — full-machine-residency benchmark provenance, PP speculative broadcast operand lifetime/device happens-before, rMLX single-source recurrent rollback/state construction, shared-KV read-only ownership;
-   - `RESEARCH-WATCH-2026-09-09-1402.md` — Qwen3.8-Flash-Next UVA PLE offload / Engram parallelism, NVFP4 packed gathered top-k projection, backend dispatch-limit qualification;
-   - `RESEARCH-WATCH-2026-09-09-0941.md` — rMLX request-record provenance, quantized-FA compiled-capability provenance, routed-MoE active-expert tile geometry;
-   - `RESEARCH-WATCH-2026-09-09-0628.md` — exact RTX5070Ti IQ4_XS 256K capacity lane, Atlas concurrent-MTP ownership/counter regression, round/acceptance invariants, oMLX boundary materialization, vLLM mixed-concurrency/tail-ring/soak attribution;
-   - retain 2026-09-08 and older dated deltas for remaining QSA, GDN/projection, recurrent rollback, cache lifecycle, concurrency and provenance evidence.
-
-7. Also retain:
-
-   `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md`
-
-   as **BACKFILL / future serving research**, not fresh target evidence. It does not interrupt P69.
+7. Also retain `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md` as **BACKFILL / future serving research**, not fresh target evidence. It does not interrupt P69.
 
 8. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, dated deltas newer than that remain part of the evidence chain.
 
@@ -53,11 +41,11 @@
 
 # Freshness discipline
 
-The latest completed external search covers sources strictly after the prior boundary **2026-09-10 10:07:43 UTC** through the end of the current search.
+The latest completed external search covers sources strictly after the prior boundary **2026-09-10 13:23:11 UTC** through the end of the current search.
 
-**Hard source-freshness boundary for the next external search: 2026-09-10 13:23:11 UTC.**
+**Hard source-freshness boundary for the next external search: 2026-09-10 18:22:16 UTC.**
 
-This is the end-of-search boundary, not the later repository-write timestamp. Future passes must search strictly after this source boundary; repository-only commits must never create a source-search gap.
+This is the end-of-search boundary, not the later repository-write timestamp. Future passes must search strictly after this source boundary; repository-only commits must never create a source-search gap. Refreshed/rebased metadata does not make older benchmark evidence fresh.
 
 ---
 
@@ -70,73 +58,107 @@ This is the end-of-search boundary, not the later repository-write timestamp. Fu
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 09:11 pass moves no row.**
+**The 14:14 pass moves no row.**
 
 Important Flash interpretation from the canonical target file:
 
 - **40 tok/s** remains the B1 short/medium working target;
-- the separate ~128K ladder remains the recorded **20 / 25 / 30 / 35 tok/s** confidence ladder;
+- the separate ~128K ladder remains **20 / 25 / 30 / 35 tok/s**;
 - **400 tok/s** remains the realistic cold-prefill working target.
 
-No new exact dual-M1/TB4 receipt was found this pass.
+No new exact dual-M1/TB4 rate receipt was found this pass.
 
 ---
 
-# Current newest incorporated evidence — 2026-09-10 09:11 ET
+# Current newest incorporated evidence — 2026-09-10 14:14 ET
 
-## UPDATE / oMLX #3553 — completed Flash optimization decomposition
+## FRESH / oMLX #3557 — cache block size is a workload parameter
 
-The post-cutoff update completes the benchmark analysis for M5 Max 128 GB / Flash-Next oQ4e / SSD PLE.
+M3 Max 64 GB / Qwen3.8-27B-oQ4e-mtp / native MTP3 / FP16 KV / 20 coding-agent tasks, same build with only paged-cache block size changed **4096 -> 512**:
 
-The important methodological result is that **wall-ms per speculative cycle and acceptance/continuation must be reported separately**. Tolerance-level QSA/indexer changes can flip near-tie routing, fork the greedy continuation and thereby alter acceptance and tokens/cycle without those changes being kernel speed.
+- prefix hit rate **59.8% -> 88.7%**;
+- tokens re-prefilled / attempt **13,892 -> 4,957 (-64.3%)**;
+- TTFT **18.35 s -> 5.92 s (-67.7%)**;
+- decode **45.65 -> 44.02 tok/s (-3.6%)**;
+- full suite wall **2512.6 -> 1546.2 s (-38.5%)**.
 
-Pinned depth-3 wall-cycle saving grows with context from roughly **1.2% at 16K** to **8.6% at 65K**, **12.8% at 136K** and **16.2% at 210K**.
+The existing 4096 geometry-derived page is a poor fit for a stable ~3.6K system prompt and ~3.9-4.1K early turns because the reusable prefix may never complete a whole page. This is reuse/granularity evidence, **not a direct prefill-kernel speed measurement**.
 
-A separate bit-exact/control-flow arm retains **57-100%** of the measured cycle saving across those cells, with equal-acceptance throughput gains of approximately **+1.2 / +6.0 / +10.0 / +14.1%** at 16K / 65K / 136K / 210K. The additional tolerance-level kernels add smaller incremental equal-acceptance gains while requiring a separate correctness lane.
+**Promotion:** once serving is correct, sweep block/page size against representative agent traffic. Record stable-prefix length, cache-hit rate, re-prefilled tokens, TTFT, decode and end-to-end task wall separately. A small decode tax can be an excellent trade for much less repeated prompt work.
 
-**Promotion:**
+## FRESH / rMLX #555 — one authoritative per-round event and sink-derived telemetry
 
-- record wall-ms / verify cycle at equal acceptance;
-- strict bit-exact lane versus tolerance-certified lane;
-- never count continuation luck as kernel speed;
-- tolerance QSA/indexer work needs teacher-forced NLL/logit/top-k/route drift plus task behavior;
-- recurrent/GDN changes retain long-output parity;
-- n=1, verify 2..8, narrow-fold 2..15 and large-M prefill remain distinct cells.
+Commit `7d5ebefd63895aeadfcde2632e02172f7323edfa`, **15:27:28 UTC**.
 
-This is exact-model Apple transfer evidence on a stronger M5, not a dual-M1 numeric receipt.
+Seven speculative loops now report through one `RoundReport`/`log_round` seam. The work exposed incorrect proxy-derived telemetry: `refolded` must come from actual recurrent refold work, and `n_committed` must be what the sink actually emitted after budget/stop clipping. Missing facts are omitted rather than written as zero; duplicate round events are removed; empty/missing-field comparisons fail closed and coverage is reported per cell.
 
-## FRESH / vLLM #56228 — DeepSeek V4.1 Flash future architecture lane
+**Promotion:** a telemetry field naming an action must come from the actual side effect/sink, not nearby control-flow arithmetic. Event target + field schema + reader copy are provenance.
 
-Merged **2026-09-10 12:16:26 UTC**.
+## FRESH / oMLX #3558 — packaged Python/native-kernel ABI is execution identity
 
-The implementation introduces first-class conditional Engram/n-gram memory with CPU/UVA-capable lookup and architecture-specific compressed-state handling. This strengthens the durable sparse/offload thesis but also demonstrates that V4.1 is a distinct architecture lane rather than a transparent DS4-0731 continuation.
+Commit `b6f64a86b0f18d0055c625c1a3f67916d3240447`, **15:26:24 UTC**.
 
-**Promotion:** keep V4.1 as future architecture research until a runnable quant/offload artifact exists. Do not move the current DS4-0731 rate row from V4.1 architecture evidence alone.
+The Mac app now refuses a custom-kernel build whose CPython implementation/cache tag/version/extension suffix differs from the bundled donor runtime, and validates the staged `_ext*.so` files after copy to catch stale artifacts.
 
-## FRESH / vLLM #54574 — separate/quantized MTP LM head
+**Promotion:** compiled capability provenance includes runtime-loader ABI and staged extension identity. A build-time import does not prove the packaged app can load/execute the kernel.
 
-Merged **2026-09-10 12:26:32 UTC**.
+## FRESH / vLLM #56145 — fast-prefill target/draft topology and per-step arming
 
-A separate W4A16 MTP LM head retains mean acceptance length very close to the shared/native-style external-MTP control in the reported cross-model accelerator test: roughly **4.31565 -> 4.28227**.
+Commit `e6cb56337b49e606f55fde1870adbbb051e23f9f`, **17:36:04 UTC**.
 
-**Promotion for Blazer:** treat MTP-head precision as an independent quant variable. Sensitivity-map and certify the head separately and include draft-head quant/config identity in full execution provenance.
+KV-sharing fast prefill is defined over a contiguous suffix of eligible **target** layers; speculative draft layers can register after the target and share KV but must not extend/break that target suffix. The helper can decline the fast path per step for no-prefill, full-graph capture, multiple microbatches or missing logits-index metadata.
 
-Different model/runtime/accelerator: transfer only, no Apple rate transfer.
+**Promotion:** configured fast-prefill is not armed/executed fast-prefill. Record target-vs-draft topology and per-step arm/fallback reason.
 
-## FRESH / llama.cpp #28696 — exact V4.1 quant metadata and streamed Engram conversion
+## FRESH / vLLM #55819 — UVA-backed writes require explicit slot lifetime
 
-Created **2026-09-10 10:23:42 UTC**, updated through at least **12:56:28 UTC** during the pass.
+Commit `2e0ee66cab1e7a0fd2ccfb0992a0e4b5e940196d`, **14:27:16 UTC**.
 
-Key findings:
+UVA-backed state writes can avoid an extra H2D copy, but buffer-pool reuse/growth must retire prior GPU readers first.
 
-- V4.1 FP8 block geometry is `[32,32]`, not the inherited V4 `[128,128]`; the wrong inherited value can silently rescale dequantized weights.
-- each of two Engram tables is reported as **384,006,168 x 256**;
-- whole-table float32 dequant would require roughly **393 GB scratch per table**;
-- conversion therefore streams row blocks into a disk-backed memmap;
-- a full conversion on 121 GiB host RAM produced 1046 tensors and a **507.9 GB Q8_0** artifact with MXFP4 experts while adding under 8 GB peak host memory;
-- the converted artifact still does **not** load in the inherited runtime because V4.1 lacks tensors that graph expects.
+**Promotion:** direct-visible/UVA-like control buffers require backing-storage + slot/generation identity and explicit reader-lifetime synchronization.
 
-**Promotion:** exact quant block/group metadata is model identity; family defaults are unsafe. Giant conditional-memory components require streamed/offload-first conversion. Successful low-scratch conversion does not prove inference fit or speed.
+## FRESH / vLLM #55531 — hybrid distributed state mapping is cache-group aware
+
+Commit `7cdd9304ae2e46572f220741bf86e0b3c2da569c`, **18:12:15 UTC**.
+
+Hybrid attention + recurrent/Mamba state under distributed context parallelism now requires compatible local/remote sharding; attention prefix-block mapping is applied to attention cache groups rather than blindly to recurrent-state groups.
+
+**Promotion:** QSA/KV blocks and GDN/recurrent state keep distinct ownership/transfer schemas. Peer sharding/interleave compatibility is part of the handshake and executed provenance.
+
+## FRESH / llama.cpp #28457 — small-M dispatch must depend on M as well as N/K
+
+Commit `6788edb4f325c1cb4210997eb79edcab2e27aeaa`, **17:20:18 UTC**.
+
+Vulkan Qwen work changes small-vs-medium tile selection from N-only to M+N, permits split-K at small M when appropriate and adds an eligible m=1 operand-swap path, with boundary tests around M and width transitions.
+
+**Promotion for Blazer:** mechanism only, but Q5/Q6/custom mixed-bit dispatch should key on actual M/N/K + quant format + verify width. Keep n=1 decode and small-M MTP verification separate.
+
+## FRESH / OFFICIAL — DeepSeek V4.1 Flash architecture
+
+DeepSeek's 2026-09-10 release identifies V4.1 Flash as a **552B MoE** using a new asymmetric **Causal-Encoder-Decoder**, with **8B active input** and **16B active output**, and native multimodality. DeepSeek states KV-cache HBM demand is **1/4** and SSD demand **1/8** of the prior generation and reports **437x** smaller KV than its first generation.
+
+**Promotion:** this strengthens the future sparse-active-bandwidth/offload thesis, but it does not prove M1 fit and does not redefine DS4-0731. Keep V4.1 as a separate future architecture lane until a real quant/offload/runtime artifact establishes placement and traffic.
+
+## UPDATE / BACKFILL — oMLX #3499 Affine4 long-context KV
+
+The PR was refreshed after the cutoff, but underlying implementation/benchmark work carries earlier author dates/rebases, so the numeric cells are preserved as **UPDATE/BACKFILL rather than fresh target evidence**.
+
+Current reported M5 Pro 48-GB / Qwen3.8-27B Affine4 cells include **291.9 PP / 12.3 TG at 150K** and **250.0 PP / 11.8 TG at 200K**; logical attention KV at 200K is reported **12.21 GiB native -> 3.71 GiB Affine4 (-69.6%)**. A separate 8K MTP control reports 16.9 TG off -> 36.1 TG on with 84/97 considered drafts accepted, and a 28,903-token thinking/MTP run supplies endurance evidence. Compression is lossy and general quality equivalence is not established.
+
+**Promotion:** Affine4 is a long-context capacity/control candidate. Compare task quality, teacher-forced drift, acceptance by depth, memory, PP/TTFT, TG and task wall against native/TQ controls before adoption.
+
+---
+
+# Screened / no target movement
+
+- oMLX #3553 has a post-cutoff metadata update but the same `a04d2408...` head/material benchmark evidence already incorporated in the 09:11 watch; do not double-count it.
+- No new post-cutoff exact receipt for 2x M1 Max64/TB4 Flash-Next.
+- No new post-cutoff exact receipt for 2x M1 Max64/TB4 DS4-0731.
+- No new post-cutoff one-M1-Max64 canonical mature Qwen3.8-27B target cell.
+- No new post-cutoff RTX5070Ti16 fully-resident Q3_K_XL/native-MTP canonical speed cell.
+- Search surfaced older M1-Max64 27B and RTX community receipts, but they predate this boundary and are not fresh evidence.
+- No post-cutoff `antirez/ds4` main change supplied stronger exact target evidence.
 
 ---
 
@@ -148,50 +170,50 @@ Keep **PP2/layer ownership primary and TP2 as control**.
 
 Add/strengthen:
 
-1. equal-acceptance wall-ms/cycle as a first-class speculative performance metric;
-2. bit-exact and tolerance-level kernel lanes;
-3. acceptance/continuation changes excluded from kernel-speed credit;
-4. teacher-forced route/distribution drift for tolerance QSA/indexer changes;
-5. long-output recurrent parity after GDN fusion;
-6. n=1 / 2..8 verify / 2..15 narrow-fold / large-M prefill separate cells;
-7. all 06:01 reliable-sync, PLE-overlap, graph-layout, cache-boundary and prior ownership/concurrency/soak gates remain.
+1. workload-shaped cache/page-size sweep after replay correctness is stable;
+2. stable-prefix length, hit rate, re-prefill tokens, TTFT and task wall as serving metrics;
+3. packaged custom-kernel ABI + staged extension identity in compiled/executed provenance;
+4. target-vs-draft topology and per-step fast-path arm reason;
+5. type-specific attention-block versus recurrent-state transfer;
+6. generation/lifetime ownership for direct-visible/UVA-like control buffers;
+7. M/N/K/quant/verify-width-aware small-M dispatch;
+8. all prior reliable-sync, selected-row PLE overlap, graph-layout, recurrent, concurrency, soak and equal-acceptance speculative gates remain.
 
 Safe serving remains **profitable singleton MTP + plain concurrent work** until concurrency/state-isolation gates are certified.
 
 ## Single M1 Max64 Qwen3.8-27B
 
-No target movement. **P69B12 frozen/promoted; P69B13 remains next from existing measured high-leverage GDN/projection/downstream-tail profiling only.** Do not reopen P69B8, P69B9 or P69B10-C.
+No target movement. #3557 is strong workload/cache transfer evidence on M3 Max 64 GB, not an M1 numeric receipt.
+
+**P69B12 remains frozen/promoted; P69B13 remains next only from existing measured high-leverage GDN/projection/downstream-tail profiling. Do not reopen P69B8, P69B9 or P69B10-C.**
 
 ## RTX 5070 Ti16 Qwen3.8-27B
 
-No target movement. Fully-resident Q3_K_XL/native-MTP remains the speed lane; host-backed/mixed-GPU long-context configurations remain separate capacity lanes.
+No target movement. Fully resident Q3_K_XL/native-MTP remains the speed lane; older Q2/Q3/Q4 and host-backed/long-context results remain separate evidence cells.
 
 ## Dual-M1 DS4-0731
 
-No target movement. V4.1 is future architecture evidence, not an exact DS4-0731 benchmark receipt.
+No target movement. V4.1 is a distinct future architecture lane, not an updated DS4-0731 rate receipt.
 
-## Future custom 5.x-bit / Blazer
+## Future Blazer / 5.x-bit
 
-Add:
-
-- independently quantized MTP head;
-- exact per-artifact block/group metadata ingestion;
-- streamed conversion for giant conditional-memory tables;
-- bit-exact versus tolerance certification lanes;
-- acceptance-by-depth and task-wall-clock in the objective.
+Add workload-shaped cache granularity, M/N/K/quant/verify-width-aware dispatch, independently tunable MTP-head precision, packaged ABI/runtime-loaded-kernel provenance, cache-group-aware distributed ownership, and task-wall/quality certification alongside raw rate.
 
 ---
 
 # Standing decisions strengthened
 
-- Kernel speed and speculative acceptance are separate observables.
-- Equal-acceptance cycle cost is first-class for speculative optimization.
-- Bit-exact improvements should be promoted independently of tolerance-level improvements.
-- Tiny recurrent/indexer differences can fork long continuations.
-- MTP-head precision need not equal backbone precision.
-- Exact quant block/group metadata is part of model identity.
-- Giant Engram/conditional-memory components should be streamed/offloaded rather than expanded whole.
-- DeepSeek V4.1 Flash is a future architecture lane and does not redefine DS4-0731.
-- Cross-runtime/cross-hardware evidence does not move exact-target rates without exact target-topology reproduction.
+- Cache reuse granularity is a serving/workload parameter, not only model geometry.
+- TTFT and end-to-end task wall are first-class once TG is interactive.
+- Telemetry must report actual sink side effects, not proxy arithmetic.
+- Missing telemetry is absent, not zero; empty comparisons cannot pass.
+- Packaged loader ABI belongs in compiled/executed custom-kernel identity.
+- Fast-path configuration and per-step arming are separate provenance states.
+- Attention/KV blocks and recurrent state require type-specific distributed transfer semantics.
+- Direct-visible/UVA state needs explicit buffer-generation lifetime.
+- Small-M kernel selection must use actual M plus N/K and quant geometry.
+- DeepSeek V4.1 strengthens sparse/offload direction but does not establish M1 fit.
+- Refreshed/rebased metadata does not make older benchmarks fresh.
+- Cross-runtime/cross-hardware mechanisms do not move exact-target rates without exact target-topology reproduction.
 - **No canonical target movement.**
 - **P69 remains isolated.**
