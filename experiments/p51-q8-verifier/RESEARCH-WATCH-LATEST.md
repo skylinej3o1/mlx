@@ -12,20 +12,21 @@
 
    **This file is authoritative for TG / PP working targets and confidence. Do not reconstruct targets from watch-note prose.**
 
-3. Read the newest source-correction/backfill delta:
+3. Read the newest genuinely fresh search delta:
+
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-10-0601.md`
+
+   **The 06:01 note is authoritative for fresh M5-Max Flash-Next cold-prefill/PLE-overlap evidence, two-Mac Metal fast-sync correctness, execution-shape-specific Flash decode/MTP/QSA work, K-only sparse-indexer memory, equal-total-token graph-address correctness, replay-boundary retention and benchmark-window provenance.**
+
+4. Retain the source-correction/backfill delta:
 
    `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-10-0016.md`
 
    **The 00:16 note fully incorporates the previously under-mined r/oMLX Flash-Next thread: realistic 120K/150K harness receipts, oQ5e memory/robustness evidence, MTPLX speed-versus-reliability evidence, 64-GB-class viability, conditional PLE/N-gram residency, runtime-engine deltas, and tokens-to-solution/task-wall-clock consequences. It is BACKFILL / USER RECEIPT / TRANSFER evidence and moves no target.**
 
-4. Read the newest genuinely fresh search delta:
+5. Retain the immediately previous fresh runtime deltas:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-09-2034.md`
-
-   **The 20:34 note remains authoritative for the latest post-cutoff search evidence: DS4 selective-projection Q4 phase/shape behavior, fused sparse-index score/top-k/attend contracts, quant-format matrix-shape cliffs, direct-visible versus staged-copy control traffic, and resulting 5.x-bit / Blazer co-design implications.**
-
-5. Retain the immediately previous runtime deltas:
-
+   - `RESEARCH-WATCH-2026-09-09-2034.md` — DS4 selective-projection Q4 phase/shape behavior, fused sparse-index score/top-k/attend contracts, quant-format matrix-shape cliffs, direct-visible versus staged-copy control traffic, Blazer co-design implications;
    - `RESEARCH-WATCH-2026-09-09-1752.md` — full-machine-residency benchmark provenance, PP speculative broadcast operand lifetime/device happens-before, rMLX single-source recurrent rollback/state construction, shared-KV read-only ownership;
    - `RESEARCH-WATCH-2026-09-09-1402.md` — Qwen3.8-Flash-Next UVA PLE offload / Engram parallelism, NVFP4 packed gathered top-k projection, backend dispatch-limit qualification;
    - `RESEARCH-WATCH-2026-09-09-0941.md` — rMLX request-record provenance, quantized-FA compiled-capability provenance, routed-MoE active-expert tile geometry;
@@ -44,13 +45,13 @@
 
 ---
 
-# Freshness discipline after the 2026-09-10 thread backfill
+# Freshness discipline
 
-The 00:16 ET thread incorporation is a **BACKFILL / SOURCE-CORRECTION** commit, not a new internet freshness pass.
+The 00:16 ET Reddit incorporation was a BACKFILL / SOURCE-CORRECTION and did not advance the prior boundary. The 06:01 ET pass is the next genuinely fresh search and covers sources after **2026-09-10 00:38:49 UTC**.
 
-**Hard source-freshness boundary remains: 2026-09-10 00:38:49 UTC.**
+**Hard source-freshness boundary for the next external search: 2026-09-10 10:07:43 UTC.**
 
-The next external search must search strictly after that timestamp. Do **not** use the newer repository commit timestamp as the source cutoff, or material posted between 00:38:49 UTC and the backfill commit would be skipped.
+This is the end-of-search boundary, not the later repository-write timestamp. Future passes must search strictly after this source boundary; repository-only commits must never create a source-search gap.
 
 ---
 
@@ -63,7 +64,7 @@ The next external search must search strictly after that timestamp. Do **not** u
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 00:16 backfill moves no row.**
+**The 06:01 pass moves no row.**
 
 Important Flash interpretation from the canonical target file:
 
@@ -71,61 +72,67 @@ Important Flash interpretation from the canonical target file:
 - the separate ~128K ladder remains the recorded **20 / 25 / 30 / 35 tok/s** confidence ladder;
 - **400 tok/s** remains the realistic cold-prefill working target.
 
-The Reddit receipts strengthen long-context plausibility on newer Apple silicon but do not redefine 40 tok/s as an exact dual-M1 128K receipt or target.
+The fresh M5-Max 128K cold-prefill receipt strengthens the mechanism case for 400 PP, but it is not an M1-Max numeric transfer.
 
 ---
 
-# Current newest incorporated backfill — 2026-09-10 00:16 ET
+# Current newest fresh evidence — 2026-09-10 06:01 ET
 
-Source: full user-supplied capture of the r/oMLX thread `Qwen3.8-Flash-Next-oQ4e-mtp with oMLX 0.6.4 is an absolute wonder !`.
+## FRESH / oMLX #3534 — cold Flash-Next PP and SSD-PLE overlap
 
-## BACKFILL / USER RECEIPT — realistic Apple-silicon harness context
+M5 Max 128 GB / `Qwen3.8-Flash-Next-oQ4e-mtp` / SSD PLE / MTP off:
 
-Promoted receipts include:
+- app-admin cold exact-N 16K: **1,165 -> 1,554 PP**;
+- 64K: **1,219 -> 1,433 PP**;
+- 128K: **1,243 -> 1,390 PP**;
+- generation remains essentially unchanged at ~51 TG / ~46.5 TG for 64K / 128K.
 
-- M4 Max 128 GB / Jundot oQ4e-MTP / Pi / 120K configured context / low reasoning: **stable 30+ TG** in practical use;
-- separate M4 Max 128 GB user after KV/PLE warmup: approximately **500 PP / 40 TG**, active-context denominator unspecified;
-- M5 Max daily-driver user: **>30 TG up to ~150K**, memory pressure near ~200K, with no reported oMLX loops/tool-call errors in that workload.
+Per-2048-token chunk work falls from ~1,817 -> 1,536 ms, with hyperconnection cost 250 -> 144 ms and PLE cost 248 -> 35 ms via compact selected-row upload plus lookahead gathering of the next PLE chunk while current GPU work executes.
 
-These are useful long-context user receipts, not exact dual-M1 target-lane measurements.
+**Promotion:** selected-row PLE compaction/overlap and hyperconnection PP work are first-class Flash seams. This is direct Apple/exact-model transfer evidence, not a dual-M1 rate receipt.
 
-## BACKFILL / USER RECEIPT — Q5 robustness/headroom
+## FRESH / oMLX cluster — reliable Metal synchronization is a hard gate
 
-M5 Max 128 GB report under broadly similar conditions:
+Two-Mac TCP Ring / DS4-0731 stalled twice during 64K prefill with MLX fast Metal synchronization. Changing only `MLX_METAL_FAST_SYNCH=0` completed the same 65,536-token prompt + 128-token decode.
 
-- oQ4e roughly **93 GB total-system memory**;
-- oQ5e roughly **102-103 GB total-system memory**;
-- normal prompts often indistinguishable;
-- difficult constraint/stability tasks favored Q5 in the reported examples, including fewer constraint failures and no observed Q5 reasoning loops during that user's testing.
+**Promotion:** default cluster bring-up to the reliable sync path, record the flag in provenance, and certify repeated long-context progress before measuring rates. Hardware generation was not established, so this is not an exact dual-M1 receipt.
 
-**Promotion:** treat oQ5e-class weights as the primary quality-shape candidate while retaining oQ4e as speed/control. Blazer certification must explicitly measure hard-constraint stability, loop/runaway rate and long-task completion, not only average chat quality.
+## FRESH / oMLX #3553 — Flash decode/MTP optimization depends on exact row/context shape
 
-## BACKFILL / USER RECEIPT — MTPLX speed/control versus reliability
+M5 Max draft work on the exact Flash model shows:
 
-Multiple M5/M2 users report large MTPLX TG gains, including roughly **50-100%** gains and a **70-75 TG** M5-Max report, but users also report loops/hallucinations and returning to slower oMLX for reliability.
+- selected-KV gathered QSA decode: MTP gains up to **+6.8%** at a reported 134K rung;
+- verify GDN fusion must preserve precise recurrent numerics; a tiny exp mismatch can fork output hundreds of tokens later;
+- grouped quantized projections can help 2..8 verify rows while losing **1.6-2.4%** on single-row decode;
+- keeping a parked MTP head primed can restore profitable long-context re-entry;
+- 2..15-row gathered QSA at long context gives **+4.6% at 82K code**, with head-cycle time 3.4 -> 1.8 ms;
+- prompt-lookup n-gram drafts (-10 to -20%), a proposed block-sparse prefill kernel (3.6x slower), and an MMA GDN prefill recurrence rewrite were measured negative/low-leverage.
 
-**Promotion:** MTPLX is a frontier speed/control runtime to mine. Promotion requires same-weight/config behavioral parity, tool-call/state correctness, MTP acceptance and output/task certification.
+**Promotion:** certify n=1 decode, 2..8 verify rows, 2..15 committed-head folds and large-M prefill as separate execution cells. Do not generalize a kernel win across phases.
 
-## BACKFILL / USER RECEIPT — 64 GB viability, not exact M1 proof
+## FRESH / llama.cpp #28330 — indexer cache memory is semantically K-only
 
-One commenter reports **12-20 TG on a 64 GB Max**, but does not identify the Max generation; another commenter explicitly reports inability to get the setup running on M1 Max.
+The sparse indexer does not consume a V cache, so llama.cpp removes the unused allocation.
 
-**Do not promote this to the exact M1 Max64 lane.**
+**Promotion:** memory/context accounting must inventory actual consumed QSA/indexer state rather than mechanically price K+V.
 
-## BACKFILL / USER RECEIPT — PLE residency/offload is conditional
+## FRESH / vLLM #56237 — capture identity includes row layout and buffer address
 
-A M5 Max 128 GB user reports that disabling SSD N-gram offload improves speed while still allowing ~128K context.
+Two flattened speculative layouts can have the same total graph-token count while requiring different compressed sparse-indexer metadata. A captured graph retained an old address and consumed uncompressed context lengths after a layout transition `[2,2] -> [1,1,1,1]`. A stable-buffer ownership fix restores correct replay; the associated adaptive DS4 GSM8K result rises from severely broken accuracy to the fixed-K/no-spec range.
 
-**Promotion:** target-topology qualification must A/B resident, SSD-backed, hot-resident/cold-SSD and PP-stage-local PLE policies. Record memory headroom, context ceiling, I/O/page-fault behavior and TB4 traffic.
+**Promotion:** same token count is not graph identity. Capture provenance includes row partition, query width, compression layout and backing-buffer identity.
 
-## BACKFILL / TRANSFER — runtime and task-efficiency metrics
+## FRESH / vLLM #54713 — keep multiple valid replay boundaries
 
-The thread also strengthens two methodological requirements:
+Block-aligned hybrid speculative prompts can require one boundary for an exact resend and another for a longer sibling. Retaining only the higher one can collapse exact-replay cache reuse.
 
-- same-model GGUF-to-oMLX anecdotal jumps as large as **10-32 -> 35-70 TG** show that runtime/graph/kernel identity can dominate nominal quant labels;
-- a reported slower DS4-family model sometimes reached similar answers with fewer tokens, reinforcing **tokens-to-solution / task wall-clock** as a first-class agent metric.
+**Promotion:** cache certification must cover exact resend, sibling append and MTP/recurrent restoration at aligned boundaries.
 
-A newer M5 mlx-serve/NAX report of roughly **52 TG sustained across ~50K output tokens / ~1200 PP** remains a stronger-hardware/runtime ceiling receipt only.
+## FRESH / rMLX #554 — preserve rate provenance under host jitter
+
+A client/engine rate cross-check was flaky under load because its wall-clock decode window was too short. rMLX keeps the 10% agreement band and widens the plain measurement window instead of relaxing the provenance rule.
+
+**Promotion:** use sufficiently long decode windows and retain strict client/engine agreement; host jitter is not grounds to widen the acceptable identity band.
 
 ---
 
@@ -137,16 +144,18 @@ Keep **PP2/layer ownership primary and TP2 as control**.
 
 Add/strengthen:
 
-1. usable-context TG cells at 32K / 64K / ~128K / capacity edge;
-2. cold versus warm KV/PLE state as mandatory provenance;
-3. resident versus SSD-backed versus hybrid PLE policy A/B;
-4. oQ5e-class primary quality-shape candidate; oQ4e speed/control;
-5. MTPLX as speed-control implementation, never automatic production baseline;
-6. loop/runaway, tool-call integrity, long-task completion and tokens-to-solution metrics;
-7. context headroom and allocator stability in quant utility;
-8. all previous quant-shape, QSA paired-backend, recurrent ownership, rollback, boundary-materialization, resident-engine, concurrency and soak gates remain.
+1. reliable Metal sync as initial cluster baseline and provenance;
+2. repeated 64K+ distributed completion before rate promotion;
+3. selected-row PLE compaction + asynchronous next-chunk gather;
+4. profile hyperconnection PP separately from PLE and attention;
+5. separate n=1 / verify 2..8 / narrow-fold 2..15 / large-M prefill kernel cells;
+6. captured QSA metadata identity includes actual row layout and buffer ownership;
+7. semantic K-only indexer memory accounting where appropriate;
+8. multiple replay boundaries for exact resend and sibling extension;
+9. long-output recurrent parity after fused-kernel changes;
+10. retain the 00:16 Q5/MTPLX/PLE-residency/task-efficiency backfill and all prior ownership/concurrency/quant/soak gates.
 
-Safe serving remains **profitable singleton MTP + plain concurrent work** until the existing concurrency/state-isolation gates are certified.
+Safe serving remains **profitable singleton MTP + plain concurrent work** until concurrency/state-isolation gates are certified.
 
 ## Single M1 Max64 Qwen3.8-27B
 
@@ -154,25 +163,25 @@ No target movement. **P69B12 frozen/promoted; P69B13 remains next from existing 
 
 ## RTX 5070 Ti16 Qwen3.8-27B
 
-No target movement. Fully-resident Q3_K_XL/native-MTP remains the speed lane; host-backed long-context configurations remain a separate capacity lane.
+No target movement. Fully-resident Q3_K_XL/native-MTP remains the speed lane; host-backed/streamed long-context configurations remain a separate capacity lane.
 
 ## Dual-M1 DS4-0731
 
-No target movement. Cross-model task-efficiency anecdotes affect the evaluation harness, not the exact hardware rate.
+No target movement. The new two-Mac synchronization result changes the correctness gate, not the rate.
 
 ---
 
 # Standing decisions strengthened
 
-- Real agent usability must be measured at realistic active context.
-- Warm KV/PLE state is benchmark provenance.
-- PLE residency policy is hardware/memory/context dependent.
-- Q5's probable value is difficult-tail robustness/headroom more than obvious normal-chat gains.
-- MTPLX is a valuable speed-control implementation but requires correctness certification before adoption.
-- Runtime implementation can dominate nominal BPW/model choice.
-- Quant utility includes quality-tail robustness, TG, PP, MTP acceptance, memory, usable context and allocator stability.
-- Agent evaluation includes tokens-to-solution / task wall-clock, not TG alone.
-- The future custom 5.x-bit / Blazer project continues to co-design sensitivity, packing, group geometry, sparse gathers, MTP small-M kernels and PP stage balance.
-- Cross-runtime/cross-hardware user receipts do not move exact target rates without target-topology reproduction.
-- **No canonical target movement.**
+- Cold PP remains a large optimization surface even with SSD-backed PLE.
+- PLE selected-row work should be compacted and overlapped rather than serialized.
+- Distributed synchronization mode is part of benchmark identity.
+- Flash kernels are phase/row/context specific.
+- Same total token count does not prove captured graph-layout equivalence.
+- Sparse indexer memory follows actual state consumption.
+- Cache replay has more than one useful boundary under hybrid speculation.
+- Recurrent numerical correctness must survive long downstream generation.
+- Benchmark rate identity should be made robust with longer windows, not looser agreement bands.
+- Cross-runtime/cross-hardware mechanisms do not move exact-target rates without exact target-topology reproduction.
+- **No canonical target movement this pass.**
 - **P69 remains isolated.**
