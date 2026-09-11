@@ -51,24 +51,28 @@ This is the end-of-search boundary, not the later repository-write timestamp. Fu
 
 ---
 
-# Canonical target calibration — unchanged
+# Canonical target calibration — target-definition correction applied 2026-09-10
 
-| Model / hardware | Working TG | Confidence | Working cold PP | Confidence |
+| Model / hardware | Working TG | Confidence / status | Working cold PP | Confidence |
 |---|---:|---:|---:|---:|
-| **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s** | **~55-60%** | **400 tok/s** | **~55-60%** |
+| **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s @ ~128K active context** | **planning objective; exact confidence not separately calibrated** | **400 tok/s** | **~55-60%** |
 | **Qwen3.8-27B — M1 Max 64** | **25 tok/s** | **~55-60%** | **110 tok/s native/exact-runtime** | **~60%** |
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 19:28 pass moves no row.**
+**The 19:28 external-search pass itself moved no target.** A later repository-only correction restored
+the intended Flash target denominator; this does **not** advance the source-freshness boundary.
 
 Important Flash interpretation from the canonical target file:
 
-- **40 tok/s** remains the B1 short/medium working target;
-- the separate ~128K ladder remains **20 / 25 / 30 / 35 tok/s**;
-- **400 tok/s** remains the realistic cold-prefill working target.
+- **40 tok/s sustained at ~128K active context** is the headline dual-M1 Flash working target;
+- the short/medium 30/35/40/45/50 ladder is now explicitly a **secondary bring-up calibration**, not the headline target;
+- the old September 4 ~128K **20 / 25 / 30 / 35** confidence ladder is retained only as historical evidence calibration and must not be mistaken for the target itself;
+- reaching ~40 tok/s only at short/medium context while collapsing near 128K does **not** meet the system goal;
+- **400 tok/s** remains the realistic cold-prefill working target;
+- 40 @ ~128K remains a **planning target / hypothesis**, not a measured exact dual-M1/TB4 receipt.
 
-No new exact dual-M1/TB4 rate receipt was found this pass.
+No new exact dual-M1/TB4 rate receipt was found in the 19:28 pass.
 
 ---
 
@@ -172,5 +176,5 @@ Add distributed-shard ownership and scratch/workspace slot identity to the execu
 - Exact simultaneous B2/B3/B4 certification remains mandatory.
 - Refreshed/rebased metadata does not make older benchmark execution fresh.
 - Cross-runtime/cross-hardware mechanisms do not move exact-target rates without exact target-topology reproduction.
-- **No canonical target movement.**
+- **The 19:28 external pass moved no target; the later repo-only correction restores the intended Flash 40 TG @ ~128K target definition.**
 - **P69 remains isolated.**
