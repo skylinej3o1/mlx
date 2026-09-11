@@ -6,52 +6,48 @@
 
    `experiments/p51-q8-verifier/RESEARCH-STATE.md`
 
-2. Read the canonical performance targets and planning-confidence ladders:
+2. Read the canonical performance targets and planning-confidence definitions:
 
    `experiments/p51-q8-verifier/RESEARCH-TARGETS.md`
 
-   **This file is authoritative for TG / PP working targets and confidence. Do not reconstruct targets from watch-note prose.**
+   **This file is authoritative for TG / PP target identity. Context is part of the target identity.**
 
 3. Read the newest genuinely fresh/update search delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-10-1928.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-0026.md`
 
-   **The 19:28 note is authoritative for the fresh oMLX #3566 `qwen4_exp` distributed TP strategy, rMLX #557 semantic-population charge/sampling gates, vLLM #56098 per-stream/capture split-K workspace ownership, the rebased oMLX #3040 forward-progress watchdog backfill, and this pass's exact-target screening result.**
+   **The 00:26 note is authoritative for fresh oMLX #3553 M3-Ultra machine-exclusive A/B and content-shape evidence, the stronger long-context M5 equal-acceptance / bit-exact decomposition, rMLX #558 population-relation gate hardening, vLLM heterogeneous-PP completion ownership, MTP ragged sparse-attention routing, deferred-free capacity semantics, and oMLX cluster-pairing recovery.**
 
-4. Retain the immediately previous search delta:
+4. Retain the immediately previous fresh search deltas:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-10-1715.md`
+   - `RESEARCH-WATCH-2026-09-10-1928.md` — concrete qwen4_exp TP2 control strategy, rMLX semantic-population charge/sampling gates, vLLM per-stream/capture split-K workspace ownership, forward-progress watchdog backfill;
+   - `RESEARCH-WATCH-2026-09-10-1715.md` — rMLX shared-round-skeleton mutation gates, narrowed #3468 SSD expert-streaming classification, prompt-cache requested/planned/measured/effective semantics;
+   - `RESEARCH-WATCH-2026-09-10-1414.md` — workload-shaped cache blocks, agent TTFT/task wall, sink-truth telemetry, packaged custom-kernel ABI, fast-prefill arming, UVA lifetime and hybrid distributed mapping;
+   - `RESEARCH-WATCH-2026-09-10-0911.md` — bit-exact-vs-tolerance cycle decomposition, equal-acceptance methodology, quantized MTP-head evidence and conversion/quant-block requirements;
+   - `RESEARCH-WATCH-2026-09-10-0601.md` — M5 Flash cold-prefill/PLE overlap, reliable two-Mac Metal synchronization, QSA/MTP shape work and graph-address/replay-boundary retention;
+   - `RESEARCH-WATCH-2026-09-10-0016.md` — BACKFILL / SOURCE-CORRECTION for the under-mined r/oMLX Flash thread: 120K/150K harness receipts, oQ5e memory/robustness, MTPLX speed-vs-reliability, 64-GB viability, PLE/N-gram residency and task-wall consequences.
 
-   **The 17:15 note remains authoritative for rMLX #556's mutation-checked shared-round-skeleton design, the narrowed oMLX #3468 SSD expert-streaming implementation/capacity-only benchmark classification, and oMLX #3063 requested/planned/measured/effective prompt-cache retuning semantics.**
+5. Retain the 2026-09-09 deltas for DS4 selective projection/quant-shape behavior, full-machine-residency provenance, PP speculative ownership, recurrent rollback, UVA PLE/Engram work, quantized-FA compiled capability, routed-MoE tile geometry, RTX5070Ti capacity evidence, Atlas concurrency ownership, oMLX replay boundaries and vLLM concurrency/soak attribution.
 
-5. Retain the 14:14, 09:11, 06:01 and 00:16 deltas:
+6. Also retain `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md` as **BACKFILL / future serving research**, not fresh target evidence. It does not interrupt P69.
 
-   - `RESEARCH-WATCH-2026-09-10-1414.md` — workload-shaped cache blocks and agent TTFT/task wall, sink-truth telemetry, packaged custom-kernel ABI, fast-prefill target/draft arming, UVA lifetime, hybrid distributed state mapping, small-M dispatch, V4.1 architecture and Affine4 backfill;
-   - `RESEARCH-WATCH-2026-09-10-0911.md` — Flash bit-exact-vs-tolerance cycle decomposition, equal-acceptance methodology, quantized MTP-head evidence and V4.1 streamed conversion/quant-block requirements;
-   - `RESEARCH-WATCH-2026-09-10-0601.md` — M5 Flash cold-prefill/PLE overlap, two-Mac reliable Metal synchronization, QSA/MTP shape work, graph-address identity and replay-boundary retention;
-   - `RESEARCH-WATCH-2026-09-10-0016.md` — BACKFILL / SOURCE-CORRECTION for the under-mined r/oMLX Flash thread: realistic 120K/150K harness receipts, oQ5e memory/robustness, MTPLX speed-versus-reliability, 64-GB viability, PLE/N-gram residency and task-wall consequences.
+7. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, dated deltas newer than that remain part of the evidence chain.
 
-6. Retain the 2026-09-09 deltas for DS4 selective projection/quant-shape behavior, full-machine-residency provenance, PP speculative ownership, recurrent rollback, UVA PLE/Engram work, quantized-FA compiled capability, routed-MoE tile geometry, RTX5070Ti capacity evidence, Atlas concurrency ownership, oMLX replay boundaries and vLLM concurrency/soak attribution.
-
-7. Also retain `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md` as **BACKFILL / future serving research**, not fresh target evidence. It does not interrupt P69.
-
-8. Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, dated deltas newer than that remain part of the evidence chain.
-
-9. Read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when mining portable kernel candidates.
+8. Read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when mining portable kernel candidates.
 
 ---
 
 # Freshness discipline
 
-The latest completed external search covers sources strictly after the prior boundary **2026-09-10 21:24:31 UTC** through the end of the current search.
+The latest completed external search covers sources strictly after **2026-09-10 23:28:08 UTC** through the end of the current search.
 
-**Hard source-freshness boundary for the next external search: 2026-09-10 23:28:08 UTC.**
+**Hard source-freshness boundary for the next external search: 2026-09-11 04:26:56 UTC.**
 
-This is the end-of-search boundary, not the later repository-write timestamp. Future passes must search strictly after this source boundary; repository-only commits must never create a source-search gap. Refreshed/rebased/force-pushed metadata does not make older benchmark execution fresh.
+This is the end-of-search boundary, not a repository-write timestamp. Future passes must search strictly after this source boundary; repository-only commits must never create a source-search gap. Refreshed/rebased metadata does not make older benchmark execution fresh.
 
 ---
 
-# Canonical target calibration — target-definition correction applied 2026-09-10
+# Canonical target calibration — unchanged this pass
 
 | Model / hardware | Working TG | Confidence / status | Working cold PP | Confidence |
 |---|---:|---:|---:|---:|
@@ -60,69 +56,104 @@ This is the end-of-search boundary, not the later repository-write timestamp. Fu
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-**The 19:28 external-search pass itself moved no target.** A later repository-only correction restored
-the intended Flash target denominator; this does **not** advance the source-freshness boundary.
-
 Important Flash interpretation from the canonical target file:
 
 - **40 tok/s sustained at ~128K active context** is the headline dual-M1 Flash working target;
-- the short/medium 30/35/40/45/50 ladder is now explicitly a **secondary bring-up calibration**, not the headline target;
-- the old September 4 ~128K **20 / 25 / 30 / 35** confidence ladder is retained only as historical evidence calibration and must not be mistaken for the target itself;
-- reaching ~40 tok/s only at short/medium context while collapsing near 128K does **not** meet the system goal;
-- **400 tok/s** remains the realistic cold-prefill working target;
-- 40 @ ~128K remains a **planning target / hypothesis**, not a measured exact dual-M1/TB4 receipt.
+- short/medium 30/35/40/45/50 is secondary bring-up calibration only;
+- the old September 4 ~128K 20/25/30/35 ladder is historical evidence calibration, not the target;
+- reaching ~40 only at short context while collapsing near 128K does **not** meet the system goal;
+- **400 tok/s** remains the realistic cold-prefill target;
+- 40 @ ~128K is a **planning target / hypothesis**, not a measured exact dual-M1/TB4 receipt.
 
-No new exact dual-M1/TB4 rate receipt was found in the 19:28 pass.
+The 00:26 search pass moves **no target**. Fresh Apple transfer evidence strengthens the long-context mechanism case but remains cross-hardware.
 
 ---
 
-# Current newest incorporated evidence — 2026-09-10 19:28 ET
+# Current newest incorporated evidence — 2026-09-11 00:26 ET
 
-## FRESH / oMLX #3566 — concrete `qwen4_exp` TP2 control topology
+## FRESH / MATERIAL UPDATE — oMLX #3553 long-context decode levers and new Apple A/Bs
 
-Created **22:08:36 UTC**, head `5dcadc1b177df5b87830620cbce5e2e11ed4fb53`.
+PR head `a04d2408183c130d24a968ed74732260eb55d0be`.
 
-Adds a dedicated distributed tensor strategy for `qwen4_exp` / `qwen4_exp_text`: separate GDN QKV/Z/B/A projection sharding, depthwise conv/group slicing, recurrent `A_log`/`dt_bias` value-head ownership, row-parallel GDN out-proj reduction, full-attention Q/K/V/O sharding, MoE switch/shared-expert sharding, and planner divisibility checks.
+Two post-cutoff physical comments are fresh:
 
-Validation is unit/cluster tests only: 47 focused tests and 1279 `cluster or tensor` tests pass (13 skipped). **No physical two-Mac rate receipt.**
+- **2026-09-11 02:46:46 UTC:** M3 Ultra 512 GB, machine-exclusive, all sibling engines stopped, physical tree-switch/restart between arms, 120 total requests. Decode medians main -> PR: 164.1 -> 164.5 @1K, 86.5 -> 86.9 @16K, 82.2 -> 82.8 @32K, **80.6 -> 81.5 @64K**. Baseline already includes #3520 + #3534, so #3553 is incremental rather than claiming the older gathered-QSA gain again.
+- **2026-09-11 03:39:11 UTC:** same machine-exclusive methodology across prose/code/CJK-shaped prompts. Absolute long-context throughput varies materially by content shape, and 16K code is the one negative #3553 cell (**83.9 -> 80.1, -4.5%**) despite positive prose long-context cells.
 
-**Promotion:** TP2 is now a concrete Flash-family control lane rather than a conceptual one. Compare its real collective bytes/waits against PP2 stage-boundary traffic on the exact checkpoint; keep strategy/configuration separate from materialized/executed shard provenance. PP2 remains primary until exact measurements say otherwise.
+The PR's M5 Max 128 GB body is an UPDATE / transfer record rather than fresh exact-target evidence. At pinned depth 3 the portable signal is the **equal-acceptance / bit-exact cycle decomposition**, not the raw client-TG delta on forked continuations:
 
-## FRESH / rMLX #557 — gates follow semantic ownership through the shared-loop migration
+- 16K: ~1.2% equal-acceptance bit-exact throughput gain;
+- 65K: ~6.0%;
+- **136K: ~10.0%**;
+- 210K: ~14.1%.
 
-Commit `8fc0f043e479eb3215cc6333552f223cf9c62c7e`, **22:54:32 UTC**.
+Portable levers: fused GDN verify rows, grouped quantized verify projections, narrow gathered-QSA windows for MTP-head folds and parked-head priming. Tolerance-level selected-KV/indexer kernels are kept separate because near-tie route changes can alter acceptance and continuation.
 
-Charge/sampling gates now follow classic/forwarded loops, entries and rollback/dispatch owners across the migration rather than relying on temporary function signatures. The forwarded `RoundCfg` is immutable; scanners strip comments/strings, fail closed on ambiguous config ownership and carry mutation fixtures across current/mid-migration/end-state trees.
+A critical recurrent-exactness result: a precise-vs-fast exponential difference at one BF16 gate input shifted GDN recurrent state by an FP32 ulp and could fork greedy output much later. Math-library/compiler semantics therefore belong in recurrent-kernel provenance.
 
-**Promotion:** provenance gates must follow semantic owners, gate both decision and consumption sides, prefer structural immutability over regex-only policing, and prove recall against migration-state mutations.
+**Promotions:**
 
-## FRESH / TRANSFER — vLLM #56098: split-K scratch is stream-owned execution state
+1. separate client TG from equal-work/equal-acceptance cycle cost when an optimization can change the continuation;
+2. certify actual MTP verify-row widths, not only single-row decode;
+3. grouped projections are verify-row candidates, not automatically B1 wins;
+4. preserve/prime MTP-head state across parked standard decode;
+5. include code, prose and multilingual/CJK-shaped workloads in long-context qualification;
+6. keep resident sibling engines / keepwarm state in benchmark provenance;
+7. carry measured negatives forward to avoid duplicate low-leverage exploration unless M1 profiling shows a different bottleneck.
 
-Commit `9163190dda009a310d8c175d63860ac7c671ca90`, **22:14:22 UTC**.
+This strengthens the plausibility of maintaining high TG near ~128K but **does not numerically transfer M5/M3 rates to M1 Max**.
 
-ROCm shared-expert skinny GEMM now gives split-K scratch explicit per-stream slots plus separate graph-capture slots; normal exhaustion has a safe but slower per-call fallback, and graph capture requires pre-warmed reserved storage. Split-K depth also depends on actual shard/readback geometry rather than one global threshold.
+## FRESH / rMLX #558 — cross-population invariants catch a lost loop that counts alone miss
 
-**Promotion:** scratch/workspace buffers need stream/request/generation ownership and graph-capture identity. B2/B3/B4 cannot be certified with process-global shared scratch merely because that state is temporary.
+`3ded8892c5f07918dd8a43aa09972fb744766cc4`, **2026-09-11 01:27:34 UTC**.
 
-## UPDATE / BACKFILL — oMLX #3040: heartbeat health != pipeline progress
+A bodiless trait declaration could cause the scanner to consume the following function body, losing a round loop while a newly added entry kept the total census looking plausible. The fix terminates bodiless declarations correctly and requires every forwarding entry to have a forwarded loop to enter.
 
-Current branch was recommitted at **23:08:53 UTC**, but the commit author date is 2026-08-22, so this is not fresh execution evidence.
+**Promotion:** provenance gates need relational invariants across entries/routes/loops, not only matching counts. A `lost X + gained Y` defect can preserve the total.
 
-The observation describes a two-Mac TP2 deployment where two concurrent streams wedged mid-prefill while heartbeats/processes/SSH all looked healthy. The proposed watchdog keys on `batch_steps` progress while requests are in flight; idle quiescence is explicitly not a stall.
+## FRESH / vLLM #56033 — heterogeneous PP completion includes no-op consumer stages
 
-**Promotion:** cluster liveness and forward progress are separate facts. Add monotonic in-flight progress evidence to concurrent/long-prefill qualification and keep supervisor recovery distinct from proving the underlying collective bug fixed.
+`ce08bb5b3463fd423be90d5f22c2b41142834bf6`, **2026-09-11 02:57:19 UTC**.
+
+For producer/consumer PP sizes that differ, a consumer stage with no overlapping layer still owns a completion dependency. The producer now retains KV until every consumer PP stage, including no-op pulls, finishes.
+
+**Promotion:** PP lifetime/release accounting follows topology participants, not only stages that transferred bytes.
+
+## FRESH / vLLM #55239 — ragged sparse attention can cover MTP verify rows
+
+`828f4f19b4d8ea6a97a047409a90b563d166002f`, **2026-09-11 01:13:14 UTC**.
+
+The GLM-5.3-Flash sparse Triton route now admits multi-token speculative verification because the kernel indexes metadata per query token. Tests cover 2-row and 6-row MTP verification.
+
+**Promotion:** QSA/sparse-attention eligibility should be derived from actual per-query-row capability; verify width must not silently force a dense fallback when the sparse kernel supports it.
+
+## FRESH / vLLM #49675 — deferred free is not immediately reusable capacity
+
+`84030bbe3d74d99bad477a3d2e37a973ccd8865c`, **2026-09-11 00:40:10 UTC**.
+
+Under overlapping batches/PP, in-flight output can fence KV blocks. Preempting that request cannot satisfy an immediate allocation and can trigger a zero-progress cascade. The scheduler now checks whether the victim's blocks can actually be returned before using it as an allocation victim.
+
+**Promotion:** logical retirement/preemption and physically reusable memory/state are separate facts.
+
+## FRESH / oMLX #3565 — cluster pairing recovery
+
+`48951154c06c5db408ee40ad6533c3a65ab061e7`, **2026-09-11 03:27:20 UTC**.
+
+Pairing sessions persist across joiner restart; cancellation retires the local generation even while remote cleanup is pending; delayed responses cannot resurrect the retired join.
+
+Operationally useful for eventual two-Mac serving, but **no throughput implication**.
 
 ---
 
 # Screened / no target movement
 
-- No post-cutoff oMLX mainline rate receipt; #3566 is strategy/test evidence.
-- No new post-cutoff exact 2x M1 Max64/TB4 Flash-Next rate receipt.
-- No new post-cutoff exact 2x M1 Max64/TB4 DS4-0731 rate receipt.
-- No new post-cutoff canonical one-M1-Max64 Qwen3.8-27B receipt.
-- No new post-cutoff RTX5070Ti16 fully-resident Q3_K_XL/native-MTP canonical speed receipt.
-- Exact-rig web results were older August or undated/crawled-today observations; crawl time does not make them fresh.
-- Later visible vLLM/llama.cpp activity did not provide stronger exact Apple target evidence.
+- llama.cpp main: no inspected commit after the starting cutoff.
+- antirez/ds4 main: no post-cutoff main commit.
+- no new exact 2x M1 Max64/TB4 Flash-Next sustained TG/PP receipt;
+- no new canonical one-M1-Max64 Qwen3.8-27B target receipt after the cutoff;
+- no new fully-resident Q3_K_XL/native-MTP RTX5070Ti16 canonical speed receipt after the cutoff;
+- no new exact 2x M1 Max64/TB4 DS4-0731 sustained decode receipt;
+- broad web results that were older, undated or merely crawled today were not promoted as fresh evidence.
 
 ---
 
@@ -130,51 +161,52 @@ The observation describes a two-Mac TP2 deployment where two concurrent streams 
 
 ## Dual-M1 Flash-Next
 
-Keep **PP2/layer ownership primary and TP2 as a concrete control**.
+Keep **PP2/layer ownership primary**, TP2 as concrete control.
 
 Add/strengthen:
 
-1. reproduce #3566's exact qwen4_exp shard topology for TP2 control;
-2. measure collective bytes/waits for GDN out-proj, full attention and MoE reductions versus PP2 stage-boundary traffic;
-3. verify exact checkpoint divisibility, conv groups and recurrent-head ownership;
-4. track strategy → materialized shards → collective topology → armed → executed provenance;
-5. give scratch/workspace state explicit per-concurrent-stream ownership and separate graph-capture storage;
-6. add in-flight forward-progress monitoring to B2/B3 and long-prefill stress;
-7. retain all prior reliable-sync, PLE overlap, cache-page-size, QSA/recurrent ownership, MTP equal-acceptance and soak gates.
+1. headline target remains **40 TG @ ~128K active context**;
+2. selected-K/V gathered QSA should cover B1 decode, target verify rows and narrow MTP-head committed folds when legal;
+3. GDN verify-row kernels require precise reference-math semantics plus recurrent-state and long-continuation certification;
+4. grouped quantized projections are tested specifically at verify-row widths;
+5. parked MTP-head state should remain primed through plain-decode intervals;
+6. client TG and equal-acceptance cycle cost stay separate when route tolerance can fork text;
+7. long-context matrix includes code/prose/multilingual-CJK content shapes;
+8. no-op PP stages still participate in completion/lifetime accounting;
+9. deferred release is not reusable capacity until its fence completes;
+10. machine-residency/sibling-engine state remains benchmark provenance;
+11. all prior concurrent-state/workspace/rollback/cache-boundary/forward-progress/long-soak gates remain.
 
-Safe serving remains **profitable singleton MTP + plain concurrent work** until concurrency/state/workspace isolation is certified.
+Safe serving remains **profitable singleton MTP + plain concurrent work** until simultaneous B2/B3/B4 state/workspace isolation is certified.
+
+## Future Blazer / ~5.x BPW
+
+Add exact verify-row geometry, quant-signature grouping, sparse selected-row/narrow-fold compatibility and math-implementation identity to the execution descriptor. Optimize quality + difficult-tail robustness + acceptance + equal-work cycle cost + TG + PP + memory + usable context + PP balance, not BPW alone.
 
 ## Single M1 Max64 Qwen3.8-27B
 
-No target movement. No fresh exact M1 rate receipt.
-
-**P69B12 remains frozen/promoted; P69B13 remains next only from existing measured high-leverage GDN/projection/downstream-tail profiling. Do not reopen P69B8, P69B9 or P69B10-C.**
+No target movement. **P69B12 remains frozen/promoted; P69B13 remains next only from existing measured high-leverage GDN/projection/downstream-tail profiling. Do not reopen P69B8, P69B9 or P69B10-C.**
 
 ## RTX 5070 Ti16 Qwen3.8-27B
 
-No target movement. Fully resident Q3_K_XL/native-MTP remains the canonical speed lane.
+No target movement. Fully resident Q3_K_XL/native-MTP remains the canonical speed lane; host-backed IQ4_XS remains a separate capacity lane.
 
 ## Dual-M1 DS4-0731
 
-No target movement. No fresh exact dual-M1 receipt.
-
-## Future Blazer / 5.x-bit
-
-Add distributed-shard ownership and scratch/workspace slot identity to the execution descriptor. Mixed-bit kernels must be certified under the actual small-M/verify-width/concurrency workspace regime rather than single-stream microbenchmarks only.
+No target movement. No fresh exact dual-M1 rate receipt.
 
 ---
 
 # Standing decisions strengthened
 
-- TP2 now has a concrete qwen4_exp reference strategy, but remains a control until physical two-Mac execution proves its economics.
-- Distributed support is not one fact: strategy definition, materialized shard shapes, collectives, arming and execution are separate.
-- Source/provenance gates must follow semantic ownership across refactors.
-- Prefer structural immutability over regex-only mutation policing.
-- Scratch/workspace memory is owned execution state under concurrency.
-- Graph-capture scratch needs separately pre-warmed/owned storage.
-- Heartbeat health does not prove collective forward progress.
-- Exact simultaneous B2/B3/B4 certification remains mandatory.
-- Refreshed/rebased metadata does not make older benchmark execution fresh.
+- 40 TG @ ~128K remains the actual Flash headline objective.
+- Context and content shape are part of performance-cell identity.
+- Client TG on a changed continuation is not a pure kernel multiplier.
+- Recurrent exactness includes precise-vs-fast math semantics.
+- Sparse attention must qualify the actual MTP verify/narrow-window shapes.
+- PP completion counts no-op participants that own a lifetime dependency.
+- Deferred release is not reusable capacity until completion is physically established.
+- Provenance gates need cross-population relations, not only census totals.
 - Cross-runtime/cross-hardware mechanisms do not move exact-target rates without exact target-topology reproduction.
-- **The 19:28 external pass moved no target; the later repo-only correction restores the intended Flash 40 TG @ ~128K target definition.**
+- **No canonical target movement this pass.**
 - **P69 remains isolated.**
