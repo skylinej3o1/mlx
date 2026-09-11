@@ -1,6 +1,7 @@
 # Runtime TG / PP Targets and Planning Confidence
 
-Calibrated: **2026-09-04 06:40 ET**
+Calibrated: **2026-09-04 06:40 ET**  
+Target-definition correction: **2026-09-10 ET**
 
 This is the canonical planning-target file for the three recurring model families:
 
@@ -14,9 +15,9 @@ how likely is the mature system to sustain at least this rate on the named hardw
 
 Definitions:
 
-- **TG** = sustained generation/decode throughput. Unless a row says otherwise, this means B1,
-  short-to-medium active context, normal coding/agent output, thermally stable, no cache replay
-  counted as generated tokens.
+- **TG** = sustained generation/decode throughput. For Flash-Next, the headline working target in this
+  file is explicitly a **~128K active-context B1** target. For other rows, and for Flash secondary
+  calibration ladders, the context regime is stated locally.
 - **PP** = cold prompt-processing/prefill throughput for a realistic uncached agent/document prompt,
   with prefix reuse disabled for the measurement. Tiny `pp512` microbenchmarks are not used as
   production PP rulers.
@@ -25,14 +26,33 @@ Definitions:
 - A target can move only when new direct physical evidence or a materially stronger mechanism case
   changes the planning distribution. Mechanism transfer alone should normally change the test plan,
   not silently become a measured rate.
+- **Context is part of target identity.** A short/medium-context rate must never silently substitute
+  for the ~128K Flash headline target.
+
+## 2026-09-10 target-definition correction
+
+The original 2026-09-04 normalization file accidentally made the Flash executive **40 tok/s** row
+look like a short/medium-context target while also placing a lower probability ladder under the
+~128K subsection. Subsequent project discussion clarified that the intended headline system goal is:
+
+> **Qwen3.8-Flash-Next, quality-preserving Q5-class / eventual ~5.x-BPW weights, PP2 on 2x M1 Max
+> 64 GB over TB4, ~128K active context: ~40 tok/s sustained TG, with ~400 tok/s realistic cold PP.**
+
+This correction is **not** an evidence-driven downgrade and then re-upgrade. No negative exact-target
+measurement forced 40 -> 30. It restores the intended denominator for the existing goal.
+
+The 40 @ ~128K number remains a **planning target / hypothesis**, not a measured dual-M1 receipt.
+The September 10 r/oMLX backfill adds useful stronger-Apple long-context transfer receipts (including
+30+ tok/s-class 120K-150K harness use and a separate warm ~40 tok/s report), but those do not become
+exact M1-Max/TB4 evidence.
 
 ---
 
 ## Executive working targets
 
-| Model / hardware lane | Working TG target | Confidence | Working cold PP target | Confidence |
+| Model / hardware lane | Working TG target | Confidence / status | Working cold PP target | Confidence |
 |---|---:|---:|---:|---:|
-| **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s** | **~55-60%** | **400 tok/s** | **~55-60%** |
+| **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s @ ~128K active context** | **planning objective; exact confidence not separately calibrated** | **400 tok/s** | **~55-60%** |
 | **Qwen3.8-27B — M1 Max 64** | **25 tok/s** | **~55-60%** | **110 tok/s native/exact-runtime** | **~60%** |
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
@@ -44,45 +64,65 @@ are deliberately not the 90%-confidence floors and not the low-probability stret
 
 # 1. Qwen3.8-Flash-Next — 2x M1 Max 64 GB / TB4
 
-## TG — B1 short/medium
+## TG — headline target is B1 at ~128K active context
 
-This preserves the prior canonical Flash ladder.
+**Working target: 40 tok/s sustained TG at approximately 128K active context.**
+
+This is the real interactive-system objective. Reaching ~40 tok/s only at tiny or short/medium
+context while collapsing to ~20 tok/s near 128K does **not** count as meeting the headline goal.
+
+Useful success interpretation for the mature system:
+
+| ~128K sustained B1 TG | Interpretation |
+|---:|---|
+| <25 tok/s | material miss / architecture or implementation problem |
+| 25-30 tok/s | partial success, useful but below the intended experience |
+| 30-35 tok/s | excellent practical result |
+| 35-40 tok/s | strong success |
+| **>=40 tok/s** | **headline target met; validates the main dual-M1 Flash thesis** |
+
+Why 40 remains the goal rather than a measured claim:
+
+- single-M1 Flash-Next target-only work is around ~10-13 tok/s in the known tuned lane;
+- native MTP has reached roughly ~18-22 tok/s on one M1 Max depending on context/configuration;
+- PP2/layer ownership can reduce per-node target work without requiring a chatty TP collective;
+- selected-KV/QSA, request-adaptive verify width, compiled low-occupancy decode, better cache/state
+  lifecycle and stage-local recurrent state remain real seams;
+- stronger-Apple transfer evidence now includes real 120K-150K harness usage in the 30+ tok/s class
+  and a separate warm-session ~40 tok/s report, strengthening plausibility without proving the exact
+  two-M1 target lane;
+- there is still no sustained exact physical 2x-M1 Flash TG receipt at ~128K, so this remains an
+  engineering target rather than a measured result.
+
+### Historical September 4 ~128K confidence ladder — retained for provenance, not target definition
+
+The original normalization captured this evidence-confidence ladder:
+
+| Mature B1 TG | Historical confidence |
+|---|---:|
+| >=20 tok/s | ~85% |
+| >=25 tok/s | ~65% |
+| >=30 tok/s | ~40% |
+| >=35 tok/s | ~20% |
+
+Retain it as a record of the **2026-09-04 evidence calibration**. It must not be read as saying the
+project target is 30 tok/s. The later clarification restored the intended **40 tok/s @ ~128K** goal,
+and exact-target confidence for that goal should be recalibrated only when stronger evidence warrants it.
+
+### Short/medium B1 — secondary calibration only
 
 | Mature B1 TG | Confidence |
 |---|---:|
 | >=30 tok/s | ~90% |
 | >=35 tok/s | ~75-80% |
-| **>=40 tok/s** | **~55-60%** |
+| >=40 tok/s | ~55-60% |
 | >=45 tok/s | ~30-35% |
 | >=50 tok/s | ~15% |
 
-**Working target: 40 tok/s.**
-
-Why it remains the center target:
-
-- single-M1 Flash-Next target-only work is around ~10-13 tok/s in the known tuned lane;
-- native MTP has reached roughly ~18-22 tok/s on one M1 Max depending on context/configuration;
-- PP2/layer ownership can reduce per-node target work without requiring a chatty TP collective;
-- selected-KV/QSA, request-adaptive verify width, compiled multi-row decode and better cache/state
-  lifecycle remain real seams;
-- there is still no sustained exact physical 2x-M1 Flash TG receipt, so >=45 remains a stretch.
-
-### Around 128K active context
-
-| Mature B1 TG | Confidence |
-|---|---:|
-| >=20 tok/s | ~85% |
-| >=25 tok/s | ~65% |
-| **>=30 tok/s** | **~40%** |
-| >=35 tok/s | ~20% |
-
-Long-context upside depends heavily on actually using gathered selected-K/V rather than dense-mask
-attention and on keeping QSA/recurrent state stage-local.
+This ladder remains useful for bring-up and regression diagnosis, but it is **not** the headline Flash
+target. A mature system that reaches 40 here but misses badly at ~128K has not completed the goal.
 
 ## Cold PP — realistic long agent/document prompts
-
-New explicit probability ladder. This replaces the old unqualified statement that ~400+ tok/s was
-only a design target.
 
 | Mature cold PP | Confidence |
 |---|---:|
@@ -294,7 +334,7 @@ For pure interactive speed on the hardware already owned:
 1. **RTX 5070 Ti + Qwen3.8-27B** — already closest to its mature target and most likely to exceed
    120 tok/s on favorable code/tool traffic.
 2. **Dual-M1 Flash-Next** — highest upside among the Apple cluster lanes, but also the largest direct
-   measurement gap; 40 TG / 400 PP is the center planning target, not yet a physical receipt.
+   measurement gap; **40 TG @ ~128K / 400 PP** is the center system goal, not yet a physical receipt.
 3. **Single-M1 Qwen3.8-27B** — useful exact/kernel optimization laboratory; ~25 TG is the realistic
    mature center, with PP strongly affected by whether approximate ANE assistance is allowed.
 4. **Dual-M1 DS4-0731** — strongest exact cluster prefill anchor and best topology laboratory, but a
@@ -328,4 +368,5 @@ Future research passes should update this file only when one of these occurs:
 
 When updating, preserve both the old measurement anchors and the reason the probability moved.
 Never convert microbenchmark speedups, stronger-chip percentages, or cache-hit latency into TG/PP
-without an explicit wall-clock production-style measurement.
+without an explicit wall-clock production-style measurement. Never change a context denominator
+silently: short/medium, ~128K and 200K+ capacity cells are separate benchmark identities.
