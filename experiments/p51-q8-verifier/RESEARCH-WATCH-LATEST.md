@@ -20,23 +20,29 @@
 
 4. Read the newest source-specific mining note:
 
+   `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MOBA-QSA-BLOCK-INVERSION.md`
+
+   This mines Moonshot AI's **MoBA: Mixture of Block Attention for Long-Context LLMs** for a portable QSA execution idea: keep Qwen's learned selected-block set fixed, invert the sparse query->block relation into block->query work groups, run blockwise attention, and combine per-query partial results with online softmax. It is **BACKFILL / MECHANISM / FUTURE KERNEL CANDIDATE**, not a model-replacement proposal and not an exact target receipt.
+
+5. Retain the preceding source-specific mining note:
+
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MLX-SERVE-1M-FLASH.md`
 
    This mines the mlx-serve Qwen3.8-Flash-Next 1M-context release and mixed 4/8-bit pack. It is **TRANSFER / MECHANISM / USER-DEVELOPER RECEIPT**, not an exact dual-M1 receipt and not a complete external-search pass.
 
-5. Retain the immediately previous complete delta:
+6. Retain the immediately previous complete delta:
 
    `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-0026.md`
 
    It remains authoritative for oMLX #3553 M3-Ultra machine-exclusive A/B and content-shape evidence, M5 long-context equal-acceptance decomposition, rMLX #558, heterogeneous-PP completion ownership, ragged sparse MTP routing, deferred-free capacity semantics and cluster recovery.
 
-6. Retain the 2026-09-10 dated deltas for TP2 control topology, shared-round-skeleton gates, workload-shaped caching, sink-truth telemetry, custom-kernel ABI, bit-exact-vs-tolerance methodology, QSA/MTP shapes, reliable Metal synchronization, the under-mined r/oMLX Flash thread, oQ5e robustness, MTPLX speed-vs-reliability and PLE residency.
+7. Retain the 2026-09-10 dated deltas for TP2 control topology, shared-round-skeleton gates, workload-shaped caching, sink-truth telemetry, custom-kernel ABI, bit-exact-vs-tolerance methodology, QSA/MTP shapes, reliable Metal synchronization, the under-mined r/oMLX Flash thread, oQ5e robustness, MTPLX speed-vs-reliability and PLE residency.
 
-7. Retain the 2026-09-09 deltas for DS4 selective projection/quant-shape behavior, full-machine-residency provenance, PP speculative ownership, recurrent rollback, UVA PLE/Engram work, compiled quantized-FA capability, routed-MoE tile geometry, RTX5070Ti capacity evidence, Atlas ownership, replay boundaries and concurrency/soak attribution.
+8. Retain the 2026-09-09 deltas for DS4 selective projection/quant-shape behavior, full-machine-residency provenance, PP speculative ownership, recurrent rollback, UVA PLE/Engram work, compiled quantized-FA capability, routed-MoE tile geometry, RTX5070Ti capacity evidence, Atlas ownership, replay boundaries and concurrency/soak attribution.
 
-8. Retain `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md` as **BACKFILL / future serving research**, not fresh target evidence.
+9. Retain `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md` as **BACKFILL / future serving research**, not fresh target evidence.
 
-9. Read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when mining portable kernel candidates.
+10. Read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when mining portable kernel candidates.
 
 Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, newer dated deltas remain part of the evidence chain.
 
@@ -48,7 +54,7 @@ The latest **complete external search pass** covers sources strictly after the p
 
 **Hard source-freshness boundary for the next complete external search: 2026-09-11 10:39:19 UTC.**
 
-This is the end-of-search boundary, not the later repository-write timestamp. Repository-only commits and source-specific mining must never create a source-search gap.
+The MoBA note and mlx-serve 1M note are source-specific mining/backfill and deliberately do **not** advance this boundary. Repository-only commits and source-specific mining must never create a source-search gap.
 
 ---
 
@@ -70,7 +76,7 @@ Flash interpretation remains explicit:
 - **400 tok/s** remains the realistic cold-prefill objective;
 - 40 @ ~128K is a planning target / hypothesis, not an exact measured dual-M1/TB4 receipt.
 
-**The 06:39 complete pass moved no target.**
+**The 06:39 complete pass and subsequent source-specific mining moved no target.**
 
 ---
 
@@ -173,6 +179,48 @@ A separate experimental ~239-GB 2-bit V4.1 MLX build reports up to ~9.5 tok/s on
 
 ---
 
+# Source-specific MoBA mining — newest
+
+`RESEARCH-MINING-2026-09-11-MOBA-QSA-BLOCK-INVERSION.md` is authoritative for the MoBA-derived execution candidate.
+
+Paper facts retained there:
+
+- MoBA routes queries to selected historical KV blocks and groups queries by assigned block for variable-length block attention;
+- blockwise partial results are combined with **online softmax**;
+- its 1M Llama experiment uses block size 4096 / top-k 12, leaves the final 3 layers full attention, and activates MoBA after long-context continued training;
+- RULER@128K is **0.7818 MoBA vs 0.7849 full attention**;
+- the paper uses MoBA for **prefill only** and full attention for generation in downstream evaluation;
+- the reported **6.5x at 1M** and **16x at 10M** are attention-computation results, not whole-model PP multipliers.
+
+### Portable project consequence
+
+Do **not** graft MoBA's trained selector onto Qwen.
+
+Instead retain one future execution-only candidate:
+
+> **QSA wide-prefill inverted-block backend:** freeze Qwen's existing selected-block IDs, transpose query->block edges into block->query groups, evaluate each historical block for all assigned query rows, and merge partial outputs with online softmax.
+
+Before writing the kernel, instrument real QSA selection overlap and record:
+
+- total query-block edges;
+- unique selected blocks;
+- reuse factor = edges / unique blocks;
+- block popularity / adjacent-row overlap;
+- context and query-width dependence;
+- code/prose/CJK/tool workload dependence.
+
+Only prototype if reuse is sufficient to amortize bucketing and merge overhead. Whole-model **cold PP @ ~128K** is the promotion metric; attention-only speedup is insufficient.
+
+This complements the existing shape split:
+
+- narrow B1/MTP rows -> indexed selected-K/V direct consume;
+- wide prefill -> candidate block-inverted backend;
+- existing gathered/copy paths remain measured controls.
+
+PP2 ownership is unchanged: inversion stays stage-local and must not create dense/repeated TB4 KV traffic.
+
+---
+
 # Source-specific mlx-serve 1M Flash note — retained
 
 `RESEARCH-MINING-2026-09-11-MLX-SERVE-1M-FLASH.md` remains authoritative for the M5 Max128 Qwen3.8-Flash-Next 1M-context transfer receipt and its asymmetric mixed-precision pack.
@@ -215,7 +263,9 @@ Qualification now also requires:
 4. device/global cursor truth through partitioning, rejection and rollback;
 5. explicit owner/reader/absent state instead of dummy materialization;
 6. activation representation in phase execution identity;
-7. all existing QSA long-context, equal-acceptance MTP, content-shape, PLE residency, PP completion, deferred-free, B2/B3/B4 and soak gates.
+7. QSA selection-overlap/reuse instrumentation before any inverted-block wide-prefill kernel work;
+8. exact selected-block identity and online-softmax equivalence for any block-inverted backend;
+9. all existing QSA long-context, equal-acceptance MTP, content-shape, PLE residency, PP completion, deferred-free, B2/B3/B4 and soak gates.
 
 Headline objective remains **40 TG @ ~128K active context + 400 cold PP**.
 
@@ -231,6 +281,8 @@ Execution identity now includes:
 - exact narrow-width SIMD/lane utilization and row-splitting strategy;
 - verify-row geometry;
 - sparse selected-row/narrow-fold compatibility;
+- selected-block K/V packing and dequant granularity for shared-block reuse;
+- online-softmax accumulation precision for blockwise QSA;
 - actual fusion census;
 - activation precision per phase;
 - direct-state-write vs transient+copy form;
@@ -279,6 +331,8 @@ Track separately:
 - Persistent checkpoint namespace lifetime outlives any individual promoted file.
 - Nominal model size below unified memory does not prove operational residency.
 - Cross-layer state sharing is a trained/model contract unless explicitly proven otherwise; do not graft V4.1 sharing onto current Qwen weights by assumption.
+- **MoBA's selector is not a drop-in Qwen replacement; its query/block inversion is retained only as an execution candidate with Qwen selection frozen.**
+- Measure QSA block-selection reuse before implementing an inverted-block kernel.
 - Cross-runtime/cross-hardware mechanisms do not move exact-target rates without exact target-topology reproduction.
-- **The 06:39 complete pass moved no target.**
+- **The 06:39 complete pass plus subsequent source-specific mining moved no target.**
 - **P69 remains isolated.**
