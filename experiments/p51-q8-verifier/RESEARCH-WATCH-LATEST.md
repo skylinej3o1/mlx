@@ -30,35 +30,41 @@ Historical dated watches remain archival evidence. Where an older watch labels M
 
 3. Read the newest complete external-search delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1430.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1831.md`
 
-   Use it for the fresh PP+MTP pipeline-ownership/correctness evidence from vLLM, the closure of the duplicate oMLX expert-streaming lane, and the newest source screening. It moves no canonical target.
+   Use it for the fresh exact expert-offload I/O-overlap evidence, DFlash/DSpark logical-vs-physical padded-token correctness, dynamic-shape JIT specialization discipline, and the screened DeepSeek V4.1 stronger-Apple fast-path work. It moves no canonical target.
 
 4. Retain the preceding complete delta:
+
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1430.md`
+
+   Use it for PP+MTP physical-stage ownership/correctness, stage-local draft dependencies, pointer freshness, speculative acceptance parity, and the closure of the duplicate oMLX expert-streaming lane.
+
+5. Retain the preceding complete delta:
 
    `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1348.md`
 
    Use it for the directly relevant two-node Flash TP2 load-transient evidence, Tahoe/TB control transport, exact expert-offload capacity evidence, Metal routed-expert tail geometry, grouped compact-state insertion, rollback correctness and exact-target screening. Its V4.1/M5-class material is **transfer-only archival evidence**, not an active future-hardware lane.
 
-5. Retain the newest source-specific mining note:
+6. Retain the newest source-specific mining note:
 
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MOBA-QSA-BLOCK-INVERSION.md`
 
    This mines MoBA only for a portable execution idea: preserve Qwen's learned selected-block IDs, invert query->block work into block->query groups for wide prefill, then merge partial results with online softmax. It is **BACKFILL / MECHANISM / FUTURE KERNEL CANDIDATE**, not a model replacement and not target evidence.
 
-6. Retain the preceding source-specific mining note:
+7. Retain the preceding source-specific mining note:
 
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MLX-SERVE-1M-FLASH.md`
 
    This remains useful for Flash mixed-precision shape, PLE placement, context/content-shape benchmarking and long-context runtime mechanisms. Treat M5-specific rates as transfer evidence only.
 
-7. Retain preceding complete deltas when they contain mechanisms relevant to the active hardware lanes. Do **not** continue mining stronger future Apple hardware merely to build a future purchase case.
+8. Retain preceding complete deltas when they contain mechanisms relevant to the active hardware lanes. Do **not** continue mining stronger future Apple hardware merely to build a future purchase case.
 
-8. Retain the 2026-09-10 deltas for TP2 control topology, shared-round-skeleton gates, workload-shaped cache blocks, task wall-clock, sink-truth telemetry, custom-kernel ABI, bit-exact-vs-tolerance methodology, QSA/MTP shapes, two-Mac synchronization, the corrected r/oMLX Flash thread, oQ5e robustness, MTPLX speed-vs-reliability and PLE residency.
+9. Retain the 2026-09-10 deltas for TP2 control topology, shared-round-skeleton gates, workload-shaped cache blocks, task wall-clock, sink-truth telemetry, custom-kernel ABI, bit-exact-vs-tolerance methodology, QSA/MTP shapes, two-Mac synchronization, the corrected r/oMLX Flash thread, oQ5e robustness, MTPLX speed-vs-reliability and PLE residency.
 
-9. Retain the 2026-09-09 deltas for DS4 selective projection/quant shape, full-machine residency provenance, PP speculative ownership, recurrent rollback, UVA PLE/Engram mechanisms, quantized-FA capability, routed-MoE geometry, RTX5070Ti capacity evidence, Atlas ownership, replay boundaries and soak attribution.
+10. Retain the 2026-09-09 deltas for DS4 selective projection/quant shape, full-machine residency provenance, PP speculative ownership, recurrent rollback, UVA PLE/Engram mechanisms, quantized-FA capability, routed-MoE geometry, RTX5070Ti capacity evidence, Atlas ownership, replay boundaries and soak attribution.
 
-10. Retain `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md` as **BACKFILL / mechanism research**, not fresh target evidence. Read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when mining portable kernel candidates.
+11. Retain `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md` as **BACKFILL / mechanism research**, not fresh target evidence. Read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when mining portable kernel candidates.
 
 Because `RESEARCH-STATE.md` predates the later dated deltas, the watch/mining chain remains part of canonical working context.
 
@@ -66,9 +72,9 @@ Because `RESEARCH-STATE.md` predates the later dated deltas, the watch/mining ch
 
 # Freshness discipline
 
-The latest complete external-search pass covers sources strictly after `2026-09-11 17:48:40 UTC` through:
+The latest complete external-search pass covers sources strictly after `2026-09-11 18:30:00 UTC` through:
 
-**Hard source-freshness boundary for the next complete external search: 2026-09-11 18:30:00 UTC.**
+**Hard source-freshness boundary for the next complete external search: 2026-09-11 22:31:55 UTC.**
 
 Source-specific mining and repository-only commits do not independently advance the global boundary. Future searches should prioritize exact/current hardware lanes first, then portable mechanisms. Do not spend search budget on future-M5 purchase tracking unless the user explicitly reopens that scope.
 
@@ -90,55 +96,113 @@ Flash interpretation remains explicit:
 - **400 PP** is the cold-prefill objective;
 - 40 @ ~128K remains a planning target/hypothesis, not an exact measured dual-M1 receipt.
 
-No canonical target moved in the 14:30 pass.
+No canonical target moved in the 18:31 ET pass.
 
 ---
 
-# Newest directly relevant evidence — 2026-09-11 14:30 ET pass
+# Newest directly relevant evidence — 2026-09-11 18:31 ET pass
+
+## oMLX #3589 — parallel exact expert-miss reads
+
+Open, non-draft PR `jundot/omlx#3589` changes exact MoE expert offload from serial synchronous memmap reads on the compute thread to a two-phase path:
+
+1. classify misses without cache mutation and issue bounded parallel `os.pread` reads;
+2. preserve the original serial install order for slot writes, LRU victims, hit/miss counters, maps and resident-byte accounting.
+
+The key transferable design rule is:
+
+> **I/O arrival may be parallel while cache ownership/state mutation remains deterministic and serial.**
+
+Physical A/B on M5 Pro 64 GB with `Vontra/Qwen3.8-Flash-Next-MLX-oQ2-MTP`, PLE mmap, MTP off, greedy:
+
+| residency | cell | serial | parallel pread |
+|---:|---|---:|---:|
+| 25% | 3461-token TTFT | 183 s | **18.7 s** |
+| 25% | decode after prompt | 4.4 tok/s | **17.7 tok/s** |
+| 25% | 122-token warm decode | 2.3 tok/s | **16.2 tok/s** |
+| 68.8% | 3461-token TTFT | 30.1 s | **4.5 s** |
+| 68.8% | decode after prompt | 13.6 tok/s | **19.7 tok/s** |
+| 68.8% | 122-token warm decode | **23.9 tok/s** | 22.4 tok/s |
+
+Generated text was identical to the serial baseline; loaded size was unchanged. The low-residency results show the old path was often I/O-latency bound, not bandwidth bound. The high-residency warm row also shows the machinery is not automatically a win once misses are rare.
+
+Promotion for any capacity-constrained Flash experiment:
+
+- exact router decisions remain authoritative;
+- parallelize immutable reads, not ownership mutation;
+- bound workers and in-flight bytes;
+- record residency, miss rate, bytes/ops, TTFT, task wall-clock and TG;
+- include high-residency/warm regression cells;
+- schedule-ahead prefetch remains a candidate, not a promoted result.
+
+This improves the emergency capacity/offload lane but **does not displace resident routed experts or PP2/layer ownership as the primary dual-M1 Flash architecture**.
+
+## vLLM #56181 — logical vs physical padded-token metadata
+
+Merged commit `9dcf6bf344caa7793bae0b45a7896d3f8e03a01a` fixes DFlash/DSpark speculative attention metadata under DP padding.
+
+With DP > 1, synchronization may add physical padding tokens. The failing path mixed logical query-token counts with the padded execution token count, so attention metadata could disagree with the actual query tensor. The fix uses the padded physical count under FULL graph execution and the logical count otherwise, through a shared metadata builder used by DFlash/DSpark and later MTP/EAGLE single-draft steps.
+
+Project promotion:
+
+- distinguish **logical request rows/tokens** from **physical padded execution rows/tokens**;
+- record graph/capture bucket shape;
+- require attention metadata, slot/cache mapping and speculative draft population to describe the same physical execution shape;
+- requested row count is not automatically executed row count;
+- final-output parity is not sufficient speculative correctness because rejection/masking can hide bad drafts.
+
+The PR contains a Qwen3.8-27B + DFlash2 cell with essentially unchanged acceptance/throughput and a DP2 DFlash cell that goes from crash to successful serving. Absolute GPU rates are not portable and move no target.
+
+## vLLM #56153 — keep dynamic request shapes out of JIT identity
+
+Merged commit `2d75e586fcaf88231f7a75f482dc8bfb5ad9da10` removes runtime token/batch/block counts from the compile-time specialization identity of a DSV4 indexer quant-cache gather kernel.
+
+The old path marked total tokens, batch count, block-table width and block count as compile-time constants. High-cardinality request-shape changes could therefore create new compiled kernels; the PR reports several seconds of cold latency in local-serving situations. True structural constants such as layout, head dimension and tile geometry remain specialized; kernel math/output are unchanged.
+
+Promotion for QSA/indexer/Blazer/custom kernels:
+
+- **structural specialization:** layout, head dimension, packing, tile geometry, precision, algorithm choice;
+- **runtime shape:** token count, batch count, request padding and table/block lengths unless the algorithm truly requires specialization.
+
+Benchmark first-ever compile, first request for a new runtime shape, warmed steady state, and realistic shape churn separately. A faster steady-state kernel can still lose task wall-clock if normal request variation causes recompilation.
+
+## oMLX #3590 — screened stronger-Apple V4.1 fast path
+
+Open `jundot/omlx#3590` reports an M3 Ultra DeepSeek-V4.1 fast path around 26.5-27.2 tok/s decode / 490-500 tok/s ~2K prefill with Engram stub versus ~15.5 / ~337 on the stock path; mmap + hot cache is around 25.5 / 481, and B8 aggregate decode is reported near 79.5 tok/s.
+
+This is **later-architecture stronger-Apple transfer only**, not DS4-0731 evidence and not a future-hardware planning lane.
+
+Portable notes retained:
+
+- preserve shared cache/pool identity when singleton caches become batched caches;
+- append-only state needs explicit semantics rather than assuming one shared processed cursor;
+- large-UMA wired-memory policy can dominate execution when the working set otherwise thrashes;
+- aggregate batching speed and independent-singleton numerical equivalence require separate tests; the PR itself notes batch-vs-independent B1 is not yet bit-exact.
+
+No target movement.
+
+---
+
+# Preceding directly relevant evidence retained — 14:30 ET pass
 
 ## vLLM #46994 — PP + MTP ownership/correctness
 
-Merged commit `6fe67cbbf3e43da89bebf6ab0eeaca4ba6c75663` adds MTP speculative decoding under pipeline parallelism.
+Merged `6fe67cbbf3e43da89bebf6ab0eeaca4ba6c75663` establishes that the speculative drafter has a real physical PP-stage owner, stage/rank heuristics can silently skip required draft work, tied/shared weights still need physical ownership on the executing stage, and stale sparse-indexer aliases can collapse acceptance while target rejection preserves apparently correct final output.
 
-This is **architecture transfer**, not Apple speed evidence. The important findings are:
+For dual-M1 Flash PP2, retain:
 
-- the drafter executes on a specific physical PP stage rather than magically following target-model partitioning;
-- rank-number heuristics can silently skip required draft projections; gate on actual tensor/state availability instead;
-- tied/shared weights still need a physical owner on the stage where the drafter runs;
-- stale sparse-attention/indexer buffer aliases can destroy draft acceptance while final target output still appears correct because rejection masks the corruption;
-- PP2 acceptance can remain essentially equal to PP1 when state ownership is correct.
-
-Representative Qwen3.6 PP2 / TP1 greedy acceptance from the PR:
-
-- K1: 94.56% token acceptance;
-- K2: 89.86%;
-- K3: 84.67%;
-- longer K1 PP1-vs-PP2 mean acceptance length was effectively unchanged (~1.9375 vs ~1.935-1.938 across PP2 runs).
-
-Promotion for our dual-M1 Flash PP2 plan:
-
-1. record physical draft-head stage;
-2. record target hidden-state producer and draft consumer;
-3. make draft-token transport explicit;
-4. prove stage-local embedding/projection ownership;
-5. track QSA/indexer/spec buffer source and pointer freshness;
-6. separate final-output parity from draft-acceptance parity;
-7. compare PP1 vs PP2 acceptance before interpreting TG differences;
-8. fail closed when any speculative participant is missing on its executing stage.
-
-This strengthens the existing rule that plain PP correctness and PP+MTP correctness are different qualification problems.
+- physical draft-head stage;
+- target hidden-state producer and draft consumer;
+- explicit draft-token transport;
+- stage-local embedding/projection ownership;
+- QSA/indexer/spec buffer source and pointer freshness;
+- final-output parity separate from draft-acceptance parity;
+- PP1-vs-PP2 acceptance parity before interpreting TG differences;
+- fail-closed semantics when a speculative participant is absent.
 
 ## oMLX #3359 — duplicate expert-streaming lane closed
 
-The draft SSD expert-streaming PR closed without merge at 17:51:55 UTC because upstream MoE streaming had landed. Its older Qwen/DeepSeek benchmark body is not reclassified as fresh evidence.
-
-Project stance remains: use merged upstream expert offload as the maintained capacity lane; do not double-count the older #3359 results. Routed-expert SSD streaming is primarily a capacity escape hatch, not the preferred canonical speed path when routed experts can remain resident.
-
-## Screened fresh items
-
-- vLLM `dc07f1638f73814b95776832b85df1cc92850416`: sparse-model settings must come from the real text config. Retain only as config/route-provenance reinforcement.
-- llama.cpp `982937a3337f7e97ef08fd5603f4157575ece7e1`: nrc=2/i8mm quant-kernel test expansion. Useful generic multi-row testing lesson, but not Metal evidence.
-- llama.cpp #28744: apparent Qwen3.8-27B long-running server stop was closed by the reporter after a LangChain4j update; screen it out as llama.cpp runtime-regression evidence.
+The older draft SSD expert-streaming branch closed without merge after upstream expert offload landed. Do not double-count its historical benchmark body as fresh evidence.
 
 ---
 
@@ -146,41 +210,33 @@ Project stance remains: use merged upstream expert offload as the maintained cap
 
 ## Dual-node Flash TP2 load transient
 
-Merged `jundot/omlx#3578`, commit `f37f7c5b80122e5a55bfa29b39425f7406f9686c`.
+Merged `jundot/omlx#3578`, commit `f37f7c5b80122e5a55bfa29b39425f7406f9686c`, showed progressive sharding retaining both unsharded and sharded representations. Explicit cleanup reduced sharding-phase peak allocation by about **4.2 GiB** on a two-node Flash-Next TP2 load.
 
-Progressive sharding retained references to unsharded layer arrays beside newly materialized shards, allowing up to **~1.5x layer-weight residency during initial load**. On a **2-node Qwen3.8-Flash-Next-REAP-288 TP2** load, explicit reference deletion / GC / MLX cache clear reduced sharding-phase peak allocation by **~4.2 GiB**.
+Load/transform/sharding/first-eval peaks remain separate admission phases from steady-state residency.
 
-Promotion: load/transform/sharding/first-eval peaks are distinct from steady-state residency; release superseded representations before materializing the next ownership form.
+## Tahoe / Thunderbolt control plane
 
-## Tahoe / Thunderbolt control-plane transport
-
-`jundot/omlx#3577` shows that the runtime/executable used for rank-control sockets can fail independently of data-plane transport. Bring-up provenance distinguishes control-plane route from data-plane route and records executable, direct/proxy path, auth and deadline outcome.
+`jundot/omlx#3577` shows rank-control transport can fail independently of data-plane collectives. Record executable/runtime, direct/proxy path, auth and deadline outcome separately from collective-route provenance.
 
 ## Exact MoE expert offload
 
-Merged `6df0d8d6499e86fa8610d8193b3d5b9b6bbc9093` streams non-resident experts from the original safetensors checkpoint under exact routing.
-
-Keep it as an emergency **capacity** lane; prefer resident routed experts when feasible and treat sparse PLE/n-gram placement separately.
+Merged `6df0d8d6499e86fa8610d8193b3d5b9b6bbc9093` provides the maintained exact capacity lane. Prefer resident routed experts when feasible; treat sparse PLE/n-gram placement separately.
 
 ## Metal routed-expert tail geometry
 
-llama.cpp `5bda51bfbc62e64193221e639f6ad4e08767d760` skips empty half-tiles for low routed-expert occupancy. Blazer/MoE kernel identity includes routed token occupancy and tail-tile utilization, not only `(M,N,K,bits,group size)`.
+llama.cpp `5bda51bfbc62e64193221e639f6ad4e08767d760` reinforces routed token occupancy and tail-tile utilization as part of MoE kernel identity.
 
-## Grouped small state writes
+## Grouped small state writes and rollback correctness
 
-vLLM `1e1060f9988fa188fd243c093610889594ba18fd` reinforces grouped same-shaped narrow state/cache writes where ownership/lifetime permits. Treat its gain only as mechanism evidence.
-
-## Rollback correctness
-
-Fresh GLM Lightning-MTP work reinforces: preflight every recurrent/sparse rollback participant before mutation; clamp accepted length where necessary; keep incompatible speculative head state committed-only and clone per cycle.
+Retain grouped narrow-state writes only where ownership/lifetime permits. Recurrent/sparse rollback participants must be preflighted before mutation; incompatible speculative state remains committed-only or clone-per-cycle as appropriate.
 
 ---
 
 # Stronger-hardware evidence policy
 
-Evidence from M3/M4/M5-class Apple hardware is allowed only when it answers an active M1 question, such as tensor/phase shape, kernel occupancy, QSA selected-row execution, MTP acceptance/cycle accounting, recurrent rollback ownership, PLE/Engram sparse-residency mechanisms, load transients, cache/state precision or cluster correctness.
+Evidence from M3/M4/M5-class Apple hardware is allowed only when it answers an active M1 question, such as tensor/phase shape, kernel occupancy, QSA selected-row execution, MTP acceptance/cycle accounting, recurrent rollback ownership, PLE/Engram sparse-residency mechanisms, load transients, cache/state precision, compile lifecycle or cluster correctness.
 
-Classify it **TRANSFER / MECHANISM**, not a future-purchase lane. Do not maintain M5 Max/M5 Ultra target rates, purchase assumptions or dedicated watch sections unless the user reopens that scope.
+Classify it **TRANSFER / MECHANISM**, not a future-purchase lane. Do not maintain M5 Max/M5 Ultra target rates, purchase assumptions or dedicated watch sections unless requested later.
 
 ---
 
@@ -214,7 +270,14 @@ No fresh exact receipt was found for:
 - RTX5070Ti16 fully-resident Q3_K_XL/native-MTP canonical speed lane;
 - 2x M1 Max64/TB4 DS4-0731.
 
-Rediscovered older web/HF/Reddit material is not fresh merely because it was crawled today.
+Additional screening:
+
+- `jundot/omlx#3583` was created before this freshness window; later update activity does not make its earlier format-metadata body fresh;
+- oMLX ANE-bank accounting #3425 remains part of the older hidden-resident-memory chain, not fresh evidence here;
+- llama.cpp post-boundary activity produced no new exact Apple Metal / target-hardware receipt;
+- `antirez/ds4` had no commit or issue activity in this window;
+- rediscovered M1-Max 27B and M4-Pro Flash benchmark pages substantively predate the window and remain **RECOVERED OLDER EVIDENCE**;
+- same-day community multi-GPU 27B reports use different hardware/topologies/quants and do not supersede the RTX5070Ti16 canonical lane.
 
 ---
 
@@ -234,19 +297,25 @@ Add/retain:
 6. physical draft-head stage and explicit draft-token transport;
 7. stage-local embedding/projection ownership for the drafter;
 8. QSA/indexer/spec buffer source and pointer freshness through each cycle;
-9. final-output parity separate from speculative-acceptance parity;
-10. PP1-vs-PP2 acceptance parity under identical cells;
-11. request-namespace lifetime independent of checkpoint-file lifetime;
-12. device/global cursor truth through partitioning and rejection;
-13. expert occupancy/tail-tile geometry;
-14. grouped narrow-state writes only with ownership/lifetime proof;
-15. PLE placement as a separately measured sparse plane;
-16. code/prose/CJK/tool/low-acceptance long-context cells;
-17. profitable singleton MTP + plain concurrent work remains the safe default until physical B2/B3/B4 recurrent/spec-state and workspace isolation are certified.
+9. **logical rows/tokens vs physical padded execution rows/tokens**;
+10. graph/capture bucket and compiled execution-shape identity;
+11. final-output parity separate from speculative-acceptance parity;
+12. PP1-vs-PP2 acceptance parity under identical cells;
+13. compiled-kernel cache cardinality plus first-compile/new-shape/warm timing;
+14. request-namespace lifetime independent of checkpoint-file lifetime;
+15. device/global cursor truth through partitioning and rejection;
+16. expert occupancy/tail-tile geometry;
+17. grouped narrow-state writes only with ownership/lifetime proof;
+18. PLE placement as a separately measured sparse plane;
+19. if expert offload is required, parallel immutable reads + serial deterministic publication/cache mutation, with high-residency regression cells;
+20. code/prose/CJK/tool/low-acceptance long-context cells;
+21. profitable singleton MTP + plain concurrent work remains the safe default until physical B2/B3/B4 recurrent/spec-state and workspace isolation are certified.
 
 ## Blazer / ~5.x BPW
 
 Execution identity includes per-tensor stored precision, activation precision by phase, KV/state precision by state class, routed/shared expert distinction, QSA/indexer precision, recurrent/control precision, MTP-head precision, packing/group and tile/lane geometry, routed-expert occupancy/tails, load transients, task success, difficult-tail robustness, MTP acceptance, task wall-clock, TG/PP and memory/context balance.
+
+Add **compiled-kernel specialization identity**: distinguish structural specialization from high-cardinality runtime request shape. Cold compile, first-new-shape latency, shape-churn wall-clock and warmed kernel rate are separate benchmark cells.
 
 The destination remains a quality-preserving ~5.x-BPW operating point, not a nominal bit-rate contest.
 
@@ -256,11 +325,11 @@ No target movement. **P69B12 remains frozen/promoted. P69B13 remains next only f
 
 ## RTX5070Ti16
 
-No target movement. Fully resident Q3_K_XL/native-MTP remains the canonical speed lane; host-backed capacity experiments stay separate.
+No target movement. Fully resident Q3_K_XL/native-MTP remains the canonical speed lane; host-backed capacity experiments stay separate. No fresh exact-rig receipt appeared.
 
 ## DS4-0731 dual M1
 
-No target movement. Later-architecture or GPU PP+MTP evidence is mechanism transfer only unless it reproduces the DS4 topology/runtime question directly.
+No target movement. Later-architecture or GPU evidence is mechanism transfer only unless it reproduces the DS4-0731 topology/runtime question directly.
 
 ---
 
@@ -270,6 +339,7 @@ No target movement. Later-architecture or GPU PP+MTP evidence is mechanism trans
 - Separate exact-target measured receipt, transfer/mechanism evidence, experimental A/B and planning target.
 - Benchmark cell = actual executed route, not requested flags.
 - Route provenance ladder remains requested -> configured -> compiled -> armed/admitted -> executed.
+- **Logical work shape and physical padded/compiled execution shape are both part of provenance.**
 - B2/B3/B4 require physically simultaneous independent requests with correct persistent state; configured/admitted/queued slots do not count.
 - Safe serving remains profitable singleton MTP + plain concurrent work until per-slot recurrent/spec state isolation, physical recurrent capacity, PP+MTP ownership and concurrent-state semantics are certified.
 - Final-output correctness is not sufficient speculative correctness; rejection can mask corrupt drafts.
