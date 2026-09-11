@@ -14,47 +14,46 @@
 
 3. Read the newest complete external-search delta:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-0639.md`
+   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1348.md`
 
-   This is authoritative for the latest post-cutoff pass: oMLX M5 INT8-activation prefill, recurrent-checkpoint namespace lifetime, llama.cpp Metal fusion execution/census and narrow-IQ lane utilization, vLLM shared-KV / PCP-spec / DeepSeek-V4.1 runtime contracts, exact-target screening, and the newly surfaced Apple V4.1 future-hardware lane.
+   This is authoritative for the latest fresh pass: merged oMLX DeepSeek V4.1 Apple measurements, dual-node Flash TP2 load-transient evidence, Tahoe/TB control transport, exact expert-offload capacity evidence, Metal routed-expert tail geometry, grouped compact-state insertion, Affine8 long-context KV transfer and exact-target screening.
 
-4. Read the newest source-specific mining note:
+4. Retain the newest source-specific mining note:
 
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MOBA-QSA-BLOCK-INVERSION.md`
 
-   This mines Moonshot AI's **MoBA: Mixture of Block Attention for Long-Context LLMs** for a portable QSA execution idea: keep Qwen's learned selected-block set fixed, invert the sparse query->block relation into block->query work groups, run blockwise attention, and combine per-query partial results with online softmax. It is **BACKFILL / MECHANISM / FUTURE KERNEL CANDIDATE**, not a model-replacement proposal and not an exact target receipt.
+   This mines MoBA only for a portable **execution** idea: preserve Qwen's learned selected-block IDs, invert query->block work into block->query groups for wide prefill, then merge partial results with online softmax. It is **BACKFILL / MECHANISM / FUTURE KERNEL CANDIDATE**, not a model replacement and not target evidence.
 
 5. Retain the preceding source-specific mining note:
 
    `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MLX-SERVE-1M-FLASH.md`
 
-   This mines the mlx-serve Qwen3.8-Flash-Next 1M-context release and mixed 4/8-bit pack. It is **TRANSFER / MECHANISM / USER-DEVELOPER RECEIPT**, not an exact dual-M1 receipt and not a complete external-search pass.
+   This mines the mlx-serve Qwen3.8-Flash-Next 1M release and asymmetric mixed-precision pack. It is **TRANSFER / MECHANISM / USER-DEVELOPER RECEIPT**, not an exact dual-M1 receipt.
 
-6. Retain the immediately previous complete delta:
+6. Retain the preceding complete deltas:
 
-   `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-0026.md`
+   - `RESEARCH-WATCH-2026-09-11-0639.md` — M5 A8 prefill, recurrent-checkpoint namespace lifetime, Metal fusion census/direct GDN state write, narrow-IQ lane utilization, shared-KV / PCP-spec / V4.1 runtime contracts and future-Apple backfill;
+   - `RESEARCH-WATCH-2026-09-11-0026.md` — oMLX #3553 machine-exclusive A/B, M5 long-context equal-acceptance decomposition, rMLX gate hardening, heterogeneous-PP completion, ragged sparse MTP routing, deferred-free capacity and cluster recovery.
 
-   It remains authoritative for oMLX #3553 M3-Ultra machine-exclusive A/B and content-shape evidence, M5 long-context equal-acceptance decomposition, rMLX #558, heterogeneous-PP completion ownership, ragged sparse MTP routing, deferred-free capacity semantics and cluster recovery.
+7. Retain the 2026-09-10 deltas for TP2 control topology, shared-round-skeleton gates, workload-shaped cache blocks, task wall-clock, sink-truth telemetry, custom-kernel ABI, bit-exact-vs-tolerance methodology, QSA/MTP shapes, two-Mac synchronization, the corrected r/oMLX Flash thread, oQ5e robustness, MTPLX speed-vs-reliability and PLE residency.
 
-7. Retain the 2026-09-10 dated deltas for TP2 control topology, shared-round-skeleton gates, workload-shaped caching, sink-truth telemetry, custom-kernel ABI, bit-exact-vs-tolerance methodology, QSA/MTP shapes, reliable Metal synchronization, the under-mined r/oMLX Flash thread, oQ5e robustness, MTPLX speed-vs-reliability and PLE residency.
-
-8. Retain the 2026-09-09 deltas for DS4 selective projection/quant-shape behavior, full-machine-residency provenance, PP speculative ownership, recurrent rollback, UVA PLE/Engram work, compiled quantized-FA capability, routed-MoE tile geometry, RTX5070Ti capacity evidence, Atlas ownership, replay boundaries and concurrency/soak attribution.
+8. Retain the 2026-09-09 deltas for DS4 selective projection/quant shape, full-machine residency provenance, PP speculative ownership, recurrent rollback, UVA PLE/Engram work, quantized-FA capability, routed-MoE geometry, RTX5070Ti capacity evidence, Atlas ownership, replay boundaries and soak attribution.
 
 9. Retain `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md` as **BACKFILL / future serving research**, not fresh target evidence.
 
 10. Read `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` when mining portable kernel candidates.
 
-Because `RESEARCH-STATE.md` was last consolidated at 05:30 ET on 2026-09-02, newer dated deltas remain part of the evidence chain.
+Because `RESEARCH-STATE.md` predates the later dated deltas, the watch/mining chain remains part of canonical working context.
 
 ---
 
 # Freshness discipline
 
-The latest **complete external search pass** covers sources strictly after the previous boundary `2026-09-11 04:26:56 UTC` through:
+The latest complete external-search pass covers sources strictly after `2026-09-11 10:39:19 UTC` through:
 
-**Hard source-freshness boundary for the next complete external search: 2026-09-11 10:39:19 UTC.**
+**Hard source-freshness boundary for the next complete external search: 2026-09-11 17:48:40 UTC.**
 
-The MoBA note and mlx-serve 1M note are source-specific mining/backfill and deliberately do **not** advance this boundary. Repository-only commits and source-specific mining must never create a source-search gap.
+The MoBA and mlx-serve mining notes are source-specific and do not independently advance the global boundary. Repository-only commits must never create a search gap.
 
 ---
 
@@ -62,190 +61,155 @@ The MoBA note and mlx-serve 1M note are source-specific mining/backfill and deli
 
 | Model / hardware | Working TG | Confidence / status | Working cold PP | Confidence |
 |---|---:|---:|---:|---:|
-| **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s @ ~128K active context** | **planning objective; exact confidence not separately calibrated** | **400 tok/s** | **~55-60%** |
-| **Qwen3.8-27B — M1 Max 64** | **25 tok/s** | **~55-60%** | **110 tok/s native/exact-runtime** | **~60%** |
-| **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
-| **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
+| **Flash-Next — 2x M1 Max64 / TB4** | **40 tok/s @ ~128K active context** | **planning objective; exact confidence not separately calibrated** | **400 tok/s** | **~55-60%** |
+| **Qwen3.8-27B — M1 Max64** | **25 tok/s** | **~55-60%** | **110 tok/s native/exact-runtime** | **~60%** |
+| **Qwen3.8-27B — RTX5070Ti16** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
+| **DS4-0731 — 2x M1 Max64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
-Flash interpretation remains explicit:
+Flash interpretation is explicit:
 
-- **40 tok/s sustained at ~128K active context** is the headline dual-M1 Flash objective;
-- short/medium TG ladders are bring-up calibration only;
-- the old September 4 ~128K 20/25/30/35 ladder is historical evidence calibration, not the target;
-- reaching 40 only at short context while collapsing near 128K does **not** meet the goal;
-- **400 tok/s** remains the realistic cold-prefill objective;
-- 40 @ ~128K is a planning target / hypothesis, not an exact measured dual-M1/TB4 receipt.
+- **40 TG sustained at ~128K active context** is the headline dual-M1 Flash objective;
+- 40 only at short context while collapsing near 128K does **not** satisfy it;
+- **400 PP** is the cold-prefill objective;
+- 40 @ ~128K remains a planning target/hypothesis, not an exact measured dual-M1 receipt.
 
-**The 06:39 complete pass and subsequent source-specific mining moved no target.**
+**The 13:48 complete pass moves no canonical target.**
 
 ---
 
-# Newest fresh evidence — 2026-09-11 06:39 ET pass
+# Newest fresh evidence — 2026-09-11 13:48 ET pass
 
-## FRESH — oMLX #3548: M5 INT8-activation prefill over existing Q4/Q5 packed weights
+## DeepSeek V4.1 Flash on Apple — new future-large-UMA lane
 
-Commit `83a641d2820c79383fb53ffb717eb7cf0a89e967`, **04:57:55 UTC**.
+Merged `jundot/omlx#3574`, commit `f79b785485b36f81dcd669de86c1175f0507f851`.
 
-On MacBook Pro M5 Pro 48 GB, Qwen3.8-27B-oQ4e-mtp at pp4096:
+M3 Ultra 512 GiB, DeepSeek-V4.1-Flash-oQ4e, code_python, temperature 1, prefix cache off, up-to-2K chunks, 128 generated tokens:
 
-- **391.8 -> 518.5 tok/s prefill**;
-- Q4 GEMM **42 TOP/s** against a measured **44.21 TOP/s** ceiling.
+### Engram RAM
 
-The kernel keeps the checkpoint's packed affine Q4/Q5 weights canonical, decodes them directly into fragments, and changes the **activation** execution representation to INT8 for eligible prompt-processing matmuls. It is opt-in because activation quantization changes numerics; broad task-quality validation is not yet reported.
+| context | PP MTP OFF -> ON | TG OFF | TG MTP ON | peak MLX / RSS GiB |
+|---:|---:|---:|---:|---:|
+| 4K | 457.99 -> 452.15 | 20.23 | 32.06 | 404.04 / 403.16 |
+| 16K | 459.12 -> 454.77 | 20.00 | 34.72 | 404.52 / 403.19 |
+| 32K | 452.19 -> 447.73 | 19.80 | 31.51 | 404.54 / 403.22 |
+| 64K | 439.39 -> 435.56 | 19.67 | 39.66 | 404.56 / 403.25 |
 
-**Promotion:** activation precision is a first-class phase/execution property independent of stored-weight BPW. This is an M5/future-Blazer mechanism, not an M1 numeric multiplier.
+### Engram SSD
 
-## FRESH — oMLX #3563: recurrent checkpoint namespace lifetime
+| context | PP MTP OFF -> ON | TG OFF | TG MTP ON | peak MLX / RSS GiB |
+|---:|---:|---:|---:|---:|
+| 4K | 458.62 -> 452.48 | 19.96 | 34.45 | 289.60 / 295.05 |
+| 16K | 441.40 -> 436.41 | 19.83 | 35.42 | 290.08 / 306.39 |
+| 32K | 443.11 -> 442.52 | 19.75 | 34.14 | 290.09 / 315.37 |
+| 64K | 429.41 -> 431.74 | 19.58 | 36.00 | 290.12 / 329.09 |
 
-Commit `779ef216f11c4f1ff6c226dd48be452ca4d8499b`, **05:02:35 UTC**.
+Important interpretation:
 
-Promoting a staged boundary could remove the request directory while the next writer had already entered its mkdir -> write interval, producing ENOENT and a missing GDN checkpoint. Cleanup now owns final namespace removal.
+- real Apple V4.1 oQ4e PP is already roughly **430-460 tok/s** through 64K on M3 Ultra512;
+- DSpark/Lightning MTP is roughly **32-40 TG** in these bounded sampled cells;
+- SSD Engram removes roughly **114 GiB active MLX** at the 64K row while PP is nearly flat there;
+- RSS growth shows that active MLX is not the complete residency story;
+- no M5 Ultra numerical extrapolation is promoted from this receipt.
 
-**Promotion:** persistent state lifetime is:
+Track V4.1 large-Apple separately from DS4-0731. It is a future-hardware lane, not a canonical target row yet.
 
-**request namespace -> staging generation -> physical object -> published boundary**.
+## Dual-node Flash TP2 load transient
 
-A moved/published file does not prove the namespace is quiescent.
+Merged `jundot/omlx#3578`, commit `f37f7c5b80122e5a55bfa29b39425f7406f9686c`.
 
-## FRESH — llama.cpp #28164: Metal fusion provenance and direct GDN state writes
+Progressive sharding retained references to unsharded layer arrays beside newly materialized shards, allowing up to **~1.5x layer-weight residency during initial load**. On a **2-node Qwen3.8-Flash-Next-REAP-288 TP2** load, explicit reference deletion / GC / MLX cache clear reduced sharding-phase peak allocation by **~4.2 GiB**.
 
-Commit `a2878d30df0130dde503a7d9ba30d3d21bd71b9f`, **09:41:54 UTC**.
+Promotion:
 
-A relative-vs-absolute output-index bug silently disabled a norm/MUL fusion and caused about a **5% TG regression**. The new single-source fusion table drives optimizer and encoder, exposes per-pattern execution counts, and CI pins the actual fusion census. It also adds a GDN + cache-copy fusion that writes recurrent snapshots directly into the destination cache and elides the trailing copy.
+- load/transform/sharding/first-eval peaks are distinct from steady-state model residency;
+- on 64-GB nodes, steady-state fit does not prove load-time fit;
+- release source/intermediate representations before materializing the next ownership form.
 
-**Promotion:** benchmark identity gains:
+This is load-memory evidence, not PP2-vs-TP2 speed evidence.
 
-**declared fusion -> packed adjacency -> eligibility -> encoder match -> executed fusion count**.
+## Tahoe / Thunderbolt control-plane transport
 
-Record the actual fusion census; enabled source code is not proof that a fusion executed.
+`jundot/omlx#3577` reports that `/usr/bin/python3` on macOS 26 Tahoe may fail outbound control sockets over TB bridge interfaces in noninteractive/background execution while the active venv Python works. The revised route tries direct TCP first and keeps bounded proxy fallback semantics.
 
-## FRESH — llama.cpp #28692: narrow IQ Metal widths strand SIMD lanes
+Promotion: benchmark/bring-up provenance must distinguish **control-plane route** from the data-plane collective route and record executable, direct/proxy route, auth and deadline outcome.
 
-Commit `aac810230f9ef0cf73a47c56e46e87d0988be348`, **09:30:20 UTC**.
+No M4/TB5 numeric transfer to M1/TB4.
 
-IQ1/IQ2/IQ3 `mul_mv` kernels with `ne00 < 1024` could leave large parts of a SIMD group idle because each lane owned one 32-element chunk. The new split path distributes rows across otherwise-idle lanes. K-quants need separate treatment because their lane mapping differs.
+## Exact MoE expert offload
 
-**Promotion:** Blazer must optimize precision **and** exact lane/tile geometry. Explicitly qualify B1 GEMV/QMV, MTP small-M, routed-expert and sparse selected-row widths; nominal BPW does not determine runtime ordering.
+Merged commit `6df0d8d6499e86fa8610d8193b3d5b9b6bbc9093` streams non-resident experts from the original safetensors checkpoint under exact routing.
 
-## FRESH — vLLM #55864: shared KV is semantically absent, not a dummy tensor
+Representative Gemma-4-26B-A4B 4-bit rows show the capacity/latency tradeoff clearly: 100% residency ~14.20 GB / 122.5 TG / 0.30 s TTFT versus 25% ~4.57 GB / 40.1 TG / 9.6 s TTFT and 12.5% ~2.96 GB / 29.3 TG / 18.1 s TTFT.
 
-Commit `fbf51c70269bb0d8333e14c5788e628e33c72f5d`, **06:07:52 UTC**.
+Project stance: expert streaming is an emergency capacity lane, not the preferred dual-M1 Flash speed architecture. Prefer keeping routed experts resident when feasible and treating sparse PLE/n-gram placement separately.
 
-A KV-sharing MTP layer now calls attention with `K=None, V=None` rather than allocating fake K/V buffers. Unsupported DCP-prefill sharing fails closed.
+## Metal routed-expert tail geometry
 
-**Promotion:** encode owner / reader / absent state explicitly; never fabricate dummy storage merely to satisfy a generic interface.
+llama.cpp commit `5bda51bfbc62e64193221e639f6ad4e08767d760` skips the empty upper half of an NR1=32 `mul_mm_id` token tile when an expert receives <=16 rows in its last tile. Tests explicitly cover 1/15/16/17/32-row tails and the perf harness redraws expert IDs between iterations.
 
-## FRESH — vLLM #56107: PCP + speculative decode preserves global/device state identity
+Promotion: Blazer/MoE kernel identity includes routed token occupancy and tail-tile utilization, not only `(M,N,K,bits,group size)`.
 
-Commit `980c16c8e4c66dce0bc4d355e4ec7fa2ae7b5141`, **05:07:53 UTC**.
+## Group small cache insertion across speculative layers
 
-Single-module MTP and replicated DSpark now work with prefill context partitioning. The implementation copies already-materialized GPU positions instead of rebuilding them from potentially lagging CPU request state, restores local hidden state to global layout before sampling, and preserves the pre-partition hidden representation needed by the speculator.
+vLLM commit `1e1060f9988fa188fd243c093610889594ba18fd` reports **4-6x kernel-level** improvement for small-batch grouped MLA cache insertion, including FP8 conversion.
 
-**Promotion:** distinguish **global request state -> partition-local execution state -> restored global sampling/spec state**; device truth remains authoritative through rollback/rejection.
+Portable candidate: group same-shaped small state writes across layers where ownership/lifetime permits. Do not convert kernel-level gain to model TG.
 
-## FRESH / FUTURE ARCHITECTURE — vLLM #56214: DeepSeek-V4.1 runtime contracts
+## Fresh open Affine8 KV experiment
 
-Commit `e77daef89e18e08321ae7b8b24827eedd5fe8673`, **09:11:19 UTC**.
+`jundot/omlx#3582` was created at 16:33:49 UTC and remains open in this pass.
 
-V4.1 support makes several architecture concepts concrete in runtime code:
+M5 Pro48 / Qwen3.8-27B-oQ4e, speculation disabled:
 
-- compressor state has a dedicated circular/ring cache beside paged MLA/SWA groups;
-- token-to-ring mappings are explicit;
-- fused query RMSNorm + MXFP8 quantization is tested bitwise against the separate quantizer including graph replay;
-- pre-quantized query representations may be shared by attention/indexer projections only when the consumer kernel/quantization contract matches.
+- Affine8 uses about **50.8-51.5%** of native FP16 attention-cache bytes in the reported sweep;
+- full-model 200K row: ~255-259 PP and ~9.3-9.4 decode TG depending generation length;
+- active MLX ~24.46 GiB, sampled physical peak up to 36.13 GiB for the 4,096-token generation cell;
+- 250K was gracefully rejected under that run's dynamic memory ceiling;
+- the PR explicitly does not claim semantic/retrieval quality from numerical error alone.
 
-**Promotion:** future architectures should model paged global state, cross-layer compressor/index state, bounded ring/replay state, recurrent state and speculative sidecars as distinct ownership classes.
+Promotion: KV/state precision is an independent design axis from weight BPW and activation precision. Selection-critical indexer state may warrant a different precision policy from bulk K/V.
 
-This is not DS4-0731 target evidence.
+## GLM-5.3 MTP transfer
 
----
+Fresh GLM-5.3 Lightning-MTP work reiterates a critical correctness rule: preflight every recurrent/sparse rollback participant before mutating any state; clamp accepted length when necessary; keep incompatible speculative head state committed-only and clone per cycle.
 
-# BACKFILL / future Apple lane — DeepSeek-V4.1 MLX
-
-Newly surfaced Apple work is retained as **BACKFILL / TRANSFER**, not fresh exact-target evidence.
-
-`PipeNetwork/deepseek-v41-mlx` describes a 754.6B V4.1 runtime with four cross-layer compressor/index owners (layers 2/8/14/20) serving all 40 layers and 196.6B Engram parameters. Published Apple-oriented mixed builds include:
-
-- **427 GB** mixed 4/8-bit + Engram 4-bit for the 512-GB tier;
-- **477 GB** mixed 4/8-bit + Engram 6-bit for 1-TB machines.
-
-Its reported divergence ladder strongly favors mixed precision over uniform 4-bit: the uniform-4 build saves only about 3 GB versus the 427-GB mixed build while showing substantially worse free-running drift.
-
-Operationally, the 477-GB build reportedly does **not** fit a 512-GiB machine despite nominal checkpoint size, because lazy first materialization can transiently approach ~2x build size and dirty MLX buffers interact poorly with macOS compression. The 427-GB build is the intended 512-GB tier.
-
-**Promotion:** nominal file size below unified memory is not an admission proof. Price resident weights + first-eval transient + allocator/wired/compressed behavior + cache/context + scratch + sidecars.
-
-A separate experimental ~239-GB 2-bit V4.1 MLX build reports up to ~9.5 tok/s on M3 Ultra 256 GB, but lacks broad reasoning/coding validation; keep it only as low-bit feasibility evidence.
-
----
-
-# Source-specific MoBA mining — newest
-
-`RESEARCH-MINING-2026-09-11-MOBA-QSA-BLOCK-INVERSION.md` is authoritative for the MoBA-derived execution candidate.
-
-Paper facts retained there:
-
-- MoBA routes queries to selected historical KV blocks and groups queries by assigned block for variable-length block attention;
-- blockwise partial results are combined with **online softmax**;
-- its 1M Llama experiment uses block size 4096 / top-k 12, leaves the final 3 layers full attention, and activates MoBA after long-context continued training;
-- RULER@128K is **0.7818 MoBA vs 0.7849 full attention**;
-- the paper uses MoBA for **prefill only** and full attention for generation in downstream evaluation;
-- the reported **6.5x at 1M** and **16x at 10M** are attention-computation results, not whole-model PP multipliers.
-
-### Portable project consequence
-
-Do **not** graft MoBA's trained selector onto Qwen.
-
-Instead retain one future execution-only candidate:
-
-> **QSA wide-prefill inverted-block backend:** freeze Qwen's existing selected-block IDs, transpose query->block edges into block->query groups, evaluate each historical block for all assigned query rows, and merge partial outputs with online softmax.
-
-Before writing the kernel, instrument real QSA selection overlap and record:
-
-- total query-block edges;
-- unique selected blocks;
-- reuse factor = edges / unique blocks;
-- block popularity / adjacent-row overlap;
-- context and query-width dependence;
-- code/prose/CJK/tool workload dependence.
-
-Only prototype if reuse is sufficient to amortize bucketing and merge overhead. Whole-model **cold PP @ ~128K** is the promotion metric; attention-only speedup is insufficient.
-
-This complements the existing shape split:
-
-- narrow B1/MTP rows -> indexed selected-K/V direct consume;
-- wide prefill -> candidate block-inverted backend;
-- existing gathered/copy paths remain measured controls.
-
-PP2 ownership is unchanged: inversion stays stage-local and must not create dense/repeated TB4 KV traffic.
+Adjacent M3 Ultra256 result: 24.9 TG MTP-off vs 44.1-47.6 TG MTP-on at a 4.2K warm prompt, ~95% acceptance. This is not a Qwen or DS target receipt.
 
 ---
 
-# Source-specific mlx-serve 1M Flash note — retained
+# Source-specific mining retained
 
-`RESEARCH-MINING-2026-09-11-MLX-SERVE-1M-FLASH.md` remains authoritative for the M5 Max128 Qwen3.8-Flash-Next 1M-context transfer receipt and its asymmetric mixed-precision pack.
+## MoBA -> QSA block-inversion candidate
 
-Key standing consequences remain:
+Do not transplant MoBA's trained selector. Keep only the execution candidate:
 
-- Blazer search explicitly includes **Q4-ish routed experts + high-precision control/state/shared/QSA/MTP** as a first-class candidate family;
-- n-gram/PLE is a separately managed sparse lookup plane with resident / SSD / hot-cold / stage-local policies;
-- context **and content shape** are part of benchmark identity;
-- warm prefix/recurrent-checkpoint operation stays distinct from cold PP.
+> freeze Qwen's existing selected-block IDs -> invert query/block edges -> process historical blocks for all assigned query rows -> merge per-query partials with online softmax.
+
+Instrument reuse first. Promote only if whole-model **cold PP @ ~128K** improves enough to amortize bucketing/merge. Narrow B1/MTP stays on direct indexed selected-K/V paths.
+
+## mlx-serve 1M Flash
+
+Keep the asymmetric mixed-precision and PLE-placement conclusions:
+
+- Q4-ish routed experts + higher-precision control/state/shared/QSA/MTP is a first-class Blazer candidate family;
+- n-gram/PLE is a separate sparse lookup plane with resident/SSD/hybrid/stage-local policies;
+- context **and content shape** are benchmark identity;
+- warm prefix/recurrent-checkpoint operation stays separate from cold PP.
 
 ---
 
 # Screened / no target movement
 
-No post-cutoff exact receipt was found for:
+No fresh exact receipt was found for:
 
 - 2x M1 Max64/TB4 Flash-Next;
 - one M1 Max64 Qwen3.8-27B;
 - RTX5070Ti16 fully-resident Q3_K_XL/native-MTP canonical speed lane;
 - 2x M1 Max64/TB4 DS4-0731.
 
-Exact-rig web/Reddit results were older known receipts or previously incorporated capacity evidence; rediscovery/crawl time was not treated as freshness.
+No rMLX commit after the previous hard cutoff materially changes the speculative-state plan. No post-cutoff antirez/ds4 main change moves the DS4 lane. mlx-serve has no post-cutoff main commit in this complete window.
 
-No post-cutoff rMLX change materially moved the speculative-state plan. No post-cutoff antirez/ds4 main change materially moved the DS4 target lane.
+Rediscovered older web/HF/Reddit material is not fresh merely because it was crawled today.
 
 ---
 
@@ -255,84 +219,63 @@ No post-cutoff rMLX change materially moved the speculative-state plan. No post-
 
 Keep **PP2/layer ownership primary**, TP2 as control.
 
-Qualification now also requires:
+Add/retain:
 
-1. actual **fusion census** in benchmark provenance;
-2. direct recurrent-state producer -> authoritative destination A/B where rollback/ordering remain provable;
-3. request-namespace lifetime independent of staged checkpoint-file lifetime;
-4. device/global cursor truth through partitioning, rejection and rollback;
-5. explicit owner/reader/absent state instead of dummy materialization;
-6. activation representation in phase execution identity;
-7. QSA selection-overlap/reuse instrumentation before any inverted-block wide-prefill kernel work;
-8. exact selected-block identity and online-softmax equivalence for any block-inverted backend;
-9. all existing QSA long-context, equal-acceptance MTP, content-shape, PLE residency, PP completion, deferred-free, B2/B3/B4 and soak gates.
-
-Headline objective remains **40 TG @ ~128K active context + 400 cold PP**.
-
-Safe serving remains **profitable singleton MTP + plain concurrent work** until simultaneous recurrent/spec state and workspace isolation are certified.
+1. load-time source/transform/sharding/first-eval peaks in admission telemetry;
+2. explicit release of superseded parameter trees before next representation materializes;
+3. control-plane route/executable/auth/deadline provenance distinct from data-plane transport;
+4. actual fusion census;
+5. exact recurrent-state producer/destination ownership;
+6. request-namespace lifetime independent of checkpoint-file lifetime;
+7. device/global cursor truth through partitioning and rejection;
+8. expert occupancy/tail-tile geometry;
+9. grouped narrow-state writes only with ownership/lifetime proof;
+10. PLE placement as a separately measured sparse plane;
+11. code/prose/CJK/tool/low-acceptance long-context cells;
+12. profitable singleton MTP + plain concurrent work remains the safe default until physical B2/B3/B4 recurrent/spec state and workspace isolation are certified.
 
 ## Future Blazer / ~5.x BPW
 
-Execution identity now includes:
+Execution identity includes:
 
-- per-tensor precision / routed-vs-shared expert class;
-- QSA indexer, recurrent/control and MTP-head precision;
-- pack/group geometry;
-- exact narrow-width SIMD/lane utilization and row-splitting strategy;
-- verify-row geometry;
-- sparse selected-row/narrow-fold compatibility;
-- selected-block K/V packing and dequant granularity for shared-block reuse;
-- online-softmax accumulation precision for blockwise QSA;
-- actual fusion census;
-- activation precision per phase;
-- direct-state-write vs transient+copy form;
-- first-eval transient memory;
-- math implementation identity.
+- per-tensor stored precision;
+- activation precision by phase;
+- KV/state precision by state class;
+- routed/shared expert distinction;
+- QSA/indexer precision;
+- recurrent/control precision;
+- MTP-head precision;
+- packing/group and exact tile/lane geometry;
+- routed expert occupancy/tail utilization;
+- load/materialization transient memory;
+- task success, difficult-tail robustness, MTP acceptance, task wall-clock, TG/PP, memory/context and PP balance.
 
-Continue evaluating at least Q5-dominant, expert-aggressive Q4-ish bulk + high-precision control/state, and sensitivity-optimized mixed-5.x families.
+## DeepSeek V4.1 / future large Apple UMA
 
-## Single M1 Max64 Qwen3.8-27B
+Track as a separate future lane. The M3 Ultra512 oQ4e receipt is now a real baseline. Do not infer M5 Ultra rates by memory-bandwidth ratios alone.
 
-No target movement. M5 A8 prefill is mechanism evidence only.
+## Qwen3.8-27B M1 Max64 / P69
 
-**P69B12 remains frozen/promoted. P69B13 remains next only from existing measured high-leverage GDN/projection/downstream-tail profiling. Do not reopen P69B8, P69B9 or P69B10-C.**
+No target movement. **P69B12 remains frozen/promoted. P69B13 remains next only from existing measured high-leverage GDN/projection/downstream-tail profiling. Do not reopen P69B8/B9/B10-C.**
 
-## RTX 5070 Ti16 Qwen3.8-27B
+## RTX5070Ti16
 
-No target movement. Fully-resident Q3_K_XL/native-MTP remains the canonical speed lane; host-backed IQ4_XS remains a separate capacity lane.
+No target movement. Fully resident Q3_K_XL/native-MTP stays the canonical speed lane; host-backed IQ4_XS stays separate capacity evidence.
 
-## Dual-M1 DS4-0731
+## DS4-0731 dual M1
 
-No target movement. V4.1 stays a separate future-architecture lane.
-
-## Future DeepSeek V4.1 / large-memory Apple
-
-Track separately:
-
-- cross-layer compressor/KV ownership;
-- ring/replay scratch semantics;
-- Engram precision/residency;
-- lazy-materialization peak memory;
-- MTP/vision sidecars;
-- 512-GB vs 1-TB quant tiers;
-- eventual M5-Ultra exact TG/PP receipts.
+No target movement. V4.1 is a separate architecture/model lane.
 
 ---
 
-# Standing decisions strengthened
+# Standing decisions
 
-- **40 TG @ ~128K remains the actual Flash headline objective.**
+- **40 TG @ ~128K remains the actual dual-M1 Flash headline objective.**
 - **400 PP remains the cold-prefill objective.**
-- Fusion intent is not execution; record actual fusion counts.
-- Quant BPW is not execution cost; exact width/lane mapping matters.
-- Activation precision is independent from stored-weight precision.
-- Shared/absent state should not be represented by dummy buffers.
-- Device/global request position remains authoritative through partitioning and speculative rollback.
-- Persistent checkpoint namespace lifetime outlives any individual promoted file.
-- Nominal model size below unified memory does not prove operational residency.
-- Cross-layer state sharing is a trained/model contract unless explicitly proven otherwise; do not graft V4.1 sharing onto current Qwen weights by assumption.
-- **MoBA's selector is not a drop-in Qwen replacement; its query/block inversion is retained only as an execution candidate with Qwen selection frozen.**
-- Measure QSA block-selection reuse before implementing an inverted-block kernel.
+- No target row moved in the 13:48 pass.
+- M3 Ultra512 V4.1 is strong future-Apple evidence, not an M5 Ultra or DS4-0731 receipt.
+- Steady-state model fit does not prove cluster load-time fit.
+- Control-plane route provenance is separate from data-plane transport provenance.
+- Blazer now explicitly spans stored weights + activations + runtime state precision + real routing/tile geometry.
 - Cross-runtime/cross-hardware mechanisms do not move exact-target rates without exact target-topology reproduction.
-- **The 06:39 complete pass plus subsequent source-specific mining moved no target.**
 - **P69 remains isolated.**
