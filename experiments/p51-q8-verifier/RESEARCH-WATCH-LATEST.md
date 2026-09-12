@@ -18,14 +18,14 @@ Research remains centered on the hardware and execution lanes we actually own or
 
 1. `experiments/p51-q8-verifier/RESEARCH-STATE.md`
 2. `experiments/p51-q8-verifier/RESEARCH-TARGETS.md` — authoritative for TG/PP target identity; context is part of target identity.
-3. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-2022.md` — newest complete delta: QSA bounded-workspace/allocator-lifetime evidence, DFlash per-layer normalization correctness, Qwen4Exp YaRN execution consistency, fresh source screening.
-4. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1831.md` — exact expert-offload read overlap, logical-vs-physical padded-token metadata, JIT specialization discipline, screened V4.1 Apple fast path.
-5. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1430.md` — PP+MTP stage ownership, stage-local draft dependencies, pointer freshness and acceptance parity.
-6. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1348.md` — dual-node Flash load transient, Tahoe/TB control transport, exact expert-offload capacity, Metal expert-tail geometry, grouped state writes and rollback correctness.
-7. `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MOBA-QSA-BLOCK-INVERSION.md` — BACKFILL / mechanism candidate only.
-8. `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MLX-SERVE-1M-FLASH.md` — portable mixed-precision/PLE/context-shape mechanisms only; stronger-hardware rates are transfer evidence.
-9. Retain the 2026-09-10 and 2026-09-09 deltas for the previously recorded TP2/PP ownership, recurrent rollback, QSA/MTP, cache/state, transport, ABI, precision and soak methodology.
-10. Retain `RESEARCH-MINING-2026-09-09-CROSS-MODEL-KV-TRANSFER.md` and `RESEARCH-MINING-2026-09-01-IQ-PANEL.md` as mechanism research, not fresh target evidence.
+3. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-12-0111.md` — newest complete delta: Blackwell NVFP4-KV physical execution identity, screened rebase/rediscovery noise, no target changes.
+4. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-2022.md` — QSA bounded-workspace/allocator-lifetime evidence, DFlash per-layer normalization correctness, Qwen4Exp YaRN execution consistency.
+5. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1831.md` — exact expert-offload read overlap, logical-vs-physical padded-token metadata, JIT specialization discipline, screened V4.1 Apple fast path.
+6. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1430.md` — PP+MTP stage ownership, stage-local draft dependencies, pointer freshness and acceptance parity.
+7. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-11-1348.md` — dual-node Flash load transient, Tahoe/TB control transport, exact expert-offload capacity, Metal expert-tail geometry, grouped state writes and rollback correctness.
+8. `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MOBA-QSA-BLOCK-INVERSION.md` — BACKFILL / mechanism candidate only.
+9. `experiments/p51-q8-verifier/RESEARCH-MINING-2026-09-11-MLX-SERVE-1M-FLASH.md` — portable mixed-precision/PLE/context-shape mechanisms only; stronger-hardware rates are transfer evidence.
+10. Retain the 2026-09-10 and 2026-09-09 deltas/mining notes for the previously recorded TP2/PP ownership, recurrent rollback, QSA/MTP, cache/state, transport, ABI, precision and soak methodology.
 
 Because `RESEARCH-STATE.md` predates the later dated deltas, this watch/mining chain remains part of canonical working context.
 
@@ -33,11 +33,11 @@ Because `RESEARCH-STATE.md` predates the later dated deltas, this watch/mining c
 
 # Freshness discipline
 
-The latest complete external-search pass covers sources strictly after `2026-09-11 22:31:55 UTC` through:
+The latest complete external-search pass covers substantive sources strictly after `2026-09-12 00:22:42 UTC` through:
 
-**Hard source-freshness boundary for the next complete external search: `2026-09-12 00:22:42 UTC`.**
+**Hard source-freshness boundary for the next complete external search: `2026-09-12 05:11:02 UTC`.**
 
-Source-specific mining and repository-only commits do not independently advance the global boundary. Evidence timestamp = substantive source timestamp, not rediscovery time.
+Source-specific mining and repository-only commits do not independently advance the global boundary. Evidence timestamp = substantive source timestamp, not rediscovery, crawler or rebase time.
 
 ---
 
@@ -52,61 +52,59 @@ Source-specific mining and repository-only commits do not independently advance 
 
 Flash interpretation remains explicit: **40 TG sustained at ~128K active context** is the headline objective; a short-context 40 that collapses near 128K does not satisfy it. **400 PP** is cold-prefill. Neither is an exact measured dual-M1 receipt yet.
 
-No canonical target moved in the 20:22 ET pass.
+No canonical target moved in the 01:11 ET pass.
 
 ---
 
-# Newest directly relevant evidence — 2026-09-11 20:22 ET
+# Newest directly relevant evidence — 2026-09-12 01:11 ET
 
-## QSA bounded workspace and allocator lifetime — vLLM #56500 / #56457
+## Consumer-Blackwell NVFP4 KV execution geometry — vLLM #56550
 
-**TRANSFER / MECHANISM, directly relevant to Flash long-context memory stability.**
+**FRESH NEW / BLACKWELL MECHANISM TRANSFER. Not an exact RTX5070Ti16 speed receipt.**
 
-The Qwen4Exp QSA path could allocate a slightly larger logits tensor on every chunk as `max_seq_len` grew. A per-allocation byte cap did not cap allocator-retained memory because each old size remained cached.
+PR #56550 was created inside this search window. It enables NVFP4 KV on SM120 consumer Blackwell through FlashInfer and makes the physical route agree across HND KV layout, linear/unswizzled V block-scale writes, the backend dtype gate, attention block-size/layout plumbing and SWA/main-cache block geometry.
 
-The physical report on 2x unified-memory GB10 running Qwen3.8-Flash-Next is unusually diagnostic: a 254K cold prefill died at exactly 166,400 tokens, where the monotonic allocation sequence predicts about **14 GB/rank** of retained QSA buffers. A 64 MiB workaround caused allocation size to saturate and kept memory flat. The proposed reusable-workspace fix instead reserves bounded storage once and serves each chunk through compact views.
+Validation used RTX 5090 + Qwen3.8-27B-QUASAR-NVFP4 + TP2 + DFlash: the engine started, KV was actually allocated as NVFP4, CUDA graphs captured and end-to-end chat produced correct output. The evidence is explicitly from a combined SM120 stack and supplies no portable standalone TG/PP rate.
 
-Allocation probe from #56500:
+**Promote for the RTX 5070 Ti lane:** `KV precision` alone is not execution identity. Record requested dtype, physically allocated dtype, attention backend, KV layout, scale representation/write order, main/SWA block sizes, kernel divisibility/geometry, graph-capture route and actually executed route.
 
-| measurement | base | bounded workspace |
-|---|---:|---:|
-| reserved memory, first -> last | 34 -> 1,370 MiB | 536 -> 536 MiB |
-| new allocations after first step | 15 | 0 |
-| peak live tensor memory | 171.90 MiB | 528.65 MiB |
+KV provenance becomes:
 
-Kernel timings were essentially unchanged. The portable lesson is storage lifetime, not GPU speed.
+`requested -> configured -> backend-admitted -> physically allocated/layout-resolved -> graph-captured -> executed`.
 
-**Promote:** Flash/QSA admission telemetry distinguishes logical workspace budget, live tensor bytes and allocator-reserved/retained bytes. After warm-up, a long-context path should not create a monotonic ladder of new workspace sizes. Prefer one bounded reusable workspace or a small deliberate bucket set; keep top-k scratch disjoint and prove per-ubatch/workspace-lane ownership.
+A command-line low-bit KV setting therefore does not prove the measured path used the intended physical format. No target moves.
 
-This does not move the 400 PP target.
+## Fresh-screen negative results
 
-## DFlash per-layer K normalization — vLLM #56431
-
-**SPECULATIVE-CORRECTNESS TRANSFER.**
-
-DFlash stacks K-normalization weights as `[num_layers, head_dim]`. An XPU path treated the weight as one vector and reused layer 0's normalization for every draft layer. The reported validation moved from GSM8K **0.487 / acceptance 0.011 / acceptance length 1.080** to **0.859 / 0.459 / 4.215** after preserving the layer axis.
-
-**Promote:** any stacked/fused draft operation must retain semantic axes, not merely tensor byte size. Speculative execution identity records layer-to-parameter-row mapping, normalization source/dtype/shape and target-vs-draft ownership. Qualification includes acceptance length/rate and task quality, not only shape checks or final-output smoke tests.
-
-The PR includes Qwen3.8-27B + DFlash2 testing, but its absolute accelerator rates are not target evidence.
-
-## Qwen3.8-Flash-Next YaRN execution consistency — oMLX #3594
-
-**FRESH / STRONGER-APPLE TRANSFER / LONG-CONTEXT CORRECTNESS.**
-
-The pinned mlx-vlm Qwen4Exp MRoPE path ignored `text_config.rope_parameters`, so simply raising the context gate beyond the native **262,144** tokens could leave YaRN configured in metadata but not executed. The patch installs the positional transform into the shared attention rotary object used by main attention, QSA/indexer and MTP, explicitly falls back from a fused MRoPE route that cannot represent non-unit scaling, and records current SpecPrefill incompatibility rather than silently rebuilding plain frequencies.
-
-A stronger-Apple field test reached 350K tokens with coherent generation and active MTP. Treat that only as mechanism validation.
-
-**Promote for future >262K work:** positional extension provenance is `configured -> installed -> shared by attention/QSA/MTP -> fused/eager route capable -> executed`. Reject mixed positional regimes. Our ~128K objective remains inside the native horizon, so no target moves.
+- No exact new dual-M1 Flash-Next receipt.
+- No exact new M1 Max64 Qwen3.8-27B receipt.
+- No fresh canonical RTX5070Ti16 target-topology receipt.
+- No exact new dual-M1 DS4-0731 receipt; `antirez/ds4` had no post-boundary commit/issue activity.
+- oMLX post-boundary activity was dominated by UI/i18n work; older runtime PRs were not reclassified as fresh because a fork or search index moved.
+- vLLM #56177 resurfaced after a rebase. Its strong shared device-side expert-pool numbers are older evidence, not a fresh measurement.
+- vLLM #56509 later-V4.1 SM120 geometry and #56323 DSv4 DFlash warmup/JIT activity did not add fresh target evidence in this window.
+- screened llama.cpp activity did not provide a new Metal/Qwen target-lane result before the request cutoff.
+- community/Hugging Face searches resurfaced useful 5070 Ti 27B measurements, but their underlying measurement/post times were older or not proven post-boundary; crawl time was not used as freshness.
 
 ---
 
 # Important retained evidence
 
+## QSA bounded workspace and allocator lifetime
+
+vLLM #56500/#56457: a long-context QSA path can obey a per-allocation byte cap while allocator-retained memory still grows through a monotonic ladder of differently sized workspaces. A 254K Flash-Next cold prefill on 2x unified-memory GB10 failed exactly where the retained-allocation model predicted ~14 GB/rank. Prefer bounded reusable workspace or a small deliberate bucket set; record live tensors, allocator-reserved bytes and post-warmup allocation count separately.
+
+## DFlash semantic-axis correctness
+
+vLLM #56431: stacked per-layer K normalization was accidentally treated as one vector, moving GSM8K 0.487 -> 0.859 and acceptance 0.011 -> 0.459 after correction. Fused/stacked draft ops must preserve semantic axes, layer-to-parameter-row mapping and independent acceptance/task-quality validation.
+
+## Qwen4Exp YaRN execution consistency
+
+oMLX #3594: positional extension beyond native 262,144 must be installed and shared consistently by main attention, QSA/indexer and MTP. Configured context/rope metadata does not prove the fused/eager route actually executes the intended transform. Current ~128K objective remains inside native horizon.
+
 ## Exact expert offload / parallel read arrival
 
-`jundot/omlx#3589`: immutable expert reads may arrive in parallel while cache ownership/LRU/state mutation remains deterministic and serial. Strong low-residency TTFT/TG improvement; high-residency warm regression proves the machinery is not universally beneficial. Keep this as the emergency capacity lane, not the primary dual-M1 architecture.
+`jundot/omlx#3589`: immutable expert reads may arrive in parallel while cache ownership/LRU/state mutation remains deterministic and serial. Keep exact expert offload as emergency capacity lane, not primary dual-M1 architecture.
 
 ## Logical vs physical padded execution shape
 
@@ -134,7 +132,7 @@ Keep control-plane route provenance separate from collective data-plane provenan
 
 ## Dual-M1 Flash-Next
 
-Keep **PP2/layer ownership primary**, TP2 as control. Required evidence now includes:
+Keep **PP2/layer ownership primary**, TP2 as control. Required evidence includes:
 
 1. load/transform/sharding/first-eval and steady-state memory separately;
 2. live vs allocator-reserved workspace memory;
@@ -151,12 +149,12 @@ Keep **PP2/layer ownership primary**, TP2 as control. Required evidence now incl
 13. expert occupancy/tail-tile geometry;
 14. PLE as its own sparse placement plane;
 15. code/prose/CJK/tool/low-acceptance long-context cells;
-16. positional-transform provenance only if testing beyond the native 262,144-token horizon;
+16. positional-transform provenance only if testing beyond native 262,144;
 17. profitable singleton MTP + plain concurrent work remains the safe serving default until physical B2/B3/B4 recurrent/spec-state and workspace isolation are certified.
 
 ## Blazer / ~5.x BPW
 
-Execution identity includes per-tensor stored precision, activation precision by phase, KV/state class precision, routed/shared experts, QSA/indexer precision, recurrent/control precision, MTP-head precision, packing/group/tile/lane geometry, routed occupancy/tails, load transients **and workspace lifetime**. Benchmark reserved bytes, live bytes and allocation count alongside TG/PP/task wall-clock.
+Execution identity includes per-tensor stored precision, activation precision by phase, KV/state class precision, routed/shared experts, QSA/indexer precision, recurrent/control precision, MTP-head precision, packing/group/tile/lane geometry, routed occupancy/tails, load transients and workspace lifetime. Benchmark reserved bytes, live bytes and allocation count alongside TG/PP/task wall-clock.
 
 ## Qwen3.8-27B M1 / P69
 
@@ -166,7 +164,7 @@ DFlash2 adds a correctness requirement only: fused/stacked draft normalization m
 
 ## RTX5070Ti16
 
-No target movement. Fully resident canonical speed lane remains distinct from host-backed capacity experiments.
+No target movement. Fully resident canonical speed lane remains distinct from host-backed capacity experiments. Certification now also requires KV physical-format provenance: allocated dtype, backend, layout, scale ordering, block geometry, graph capture and executed route.
 
 ## DS4-0731 dual M1
 
@@ -180,6 +178,7 @@ No target movement. Later V4.1 GPU/Apple evidence remains mechanism transfer unl
 - Benchmark cell = actual executed route, not requested flags.
 - Route provenance ladder: requested -> configured -> compiled -> armed/admitted -> executed.
 - Memory provenance includes live tensors, allocator-retained workspace and load/materialization transients.
+- Physical KV format provenance includes allocated dtype, backend, layout, scale encoding/order and block/kernel geometry.
 - B2/B3/B4 require physically simultaneous independent requests with correct persistent state; configured/admitted/queued slots do not count.
 - Final-output correctness is not sufficient speculative correctness.
 - Component/kernel gains do not move TG/PP targets without exact target-topology reproduction or exceptionally strong transfer evidence.
