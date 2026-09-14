@@ -1,237 +1,280 @@
-# Latest external runtime watch
+# External runtime watch — 2026-09-14 15:17 ET
 
-## Active scope
+## Search window
 
-Research remains centered on:
+Complete pass over substantive source activity strictly after `2026-09-14 11:43:49 UTC` through the user-request cutoff `2026-09-14 19:17:07 UTC`.
 
-- **Qwen3.8-Flash-Next — 2x M1 Max 64 GB / TB4**
-- **Qwen3.8-27B — one M1 Max 64 GB**
-- **Qwen3.8-27B — RTX 5070 Ti 16 GB + host RAM**
-- **DeepSeek-V4-Flash-0731 / DS4 — 2x M1 Max 64 GB / TB4**
-- **Blazer / custom ~5.x-BPW execution work** where evidence transfers cleanly
+Evidence timestamp remains the substantive source / measurement timestamp, not crawler time, rebase time, comment-only activity or a merge timestamp for measurements that already existed before the boundary.
 
-Stronger-Apple, newer-model, CUDA and ROCm results remain transfer/mechanism evidence unless they reproduce an active topology. Do not create a dedicated future M5/M5-Ultra lane unless explicitly reopened.
+**New hard source-freshness boundary for the next complete external search: `2026-09-14 19:17:07 UTC`.**
 
 ---
 
-## Read order for the next research pass
-
-1. `experiments/p51-q8-verifier/RESEARCH-STATE.md`
-2. `experiments/p51-q8-verifier/RESEARCH-TARGETS.md`
-3. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-14-0743.md` — newest complete delta: single-stream exact Flash verifier reuse, transient-priced 8192 prefill chunks, Metal decode queue/wait removal, fresh Engram-read revalidation, sparse top-k allocator transient.
-4. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-14-0007.md` — 64-GB iQ Flash pack, fused 3-bit/mixed expert decode, MTP cold-JIT calibration, MTP-specific expert geometry, partial checkpoint ownership, sparse tie determinism, bounded replay, SM120 warning.
-5. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-2115-ADDENDUM.md` — targeted mlx-serve Apple Flash backfill: compact QSA gather/select/history, adaptive MTP/proposal head, M5 1M community receipt, grouped MTP, distributed-MTP PP2 hypothesis.
-6. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-2057.md` — generated-prefix MTP history, SDPA transient capacity, distributed-MTP constraint, coherent multi-slot cache, live-length gather geometry, dummy-draft KV poisoning, M1 long-context correctness.
-7. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-1533.md` — TB routable discovery, executed PP ownership, live memory admission, lazy-send ordering, internal checkpoints, DCP interleave.
-8. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-1237.md` — live-context sparse work, DFlash2 causality, candidate-pruned proposal head, retained-history offload, parallel JIT, multimodal pre-prefill TTFT.
-9. Older 2026-09-13 / 09-12 / 09-11 / 09-10 / 09-09 watches and mining notes remain retained for QSA/MTP, PP/TP, recurrent rollback, cache/state, transport, ABI, precision and soak methodology.
-
-`RESEARCH-STATE.md` predates several later dated deltas, so this watch chain remains part of canonical working context.
-
----
-
-# Freshness discipline
-
-The latest **complete** pass covers substantive sources strictly after `2026-09-14 04:07:40 UTC` through `2026-09-14 11:43:49 UTC`.
-
-**Hard source-freshness boundary for the next complete external search: `2026-09-14 11:43:49 UTC`.**
-
-Evidence timestamp = substantive source/measurement timestamp, not crawler, rediscovery, rebase, comment-only activity or merge-only churn.
-
-Important cutoff edge: **vLLM #56822 was created at 11:43:58 UTC, nine seconds after the cutoff.** It was intentionally excluded and should be checked first next pass.
-
----
-
-# Canonical target calibration — unchanged
+## Canonical targets — unchanged
 
 | Model / hardware | Working TG | Working cold PP | Status |
 |---|---:|---:|---|
-| **Flash-Next — 2x M1 Max64 / TB4** | **40 tok/s @ ~128K active context** | **400 tok/s** | planning objective; no exact receipt |
-| **Qwen3.8-27B — M1 Max64** | **25 tok/s** | **110 tok/s native/exact-runtime** | unchanged |
-| **Qwen3.8-27B — RTX5070Ti16** | **120 tok/s** | **250 tok/s** | unchanged |
-| **DS4-0731 — 2x M1 Max64 / TB4** | **15 tok/s** | **180 tok/s** | unchanged |
+| Qwen3.8-Flash-Next — 2x M1 Max64 / TB4 | **40 tok/s @ ~128K active context** | **400 tok/s** | planning objective; no exact receipt |
+| Qwen3.8-27B — M1 Max64 | **25 tok/s** | **110 tok/s native/exact-runtime** | unchanged |
+| Qwen3.8-27B — RTX5070Ti16 | **120 tok/s** | **250 tok/s** | unchanged |
+| DS4-0731 — 2x M1 Max64 / TB4 | **15 tok/s** | **180 tok/s** | unchanged |
 
-**No canonical target moved. P69 remains isolated. P69B12 remains frozen/promoted; P69B13 remains next only from existing measured GDN/projection/downstream-tail profiling. Do not reopen P69B8/B9/B10-C from external evidence.**
-
-Apple Flash evidence continues to shift confidence rather than the target: **40 tok/s @ ~128K is a credible success floor for a fully tuned implementation; 50+ is a plausible stretch until exact dual-M1 evidence exists.**
+**No canonical target moved. P69 remains isolated. P69B12 stays frozen/promoted; P69B13 remains next only from existing measured internal GDN/projection/downstream-tail evidence.**
 
 ---
 
-# Newest high-value evidence
+# Fresh evidence
 
-## mlx-serve #422 — exact single-stream verifier reuse
+## vLLM #56822 — bill hidden-state extraction at its own physical KV-group width
 
-Created `2026-09-14 04:20:33 UTC`.
+Source created `2026-09-14 11:43:58 UTC`, nine seconds after the previous cutoff.
 
-Flash-Next single-stream MTP now reuses the exact verifier kernels developed for grouped verification instead of paying the stock gather-heavy chain. Physical savings include route packing, indexed gate/up inputs, adjacent-expert down reuse, fused weighted reduction and prepared-HC graph reuse.
+**FRESH NEW / ADMISSION-ACCOUNTING TRANSFER.**
 
-M5 Max 128 GB, mixed-4/8, KV8 target/head, warm prefix, one stream:
+Hybrid Mamba/MLA hidden-state extraction could create a one-layer extraction group but charge its memory using the widest peer cache-group width. A roughly 5.4-GiB extraction allocation could therefore be billed as roughly 130 GiB and reject startup even though the physical allocation fit.
 
-- 4K: **+6.6%** median;
-- 16K: **+6.2%**;
-- 64K: **+4.8%**;
-- 128K: **+7.9%**.
+The fix splits the relevant cache group down to one layer when hidden-state extraction is present, so the accounting width matches the physical extraction page width. Targeted tests cover the extraction case while ordinary layouts remain unchanged.
 
-The branch qualifies logits, hidden outputs, recurrent state, PLE, QSA and speculative captures across eligible widths.
+**Project consequence:** logical membership and physical billing width are distinct identities. Any Flash/MTP auxiliary state, hidden snapshot, draft handoff or cache sidecar must be admitted using the allocation geometry it actually owns, not the maximum width of a neighboring group.
 
-**Transfer:** closest external Apple confirmation yet of the P69 thesis that verifier-cycle execution itself still has several-percent headroom after MTP already works. Do not transfer the percentage to M1. Put indexed expert inputs, route packing, expert-pair down reuse, fused weighted reduction and HC graph reuse in the Flash verifier experiment queue.
+## ds4 #1042 — fuse single-box V4.1 Metal decode glue at exact rounding boundaries
 
-## mlx-serve #423 — transient-priced 8192 prefill chunks
+Source created `2026-09-14 11:58:12 UTC`.
 
-Created `2026-09-14 07:49:10 UTC`, substantive update through `11:39:31 UTC`.
+**FRESH NEW / STRONG APPLE-METAL FUSION TRANSFER.**
 
-Flash-Next previously capped MoE prefill at 4096 before live admission could price 8192. The new chooser makes 8192 a candidate and takes it only when exact request geometry plus a conservative transient margin fits.
+The single-token V4.1 graph paid dozens of tiny dispatches per layer for hyper-connection glue, router selection, shared-expert glue and attention post-processing. #1042 fuses those sequences while deliberately preserving the standalone reduction trees and BF16 rounding points.
 
-M5 Max mixed-4/8, KV8, MTP on, cold prefill:
+Representative dispatch collapses:
 
-- forced 8192 vs 4096 at 128K: **1644 -> 1724 tok/s (+4.9%)**;
-- auto-chooser A/B is noisy; order-cancelled estimate at 128K is **~+7.9%**;
-- author frames the honest overall effect as roughly **+8%**, with a broad +5..15% bracket.
+- HC glue: **19 -> 6**;
+- router: **11 -> 2**, and ->1 on M5 where the single-dispatch visibility rule is valid;
+- shared expert: **12 -> 3**;
+- multiple attention round/norm/RoPE/FP8/window-copy sequences collapse into fused tails.
 
-The deployed 4096->8192 rung costs roughly **3.64 GiB** more estimated transient and uses a 22% safety margin before widening.
+M3 Ultra 512 GB, resident DeepSeek-V4.1-Flash-Q4, on top of queued decode #1041 + parallel Engram reads #1035:
 
-**Transfer:** prefill width is a live admission variable, not a model-family constant. Sweep 4096/8192 under exact dual-M1 PP2 ownership and actual transient/reserved memory. This directly supports the 400-PP workstream but is not a dual-M1 calibration.
+- all fusions: **29.80 / 29.88 tok/s**;
+- everything off: **25.34 tok/s**;
+- delta: **+18–20%**, byte-identical greedy output;
+- GPU busy/token: **36.9 -> 31.2 ms**.
 
-## ds4 #1041 — Metal command queue vs per-layer waits
+Prefill is unchanged and TP remains unfused.
 
-Created `2026-09-14 11:18:27 UTC`.
+**Transfer:** do not transfer the percentage to Flash-Next or DS4-0731. Promote the engineering rule: fuse chains only after enumerating the exact physical reduction order and quantization/rounding boundaries. Small dispatch glue can still be a first-order decode cost even after command-buffer scheduling is fixed.
 
-Single-box V4.1 waited for GPU after each of 40 layers. Queuing layers and draining only at true dependency boundaries changed M3 Ultra 512GB fully-resident Q4 decode roughly from **16.7–17.1 tok/s to ~21.4–21.7**, and commit-without-wait reached **23.08–23.09** in the measured 2K/256 cell.
+## vLLM #56831 — adaptive speculative decisions require rank consensus
 
-GPU timing:
+Source created `2026-09-14 12:57:49 UTC`.
 
-- waits: **37.3 ms GPU busy / 46.9 ms span**;
-- queued: **36.9 ms busy / 37.7 ms span**.
+**FRESH NEW / DISTRIBUTED SPECULATIVE-CORRECTNESS TRANSFER.**
 
-The kernel work barely changed; ~9 ms/token of host scheduling gap disappeared. Combined with #1035 parallel Engram reads: **24.86 tok/s** on that box.
+Adaptive DSpark derived verifier budget from rank-local confidence. Small numerical differences across TP ranks could therefore choose different total draft budgets or per-request boundaries, yielding divergent execution layouts and possible collective hangs.
 
-**Transfer only:** later V4.1 / M3 Ultra, not DS4-0731 or dual M1. Add explicit encode/commit/GPU-busy/wait telemetry to Metal qualification and remove per-layer waits unless a real dependency requires completion.
+The patch makes rank 0 authoritative for both the selected draft budget and partial-allocation capacities before request boundaries are built.
 
-## ds4 #1035 — fresh current-upstream revalidation
+Validation:
 
-Substantive 2026-09-14 revalidation, updated `11:12:35 UTC`.
+- deliberately injected rank drift: original path produced **20 consensus mismatches** at TP2 and TP4; patched path produced **0**;
+- 120 compiled allocation cases plus graph-boundary replays per run;
+- natural adaptive execution remained active: **568** partial-budget steps TP2, **559** TP4, with exact cross-rank boundary agreement;
+- TP2 and TP4 each completed **2304/2304** requests at observed concurrency 128 without failure or hang;
+- GSM8K changes were within the measured run-to-run noise band.
 
-M2 Ultra 192GB, V4.1 IQ2_XXS/Q2_K, isolated macOS Engram read change:
+**Project consequence:** speculative policy is not rank-local once it changes tensor shape, verifier width, request boundaries or collective geometry. For distributed Flash, the authoritative budget/boundary source and broadcast point belong in execution identity.
 
-- **10.205 -> 10.740 tok/s (+5.2%)** over 512-token decode;
-- outputs match.
+## ds4 #1047 — selective SSD expert staging for Qwen3.8 Flash-Next on a 32-GB M1 Max
 
-Two observations per arm only. Promote the I/O-shape lesson: tiny scattered Engram reads and large expert slabs deserve separate concurrency policies.
+Source created `2026-09-14 15:00:44 UTC`; substantive updates continued through the current window.
 
-## llama.cpp #28889 — top-k scratch invisible to admission
+**FRESH NEW / DIRECT APPLE FLASH CAPACITY + EXPERT-I/O MECHANISM RECEIPT.**
 
-Created `2026-09-14 08:32:42 UTC`.
+Flash-Next previously rejected `--ssd-streaming`; its Q2 pack needed about 41.73 GiB resident even though the n-gram table already stayed on disk. #1047 keeps dense/shared/GDN/attention/HC weights mapped and streams only routed experts through the explicit-pread cache, extended for 512 IDs and top-10 routing. The Q2 model then runs on a **32-GiB M1 Max**.
 
-Logical argsort input chunk ~64 MB could reserve **300–450 MB** once destination indices, duplicate index storage, key copies and CUB scratch were included. This transient appears at graph execution and was invisible to context admission. Reducing chunk target to 16 MB bounded the transient near **100 MB** and allowed a 55K sparse-indexer prefill on V100-16GB to complete without measurable PP change.
+Important implementation details:
 
-**Transfer:** QSA/indexer workspace admission must use actual execution-time allocator transient, not logical input-size estimates.
+- compact staging buffers contain only distinct selected experts;
+- expert IDs remain original IDs through private address tables;
+- cache sizing reserves static weights, context, recurrent state, MTP snapshots, prefill workspace, two staging windows and runtime headroom before expert capacity is assigned;
+- read failures propagate rather than silently falling back to whole-layer rereads;
+- staging buffers remain alive through GPU completion, including unretained command-buffer mode.
+
+M1 Max 32 GiB, Qwen3.8-Flash-Next-Q2, short 29-token prompt / 50-token generation / MTP:
+
+- initial whole-layer streaming: **4.55 tok/s**;
+- selective expert staging: **7.86 tok/s**;
+- delta: **+72.7%**;
+- expert bytes returned by `pread`: **48.40 -> 12.02 GiB (-75.2%)**;
+- output identical; 27 verifier cycles, 21 accepted drafts.
+
+This is a deliberately short, Q2, over-capacity workload. It is **not** evidence for our Q6/Q8 resident dual-M1 target and the percentage must not transfer.
+
+**Project consequence:** if we ever need an emergency over-capacity lane, route demand rather than layer size should determine the I/O unit. Whole-layer streaming is the wrong baseline for sparse experts. Keep this outside the primary resident 40@128K Flash plan unless capacity forces it.
+
+## mlx-serve #425 — QSA prefix trim must bill transferred pooled history
+
+Source created `2026-09-14 15:51:46 UTC`, merged `17:54:06 UTC`.
+
+**FRESH NEW / DIRECT APPLE LONG-CONTEXT CACHE-ACCOUNTING CORRECTNESS.**
+
+When an oversized QSA prefix-cache entry was trimmed, the chooser omitted pooled QSA history transferred onto the retained checkpoint. It could therefore select a nominally fitting prefix that still exceeded the byte cap and then evict the entire conversation.
+
+A real M5 Max 128-GB log showed a 496,263-token entry with an 11,734.92-MB budget being trimmed to 491,520 tokens while the actual retained entry was still roughly **11,936.29 MB** after checkpoint shedding.
+
+The fix includes transferred history in both trim policies. Regression tests cover new entries, replacements, budget compliance, later reuse and agreement between estimated checkpoint bytes and materialized pooled history.
+
+**Project consequence:** a retained checkpoint is not just its checkpoint tensor. Any history/state reparented onto it is part of the physical retained byte bill. Our long-context cache ruler should charge post-trim state after ownership transfer, then verify the materialized resident total before admitting reuse.
+
+## ds4 #1049 — gathered-KV reuse is stack-dependent, not automatically valuable
+
+Source created `2026-09-14 16:14:31 UTC`.
+
+**FRESH NEW / NEGATIVE-THEN-COMPOSITE METAL MICRO-OPT EVIDENCE.**
+
+V4.1 scalar decode repeatedly gathered the same compressed KV rows across reuse layers. Reusing the gathered buffer gave:
+
+- standalone exact PR: **16.62/16.63 vs 16.64/16.62 tok/s — flat**;
+- integration stack with #1041 + #1035 + #1042 + #1043: **30.96/31.13 -> 31.45/31.42 tok/s**, about **+1.26%**;
+- all outputs byte-identical.
+
+**Project consequence:** an apparently redundant gather may be hidden under another bottleneck until scheduling/fusion is repaired. Do not prioritize micro-reuse from static operation counts alone; rerun it after major bottleneck-removal steps before discarding or promoting it.
+
+## mlx-serve #427 — sampled MTP policies + paired routed gate/up on M5 Max
+
+Source created `2026-09-14 16:39:24 UTC`.
+
+**FRESH NEW / DIRECT APPLE FLASH SPECULATIVE-MECHANISM EVIDENCE WITH IMPORTANT CONFOUNDERS.**
+
+The PR adds opt-in Typical-0.2 and TokenV3-0.95 sampled acceptance plus a paired physical-S=4 routed gate/up kernel for the validated mixed-4/8 Qwen3.8 pack. Exact acceptance remains default.
+
+M5 Max low-context three-arm sweep, KV8, sampled D3, temp1/top-p.95/top-k20, same timed prompts:
+
+| Input tokens | unchanged control | Typical + kernel | TokenV3 + kernel |
+|---:|---:|---:|---:|
+| 1,035 | 98.5 | 114.5 | 116.4 |
+| 2,048 | 101.5 | 111.3 | 111.1 |
+| 4,088 | 101.1 | 107.8 | 109.3 |
+| 8,258 | 88.7 | 103.4 | 104.0 |
+| 16,295 | 94.3 | 102.4 | 104.2 |
+| 32,885 | 90.9 | 108.1 | 111.9 |
+| 65,446 | 100.6 | 109.6 | 109.2 |
+
+But the unchanged control predates the PR's seeded sampled-draft/correction fix, so this table measures the whole PR configuration and **cannot isolate either acceptance policy or kernel**.
+
+The same-binary exact-acceptance kernel isolation is much smaller and cleaner:
+
+- **70.377 -> 70.914 decode tok/s (+0.76%)** at a 16K / 1024-cap serving cell;
+- wall **109.077 -> 108.675 s**;
+- paired lengths and answer/reasoning digests matched.
+
+Fresh JS quality screen: 79/100 control, 78/100 Typical, 77/100 TokenV3; HumanEval-JS 45/50 all arms; MBPP-JS 34/50, 33/50, 32/50. 128K–1M still require finite GDN-state/reference qualification and a larger memory gate.
+
+**Project consequence:** keep sampled verifier-policy experiments separate from kernel experiments. The paired gate/up kernel alone is a sub-1% result in the clean cell; the large low-context deltas are configuration-level evidence only. Do not use them to move 40@128K.
+
+## vLLM #56869 — align distributed ranks before sharded DFlash graph capture
+
+Source created `2026-09-14 16:57:04 UTC`.
+
+**FRESH NEW / DISTRIBUTED GRAPH-CAPTURE CORRECTNESS TRANSFER.**
+
+Once a DFlash/DSpark draft is DCP-sharded, its captured graph contains a context-parallel collective. Capture is unsafe if ranks enter while peers are still completing earlier work. The observed fault disappeared under serialized kernel launch, identifying a race rather than an ordinary bounds error.
+
+The fix, only when draft DCP > 1, does:
+
+1. accelerator synchronization;
+2. CPU-group DCP barrier;
+3. graph capture.
+
+8x MI355X, Kimi-K3 + DSpark TP8/DCP8: every boot previously died during speculator capture; with the alignment barrier the server reached startup in **280 s** with no steady-state serialization penalty and a 9/9 concurrency sweep completed rc=0.
+
+**Project consequence:** collective-bearing graph capture has a rank-alignment precondition. For any future dual-node captured speculative path, capture identity includes effective draft parallelism, pre-capture device quiescence and group-consensus boundary.
+
+## oMLX #3666 — model discovery should follow executable weight structure, not metadata alone
+
+Source created `2026-09-14 18:22:58 UTC`.
+
+**FRESH NEW / 27B DISTRIBUTED ROUTE-DISCOVERY CORRECTNESS.**
+
+Published Qwen3.8-27B text quants can retain a populated `vision_config` and even vision tensors while stock loading sanitizes them away. The cluster fallback classifier therefore rejected real text-capable 27B checkpoints as VLMs unless users edited config or supplied an override.
+
+The patch classifies the family using the actual `language_model.` weight root in `model.safetensors.index.json`. It was verified against Qwen3.8-27B-oQ4e on a real **2x M4 Max TP2** cluster; 201 discovery tests pass.
+
+No throughput is reported and Q4 is not our preferred target quant.
+
+**Project consequence:** requested/config metadata is not execution identity. Model-family admission should follow the weight structure and sanitize/load route that will actually execute, especially before rejecting distributed topology support.
 
 ---
 
-# Recovered older evidence surfaced this pass
+# Newly landed / older measurement evidence — do not refresh benchmark timestamps
 
-## oMLX #3654 — expert-major offload prefill
+## vLLM #55309 — Qwen3.8-Flash-Next PLE residual + QSA output-gate fusion
 
-Created `2026-09-13 20:46:46 UTC`, so not fresh despite merging now.
+Merged in this window at `2026-09-14 12:16:25 UTC`, but the PR and measurements predate the freshness boundary.
 
-For over-capacity expert offload, expert-major chunking avoids repeatedly fetching/evicting the same experts. M5 Max Gemma4-A4B:
+**NEWLY LANDED / RECOVERED OLDER MECHANISM EVIDENCE.**
 
-- 50% residency warm TTFT **2.38 -> 0.69 s**;
-- 25% **8.87 -> 0.85 s**;
-- 12.5% **16.60 -> 0.97 s**.
+It fuses the outer PLE residual add into short convolution and the optional QSA output gate into sparse-attention epilogues while explicitly preserving the original BF16/FP16 rounding boundaries.
 
-Retain as offload/capacity transfer only.
+Older B200 microbench evidence:
 
-Merge-only: oMLX #3659, mlx-serve #421 and llama.cpp #28670 are not re-dated.
+- PLE single-row decode **6.464 -> 4.480 us (1.443x)**;
+- PLE prefill speedup **1.15–1.29x** across measured 16–8192-token sizes;
+- QSA output-gate single-row **12.832 -> 11.616 us (1.105x)**, converging toward ~1% at large row count.
 
----
+This is useful confirmation of the same fusion rule surfaced by fresh ds4 #1042, but it is not a fresh performance receipt and not Apple evidence.
 
-# Critical retained Flash-Next evidence
+## vLLM #56633 — V4.1 mHC post/pre folding landed with older tuning evidence
 
-## Direct Apple QSA
+Merged in this window at `2026-09-14 18:57:37 UTC`; substantive tuning work predates the boundary.
 
-mlx-serve direct Apple work shows sparse selection must stay sparse through actual K/V access:
+**NEWLY LANDED / RECOVERED OLDER FUSION-HEURISTIC EVIDENCE.**
 
-- decode compact K/V gather at 128K: **23.5 -> 46.1 tok/s**;
-- at 256K: **14.6 -> 40.9**;
-- prefill block-gather at 128K: **395 -> 654 tok/s**;
-- at 256K: **267 -> 551**.
+The fused TileLang seam wins roughly **1.3x at tiny decode widths**, ~1.17x at 16 tokens and reaches break-even around 32 against a corrected/tuned unfused baseline. The important methodological lesson is that an inherited split-K heuristic was itself 5–19% off on unfused seams, and an apparently good fusion cutoff would have been wrong if compared only against that slow baseline.
 
-Exact top-k splitting / fused score-sheet work further improves long-context selection. QSA history should be a short raw-key ring + pooled authoritative history, not raw full-history clones in each SSM checkpoint.
-
-## Apple MTP / proposal economics
-
-Retain:
-
-- grouped Qwen4 drafting + row-axis verify while every request owns independent KV/recurrent/rollback state;
-- dispatch lazy draft graphs before verify-build to overlap GPU work with CPU graph construction;
-- coarse proposal head + exact shortlist rerank;
-- consumed-row-only proposal projection;
-- adaptive speculation from measured accepted-token economics;
-- first-use JIT must not poison learned MTP width costs.
-
-## 1M community calibration
-
-M5 Max 128GB, mixed dense8/expert4, KV8, MTP community receipt remains useful transfer evidence:
-
-- ~80+ tok/s <=256K;
-- ~60 around 500K;
-- ~40 at 1M original prose result, ~75 coding;
-- later current-main claim ~67 at 1M, exact whole-delta commit not isolated.
-
-Do not transfer M5 percentages to dual M1.
+**Promote methodology only:** every fusion should be compared against a separately tuned unfused control; otherwise a bad baseline can exaggerate both the gain and the valid shape range.
 
 ---
 
-# Distributed Lightning-MTP — current interpretation
+# External HF / Reddit screen
 
-Stock oMLX still rejects distributed MTP. Treat this as an **engineering/certification blocker, not a known architectural impossibility**.
+The fresh web screen surfaced several September-14 model-card updates, including Qwen3.8 Flash-Next MTP/runtime measurements on DGX Spark and newly crawled M3-Ultra model cards. They are useful context but **not promoted as fresh active-topology receipts** because exact source times relative to this 11:43:49–19:17:07 UTC window are unavailable and the hardware/topology differs from the canonical lanes.
 
-Working PP2 hypothesis:
+Notable context only:
 
-1. backbone / QSA / GDN / PLE state stays stage-local;
-2. one authoritative sampling / verification-control rank;
-3. one PP traversal for the whole verifier row block, **not one traversal per drafted token**;
-4. authority rank determines accepted-prefix length / sampled continuation;
-5. tiny commit/control sync back to the other stage;
-6. both stages commit/rollback KV + recurrent + QSA/indexer + PLE + MTP history to the same boundary;
-7. prefix-cache sidecars persist the same committed-boundary identity;
-8. cancellation/error synchronizes the same boundary before releasing state.
+- a Q5 DGX-Spark card reports a same-artifact MTP runtime optimization around **+3.34% decode at cold 8K** with exact frontier-logit/generated-ID parity;
+- community M3-Ultra Flash-Next cards continue to show that native MTP can range from negative to materially positive depending on quant/runtime/acceptance, reinforcing that acceptance alone is not a speed claim;
+- the older M1-Max-32 27B MLX-vs-llama.cpp community cell remains unchanged and is not refreshed.
 
-Target and proposal MoE geometry are separate identities; MTP expert count/top-k may differ from the trunk.
-
-Prove distributed-MTP correctness relatively early because its transport/state topology determines which P69/QSA paths are actually hot.
+No crawler timestamp is treated as evidence time.
 
 ---
 
-# Current Flash-Next optimization stack
+# Fresh-screen negatives
 
-Treat as mostly orthogonal / stackable:
-
-1. **QSA/indexer:** compact selected-K/V decode + prefill, live-span geometry, exact/deterministic top-k, fused score path, short raw ring + pooled history, owner-local state, real workspace transient.
-2. **MTP/P69 economics:** distributed-MTP correctness, one verifier traversal/round, #422 exact verifier routes, coarse proposal + exact rerank, consumed-row projection, GDN verifier fusion/prework, PLE defer, adaptive depth/speculation, clean JIT calibration.
-3. **PP2/MoE/runtime:** actual layer ownership/balance, transient-aware chunk width, TB4 transport/collective order, command commit-vs-wait scheduling, minimal recurrent tails, prefix-cache correctness/recovery.
+- No exact fresh **dual-M1 Flash-Next** 40@128K or 400-PP receipt.
+- No exact fresh **M1 Max64 Qwen3.8-27B** Q6/Q8 receipt.
+- No exact fresh **RTX5070Ti16 Qwen3.8-27B** canonical-lane receipt.
+- No exact fresh **dual-M1 DS4-0731** receipt.
+- No target movement.
+- No P69 reorder/reopen.
 
 ---
 
-# Current lane consequences
+# Consequences by lane
 
 ## Dual-M1 Flash-Next
 
-Keep **PP2/layer ownership primary**, TP2 as control.
+Keep **PP2/layer ownership primary**, TP2 control.
 
-Priority gates / experiments:
+Add these concrete checks/experiments:
 
-1. distributed-Lightning-MTP correctness/topology proof;
-2. compact QSA selected-K/V execution on decode and prefill;
-3. port/audit #422 verifier primitives against actual Flash/P69 shapes;
-4. sweep 4096/8192 cold-prefill width under exact PP2 transient headroom;
-5. command encode/commit/wait telemetry; remove unnecessary per-layer waits;
-6. exact top-k/score-sheet/live-shape census and workspace transient;
-7. minimal authoritative QSA history + recurrent checkpoint ownership;
-8. full prefix-cache boundary identity across backbone/QSA/GDN/PLE/MTP;
-9. repeated 64K/~96K/~128K semantic correctness;
-10. TB4 routability, actual stage ownership, live admission ceiling, collective ordering and failure/reload certification.
+1. preserve exact rounding/reduction boundaries when fusing PLE/QSA/HC/MoE glue; record fused-vs-tuned-unfused, not fused-vs-default-only;
+2. rank-authoritative speculative budget and request-boundary consensus before any shape-changing distributed verification step;
+3. rank alignment before graph capture if the captured draft contains collectives;
+4. post-trim QSA cache admission must include history/state transferred to the retained checkpoint;
+5. if capacity/offload is ever needed, stage **selected experts**, not whole sparse layers; keep this emergency lane separate from the resident Q6/Q8 target;
+6. sampled-verifier policy and verifier-kernel changes require separate A/B cells; do not attribute whole-configuration gains to a kernel;
+7. retain the previous pass's verifier route-pack/indexed-gather/down-reuse work, 4096/8192 transient-aware prefill sweep and Metal commit-vs-wait instrumentation.
 
 No target movement.
 
@@ -239,37 +282,33 @@ No target movement.
 
 No target movement. **P69B12 frozen/promoted; P69B13 next.**
 
-External #422 strengthens the engineering thesis but does not alter internal sequence. Fresh exact-shape/route evidence may inform B13 implementation only where the shape census matches.
+Fresh evidence reinforces two existing principles without changing P69 order:
+
+- remove major scheduling/fusion bottlenecks before judging small reuse ideas (#1049);
+- model/distributed-route identity should follow executable weight structure rather than metadata flags (#3666).
+
+The clean #427 paired gate/up isolation at +0.76% is a useful warning against treating a large whole-stack speculative delta as proof that one small verifier kernel is high leverage.
 
 ## RTX5070Ti16
 
-No target movement. Keep SM120 physical-stride, device-kernel admission and concurrent-long-prompt soak gates. No exact fresh 5070-Ti receipt.
+No target movement. No exact post-boundary 5070-Ti receipt appeared. Existing SM120 route/stride and long-prompt concurrency gates remain.
 
 ## DS4-0731 dual M1
 
-No target movement. #1041/#1035 transfer scheduling/I/O methodology only; later-V4.1 percentages do not calibrate the 0731 target.
+No target movement. #1042/#1049 are V4.1/M3-Ultra evidence and #1047 is Qwen Flash/Q2/M1-Max capacity evidence, not DS4-0731 receipts. Promote the exact-boundary fusion methodology and stack-aware microbenchmark sequencing, not their percentages.
 
 ---
 
-# Standing evidence rules
+# Standing rules added / reinforced
 
-- Exact target receipt vs transfer/mechanism vs experimental A/B vs planning target must remain separate.
-- Actual benchmark cell = **executed physical route**, not requested flags.
-- Context is part of target identity.
-- Requested/configured precision != physical/executed precision.
-- Route provenance: requested -> configured -> built/registered -> device-compatible/admitted -> armed -> executed.
-- Memory provenance: load/materialization transient, live tensors, allocator-reserved, speculative derived weights, verifier temporaries, sparse/indexer scratch.
-- Prefill chunk width is a physical/admission choice; price exact geometry + measured safety margin.
-- Command-buffer commit and wait are separate controls; no host wait without a dependency justification.
-- Shared append-only QSA history and checkpoint-local recurrent leftovers are separate ownership classes.
-- Recurrent tails must not retain whole prefill chunks through views.
-- Prefix-cache correctness is multi-state committed-boundary correctness, not backbone-KV correctness alone.
-- Dummy/warmup/padding speculative work must be write-side-effect-free.
-- First-use JIT cannot silently become steady-state learned cost.
-- Sparse top-k tie ordering must be deterministic under batch/row reshaping.
-- A no-forward step can still carry cache/state/transport effects; complete before metadata retirement.
-- Distributed cancellation is a coordinated state transition.
-- Final output correctness != speculative correctness; acceptance + task quality remain separate.
-- Component/kernel gains do not move canonical targets without exact topology evidence.
-- Merge/crawl time never refreshes older evidence.
-- **P69 remains isolated.**
+- **Physical billing width** belongs to execution identity; never charge a singleton auxiliary allocation at a neighboring group's maximum width.
+- **Fusion exactness** means preserving reduction trees and intended rounding/quantization boundaries, not merely matching a loose final-output tolerance.
+- Compare every fused candidate against a **separately tuned unfused baseline**; inherited heuristics can make fake headroom.
+- Speculative choices that alter shape, budget, request boundaries or collective geometry require an **authoritative rank and consensus point**.
+- Collective-bearing graph capture requires **rank alignment and device quiescence before capture**.
+- Cache trim admission must price state **after ownership transfer/reparenting**, then verify materialized resident bytes.
+- Sparse over-capacity I/O should be demand-shaped by selected experts; full-layer streaming is not an acceptable sparse baseline when selective staging is possible.
+- A micro-optimization that is flat before major bottleneck removal may become measurable after the bottleneck is removed; keep stack-aware retest points.
+- Requested model metadata is weaker than the physical weight/load/sanitize route that actually executes.
+- Context remains part of target identity. A low-context speculative win does not satisfy 40 tok/s at ~128K.
+- No external result silently changes P69 or any canonical target.
