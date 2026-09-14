@@ -18,14 +18,12 @@ Do not maintain a dedicated future M5/M5-Ultra lane unless explicitly reopened. 
 
 1. `experiments/p51-q8-verifier/RESEARCH-STATE.md`
 2. `experiments/p51-q8-verifier/RESEARCH-TARGETS.md`
-3. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-1533.md` — newest complete delta: TB routable-address discovery, executed PP ownership, live memory admission, lazy-send/collective ordering, internal prefill checkpoints, DCP interleave mapping, EPLB warmup isolation.
-4. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-1237.md` — live-context-bounded sparse work, DFlash2 per-layer causality, DSpark candidate-pruned proposal head, MTP retained-history offload coverage, parallel JIT warmup, multimodal pre-prefill TTFT.
-5. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-0343.md` — dual-Mac failed-runtime recovery, exact rendered-context budgeting, SM120 physical-stride correctness, compiled speculative drafter evidence, producer-side norm/quant fusion.
-6. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-12-2300.md` — fused RMS/GDN verifier recurrence, expert-offload I/O/speculation economics, direct TB/RDMA cluster failure modes, shared physical host-cache ownership, speculative JIT warmup cardinality, draft-architecture provenance.
-7. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-12-1735.md` — live-context-bounded DSA work, fused/graph-capturable prefill metadata, draft-config provenance, direct Flash-Next cluster PLE failure, 64-GB capacity/recovered REAP evidence.
-8. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-12-1257.md` — GDN kernel-image route admission, device-authored adaptive metadata, no-forward KV-store lifecycle, coordinated long-prefill cancellation, recovered Flash-Next SP evidence.
-9. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-12-1103.md` — V4.1 CED bounded-replay Apple prefill, ds4 V4.1 Metal support, device-authoritative speculative metadata.
-10. Older 2026-09-12 / 2026-09-11 / 2026-09-10 / 2026-09-09 notes remain retained for QSA/MTP, offload, PP/TP, recurrent rollback, cache/state, transport, ABI, precision and soak methodology.
+3. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-2057.md` — newest complete delta: generated-prefix MTP history, SDPA transient capacity, distributed-MTP constraint, multi-slot coherent prompt cache, expert-major offload prefill, live-length gather geometry, sampler-support-aligned drafting, dummy-draft KV poisoning, fresh M1 128K correctness, QSA top-k/request-lifecycle mechanisms, recovered #3614/#28213/#28699.
+4. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-1533.md` — TB routable-address discovery, executed PP ownership, live memory admission, lazy-send/collective ordering, internal prefill checkpoints, DCP interleave mapping, EPLB warmup isolation.
+5. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-1237.md` — live-context-bounded sparse work, DFlash2 per-layer causality, DSpark candidate-pruned proposal head, MTP retained-history offload coverage, parallel JIT warmup, multimodal pre-prefill TTFT.
+6. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-13-0343.md` — dual-Mac failed-runtime recovery, exact rendered-context budgeting, SM120 physical-stride correctness, compiled speculative drafter evidence, producer-side norm/quant fusion.
+7. `experiments/p51-q8-verifier/RESEARCH-WATCH-2026-09-12-2300.md` — fused RMS/GDN verifier recurrence, expert-offload I/O/speculation economics, direct TB/RDMA cluster failure modes, shared physical host-cache ownership, speculative JIT warmup cardinality, draft-architecture provenance.
+8. Older 2026-09-12 / 2026-09-11 / 2026-09-10 / 2026-09-09 notes remain retained for QSA/MTP, offload, PP/TP, recurrent rollback, cache/state, transport, ABI, precision and soak methodology.
 
 Because `RESEARCH-STATE.md` predates later dated deltas, this watch chain remains part of canonical working context.
 
@@ -33,9 +31,9 @@ Because `RESEARCH-STATE.md` predates later dated deltas, this watch chain remain
 
 # Freshness discipline
 
-The latest complete pass covers substantive sources strictly after `2026-09-13 16:37:16 UTC` through the user-request cutoff.
+The latest complete pass covers substantive sources strictly after `2026-09-13 19:33:05 UTC` through the user-request cutoff.
 
-**Hard source-freshness boundary for the next complete external search: `2026-09-13 19:33:05 UTC`.**
+**Hard source-freshness boundary for the next complete external search: `2026-09-14 00:57:57 UTC`.**
 
 Evidence timestamp = substantive source timestamp, not crawl, rediscovery, rebase, comment-only activity or merge-only churn. Resurfaced older evidence stays older unless a clearly substantive post-boundary result can be identified.
 
@@ -50,75 +48,89 @@ Evidence timestamp = substantive source timestamp, not crawl, rediscovery, rebas
 | **Qwen3.8-27B — RTX5070Ti16** | **120 tok/s** | **250 tok/s** | unchanged |
 | **DS4-0731 — 2x M1 Max64 / TB4** | **15 tok/s** | **180 tok/s** | unchanged |
 
-**No canonical target moved in the 15:33 ET pass. P69 remains isolated. P69B12 remains frozen/promoted; P69B13 remains next only from existing measured GDN/projection/downstream-tail profiling. Do not reopen P69B8/B9/B10-C from external evidence.**
+**No canonical target moved in the 20:57 ET pass. P69 remains isolated. P69B12 remains frozen/promoted; P69B13 remains next only from existing measured GDN/projection/downstream-tail profiling. Do not reopen P69B8/B9/B10-C from external evidence.**
 
 ---
 
-# Newest directly relevant evidence — 2026-09-13 15:33 ET
+# Newest directly relevant evidence — 2026-09-13 20:57 ET
 
-## oMLX #3637 — routable Thunderbolt address discovery
+## oMLX #3647 — generated-prefix MTP head history
 
-**FRESH NEW / DIRECT DUAL-MAC TB4 BRING-UP EVIDENCE.**
+**FRESH NEW / HIGH-VALUE FLASH-MTP PREFIX-CACHE CORRECTNESS.**
 
-The multicast handshake previously learned only the packet source address, which on direct TB can be IPv6 link-local; after scope removal a bare `fe80::` is undialable, while static TB IPv4 or APIPA `169.254.x.x` remained invisible until manually entered.
+Generated tokens could enter the backbone prefix cache without matching MTP head history. The proposed sidecar captures a detached head cache plus pending normalized hidden row at committed full-block boundaries and trims the preceding speculative chain before the confirmed fold. Focused suites report 337 passes + 3 skips; full Qwen4 repeated-prompt qualification remains pending.
 
-The proposed WASSUP address inventory advertises dialable candidates, keeps APIPA eligible, and requires an HTTP probe whose returned `node_id` matches before the address enters the peer record. Validation reported 154 discovery/pairing tests plus 137 pairing/UI tests passing; physical two-Mac hotplug validation remains pending.
+**Promote:** prefix-cache identity under MTP includes backbone state + head-history boundary + pending hidden row + rollback state at one committed token boundary.
 
-**Promote:** transport identity is discovered peer -> advertised candidate -> probe-verified endpoint -> selected physical interface, not datagram source alone.
+## oMLX #3651 — route-specific SDPA transient belongs in context capacity
 
-## oMLX #3638 — planned layer split vs actually loaded layer split
+**FRESH NEW / DIRECT 2x64 GB LONG-CONTEXT CAPACITY EVIDENCE.**
 
-**FRESH NEW / HIGH-VALUE PP2 OWNERSHIP-CORRECTNESS.**
+A real 2x64 GB pipeline was signed for 425,984 tokens but rank 0 rejected above ~320K because runtime admission charged an unfused head-dim-256 fp32 SDPA transient omitted by the planner: ~24.25 GB `KV+SDPA` versus 8.7 GB pure KV at 320K.
 
-A model-specific `pipeline()` override silently recomputed an even split and ignored an approved unequal plan. A 78-layer ~432.7 GB deployment could plan 26/52 yet actually load 39/39, only failing after the entire load. The compatibility shim now makes the architecture-specific loader honor the assignment and maintain its cache/loop layer count.
+**Promote:** planner and runtime admission must share the same executed attention route, chunk size and transient formula. Aggregate RAM/KV-only arithmetic is insufficient.
 
-**Promote:** planner assignment is not execution evidence. Certify the actual method invoked, contract marker, loaded start/end layers, cache range and executed stage.
+## oMLX #3653 — distributed Lightning MTP remains a real blocker
 
-## oMLX #3643 — live per-request rank admission ceiling
+**FRESH NEW / CRITICAL ACTIVE-PLAN CONSTRAINT.**
 
-**FRESH NEW / LARGE-MODEL APPLE CAPACITY EVIDENCE.**
+The MTP-compatible Qwen3.5 model patch is being made pipeline-aware for ordinary distributed serving, but the PR explicitly states that **distributed MTP remains rejected elsewhere**.
 
-A rank's dynamic prefill ceiling was frozen immediately after model load: the field case captured **49.7 GiB** during the transient while the settled host reached **112.1 GiB** 11 seconds later. The stale ceiling kept rejecting a 68.3 GiB stage and contributed to a three-Mac 198.6 GB activation failure.
+**Promote:** dual-M1 Q4 capacity plausibility does not mean PP2 + Lightning MTP works stock. Distributed speculative execution remains a separate enablement/certification workstream.
 
-The fix re-reads the hard limit once per request while retaining live back-off under later pressure and build-time fallback on read failure. 201 related tests passed.
+## oMLX #3655 — coherent multi-slot distributed prompt cache
 
-**Promote:** load transient, settled idle ceiling and decision-time live ceiling are separate capacity identities.
+**FRESH NEW / DIRECT LONG-AGENT DISTRIBUTED EVIDENCE.**
 
-## oMLX #3644 — lazy stage-send dependency can deadlock a later collective
+The tuner silently forced `prompt_cache_size=1`, so interleaved traffic could evict the active conversation and trigger full re-prefill; the field report cites ~110 s at ~45K tokens. Proposed fix keeps byte-based eviction disabled for cross-rank correctness but honors deterministic count-based LRU slots.
 
-**FRESH NEW / HIGH-VALUE PP2 EXECUTION-ORDER EVIDENCE.**
+## oMLX #3654 — expert-major offload prefill
 
-With `sampling_rank_only` enabled, an otherwise working pipeline (~18 tok/s with the flag off) could report ready and never emit a token. A worker's stage send depended on a lazy full-forward graph that nothing evaluated; the token all-sum could therefore run first, leaving the worker blocked in the collective while rank zero waited on the missing receive.
+**FRESH NEW / OFFLOAD CONTINGENCY.**
 
-The fix explicitly materializes the worker forward before the all-sum; an event-order test pins `eval < all_sum`. The exact physical topology is not yet rerun.
+Sorting/chunking by expert instead of token range removes repeated expert refetch churn. At 12.5% residency, a 585-token Gemma-4 prompt went 64,369 -> 2,913 expert fetches and warm TTFT 16.60 -> 0.97 s. Decode unchanged. Useful if expert offload is ever used, but not a reason to abandon the primary full-resident/MTP Flash plan.
 
-**Promote:** collective source order is insufficient. Record the lazy dependency that owns each send, the event that materializes it, and prove downstream collectives cannot overtake it.
+## vLLM #56720 — live gather length should determine launch geometry
 
-## vLLM #56714 — internal prefill checkpoints avoid hidden full replay
+**FRESH NEW / STRONG LONG-CONTEXT SPARSE-PREFILL TRANSFER.**
 
-**FRESH NEW / STRONG LONG-CONTEXT PREFILL MECHANISM TRANSFER.**
+DeepSeek-V4.1 compressed-KV gather improved 131K warm-cache prefill 446.9 -> 320.8 ms (-28.2%) by sizing worker count from live gather length; a 399K profile reduced full-prefix gather calls from median 8835 -> 1093 us. Static graph geometry and static worker count are separate choices.
 
-Kimi-K3 Triton KDA adds 64-token-aligned internal recurrent-state checkpoints so prefix reuse can resume from an internal state instead of performing an extra full-model prefill pass.
+## vLLM #56724 — draft inside target top-k/top-p support
 
-16x B200 A/B mean TTFT reductions ranged from **7.1% at random 8K** to **32.7% at 128K prefix + 2K suffix / concurrency 16**; 128K+2K c1 improved **3656.0 -> 2790.1 ms (-23.7%)**. All 1472 requests completed. A few single-token outputs differed across A/B, with repeat-to-repeat differences also present, so this remains mechanism/performance evidence rather than bit-exact output evidence.
+**FRESH NEW / SPECULATIVE ACCEPTANCE MECHANISM.**
 
-**Promote for Flash-Next:** recurrent/GDN/QSA prefix hits must disclose internal-state checkpoint alignment and whether a supposedly cached prefix still triggers a hidden full-model replay.
+For probabilistic drafting, restricting proposals to the target sampler's top-k/top-p support preserved distribution, raised accepted tokens/step ~5-8%, and improved pooled Qwen3.5 MTP output throughput ~2.8-4.3% depending concurrency. Greedy unaffected. Transfer the sampler-alignment rule, not the CUDA percentage.
 
-## vLLM #56715 — indexer DCP/PCP interleave is execution identity
+## vLLM #56734 — dummy draft steps can poison persistent drafter KV
 
-**FRESH NEW / DISTRIBUTED INDEXER-CORRECTNESS.**
+**FRESH NEW / HIGH-VALUE SPECULATIVE CACHE CORRECTNESS.**
 
-PCP gather arithmetic assumed interleave 1. At DCP4/interleave64, token 1 could read token 64's key. The corrected mapping passed **72 ordering cases** across interleave 1/64, DCP2/4/8 and boundary/split-row contexts; restoring old arithmetic failed all 36 interleave64 cases.
+Idle dummy batches could resolve stale persistent block-table rows and write drafter KV into prefix-cached blocks. Production GLM-5.2 repro showed p0=0 acceptance with NaN drafter rows while target KV stayed clean. Forcing dummy slot mappings to PAD removed the writes; one validation logged 66,164 dummy draft steps all PAD.
 
-**Promote:** QSA/indexer identity includes physical token interleave, local/global mapping, padding and gather order.
+**Promote:** dummy/padding/warmup paths must be write-side-effect-free on drafter-only persistent state, not merely read-masked.
 
-## vLLM #56716 — warmup traffic must not enter expert-load statistics
+## llama.cpp #28805 — fresh M1 Max64 long-context correctness
 
-**FRESH NEW / MOE-EPLB MEASUREMENT-CORRECTNESS.**
+**FRESH COMMENT / DIRECT ACTIVE-HARDWARE CORRECTNESS EVIDENCE.**
 
-MRV2 kernel warmup invokes real model execution and could contaminate EPLB expert-load counters at startup and immediately after elastic rebalance. The proposed fix suppresses EPLB accounting during warmup and restores the prior state afterward.
+Fresh exact-seed qwen4exp tests show clean retrieval at 82K and 98.5K but prompt/seed-dependent ~131K failures; under thinking-low the bad mode can look like semantic/instruction-scope drowning rather than instant EOS. Reporter treats 64K as verified-correct and ~96K (2.5/3 across seeds) as non-shippable.
 
-**Promote:** expert popularity, ownership and rebalance decisions must be based on real request traffic, with warmup/profiling/synthetic batches excluded.
+**Promote:** Flash 128K ruler needs repeated semantic probes near 96K/128K; HTTP 200/nonempty output is not correctness evidence.
+
+## llama.cpp #28871 / #28872 — sparse top-k + allocator lifecycle transfer
+
+#28871 replaces whole-row argsort with deterministic radix selection for long-context sparse top-k when DeviceTopK is unavailable; example 262144x5/k2051 2.12 -> 0.183 ms. Route execution on our 5070 Ti is not established.
+
+#28872 finds per-request scheduler recreation caused large buffer realloc/page-fault warmup; on a 4-GPU Flash-Next layer split TTFT reportedly moved ~0.8-1.1 s -> 0.25-0.4 s by retaining/re-reserving the scheduler. Treat as lifecycle transfer, not Apple evidence.
+
+---
+
+# Recovered older evidence — timestamp retained
+
+- **oMLX #3614:** oQ4e-mtp measured ~106.3 GB total, ~74.3 GB non-PLE resident, ~32 GB PLE/ngram. Supports PP2 capacity plausibility on two 64GB nodes, but #3653 prevents conflating capacity with distributed-MTP availability.
+- **llama.cpp #28213:** compact gathered QSA K/V instead of full-context masked attention; reported +50% at 130K on dual A6000. Mechanism only.
+- **llama.cpp #28699:** incremental pooled QSA indexer cache; reported ~+9.4% at 114K and showed pooled state should live on its device/layer owner to avoid interconnect traffic. Mechanism only.
 
 ---
 
@@ -128,15 +140,10 @@ MRV2 kernel warmup invokes real model execution and could contaminate EPLB exper
 - No new exact M1 Max64 Qwen3.8-27B receipt.
 - No exact RTX5070Ti16 Qwen3.8-27B throughput receipt.
 - No exact new dual-M1 DS4-0731 receipt.
-- No new vLLM DFlash/MTP PR was created in this search window.
-- `jundot/omlx` main had no in-window commit; current Apple evidence above is open-PR evidence.
-- `antirez/ds4` had no in-window commit.
-- `llama.cpp` had NextN/MTP metadata guarding and unrelated maintenance only; no new active-lane Metal/Qwen speed receipt.
-- External web/HF screening returned previously known M1 DFlash W4/A16 -> W4/A32 evidence and older Flash-Next 64GB reports, but no new source-time-qualified active-topology receipt. Do not refresh those evidence dates.
-- vLLM #56713 is useful ABI/transport-provider provenance but not active-lane performance evidence.
-- vLLM #56718 (MLA LoRA correctness) and #56719 (OTel/fork tracing) do not affect active target calibration.
-- oMLX #3636 is the UI-side complement to #3637; #3637 is the higher-value discovery mechanism.
-- oMLX #3642 is distributed SSD snapshot teardown hygiene rather than throughput evidence.
+- `antirez/ds4`: no in-window commits.
+- Current web/HF screening surfaced an M1 Max64 Flash-Next REAP/MTP package reporting ~40.3 GB short-test peak and native MTP active, but it explicitly is not a throughput benchmark and source timing is not clean enough to promote.
+- vLLM #56722/#56723 are topology-enablement drafts for PCP/DCP + MTP/DFlash; validation is still in progress.
+- No P69 target/order change.
 
 ---
 
@@ -144,44 +151,44 @@ MRV2 kernel warmup invokes real model execution and could contaminate EPLB exper
 
 ## Dual-M1 Flash-Next
 
-Keep **PP2/layer ownership primary**, TP2 as control. Certification now explicitly includes:
+Keep **PP2/layer ownership primary**, TP2 as control. Add/retain:
 
-1. static TB IPv4 + APIPA address advertisement and probe verification;
-2. planned assignment -> architecture-specific loader contract -> actual loaded layer range;
-3. load-transient vs settled/live memory ceiling;
-4. lazy graph materialization before dependent sends/collectives;
-5. aligned recurrent-state checkpoint/resume vs hidden full-prefix replay;
-6. DCP/interleave global-order reconstruction in indexer/QSA paths;
-7. warmup exclusion from MoE expert-load statistics;
-8. existing live-span/workspace, PLE, verifier peak, failure/reload, ABI, watchdog, TB/RDMA and long-context gates.
+1. explicit distributed-Lightning-MTP enablement gate; stock distributed serving still rejects MTP;
+2. prefix-cache bundle identity: backbone KV + QSA/indexer + GDN/recurrent + PLE + MTP head history + pending hidden + committed boundary;
+3. route-specific SDPA prefill transient in capacity planning;
+4. coherent count-based prompt-cache slots with byte eviction disabled;
+5. repeated 64K/~96K/128K semantic correctness ruler;
+6. audit compact selected-K/V QSA, incremental pooled indexer state, deterministic exact top-k and owner-local state;
+7. dummy/warmup speculative write isolation;
+8. existing TB/RDMA, actual layer ownership, live memory ceiling, lazy collective ordering, recurrent checkpointing, live-span/workspace and failure/reload gates.
 
 No target movement.
 
 ## Qwen3.8-27B M1 / P69
 
-No target movement and no P69 ordering change. This pass is largely distributed/long-context methodology. **P69B12 frozen/promoted; P69B13 next.**
+No target movement. Sampler-support alignment is worth checking only for non-greedy MTP experiments; it does not alter the frozen P69 order. **P69B12 frozen/promoted; P69B13 next.**
 
 ## RTX5070Ti16
 
-No target movement and no exact 5070-Ti speed receipt. Existing SM120 stride and executed-route gates remain.
+No target movement. #28871 reinforces exact/deterministic sparse top-k as a possible long-context hotspot, but the executing SM120 route is not established. Existing SM120 stride/executed-route gates remain.
 
 ## DS4-0731 dual M1
 
-No target movement. The oMLX cluster findings directly strengthen dual-Mac PP/TB/capacity methodology; #56714 is recurrent-state checkpoint mechanism transfer only.
+No target movement. #56720 is later-V4.1/ROCm mechanism transfer; oMLX capacity/cache/distributed-state lessons transfer to the dual-Mac methodology.
 
 ---
 
 # Standing rules added/reinforced
 
-- Discovery source address is not transport identity; advertise candidates and probe-verify the endpoint.
-- Planned PP ownership is not executed ownership until the actual architecture-specific loader and loaded ranges are verified.
-- Admission ceilings are decision-time state; load-transient minima are not permanent capacity facts.
-- Lazy graph dependencies must be materialized before collectives whose progress depends on their send/recv side effects.
-- Prefix-cache hits must disclose whether internal recurrent state resumes directly or causes hidden full-model replay.
-- Distributed indexer identity includes physical token interleave and local/global mapping.
-- Warmup/profiling/synthetic requests must not contaminate expert-load statistics.
+- Fits in aggregate RAM != runnable target stack; feature mutexes/distributed capability gates are feasibility dimensions.
+- Distributed MTP is a distinct execution topology and must be certified separately from ordinary PP.
+- Prefix-cache correctness is multi-state committed-boundary correctness, not backbone-KV correctness alone.
+- Dummy/warmup/padding speculative work must be write-side-effect-free.
+- Sampler support alignment is speculative execution identity for non-greedy workloads.
+- Sparse selection needs bounded work **and** launch geometry appropriate to the live span.
+- Planner capacity and runtime admission must share the executed route's transient model.
+- Semantic long-context correctness needs repeated probes near the operating boundary.
 - Merge/crawl time does not refresh older evidence.
 - Requested/configured/planned remains distinct from built/available/contracted/admitted/executed.
-- Final-output correctness does not certify speculative/distributed state correctness.
 - Component/kernel gains do not move canonical targets without exact active-topology reproduction or exceptionally strong transfer evidence.
 - **P69 remains isolated.**
