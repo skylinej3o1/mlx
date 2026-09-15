@@ -1,226 +1,174 @@
-# External runtime watch — 2026-09-15 12:44 ET
+# External runtime watch — 2026-09-15 14:32 ET
 
 ## Search window
 
-Complete pass over substantive source activity strictly after `2026-09-15 11:34:26 UTC` through the user-request cutoff `2026-09-15 16:44:45 UTC`.
+Complete pass over substantive source activity strictly after `2026-09-15 16:44:45 UTC` through the user-request cutoff `2026-09-15 18:32:30 UTC`.
 
-Evidence timestamp remains the substantive source / measurement timestamp, not crawler time, rebase time, comment-only activity, or a later merge of already-known measurements.
+Evidence timestamp remains the substantive source / measurement timestamp, not crawler time, rebase time, comment-only activity, or a later merge of older measurements.
 
 ## Executive result
 
 No exact active-topology receipt appeared for any canonical target. No target moves.
 
-This was nevertheless a strong Apple / hybrid-runtime pass. The highest-value fresh items are:
+The strongest fresh items in this short window are:
 
-1. **oMLX #3685** — direct M4 Max 64 GB / Qwen3.8-27B / 68K-context evidence that a live-memory-dependent SDPA route can change greedy output. Route selection is therefore correctness identity, not merely a memory heuristic.
-2. **vLLM #57039** — direct Qwen3.8-Flash-Next GDN prefill evidence that two hidden per-layer copies can be removed; one gated-norm component falls 185 -> 114 us at T=8192 with exact output equivalence.
-3. **llama.cpp #28948** — fresh Metal implementation surface for compound MoE routing/reduction and SSM/GDN-adjacent fusions, with broad correctness coverage; performance numbers are still pending.
-4. **vLLM #57000** — the 11-second cutoff-edge item from the prior watch: hybrid recurrent-state admission can wedge by billing hundreds of logical null blocks instead of the handful of physical blocks that can actually exist.
-5. **mlx-serve #438** — fresh Apple Flash-Next HC/GDN prefill fusion implementation and tests. Its quoted performance cells are prior-arm measurements, not fresh measurements of this head, so they remain supporting evidence only.
+1. **vLLM #57053** — adaptive speculative depth was selected by the scheduler but not propagated into the actual autoregressive proposer; a K=3 policy still executed five draft forwards until fixed. This is directly relevant to our Lightning adaptive-depth contract.
+2. **vLLM #57048** — Kimi-K3 DSpark single-stream launch-overhead work shows a useful split strategy: defer tiny residual work across a safe boundary and graph-capture only the graph-safe speculative tail while leaving the awkward projection GEMM eager. Synthetic short-run step time improved 13.8%; output throughput improved 4.4%.
+3. **vLLM #57047** — a fused AWQ W4A16 dequant+GEMM path on RTX 4090 eliminates full FP16 weight materialization and produces very large wins in the batch-invariant path, while exposing another correctness rule: incidental input contiguity must not silently switch arithmetic implementations.
+4. **vLLM #57042** — one-stage and two-stage custom all-reduce can differ bitwise because the rank accumulation order changes across the payload-size crossover. This is important distributed-correctness context, but the concrete rank-order issue does not directly bite our two-rank PP2 path.
+5. **vLLM #57050** — an independent fresh report reproduces the same Mamba physical-vs-logical admission failure already promoted from #57000, now with a 1M-token Kimi-K3 request on 8x B300. It strengthens confidence in that rule but adds no distinct mechanism.
 
-Additional promoted transfer: vLLM #57001 rank-aligned collective profiling, #57007 causal-conv product precision, and #57021 GEMM+collective fusion economics.
+mlx-serve and oMLX had no main-branch commits inside this hard window. ds4-dfm-rs likewise had no main-branch commit in-window. llama.cpp had a fresh merge of older OpenCL MTP/MoE work, but the underlying work predates the hard boundary, so merge time is not treated as new evidence.
 
-## Promoted — oMLX #3685: SDPA route is deterministic correctness identity
+## Promoted — vLLM #57053: scheduler-selected speculative K must reach the actual proposer
 
-Source created: `2026-09-15 16:29:40 UTC`.
+Source created: `2026-09-15 18:30:01 UTC`.
 
-Direct Apple setup:
-- Mac Studio M4 Max 64 GB.
-- `Qwen3.8-27B-oQ4e-mtp` architecture: 48 GatedDeltaNet + 16 attention layers, head_dim=256.
-- 68,034-token prompt, max output 32, temperature 0, top_k=1.
-- oMLX cache disabled; MTP and ANE prefill disabled for the reproduction.
+MRV2 dynamic speculative decoding computed a runtime `num_spec_tokens_to_schedule`, but autoregressive speculators did not receive it. The proposer therefore fell back to its configured maximum depth.
 
-The SDPA256 path chose between an unfused full-score-matrix route and a bounded/fused online-softmax route from *live process headroom on each call*. Those two routes use different floating-point reduction orders. The same byte-identical request therefore could take different arithmetic routes depending only on process history.
+Fresh synthetic reproducer:
+- configured max K = 5;
+- dynamic schedule selects K = 3;
+- before: proposer executes **5** forwards;
+- after: proposer executes **3** forwards.
 
-Measured first-route headroom for the same request varied **14.8 / 21.6 / 22.7 GB** across processes. The dynamic hard limit also moved **42.1 -> 43.5 GB** inside one run.
+Measured synthetic proposer wall time across batch sizes 1..48:
 
-Four pre-fix runs of the identical request produced different route/partition histories and multiple distinct replies. Pinning the bounded route removed the divergence.
+| batch | buggy | fixed | speedup |
+|---:|---:|---:|---:|
+| 1 | 0.151 ms | 0.115 ms | 1.306x |
+| 2 | 0.148 | 0.115 | 1.286x |
+| 4 | 0.149 | 0.115 | 1.298x |
+| 8 | 0.148 | 0.115 | 1.282x |
+| 16 | 0.151 | 0.115 | 1.315x |
+| 32 | 0.150 | 0.114 | 1.306x |
+| 48 | 0.149 | 0.115 | 1.287x |
 
-The fix makes the route a pure function of stable request/model geometry:
-- parameter bytes,
-- projected cache bytes at the current `kv_len`,
-- measured fixed recurrent state,
-- configured hot-cache budget,
-- stable physical cap rather than transient process usage.
+The benchmark replaces the real draft model with a matmul and is not an E2E throughput receipt. The correctness issue is still real: unused draft forwards create needless work and stale draft-token state.
 
-A subtle but important implementation finding: a naïve parameter walker missed private submodules such as `_language_model`, pricing the 27B model at only ~1 GB. Physical budgeting must walk the actual private execution tree, not assume the public module iterator captures all owned weights.
+### Promoted rule for our distributed Lightning MTP
 
-Validation on the patch alone:
-- 10/10 identical runs: 5 fresh processes + 5 after a small preceding request.
-- same partition: `16 x 4096, 2497`.
-- same route point: bounded from chunk 8.
-- same first-token logits hash and same reply.
-- peak MLX memory fell **30.35 -> 28.39 GB (-6.5%)** because the bounded route does not materialize the full fp32 score matrix.
-- no clean speedup claim; TTFT ranges overlap.
+Adaptive depth is not a policy/config field; it is **execution identity**.
 
-### Promoted rule
+For every verifier cycle, record and certify:
 
-A route that changes reduction order / arithmetic is **execution and correctness identity**. It must not be selected from incidental allocator/process history if deterministic greedy equivalence is part of the ruler.
+`policy-selected K -> authoritative K -> broadcast/sync K -> proposer-executed K -> verifier row count -> committed accepted prefix`.
 
-For our Apple rulers, record:
-`request geometry -> projected physical bytes -> stable cap -> selected arithmetic route -> chunk partition -> output hash`.
+A distributed implementation must prove that every stage/rank and every graph/eager path sees the same current K. If a scheduler changes K but an old graph, proposer, or remote PP stage still executes max-K work, the optimization is fictitious and state may become stale.
 
-Live allocator state may still reject/slow a request for safety, but should not silently choose a numerically different route for the same qualified request.
+This strengthens the existing rule that any speculative policy changing tensor shape, budget, boundaries, or collectives becomes distributed consensus state.
 
-The PR also leaves a useful open issue: adaptive prefill throttling can still alter the chunk partition from live memory. On recurrent/GDN models, partition boundaries can change reduction/state-update arithmetic. **Prefill partition is therefore semantic identity too**, not merely a scheduler detail.
+## Promoted transfer — vLLM #57048: graph only the safe speculative tail
 
-## Promoted — vLLM #57039: eliminate hidden GDN prefill copies
+Source created: `2026-09-15 17:55:21 UTC`.
 
-Source created: `2026-09-15 16:25:54 UTC`.
+Kimi-K3 DSpark, ROCm MI355X TP8, concurrency 1, depth 6, synthetic acceptance length 3.75.
 
-Direct model path: Qwen3-Next / Qwen3.5 / **Qwen3.8-Flash-Next** GatedDeltaNet prefill.
-Hardware measurement: B300 TP1, Qwen3.8-Flash-Next-FP8.
+Two ideas are combined:
+- defer low-token MLP residual adds into the next safe attention/residual boundary, with exact eager fallback and a 16-token ceiling;
+- graph-capture only the graph-safe DSpark context norm/RoPE/cache tail while keeping the AITER projection GEMM eager.
 
-Two copies were paid per GDN layer during FlashInfer chunk prefill:
-1. the chunk kernel returned a fresh tensor that was copied into preallocated `core_attn_out`;
-2. reshaping a strided `z` slice for gated RMSNorm silently materialized a clone.
+Fresh short A/B:
+- step: **35.34 -> 30.48 ms (-13.8%)**;
+- p90 ITL: **31.97 -> 27.56 ms (-13.8%)**;
+- mean TPOT: **9.40 -> 8.30 ms (-11.7%)**;
+- output throughput: **+4.4%**.
 
-The patch writes the chunk kernel directly into the destination buffer and reformulates grouped RMSNorm so `z` remains a view.
+A longer 3600-second AgentX A/B and accuracy confirmation are still pending, so the above is preliminary scoped evidence.
 
-Scoped component at T=8192:
-- gated norm **185 -> 114 us/layer**.
-- max absolute output difference: **0.0**.
+### Transfer to Apple Lightning MTP
 
-Serving cells are modest but directionally consistent:
-- 8192-in/1024-out C1 TTFT 238.5 -> 236.6 ms; decode essentially flat.
-- C8 TTFT 1153.7 -> 1131.7 ms, aggregate output 774.9 -> 783.4 tok/s.
-- 2048-in/128-out C32 TTFT 558.8 -> 541.9 ms, output 1263.3 -> 1275.3 tok/s.
-- GSM8K strict exact match: 96.82% before and after.
+Promote the decomposition strategy, not the ROCm numbers:
 
-### Transfer to our Flash implementation
+- Do not force an entire speculative cycle into one graph merely for graph coverage.
+- Identify the subset with stable shapes/pointers/lifetimes and capture that tail.
+- Keep shape-sensitive or backend-hostile projections eager if graphing them adds restrictions or loses a better kernel.
+- Deferred residual/add work is valid only across a mathematically safe boundary with an exact eager fallback.
+- Measure launch count / host gaps / GPU busy span separately from acceptance/content variance.
 
-CUDA/B300 and <=8K are not our active topology, so this does not calibrate 40/400. Promote the mechanism:
-- audit every `reshape`, slice and layout conversion on the hot GDN/HC path for **physical clone/materialization**, not API-level view intent;
-- let producer kernels write directly into the consumer-owned/persistent destination when lifetime permits;
-- count per-layer bytes copied, copy kernels, and allocator transients in the PP ruler.
+This is especially relevant if our dual-M1 verifier has a stable norm/RoPE/state-commit tail but dynamic proposal/head geometry.
 
-Small per-layer copy wins can compound across the many recurrent layers even when one request-level A/B looks modest.
+## Promoted RTX transfer — vLLM #57047: fuse dequantization into GEMM and pin route identity
 
-## Promoted — vLLM #57000: physical recurrent-state admission, not logical span
+Source created: `2026-09-15 17:39:46 UTC`.
 
-Source created: `2026-09-15 11:34:37 UTC`, eleven seconds after the previous cutoff.
+Hardware: RTX 4090 / SM89.
+Model validation checkpoint: Qwen3-4B-AWQ.
+Path: batch-invariant AWQ Triton W4A16, asymmetric int4, group size 128.
 
-Hybrid Mamba-align requests resumed after an external KV partial hit could be admitted using the full logical sequence block count even though most recurrent-state positions were represented by null placeholders.
+The old batch-invariant route fully dequantized int4 weights to FP16 and then called matmul. The new kernel unpacks/dequantizes inside the GEMM and never materializes the full FP16 weight tensor.
 
-Concrete Kimi-K3 example at 759,544 tokens, recurrent block size 1536:
-- logical accounting per Mamba group: **495 blocks**;
-- physical requirement: at most **9 blocks** = running state + checkpoint + 7 speculative blocks;
-- three Mamba groups plus one MLA group were billed **1546 required blocks**.
+ABBA measurements report:
 
-The request then remained deferred forever despite HBM/KV usage around 1.2%, and could wedge following requests.
+| workload | wall reduction | throughput gain | peak-memory reduction |
+|---|---:|---:|---:|
+| decode B1 | 54.6% | 120.3% | 157.1 MiB |
+| decode B8 | 55.6% | 125.3% | 144.0 MiB |
+| decode B32 | 51.3% | 105.5% | 111.5 MiB |
+| long-context B1 | 31.2% | 45.3% | 111.5 MiB |
+| mixed B8 | 34.7% | 53.1% | 110.8 MiB |
 
-### Promoted rule
+All output-token hashes matched across the compared processes/arms. Full GSM8K moved 82.87% -> 82.94%, effectively parity at this granularity.
 
-For hybrid/recurrent state, admission must price the allocator's **bounded physical ownership model**, not logical token-span placeholders.
+Important qualification: this compares against the slow **batch-invariant dequant+matmul fallback**, not against every normal optimized AWQ path. Do not project a 2x gain onto our RTX5070Ti target.
 
-This applies especially after prefix/SSD restore, checkpoint transitions and speculative-state allocation. The same physical rule used by allocation must be used by preflight/admission; otherwise a system can reject or deadlock a request that physically fits.
+Two correctness bugs found during development are directly transferable:
+1. non-exact K/group geometry could pass integer-division validation and read past scales/qzeros;
+2. gating the fused route on incidental input contiguity let the same layer silently switch between two numerically different arithmetic paths.
 
-Add to our long-context admission ruler:
-`logical span`, `physical live state blocks`, `checkpoint blocks`, `speculative blocks`, `null/virtual blocks`, and the final allocator bill.
+### Transfer to the 5070 Ti / Qwen3.8-27B lane
 
-## Promoted implementation surface — llama.cpp #28948: Metal MoE/GDN fusion stack
+- Audit whether any 27B AWQ/quant route materializes a large dequantized tensor before GEMM.
+- Physical quant execution should stay packed through the hot GEMM when a fused route exists.
+- Route selection must be a function of stable tensor geometry/capability, not incidental contiguity/history.
+- If contiguity is required, normalize it explicitly before dispatch and bill the copy.
+- Exact divisibility/padding/tail validation is part of kernel admission.
+- First-use JIT remains separate from steady-state cost; this fresh kernel currently lacks warmup registration.
 
-Source created: `2026-09-15 12:24:09 UTC`; active work continued in this window.
+This strengthens, but does not move, the RTX 120/250 planning target.
 
-Fresh Metal backend fusions include:
-- SOFT_MAX + ARGSORT + GET_ROWS for top-k MoE routing, with optional norm/scale;
-- MoE weighted reduction fusion;
-- RMS_NORM + SCALE;
-- SSM_CONV + SiLU;
-- Metal function constants for runtime variants.
+## Fresh distributed-correctness context — vLLM #57042
 
-Correctness coverage reported:
-- Metal backend ops: **15,755 / 15,755** passed.
-- FA vector-slice tests: **240 / 240**.
-- fusion baseline: **228 ok, 0 failed**.
+Source created: `2026-09-15 16:49:27 UTC`.
 
-Detailed performance benchmarks are explicitly pending, so there is **no speed claim to book**.
+vLLM's one-stage custom all-reduce sums ranks in absolute rank order. Its two-stage path rotates the starting rank by partition owner. Both accumulate in FP32, but floating-point addition order changes the result bits. The algorithm choice itself changes at a message-size threshold.
 
-### Transfer
+CPU emulation with adversarial four-rank inputs shows roughly 62% of elements differing between the two accumulation orders for fp16/bf16/fp32 input sets. The required four-rank GPU differential had **not yet been run**, so this remains correctness-mechanism evidence, not completed GPU validation.
 
-This maps closely onto our Flash/P69-derived hot-path census. Add explicit Apple experiments for:
-1. route selection + top-k gather fusion;
-2. expert weighted reduction fusion;
-3. RMSNorm/scale fusion;
-4. conv/activation fusion.
+For two ranks, the rotation only swaps `a+b` to `b+a`, so this exact mechanism does not directly threaten our two-M1 PP2 topology. Still retain the general rule:
 
-Per standing rule, fusion is admitted only after exact reduction/rounding boundaries and physical route equivalence are enumerated. Do not assume the compound fusion is automatically faster after other bottlenecks move.
+- payload-size or route thresholds that switch collective algorithms may also switch reduction order;
+- if exact distributed reproducibility matters, collective algorithm identity and rank accumulation order belong in the execution receipt.
 
-## Promoted implementation surface — mlx-serve #438: HC + GDN prefill fusion
+Do not promote this into an active PP2 blocker.
 
-Source PR created: `2026-09-15 13:18:49 UTC`.
+## Fresh corroboration — vLLM #57050: 1M hybrid request admission stall
 
-Fresh implementation rebased from current main fuses Qwen4/Flash-Next HC residual-write/normalization/mixing plus GDN convolution/normalization/gates during prefill. Local M5 Max 128 GB ReleaseFast build and `zig build test` passed: **2558 passed, 171 skipped, 0 failed**.
+Source created: `2026-09-15 18:14:29 UTC`.
 
-The PR quotes prior-arm measurements from #408:
-- M4 Max 128 GB mixed-4/8 Flash-Next: 16K **723 -> 744 tok/s**, 32K **728 -> 747**.
-- M5 Max 128 GB cold 64K mean **1749.5 -> 1849.5 tok/s**.
+A separate fresh Kimi-K3 reproduction on **8x B300** with a 1,048,576 max context reports the same class already captured from #57000: after loading the prefix from external Mooncake storage, a 1M-length request can fail Mamba admission and wedge the system because `get_num_blocks_to_allocate` overestimates physical blocks.
 
-Those measurements predate this fresh head, so they are **supporting historical evidence only**. The new PR explicitly says fresh-head full-model A/B is pending.
+A new unit test compares estimated blocks against actual allocated blocks; main fails and the branch passes.
 
-Promote the implementation path and its compiled-reference parity, not the old percentages as new evidence.
+This is useful independent corroboration of the **physical allocator == admission ruler** principle, but it adds no new optimization mechanism, so #57000 remains the canonical explanation in our stack.
 
-## Promoted measurement rule — vLLM #57001: align ranks inside the profiler
+## Fresh but not promoted
 
-Source created: `2026-09-15 11:59:31 UTC`.
+- vLLM #57041: infers HiSparse attention config from the HiSparse connector. Configuration simplification only.
+- vLLM #57043/#57044/#57045/#57046/#57051/#57054: docs, CI, parser, or UX changes with no active inference-target mechanism.
+- vLLM #57049: interesting design draft for restoring a final imported HiSparse page to avoid tail prefill on the decode side; **no GPU/E2E performance measurement yet**, so keep as watch-only until measured.
+- llama.cpp main commit `9f31776c...` at `18:21:05 UTC` merges older OpenCL MoE routing-count work for speculative decoding/MTP. The underlying PR predates this hard window, so merge time does not refresh its evidence.
+- mlx-serve main: no commits in-window.
+- oMLX main: no commits in-window.
+- ds4-dfm-rs main: no commits in-window.
 
-Profiling one identical AllGather on four ranks without a post-profiler-start barrier produced reported durations of:
-- 30.418 ms,
-- 4.137 ms,
-- 0.036 ms,
-- 3.842 ms.
+## External/community screen
 
-That is an ~850x apparent spread caused primarily by rank arrival/profiler startup jitter. With a barrier immediately before the profiled call, the same ranks measured 0.034 / 0.105 / 0.204 / 0.236 ms; per-rank compute remained 0.064-0.070 ms.
+Current oMLX benchmark pages visible today include Qwen3.8-27B-MLX-8bit on an M1 Ultra 64-GPU-core / 128 GB machine at roughly **18.6 TG / 178.6 PP at 1K** and **18.2 TG / 168.1 PP at 4K** on oMLX 0.6.4. This is stronger hardware than one M1 Max, short context, and the page exposes the date only at day granularity, not a source timestamp inside this hard window.
 
-### Promoted rule
+Therefore it is background calibration only and is **not promoted** or used to move the M1-Max 25/110 target.
 
-Collective duration includes **arrival skew + peer waiting + transport/work** unless ranks are aligned. Our TB4 PP/MTP profiler must synchronize/quiesce ranks after profiler setup and immediately before isolated collective measurements, while separately retaining end-to-end arrival skew as a serving metric.
-
-Do not interpret the fastest/slowest rank's raw collective span as link cost without this calibration.
-
-## Promoted correctness transfer — vLLM #57007: FP32 accumulation does not imply FP32 products
-
-Source created: `2026-09-15 12:40:38 UTC`.
-
-The causal-convolution prefill/update kernel multiplied BF16/FP16 operands before adding into an FP32 accumulator. Bits lost in the product could not be recovered by the accumulator.
-
-Synthetic Qwen-27B MXFP4 replay:
-- **5417 / 10240** convolution outputs differed from the independent FP32-product path before the fix;
-- after widening operands before multiplication, all 10240 matched that comparison;
-- first-layer recurrent-state relative difference improved roughly **1.81e-3 -> 2.38e-4**.
-
-No task-quality or throughput claim.
-
-### Promoted rule
-
-Precision identity includes **operand precision at multiplication**, not only accumulator/output dtype. For GDN/conv/recurrent equivalence tests, record input cast, product dtype, accumulation dtype and final cast separately. This is relevant when comparing Apple kernels or fusions that appear to advertise the same FP32 accumulator.
-
-## Promoted transfer — vLLM #57021: fuse producer compute with collective when shape warrants it
-
-Source created: `2026-09-15 14:37:15 UTC`.
-
-On DeepSeek-V4.1 B200 TP4, fusing an MXFP8 output GEMM with sequence-parallel reduce-scatter cut the scoped quantization+GEMM+RS path at M=2048/4096/8192 by **39.1% / 32.6% / 28.8%**. Smaller shapes regressed and stay on the old path below M=1024.
-
-E2E output throughput moved +2.0% at C16 and +5.9% at C964; C64 was inconsistent across nodes and is not a stable claim. Task-level accuracy is still pending and generated text differed between arms, so the feature remains opt-in.
-
-### Transfer
-
-NVLink reduce-scatter is not our TB4 PP transport, so this is not topology evidence. The transferable rule is to look for **producer-direct-to-transport / projection+communication fusion** only after measuring a shape crossover. Keep a fallback for small rows and require correctness on changed-input replay and output lifetime.
-
-## Fresh but not promoted / timestamp discipline
-
-- vLLM #57040 adds Qwen3.8-Flash-Next-FP8 MoE benchmark support and reports FlashInfer TRT-LLM remaining ~10-16% faster than tuned Triton on B300 TP1. Useful backend context, but it does not transfer cleanly to Metal/TB4 and does not change the active ruler.
-- vLLM main merged #56969 and other older PRs during this window. Their substantive evidence predates this hard window; **merge time does not refresh evidence**.
-- `Baekpica/ds4-dfm-rs` #45 is relevant resource-policy work, but it was created at `2026-09-15 01:24:38 UTC` and merged before the previous cutoff. It is not fresh evidence for this watch.
-- Fresh oMLX i18n/UI work and unrelated llama.cpp Vulkan/WebGPU/embedding changes were inspected and not promoted.
-
-## External HF/community screen
-
-A current Hugging Face model card for `whm0627/Qwen3.8-Flash-Next-177B-A3B-fits64GB-PLElast-GGUF` reports an M1 Max 64 GB llama.cpp Metal run around **21 tok/s decode / 200 tok/s prefill**, with the author saying 128K keeps roughly the same decode speed and MTP code generation reaches ~24 tok/s. The card's benchmark commit history shows the benchmark was added roughly nine days ago, outside this watch window.
-
-Therefore it is background calibration only and **does not advance the hard freshness boundary or move 40/400**.
-
-No source-time-qualified fresh exact dual-M1 Flash receipt, one-M1-Max64 27B canonical-quant receipt, controlled RTX5070Ti16 target receipt, or dual-M1 DS4-0731 receipt appeared in this pass.
+No source-time-qualified fresh exact dual-M1 Flash receipt, one-M1-Max64 Qwen3.8-27B canonical-quant receipt, controlled RTX5070Ti16 target receipt, or dual-M1 DS4-0731 receipt appeared.
 
 ## Target status
 
@@ -235,21 +183,19 @@ No P69 reorder/reopen.
 
 ## Planning impact
 
-This pass strengthens the implementation plan more than target calibration.
+Add or strengthen these rows in the implementation/tuning ruler:
 
-Add/raise priority for:
-1. deterministic arithmetic-route provenance from stable request geometry;
-2. deterministic / explicitly certified prefill partitioning for recurrent state;
-3. hidden view-to-copy/materialization accounting in HC/GDN prefill;
-4. direct producer-to-destination buffers;
-5. compound Metal MoE/GDN fusion experiments;
-6. physical recurrent-state admission after cache restore / speculation;
-7. rank-aligned collective microbenchmarks plus separately measured arrival skew;
-8. operand-product precision in recurrent correctness bars;
-9. shape-gated producer+communication fusion experiments.
+1. `selected_K -> executed_K` provenance on every speculative cycle and every rank/stage.
+2. Graph only the stable speculative subgraph; do not require all-or-nothing graph capture.
+3. Measure deferred residual/add fusion across mathematically safe boundaries with exact eager fallback.
+4. Audit packed-quant execution for dequantized-weight materialization before GEMM, especially on the RTX lane.
+5. Normalize required tensor layout explicitly; never let incidental contiguity silently select a numerically different kernel.
+6. Exact quant group/tail divisibility belongs in kernel admission.
+7. Collective algorithm and reduction order belong in distributed execution identity when exact reproducibility is required.
+8. Keep physical recurrent-state admission equality tests after external cache restore / checkpoint transition.
 
-The fresh evidence is encouraging for the 40/400 campaign because it exposes more concrete removable work on the hybrid path, but it is not an exact dual-M1 measurement and therefore does not justify moving the target.
+This pass improves confidence that there is still significant avoidable speculative/runtime overhead to mine, but it provides no exact dual-M1 calibration and therefore does not justify moving 40/400.
 
 ## New hard freshness boundary
 
-`2026-09-15 16:44:45 UTC`
+`2026-09-15 18:32:30 UTC`
