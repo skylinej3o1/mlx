@@ -1,14 +1,14 @@
-# External runtime watch — 2026-09-14 18:42 ET
+# External runtime watch — 2026-09-14 23:44 ET
 
 ## Search window
 
-Complete pass over substantive source activity strictly after `2026-09-14 19:17:07 UTC` through the user-request cutoff `2026-09-14 22:42:15 UTC`.
+Complete pass over substantive source activity strictly after `2026-09-14 22:42:15 UTC` through the user-request cutoff `2026-09-15 03:44:23 UTC`.
 
 Evidence timestamp remains the substantive source / measurement timestamp, not crawler time, rebase time, comment-only activity, or a later merge of already-known measurements.
 
-**New hard source-freshness boundary for the next complete external search: `2026-09-14 22:42:15 UTC`.**
+**New hard source-freshness boundary for the next complete external search: `2026-09-15 03:44:23 UTC`.**
 
-Cutoff edge intentionally excluded: vLLM #56908 was created at `2026-09-14 22:49:17 UTC`, about seven minutes after this cutoff. Examine it first on the next complete pass.
+The prior cutoff-edge item, vLLM #56908 (created `2026-09-14 22:49:17 UTC`), was examined first in this pass.
 
 ---
 
@@ -27,156 +27,213 @@ Cutoff edge intentionally excluded: vLLM #56908 was created at `2026-09-14 22:49
 
 # Fresh evidence
 
-## mlx-serve `008dbfdf` — persistent ds4 session + embedded MTP for Flash-Next GGUF
+## mlx-serve #431 — semantic media-boundary bug destroyed highest SSD hybrid restore
 
-Source commit `008dbfdf3bc7c649512291751a9a8decb9517942`, committed `2026-09-14 21:38:42 UTC`.
+Source PR #431 created `2026-09-15 01:11:43 UTC`, merged `2026-09-15 02:30:16 UTC` as commit `1bf485297cc63e53d7cc2f96a75c845bed407545`.
 
-**FRESH MAIN-COMMIT / DIRECT APPLE FLASH STATE-LIFETIME + EMBEDDED-MTP EVIDENCE.**
+**FRESH DIRECT APPLE / QWEN3.8-FLASH-NEXT PREFIX-CACHE + LONG-CONTEXT STATE EVIDENCE.**
 
-mlx-serve updated its embedded ds4 engine and changed ds4-backed serving from one session per request to **one persistent session per loaded model**, protected by the existing single-flight claim.
+On a hybrid Qwen3.8-Flash-Next path, a byte-identical text-only conversation at roughly 73K tokens restored almost none of its useful SSD prefix after restart:
 
-The failure mode was concrete and highly relevant to long-context capacity:
+- before: **16,384 / 73,398 tokens restored**, **34.2 s** wall;
+- RAM-tier control on the same request matched about **73,293** tokens in ~2.0 s;
+- the same low-checkpoint cap recurred on mid-session disk restores from roughly 61K through 229K prompt lengths.
 
-- a ds4 session at roughly **131K context** consumes about **13 GB** of context buffers;
-- four concurrent requests previously created four private sessions;
-- the documented run moved RSS roughly **41 -> 97 GB**, free RAM to ~0.07 GB, and the process was killed;
-- the persistent model-owned session removes that request-count multiplication and also enables ds4 prefix reuse (`cached_tokens > 0`).
+The disk tier's ranking algorithm itself was not the defect. `firstMediaPlaceholder` scanned raw token ids for image/audio/video placeholder ids even when the request contained no media. Those ids are ordinary vocabulary entries too. This text conversation happened to contain `248056` (`image_token_id`) at position 18,338, so the scheduler invented a media boundary there.
 
-The same commit arms in-checkpoint ds4 MTP when the GGUF advertises `nextn_predict_layers`, including sampled requests. The commit/release note reports **Flash-Next Q2 on an M4 Max: 35 -> 47 tok/s** with embedded MTP.
+That false boundary became the hybrid disk lookup's hard `limit`. The donor covering the full prefix had checkpoints starting at 49,152 and therefore had no checkpoint at or below the false 18,338 limit; it was rejected. A stale entry with a 16,384 checkpoint won instead.
 
-Important qualification: the 35 -> 47 cell does **not** state the active-context length in the commit message, uses Q2 rather than our preferred Q6/Q8-quality lane, and is a single-Mac M4 result. Treat it as direct Apple proof that embedded MTP can materially help this ds4 Flash path, **not** as calibration for 40 tok/s @ 128K on dual M1.
+The fix conditions placeholder interpretation on actual media state (`vision_embeddings != null`), so raw token equality alone cannot create a modality boundary. The same corrected value also keys checkpoint inheritance/thinning.
 
-**Project consequence:** request concurrency and model-state lifetime are part of capacity identity. Shared/persistent recurrent/KV/speculative state should not be multiplied per request when the runtime serializes access to one model session. For dual-M1 Flash, explicitly inventory model-owned versus request-owned QSA/GDN/KV/MTP state and prove concurrency does not silently duplicate the long-context working set.
+Live after the fix, same conversation/flags:
 
-## vLLM #56902 — stale workspace views can pin superseded sparse-attention storage
+- **73,293 / 73,375 tokens restored**;
+- wall **1.6 s**;
+- mid-session restores also reached deep checkpoints rather than collapsing to 16,384.
 
-Source created `2026-09-14 22:08:10 UTC`.
+The disk-tier ranking contract was additionally pinned across a fresh restart: choose the **highest restorable checkpoint** at or below the valid semantic match boundary.
 
-**FRESH NEW / MEMORY-LIFETIME + ADMISSION-PROVENANCE TRANSFER.**
+**Project consequence:** a raw token value is not sufficient proof of semantic modality state. Prefix-cache identity for Flash must carry the modality-presence side channel that gives placeholder ids meaning. Our long-context ruler should include text-only prompts containing special/placeholder token ids by coincidence and prove that restart restore chooses the highest semantically and physically restorable committed recurrent checkpoint. This is directly relevant to long agent histories and SSD-backed QSA/GDN/PLE state.
 
-`FlashMLASparseImpl` held constructor-time tensor views into a shared `WorkspaceManager`. When another layer grew the manager's allocation, those old views kept the superseded storage alive, so both the old and new workspaces remained resident even though the manager logically had only one current workspace.
+## mlx-serve #432 — exact shortlist top-k/top-p avoids full-vocabulary Metal ranking
 
-Observed on a GLM-5.3 DP/EP64 deployment:
+Source PR #432 created `2026-09-15 01:30:40 UTC`, merged `2026-09-15 02:54:36 UTC` as commit `ff3d7574faf9300aeec7f09600cc7227b69856f5`.
 
-- **5,904 MiB** old FlashMLA workspace remained resident beside a new **6,144 MiB** MoE workspace on 18/64 ranks;
-- ranks retaining both: **18 -> 0** after the fix;
-- minimum KV capacity/rank: **490,816 -> 603,904 tokens**;
-- aggregate KV capacity: **36,934,975 -> 38,971,455 tokens**;
-- reported physical allocation recovered across 64 ranks: **103.78125 GiB**.
+**FRESH DIRECT APPLE / FLASH-NEXT SAMPLED-DECODE MECHANISM EVIDENCE.**
 
-No throughput or model-quality claim is made.
+The old sampled path ranked the full vocabulary every token. On the pinned MLX Metal backend, `Partition` and `ArgPartition` currently route to the same multi-block merge sort, so `mlx_topk` / `mlx_argpartition` do **not** imply a cheap physical partial-selection path.
 
-The fix stores shapes/dtypes rather than permanent views and reacquires simultaneous views from the current workspace when used.
+The replacement constructs an exact bounded shortlist by ranking chunk maxima and only the candidate chunks that can contain the top-m values. It preserves the sampler's rank contract:
 
-**Project consequence:** workspace ownership is not described by the manager's current logical size alone. Any persistent view/pointer can keep obsolete storage physically alive. Our Flash admission ruler should include allocator-observed retained storage after workspace growth and test that old views are released/rebound before using the reclaimed capacity for KV/context.
+- descending value order;
+- deterministic ties by lowest original column id;
+- candidate layout in ascending original-column order before the stable rank;
+- top-p mass computed as an exclusive scan over the ordering;
+- f32 accumulation for the nucleus even when logits are bf16.
 
-## vLLM #56903 — collapse draft state locally before distributed gather
+That last item matters: the old bf16 cumsum dropped **148 of 3,720** nucleus columns on one 248,320-wide probe row.
 
-Source created `2026-09-14 22:11:24 UTC`.
+Correctness coverage includes 248,320-wide rows, all-equal/tie-heavy rows, rank-3 `[B,L,V]` blocks matching stochastic MTP verification shape, byte-identical filtered logits for the shortlist route, identical sampled token under matched keys, and 2,531 passing tests.
 
-**FRESH NEW / DISTRIBUTED SPECULATIVE-COMMUNICATION TRANSFER.**
+A live M4 Max / Qwen3.8-Flash-Next mixed-4/8-bit / no-MTP / 256-token A/B against a **pre-rank baseline** reported:
 
-DeepSeek-V4.1 DSpark under sequence parallelism gathered BF16 `[T_local, 4, H]` residual streams **plus** FP32 `[T_local, 4]` pre-mix coefficients, then collapsed them to the `[T, H]` state the draft head actually consumes.
+- `top_p=0.95 + top_k=20` filter cost: **1.13 -> 0.51 ms/token**;
+- absolute decode: **60.5 -> 64.0 tok/s**;
+- greedy control moved **65.0 -> 66.1 tok/s** between boots.
 
-The PR reverses that order:
+Important qualification: the author explicitly marks a fresh A/B against the immediate `bdcf5a1d` rank-correct baseline as pending. Pure top-p remains full-rank by design, and our canonical greedy ruler returns before either filter.
 
-1. collapse each token's HC streams locally;
-2. gather only `[T_local, H]`;
-3. trim SP padding.
+**Project consequence:** high-level sampler API names are not physical execution identity. For sampled agent workloads, record the physical selection implementation, sampler route census, ms/token, tie policy, accumulator precision and whether top-k actually executes as a partial selection or a full sort. Keep this separate from the canonical greedy TG ruler. Do not book the 60.5 -> 64.0 absolute delta as a clean current-stack gain until the fresh paired A/B lands.
 
-For `hc_mult=4`, this cuts hidden-state payload by 4x and removes the separate pre-mix collective, reducing the tail from two collectives to one.
+## oMLX #3669 — Apple SDPA launch geometry can silently exceed device limits
 
-TP4 / 4x GB200 NV18 scoped tail microbenchmark:
+Source PR #3669 created `2026-09-15 00:43:10 UTC`.
 
-| Global T | Before us | After us | Speedup |
+**FRESH DIRECT APPLE / QWEN3.8-FLASH-NEXT KERNEL-ADMISSION CORRECTNESS EVIDENCE.**
+
+The investigation used `Qwen3.8-Flash-Next-oQ5e-mtp` on an **M2 Ultra 192 GB**, testing oMLX 0.7.0.dev2 behavior. The primary PR concerns a tool-call envelope being silently discarded by API logic; that part is agent-quality plumbing rather than an inference optimization.
+
+During the investigation, however, a separate GPU defect was isolated: some `decode_fast` SDPA kernels could launch thread groups larger than certain Apple GPU generations permit. Metal could silently skip those launches and leave stale/uninitialized output rather than producing a clean high-level failure. The repo's own fp32 decode tests failed on the affected M2-class geometry. The proposed fix adopts MLX-style residency/launch checks, and the `decode_fast` fp32 `d=128` tests pass on the affected g14d device where pristine dev2 fails.
+
+The report also notes a separate long-context stall around ~90K cached tokens on oMLX 0.6.4; that remains under investigation and is **not** explained or fixed by this PR.
+
+**Project consequence:** compiled/selected/armed is still weaker than valid execution. Our Metal route provenance must include per-device threadgroup/residency limits and a launch-validity gate, especially for specialized QSA/SDPA kernels transferred from newer Apple GPUs to M1 Max. Poison/sentinel output tests should prove the kernel actually executed rather than silently preserving stale memory. The ~90K stall is an open signal only and does not move any target or mechanism assumption.
+
+## vLLM #56926 — serializing offloaded Engram lookups can reduce compute interference
+
+Source PR #56926 created `2026-09-15 01:34:05 UTC`.
+
+**FRESH DISTRIBUTED/OFFLOAD SCHEDULING TRANSFER.**
+
+Two CPU-offloaded DeepSeek-V4.1 Engram lookups previously ran on separate CUDA streams while decoder GEMMs ran concurrently. The streams competed for resources. The PR gives both lookups one shared stream while retaining a separate completion event per layer, so consuming the first result does not wait for the second lookup to finish.
+
+Scoped GB200 harness: four MXFP8 compute GEMMs alongside two production UVA lookups, 8,192 tokens, TP4 rank-0 shard, ~22.89 GiB table per Engram layer.
+
+| Measured time | Two lookup streams | One shared stream |
+|---|---:|---:|
+| compute finished | 3.528 ms | 0.697 ms |
+| everything finished | 3.549 ms | 3.033 ms |
+
+Compute alone was 0.283 ms. Across two 60-pair runs, paired median savings were about **2.83 ms** to compute completion and **0.50 ms** to all-work completion. Compute improved in every pair; total completion improved in 54/60 and 50/60 pairs. Exact lookup/GEMM output comparisons passed. No full decoder, collectives or E2E serving result is claimed.
+
+**Project consequence:** overlap is not automatically free. For Apple PLE/Engram/SSD reads running beside Metal compute, explicitly compare parallel versus intentionally serialized scheduling and record critical-path compute finish, all-work finish, storage bandwidth, GPU occupancy and subsequent wait time. Preserve independent readiness events even when producers share a serialized resource. This complements the earlier small-Engram-read and command-buffer wait findings.
+
+## vLLM #56929 — fuse post-gather reordering, padding removal and quantization
+
+Source PR #56929 created `2026-09-15 02:04:09 UTC`.
+
+**FRESH DISTRIBUTED DATA-MOVEMENT + QUANTIZATION TRANSFER.**
+
+DeepSeek-V4.1 Engram TP gathering produced rank-major rows, while the replicated `wkv` projection consumes token-major input. The old non-SP path materialized a BF16 reorder clone and then quantized it. At 8,192 tokens x width 6,144, the intermediate alone is **96 MiB**.
+
+The new path gathers once along the transport-friendly dimension, then a fused kernel:
+
+- reorders rank-major -> token-major;
+- removes padded heads;
+- quantizes directly to MXFP8 + scales;
+- hands the resulting `QuantizedActivation` directly to `wkv`, avoiding another activation-quantization pass.
+
+There is still exactly one all-gather. Two-GPU all-gather correctness and bitwise FP8/scales were tested, including graph replay.
+
+Scoped GB200 operation timings, excluding all-gather/lookup/GEMM:
+
+| Tokens | Old reorder + quantize | Fused | Speedup |
 |---:|---:|---:|---:|
-| 1 | 24.61 | 18.88 | 1.30x |
-| 7 | 26.82 | 18.94 | 1.42x |
-| 32 | 43.14 | 19.60 | 2.20x |
-| 128 | 108.69 | 20.78 | 5.23x |
-| 512 | 163.89 | 28.80 | 5.69x |
-| 2048 | 168.43 | 88.14 | 1.91x |
+| 1 | 2.176 us | 2.016 us | 1.08x |
+| 128 | 7.360 | 2.560 | 2.88x |
+| 1,024 | 23.392 | 7.648 | 3.06x |
+| 8,192 | 143.935 | 52.544 | 2.74x |
+| 8,192, padded-head case | 247.008 | 50.432 | 4.90x |
 
-The NCCL-only control improved about 1.35–1.99x across the same sizes. Tests require exact BF16 equivalence, including graph replay. There is **no end-to-end serving, acceptance-rate or quality claim**.
+For the 8,192 x 6,144 case the net saving is **91.4 us (63.5%)**, eliminating about **192 MiB** of standalone BF16 read/write traffic.
 
-**Project consequence:** communicate the smallest authoritative semantic state, not the producer's richer internal representation. For PP2 distributed Lightning MTP, inspect every TB4 transfer boundary for states that can be collapsed/projected/reduced locally before transport. This is especially relevant if the verifier/control rank consumes only a collapsed head state rather than full HC/recurrent streams.
+**Project consequence:** extend the prior "collapse before transport" rule through the consumer boundary: transport/gather only once, then perform layout conversion, padding trim and quantization in one producer-to-consumer handoff whenever the next kernel accepts the compact representation. For TB4 PP2, inventory every transferred state for post-receive clones, transposes, padding removal and requantization. Record physical bytes moved both over TB4 and locally after receipt.
 
-## llama.cpp #28918 — coalesce long-context FlashAttention softmax memory access
+## vLLM #56932 — sparse decode decomposition must be bounded by physical page-table capacity
 
-Source created `2026-09-14 22:25:17 UTC`.
+Source PR #56932 created `2026-09-15 02:57:22 UTC`.
 
-**FRESH NEW / STRONG QWEN3.8-27B LONG-CONTEXT PREFILL MECHANISM TRANSFER.**
+**FRESH SPARSE-ATTENTION WORK-DECOMPOSITION TRANSFER.**
 
-The SYCL MKL FlashAttention online-softmax path assigned one work-item to each query row and had that work-item serially walk an 8192-element KV chunk twice. Adjacent workers therefore accessed memory roughly 32 KB apart instead of coalescing; the author measured only ~32 GB/s effective bandwidth on a 608-GB/s Arc Pro B70. At 64K–128K prefill that softmax kernel accounted for roughly 70–75% of FlashAttention time.
+MiniMax-M3 small-batch sparse decode exposed too little parallel work inside a page and could schedule splits beyond the page-table's physical capacity. The patch splits pages for more parallelism, bounds split count using CPU-visible table capacity, skips empty slices on device, and only takes a direct single-page path when the physical table is actually one column wide.
 
-The rewrite assigns a whole work-group to one row, stripes the chunk over lanes, and uses group reductions for max/sum while preserving the per-element math aside from floating-point summation order.
+RTX 5090 / SM120 operator matrix: 72 cases spanning shapes and BF16/FP8 KV modes, CUDA Graph timing, 256-column preallocated page table.
 
-Qwen3.8-27B UD-Q4_K_XL, Arc Pro B70:
+Repeated geomean speedups:
 
-| Prefill | Baseline F16 KV | Coalesced | Delta |
-|---:|---:|---:|---:|
-| 8,960 | 1010.67 tok/s | 1081.19 | +7.0% |
-| 64,000 | 586.10 | 781.59 | +33.4% |
-| 126,976 | 402.99 | 601.70 | **+49.3%** |
+- BF16 KV: **~1.097x**;
+- FP8 scalar: **~1.285x**;
+- FP8 per-token/head: **~1.376x**;
+- all 72 cases: **~1.247x**;
+- worst case remained ~0.99x; max relative RMS error against dense reference 0.3269%.
 
-q8_0 KV showed essentially the same shape. A later fresh-master/default-batch recheck reported pp64K **416.34 -> 649.35 tok/s (+56.0%)**. At 126,976 tokens the softmax component itself fell **306.4 s -> 93.3 s**, while the two GEMMs and dequant stayed flat. Decode was unchanged by construction: tg256 **23.79 ±0.09 -> 23.83 ±0.09**.
+The author explicitly notes that production metadata slices page-table **rows**, not columns: short logical context does not imply a physically one-column table. These are operator numbers, not serving/model throughput.
 
-Correctness coverage included backend-op tests and a long-context generation battery; 9/9 needle tests hit on both arms and 26/27 outputs were byte-identical, with one late open-ended paraphrase divergence.
+**Project consequence:** QSA work decomposition must use physical metadata capacity as well as live logical context. Add page/block-table width, padded capacity, empty-slice count and scratch/LSE clearing semantics to sparse execution identity. A live-span optimization is insufficient if the underlying physical metadata remains padded to a larger capacity. Benchmark occupancy/parallelism using the actual padded shapes our M1 path will carry.
 
-**Transfer:** this is Intel SYCL, not Metal or our runtime. Do not transfer the percentage. Promote the physical lesson: a kernel that looks inherently bandwidth-bound may actually be **access-pattern-bound**. At 128K, audit Apple QSA/attention/indexer kernels for row-to-threadgroup mapping, coalescing, repeated passes and effective bandwidth before accepting a roofline conclusion.
+## vLLM #56935 — mega sparse attention shows fusion admission depends on live/padded geometry
 
-## ds4 #1051 — padded sparse-selection sentinels must preserve bounds semantics
+Source PR #56935 created `2026-09-15 03:21:41 UTC`, updated before the cutoff at `03:41:41 UTC`.
 
-Source created `2026-09-14 21:11:42 UTC`.
+**FRESH SPARSE-ATTENTION FUSION / LAYOUT TRANSFER.**
 
-**FRESH NEW / METAL SPARSE-ATTENTION CORRECTNESS TRANSFER.**
+The proposed DeepSeek-V4.1 FlashMLA mega-attention backend fuses Q normalization, RoPE, sparse attention, inverse RoPE and output FP8 cast in one launch, writing directly into the representation consumed by `wo_a`. It declares those producer/consumer capabilities explicitly so the generic framework can bypass redundant normalization/projection steps.
 
-GLM-5.3 pooled selection pads unused slots with `0xffffffff`. Serial decode incorrectly marked those selected rows as fully valid, allowing the split-group8 Metal kernel to skip bounds checks and interpret padding sentinels as cache rows, diluting attention output.
+Additional physical-layout work:
 
-The patch is the decode-side counterpart of an earlier prefill masking fix. No performance receipt is claimed.
+- one caller-provided output buffer pair spans the step;
+- prefill chunks and decode segment write disjoint token ranges;
+- one downstream FP8 einsum consumes the whole N-token output;
+- `wq_b` rows and `wo_a` columns are permuted once at load time into the kernel-native layout rather than shuffled every step;
+- the mega backend uses a compact NVFP4 cache record where supported and rejects incompatible cache/backend combinations rather than silently falling back.
 
-**Project consequence:** sparse-selection validity is execution identity. Before enabling a no-bounds-check fast path, certify the producer's exact padding/sentinel contract, valid-count semantics and tail behavior. This belongs in the same long-context correctness gate as deterministic top-k tie order and physical indexer/KV layout.
+GB300 graph-mode decode microbenchmark, mega / split-KV microseconds:
+
+- **64 live heads:** 29/29 at `s_q=1`, 29/31 at 32, 31/40 at 128, 53/72 at 256, 95/140 at 512 — up to ~**1.47x**;
+- **16 live heads:** 31/29, 31/29, 33/33, 59/57, 107/108 — effectively a wash.
+
+The decisive variable is **live heads relative to padded heads**, not merely batch size. Prefill is unmeasured. There is no E2E served-forward result or accuracy measurement on the mega path yet.
+
+**Project consequence:** megafusion admission must be based on actual live:padded geometry and stage ownership, not a generic "fused is faster" rule or a batch-size threshold. For Apple QSA/Flash kernels, consider load-time weight permutation and direct consumer-native output, but benchmark M1-specific head/group padding under the exact PP2 split. Do not transfer the CUDA percentages.
 
 ---
 
 # Screened but not promoted
 
-## mlx-serve #430
+## vLLM #56908
 
-Created `2026-09-14 21:31:01 UTC`; moves persisted audio attachments from base64 float32 chat history to on-disk 16-kHz mono WAV. Useful app/runtime hygiene but unrelated to the active inference targets, so no project promotion.
+Created `2026-09-14 22:49:17 UTC`, the prior pass's cutoff-edge item. It makes MRV2 tolerate systems without pinned-memory/UVA support, especially WSL. No throughput or active-target mechanism receipt; screened and closed as a compatibility fallback rather than promoted into the Flash tuning sequence.
 
-## ds4 #1050
+## Other fresh vLLM speculative/configuration fixes
 
-Created `2026-09-14 20:15:49 UTC`; improves the diagnostic when Qwen3.8 emits `<parameter=TOOL>` where `<function=TOOL>` belongs. The report observed the malformed opener in 5/98 stanzas and one failed tool turn costing 2,604 regenerated tokens / ~66 seconds, but there is no model/runtime execution optimization. Retain as agent-quality context only.
+#56928 derives offload namespace cache dtype from the worker-reported physical KV specs rather than a scheduler knob; #56930/#56933 prevent dense speculative drafters from inheriting target expert parallelism; #56936 avoids building a mismatched target/draft `VllmConfig` for Gemma4 MTP. These reinforce existing standing rules that configured dtype is weaker than executed/normalized dtype and that proposal/draft topology is distinct from target topology. They do not add a new target receipt or justify P69 sequencing changes.
 
-## oMLX
+## ds4 #1052
 
-No substantive oMLX PR or main-branch source activity strictly after the `19:17:07 UTC` boundary appeared in this pass. #3666 remains the most recent relevant item and was already recorded in the prior watch.
+Fresh ROCm/Fedora link fix for `libamdhip64`; no active Apple/Flash/DS4 performance or correctness consequence for this project.
 
-## External HF / Reddit
+## llama.cpp #28919
 
-A fresh community screen surfaced a same-day RTX 4080 16-GB ExLlamaV3 result at **102,400 active tokens**: no-MTP 33.68 tok/s versus fixed-k=2 Q6-draft MTP 56.48 tok/s, with roughly 15.2/16.4 GB VRAM reported. A comment in the same thread also claims a 5070 Ti 16-GB result around 82 tok/s at ~90K and ~92 tok/s at ~60K under another quant/runtime.
+Fresh SenseNova U1 model support only. No new Qwen3.8/Metal/long-context optimization after #28918 in the prior watch was found in this window.
 
-These are **not promoted into the source-time watch** because the exact post/comment timestamps relative to this cutoff are not exposed reliably by the retrieved community source, the quants/runtimes differ materially from our canonical RTX lane, and the 5070-Ti number is an unverified comment rather than a controlled receipt. Revisit on a later pass if a source-timestamped benchmark artifact appears.
+## oMLX #3669 API half / #3668
 
----
+The tool-call-envelope fix in #3669 is useful agent-quality plumbing but is not an inference optimization. #3668 corrects multiple-choice answer extraction. Neither moves runtime targets. Only #3669's independently discovered Apple SDPA launch-validity defect is promoted above.
 
-# Cutoff edge
+## External HF / Reddit / community screen
 
-## vLLM #56908 — intentionally excluded
-
-Created `2026-09-14 22:49:17 UTC`, after the requested `22:42:15 UTC` cutoff. It should be the first vLLM item checked next pass; do not use it to advance this watch.
+The screen surfaced additional Apple and RTX Qwen3.8 reports, but the useful hits were older than this source-time window or lacked an exact substantive source timestamp. Under the standing freshness rule they do **not** advance the hard boundary, calibrate the active topology or move targets.
 
 ---
 
 # Fresh-screen negatives
 
 - No exact fresh **dual-M1 Flash-Next** TG/PP receipt.
-- No exact fresh **M1 Max64 Qwen3.8-27B** receipt.
-- No source-time-qualified exact fresh **RTX5070Ti16 Qwen3.8-27B** controlled receipt.
+- No exact fresh **M1 Max64 Qwen3.8-27B** target-topology receipt.
+- No source-time-qualified fresh **RTX5070Ti16 Qwen3.8-27B** controlled receipt matching the canonical lane.
 - No exact fresh **dual-M1 DS4-0731** receipt.
-- No evidence justifies moving any canonical target.
-- No evidence justifies reopening/reordering P69.
+- No evidence justifies moving **40/400**, **25/110**, **120/250** or **15/180**.
+- No evidence justifies reopening or reordering P69.
 
 ---
 
@@ -184,41 +241,46 @@ Created `2026-09-14 22:49:17 UTC`, after the requested `22:42:15 UTC` cutoff. It
 
 ## Dual-M1 Flash-Next
 
-Keep **PP2/layer ownership primary**, TP2 control.
+Keep **PP2/layer ownership primary**, TP2 control. Add/reinforce these work items:
 
-Add these explicit checks/work items:
+1. **Semantic prefix-restore boundary gate:** text-only prompts containing special media-token ids must not acquire a modality boundary without actual media state. Cold-restart tests at 64K/~96K/~128K should prove highest-restorable committed checkpoint selection across KV + GDN/QSA/PLE state.
+2. **M1 launch-validity gate:** every specialized Metal QSA/SDPA route must certify threadgroup/residency geometry on the actual M1 Max generation and prove execution with poison/sentinel output checks.
+3. **Physical sparse metadata census:** record page/block-table capacity, padded columns/heads/groups, live span and empty work units. Optimize the physical work shape, not only the logical context length.
+4. **Consumer-native PP handoff:** after TB4, fuse any reorder, padding trim, quantization and projection-input preparation that can avoid a high-precision temporary or a second pass. Record TB4 bytes plus local post-receive read/write traffic.
+5. **Overlap-versus-interference A/B:** for PLE/Engram/SSD reads and Metal compute, benchmark parallel streams/queues against selective serialization. Track critical-path compute completion separately from all-work completion.
+6. **Sampled-agent ruler separate from greedy:** sampler route census, physical top-k implementation, full-rank fallback, tie policy and ms/token belong in sampled workloads. The canonical greedy TG ruler remains sampler-filter-free.
+7. **Fusion admission by live:padded geometry:** before enabling a large QSA/attention fusion, measure exact stage-local live heads/groups versus padded geometry. Consider load-time weight permutation if it removes repeated step-local shuffles.
+8. Retain the prior persistent-state ownership/concurrency, collapse-before-TB4, workspace-view lifetime, long-context coalescing, sparse sentinel/tail, compact selected-K/V QSA, incremental indexer, transient-aware PP chunking, distributed MTP consensus/rollback and exact PP ownership gates.
 
-1. **Persistent-state ownership / concurrency:** inventory model-owned versus request-owned KV, QSA history, GDN recurrent state, PLE, MTP snapshots and draft state. Benchmark RSS/active memory at B1/B2/B4 and ensure concurrency does not duplicate a ~128K session-sized working set unnecessarily.
-2. **Collapse before TB4:** whenever a downstream stage/control rank consumes only a collapsed/projected state, perform that reduction locally before transport. Record bytes/cycle and collectives/cycle, not only latency.
-3. **Workspace-view lifetime:** force workspace growth in a test, then prove all stale views are released/reacquired and allocator-observed memory actually falls before assigning the reclaimed bytes to KV/context.
-4. **Long-context coalescing audit:** for QSA sparse attention, selected-K/V gather, indexer pooling and ordinary attention glue, record effective bandwidth and worker-to-row/data mapping. Do not infer bandwidth saturation from bytes alone.
-5. **Sparse tail/sentinel gate:** certify valid-count, padding values, sentinel indices and no-bounds-check admission at 64K/~96K/~128K semantic ruler points.
-6. Retain compact selected-K/V QSA, incremental pooled indexer state, live-span-bounded work, verifier specialization, transient-aware prefill chunks, exact PP ownership, TB4 discovery/recovery, distributed MTP consensus/rollback and recurrent-state checkpointing.
-
-The fresh M4-Q2 embedded-MTP 35 -> 47 receipt increases confidence that MTP remains worthwhile on Apple, but **does not calibrate our 128K dual-M1 target because its context is unspecified and quant/topology differ**.
+The fresh evidence exposes **additional optimization seams**, but none is an exact dual-M1 calibration. The canonical **40 tok/s @ ~128K / 400 cold PP** remains the correct planning objective.
 
 ## Qwen3.8-27B M1 / P69
 
-No target movement or internal sequencing change. **P69B12 remains frozen/promoted; P69B13 remains next.**
+No target or sequence movement. **P69B12 remains frozen/promoted; P69B13 remains next.**
 
-#28918 reinforces long-context memory-layout/coalescing audits for 27B prefill but is SYCL/B70 evidence only. It does not alter the one-M1 target.
+#432's sampler lesson applies if we benchmark stochastic agent workloads, but the canonical Q8/Q6 greedy rulers should not absorb it. #56929's general lesson about avoiding post-collective high-precision layout temporaries may matter only if/when a matching internal measured shape appears; it does not reopen P69 externally.
 
 ## RTX5070Ti16
 
-No target movement. The fresh community screen is interesting but not controlled/source-time-qualified enough to move **120/250**. Keep the existing SM120 physical-stride, kernel-image/fallback, concurrent-long-prompt and exact-runtime gates.
+No target movement. #56932 is native SM120 sparse-attention mechanism evidence, but it is MiniMax-M3 operator work rather than the canonical Qwen3.8-27B execution path. Retain the physical page-table/padded-shape lesson alongside the existing SM120 kernel-image/fallback, physical-stride and concurrent-long-prompt gates.
 
 ## DS4-0731 dual M1
 
-No target movement. #1051 is later GLM-5.3 Metal correctness transfer only. The persistent-session lesson from mlx-serve is broadly useful for any long-context ds4 engine integration, but no DS4-0731 topology receipt appeared.
+No target movement. #56926/#56929/#56935 provide useful Engram/sparse scheduling and layout ideas, but all benchmark receipts are CUDA-side and not the active Apple topology. Keep them as mechanism-transfer candidates only.
 
 ---
 
 # Standing rules added / reinforced
 
-- **Communication form is semantic, not internal:** collapse/project/reduce state locally before transport if the receiver never needs the richer representation.
-- **Workspace growth invalidates view provenance:** a logical manager resize is not memory recovery until every old view/pointer is gone and physical allocation confirms release.
-- **Session lifetime is capacity identity:** distinguish model-owned persistent state from request-owned state and measure B1/B2/B4 physical residency.
-- **Sparse padding is part of execution identity:** sentinel value, valid count and bounds-check policy must agree before a fast path can skip validation.
-- **Effective bandwidth requires access-pattern proof:** row/threadgroup mapping, coalescing and repeated passes belong in the long-context performance ruler.
+- **Raw token equality is not semantic modality state:** special/placeholder ids require the side-channel state that gives them meaning before they can constrain cache inheritance or restore.
+- **Prefix restore chooses the highest valid committed state boundary:** shared-token length alone is weaker than the highest semantically and physically restorable recurrent checkpoint.
+- **High-level MLX op names are not physical-cost identity:** `topk` / partition may execute as a full sort; record the actual backend route and route census.
+- **Sampler exactness includes deterministic rank/ties and accumulation precision:** tie order and f32-vs-bf16 scan behavior can change the nucleus even when the headline sampling parameters are identical.
+- **Async overlap can lose to controlled serialization:** measure resource interference and critical-path completion; preserve independent readiness even when producers share a stream/queue.
+- **Fuse representation changes at the consumer boundary:** reorder + padding trim + quantization should avoid a materialized high-precision transient when the consumer accepts the compact representation.
+- **Sparse work decomposition is bounded by physical metadata capacity:** logical live length does not imply compact page/block-table geometry.
+- **Fusion admission depends on live:padded geometry:** a megakernel that wins at dense live-head utilization can be neutral or worse after sharding/padding.
+- **Load-time layout work can replace repeated step-time shuffles:** pre-permute weights when a specialized route has a stable physical layout contract.
+- **Kernel admission includes per-device launch validity:** compiled/selected/armed is not enough; threadgroup/residency limits and proof of actual execution belong in route provenance.
 - **Community results without exact source time do not advance the hard freshness boundary or canonical targets.**
 - Exact target receipts remain distinct from mechanism transfer, experimental A/Bs and planning targets.
