@@ -1,10 +1,10 @@
-# External runtime watch — 2026-09-16 07:07 ET
+# External runtime watch — 2026-09-16 12:46 ET
 
 ## Search window
 
-Complete pass over substantive source activity strictly after `2026-09-16 04:31:59 UTC` through the user-request cutoff `2026-09-16 11:07:39 UTC`.
+Complete pass over substantive source activity strictly after `2026-09-16 11:07:39 UTC` through the user-request cutoff `2026-09-16 16:46:32 UTC`.
 
-Evidence timestamp is the substantive source / measurement timestamp, not crawler time, rebase time, merge-only activity, or a later merge of older evidence. Merge-only changes whose underlying evidence predates the boundary were screened out.
+Evidence timestamp remains the substantive source / measurement timestamp, not crawler time, rebase time, merge-only activity, or a later merge of older measurements. Several DS4 commits merged during this window but had September 15 author/measurement timestamps; those were screened as older evidence and do not refresh the boundary.
 
 ## Executive result
 
@@ -16,427 +16,346 @@ Canonical planning targets remain:
 - Qwen3.8-27B, RTX 5070 Ti 16GB + host RAM: **120 tok/s / 250 tok/s cold PP**.
 - DS4-0731, dual M1 Max64/TB4: **15 tok/s / 180 tok/s cold PP**.
 
-This window was nevertheless unusually useful for implementation design:
+This window is highly useful for the implementation plan even without a target-moving receipt:
 
-1. **oMLX #3695 / `4d4750ee`** adds multi-request Lightning MTP and publishes direct Apple M3 Ultra measurements for both Qwen3.8-27B and Qwen3.8-Flash-Next. Flash-Next whole-response aggregate throughput moves **54.12 -> 82.98 tok/s** at one request and **71.74 -> 96.32 tok/s** at two requests. This is strong Apple/MTP mechanism evidence, but it is oQ4e, M3 Ultra, context-unspecified aggregate throughput, not a 128K dual-M1 receipt.
-2. **vLLM #57121** catches a pipeline-parallel correctness hole in a hyper-connection model: the declared PP handoff carried `hidden_states` and `residual` but silently dropped deferred HC `post` / `comb` state. vLLM is disabling PP rather than accepting silent wrong output. This directly upgrades our dual-M1 PP bridge state-interface certificate.
-3. **vLLM #57128** shows prefix-cache + MTP corruption when the newest recurrent-state checkpoint containing rejected draft state is reused. The correct operation is not “subtract one logical block”; it is “skip the newest actual speculative checkpoint and fall back to the next committed snapshot.”
-4. **llama.cpp #26223 / `0a8b29a6`** fixes a Metal route where MoE activations above FP16 range become `inf` and an entire SIMD-group MMA tile becomes NaN. The same model was correct below a 32-row route threshold and all-NaN above it. This adds a hard range/crossover check to our Metal execution-identity ruler.
-5. **oMLX `ef07ca6a`** adds layer-streamed calibration for oversized models and exposes several Flash-Next conversion hazards: wrong module identity caused a ~100GB PLE table to materialize, filtering after materialization caused RSS **11 -> 113GB**, training-vs-eval mode changed GDN numerics enough to flip MoE routes, and raw-key sanitizer fallback could create a **349GB** artifact where **206GB** was predicted. These become artifact-certification rules before any speed number counts.
-6. **vLLM #57129** fuses sparse-indexer score + exact top-k. Operator speedups grow **2.78x @4K -> 5.40x @64K**, yet E2E generation improves only ~0.7–0.9%. This is another clean reminder to optimize QSA by end-to-end bottleneck share, not isolated kernel multiplier.
-7. **vLLM #57140** removes an output-sized temporary/copy from mixed GDN speculative batches. Isolated assembly roughly halves at small sizes, while serving improves ~4% only at some middle batch sizes and is neutral/slightly negative elsewhere. Direct-to-authoritative-buffer mutation is useful, but workload geometry decides whether it matters.
-8. **vLLM #57158** proves graph capture can corrupt a reserved null KV block with NaN/huge values. Kernels that gather the sentinel and rely on a zero softmax weight still fail because `0 * NaN = NaN`. Persistent sentinel state must be revalidated after capture/warmup, not merely initialized correctly at boot.
-9. **vLLM #57161** collapses a GLM sparse-indexer prefill path from **12 launches to 1** and overlaps independent preparation; local GPU work drops dramatically but prefill-heavy E2E improves only a few percent and decode-heavy traffic is neutral. This is strong transfer evidence for our QSA/indexer launch census and stream-overlap plan.
+1. **vLLM #57171** turns the previous GLM-5.3-Flash PP warning into a constructive stage-boundary recipe: materialize deferred mHC `hc_post` on the sending stage, transmit only the residual streams, and let the receiving stage execute standalone `hc_pre`. The same PR found a second failure where PP left the MTP drafter embedding unavailable, producing **zero accepted drafts while target output still remained correct**.
+2. **oMLX #3702 / `b45fb7e5` / `65c65e38`** fixes dynamic multi-request Lightning-MTP handoff. Rebuilding committed history now uses ordinary prefill semantics, and a late join hands the current committed frontier to standard batching instead of replaying the existing request's history.
+3. **oMLX #3703** catches another Qwen4/Flash-Next MTP concurrency failure: the vendored linear `ArraysCache` lacked batch conversion, so parking MTP or admitting a second request could kill the engine loop. Warm singleton cache state must not be restamped with padding during conversion.
+4. **vLLM #57170** shows that profile/admission workspace geometry must come from the active sparse backend rather than a dense worst case. One GLM-5.3-Flash configuration dropped a profile allocation from **4.25 GiB to 1.00 GiB**, increasing available KV capacity by **43%**.
+5. **vLLM #57180** distinguishes the cache **proof horizon** from the reusable-token horizon. A lookup may need to inspect one speculative unit farther to prove an earlier committed recurrent checkpoint safe, while still returning no more reusable tokens than the caller allows.
+6. **mlx-serve `dcb0ede5`** fixed a Qwen3.8-Flash-Next batch crash above ten surviving streams: a repack view buffer budgeted one handle per row even though a row could store up to three. After the fix, 32 streams were reported decoding together at **185 tok/s aggregate on M4 Max**. This is concurrency evidence only, not a B1 target signal.
+7. **DS4 fresh Qwen Metal batching integration** adds native batched MTP with request-local recurrence/cache/n-gram state, exact-sampling fallback, stale-snapshot clearing and benchmark-validity guards. The strongest fresh lesson is that speculative policy is a **batch-cycle economics** decision and that failed/truncated streams must not silently count as throughput.
+8. **llama.cpp `2f3fd025`** gives MTP output-producing and no-output/catch-up phases separate graph-result arenas so the two topologies do not evict and recapture each other's graphs. The published 4–5% RTX5090 measurement predates this window, so only the fresh graph-identity mechanism is promoted here.
+9. **vLLM #57163** shows runtime lifecycle operations can silently destroy quant side state: `sleep(level=2)` zeroed FP8 KV scales because the scales had changed registration class and therefore escaped the buffer snapshot. Reloaded weights alone were not sufficient to restore correctness.
+10. **vLLM #57206 / #57202** sharpen QSA/indexer routing: prefill selector eligibility depends on chunk request multiplicity/start geometry, and decode launch partitions should be bounded by work actually available rather than maximum configured geometry.
 
-External web/HF/community screening found no new source-time-qualified exact dual-M1 Flash receipt, exact one-M1 canonical-quant 27B receipt, controlled RTX5070Ti16 canonical target receipt, or dual-M1 DS4 receipt inside this window. A newly indexed oMLX M2 Ultra Flash-Next benchmark and several 5070Ti community results were measurements from September 15 or earlier, so they were not promoted and do not refresh the hard boundary.
-
----
-
-## Promoted direct Apple evidence — oMLX #3695: concurrent Lightning MTP with request-local state
-
-Source PR created: `2026-09-16 07:23:15 UTC`.
-Merged commit: `jundot/omlx 4d4750ee1af9d32bd7eddc5cda5a10ad34ed9786` at `08:10:56 UTC`.
-
-The implementation allows compatible concurrent requests to share draft-head work and target verification while preserving request-local:
-- acceptance decisions;
-- draft history;
-- cache frontier / commit boundary;
-- termination / EOS / custom-stop handling.
-
-DeepSeek V4.1 keeps independent target verification. Unsupported architectures retain single-request MTP and fall back to ordinary decoding for multiple requests. Auto-depth and parking use the whole batch's measured cost against ordinary decoding.
-
-### Direct Apple measurements
-
-Hardware: **Apple M3 Ultra, 512 GiB**, MLX 0.32.2. All bodies oQ4e. Direct aligned `BatchGenerator`, auto depth, fresh caches, no warmup, long Python prompts, temp 1, top-p 0.95, top-k 20, 4096 output cap, natural EOS.
-
-These are **whole-response aggregate medians**, including prefill, calibration, parking, and smaller-batch tails — not isolated sustained decode measurements.
-
-| Model | requests | non-MTP | Lightning MTP | delta |
-|---|---:|---:|---:|---:|
-| Qwen3.8-27B-oQ4e-mtp | 1 | 33.71 | **73.89** | +119.2% |
-| Qwen3.8-27B-oQ4e-mtp | 2 | 53.86 | **84.08** | +56.1% |
-| Qwen3.8-27B-oQ4e-mtp | 3 | 70.96 | **85.85** | +21.0% |
-| Qwen3.8-27B-oQ4e-mtp | 4 | 81.32 | **91.52** | +12.5% |
-| Qwen3.8-Flash-Next-oQ4e-mtp | 1 | 54.12 | **82.98** | +53.3% |
-| Qwen3.8-Flash-Next-oQ4e-mtp | 2 | 71.74 | **96.32** | +34.3% |
-| Qwen3.8-Flash-Next-oQ4e-mtp | 3 | 95.51 | **107.45** | +12.5% |
-| Qwen3.8-Flash-Next-oQ4e-mtp | 4 | 111.14 | **116.47** | +4.8% |
-
-Validation included 2K-input/256-output concurrent MTP tests, six concurrent generations for the Qwen/GLM models, cancellation, late join, prefix-cache reuse, streaming/custom-stop behavior, and tested GLM rollback parity with scalar reference.
-
-### What this means for our Flash lane
-
-This is strong evidence that Lightning MTP can remain profitable on Apple after the implementation is mature, and that batching verifier/head work does not require merging request state ownership.
-
-Promoted design rules:
-- **Share computation, not commit authority.** Batch compatible draft/verifier math, but acceptance and state commit remain per request.
-- Each request owns its MTP history and commit frontier even if a fused verify block spans multiple requests.
-- Batch parking/depth control must use measured whole-cycle economics, not acceptance alone.
-- Cancellation / late join / custom stop are state-transition tests, not API-only tests.
-- For our single-stream dual-M1 target this does **not** imply 82.98 tok/s, because chip, quant, context, topology and metric differ materially.
-
-The result does make “Lightning MTP is probably worth engineering correctly on Apple” stronger than before. It does not move the canonical 40@128K target.
+Fresh HF/community screening surfaced newly indexed M3 Ultra/M3 Max/5070Ti benchmark pages, but none had a source-time-qualified new measurement in this window on the exact active hardware/quant/runtime target. They are not promoted and do not move the planning distribution.
 
 ---
 
-## Promoted PP correctness transfer — vLLM #57121: HC deferred state is part of the pipeline interface
+## Promoted PP design evidence — vLLM #57171: canonicalize deferred mHC state at the stage boundary
 
-Source PR created: `2026-09-16 05:37:18 UTC`.
+Source PR created: `2026-09-16 12:37:32 UTC`.
 
-`Glm5NextForCausalLM` declared pipeline-parallel support even though its PP intermediate object only exposed:
-- `hidden_states`;
-- `residual`.
+The previous watch captured vLLM #57121, which correctly rejected GLM-5.3-Flash PP because the stage handoff dropped deferred mHC `post` / `comb` state. #57171 proposes and validates a more useful solution.
 
-The model's multi-hyper-connection layer also holds deferred **`post` / `comb`** state. The code explicitly noted that this state would need to propagate across PP ranks but was currently dropped. Wiring only the obvious tensors would therefore remove the startup error while creating silent incorrect output.
+Each token carries four mHC residual streams. A normal same-stage transition runs the fused operation:
 
-vLLM's fix is to remove the PP capability declaration until the complete state handoff exists.
+`hc_post(previous layer) -> hc_pre(next layer)`.
 
-### Direct transfer to our dual-M1 Flash PP bridge
+At a PP cut there is no next local layer to consume the deferred representation. The new design therefore:
 
-Qwen3.8-Flash-Next also has hyper-connection/mixer state, so stage ownership cannot be certified from layer boundaries alone.
+1. executes the pending `hc_post` on the **sending** stage;
+2. sends only the resulting residual streams, shaped `[tokens, residual_streams, hidden]`;
+3. initializes `residual/post/comb` as absent on the receiving stage;
+4. lets the receiver's first layer execute standalone `hc_pre`;
+5. under sequence parallelism, flattens/all-gathers/reshapes the residual streams at the boundary.
 
-Before the first real PP performance experiment, produce a **stage-interface state ledger** for every cut:
+The argument for equivalence is strong: the fused op is defined as the same `hc_post` followed by `hc_pre`; the PP cut only removes one fusion opportunity per boundary.
 
-`state name -> producer -> authoritative owner -> wire representation -> consumer -> commit/rollback boundary -> recovery/cancellation behavior`.
+Validation on PP=4 showed coherent output and a 50-problem GSM8K sample of 0.98 both with and without MTP. The fused-vs-split mHC comparison was bit-identical for token counts above 32 and within the documented small BF16-rounding difference below that threshold.
 
-At minimum inventory:
-- hidden/residual stream(s);
-- HC/mixer deferred pre/post/comb state;
-- GDN recurrent state / convolution tail;
-- QSA/indexer history and selected-block metadata if the cut crosses ownership;
-- PLE state/claim metadata if relevant;
-- MTP proposal/head state;
-- accepted-prefix / continuation control metadata.
+### Second bug: a correct target can hide a dead drafter
 
-A PP run is invalid if the receiver reconstructs a default/standalone state merely because a side tensor was omitted.
+With PP enabled, MTP drafted 604+ tokens and accepted **zero** before the fix, yet final target outputs remained correct because verification still worked.
 
-This materially affects the implementation plan: **prove complete PP semantics before optimizing TB4 bytes.** The right state can then be collapsed/projected before transport; missing state cannot be optimized away.
+Root cause was weight provenance:
+- the drafter needs the target `model.embed_tokens.weight`;
+- the MTP loader dropped that weight;
+- target-embedding sharing does not work the same way on non-owner PP stages;
+- the target embedding on the final stage can be a `PPMissingLayer`.
 
----
+The fix gives non-first PP drafter ranks their own embedding and explicitly loads the target embedding into it. Afterward mean acceptance length was reported at **2.45–2.81**, with per-position acceptance **0.85 / 0.60** on free-form text and **0.95 / 0.86** on the GSM8K probe. Single-stream 256-token generation on the test PP4 system moved roughly **5.7 s -> 3.3 s** with MTP.
 
-## Promoted MTP/prefix-cache correctness — vLLM #57128: drop the newest actual speculative checkpoint, not one logical unit
+Hardware was four CMP 170HX / GA100 devices plus an out-of-tree sparse-attention backend, so those rates are not Apple transfer receipts.
 
-Source PR created: `2026-09-16 06:31:12 UTC`.
+### Promoted rules for our dual-M1 bridge
 
-A Mamba/GDN prefix-cache finder accepted `drop_eagle_block` but ignored it. With MTP/EAGLE, the newest recurrent checkpoint can contain state advanced over draft positions that were later rejected. Reusing that checkpoint silently corrupts later requests sharing the prefix.
-
-An older/simple repair — pre-shrink the search ceiling by one logical unit — also fails in current sparse-checkpoint mode because real recurrent snapshots do not exist at every hash/block unit. It can land in a checkpoint gap and produce **0% cache hits**.
-
-The correct semantics are:
-1. scan the full available checkpoint window;
-2. find actual recurrent snapshots;
-3. when speculative tail invalidation applies, skip only the most recent snapshot actually found;
-4. continue to the next older, committed snapshot.
-
-Live test: Qwen3.8-27B-NVFP4, 2x RTX5060Ti16, MTP1, prefix cache, max context 131072. A ~24K shared prefix dropped warm-request time from ~77s cold to ~30–32s, with an instrumented real partial hit of 15,440 / ~18,528 available tokens while correctly skipping the newest unverified checkpoint.
-
-### Promoted rule
-
-Speculative cache invalidation is based on **physical committed snapshots**, not logical token arithmetic.
-
-For Flash distributed MTP:
-- maintain an explicit accepted commit epoch / snapshot id;
-- every KV/GDN/QSA/PLE/MTP side state is either at that epoch or marked uncommitted;
-- rollback/prefix reuse chooses the latest common **actual committed** epoch;
-- never infer state validity by simply subtracting `draft_depth` tokens or one block unless that arithmetic is proven to map to a real snapshot.
-
-This reinforces the existing accepted-prefix authority and cache-sidecar boundary rules.
+- Prefer a **canonical boundary representation** over shipping every deferred implementation artifact when the transformation can be completed exactly on the sender.
+- For Flash PP, compare two designs explicitly: propagate deferred HC side state versus materialize `post` before the cut and send only residual streams. Measure numerical equivalence, TB4 bytes/cycle and stage latency.
+- Every MTP/drafter parameter has a stage-local provenance chain: `checkpoint/source -> loader -> rank owner -> alias/copy -> armed execution`.
+- **Zero acceptance with correct final text is an artifact/weight-route alarm**, not merely evidence that the drafter is weak. Verify weights and stage residency before tuning depth or kernels.
 
 ---
 
-## Promoted Metal correctness — llama.cpp #26223 / `0a8b29a6`: route threshold can turn FP16 narrowing into total NaN failure
+## Promoted direct Apple runtime evidence — oMLX #3702: dynamic join must hand off committed state, not replay history
 
-Fresh merged commit timestamp: `2026-09-16 06:37:40 UTC`.
+Fresh commits:
+- `b45fb7e5a127355c0769d0b7c828849db17492e7` at `2026-09-16 15:29:53 UTC`;
+- `65c65e38e0aff6001d09a8ecd234edd6d8780fa1` at `2026-09-16 16:14:12 UTC`.
 
-The Metal `mul_mm_id` path narrows F32 activations to FP16 for SIMD-group MMA. Activations above FP16 max (`65504`) become `inf`, and the SIMD-group matrix multiply propagates NaN through the whole tile.
+Two related state-transition mistakes were fixed.
 
-The dangerous part is route dependence:
-- below `ne21_mm_id_min = 32`, the mat-vec path keeps values in F32 and is correct;
-- at 32+ rows, the matrix path narrows to half and failed.
+### Committed cache reconstruction must use ordinary prefill semantics
 
-A real Mistral Small 4 layer reached ~`1e5` activations. On Metal:
-- prefill **<32 tokens** was correct;
-- prefill **>=32 tokens** produced an entirely NaN vocabulary.
+`_reconcile_mtp_to_standard` previously replayed committed history through the MTP-managed backbone wrapper. That wrapper creates speculative rollback snapshots even though the history being reconstructed is already committed.
 
-The fix computes max absolute activation, rescales by a power of two to fit FP16, performs the existing MMA, then exactly undoes that scale in the FP32 accumulator. A first serialized reduction cost up to +451%; the final two-stage bandwidth-bound reduction is much cheaper.
+The fix rebuilds through ordinary model forward/prefill, then compares the resulting cache against an independently ordinary-prefilled cache for Qwen and Qwen VLM families.
 
-Apple M2 Max component cost for the safe path:
-- n=32: +1.73% median;
-- n=64: +1.30%;
-- n=128: +1.80%;
-- n=256: +3.98%;
-- n=512: +3.74%, +7.20% worst;
-- decode mat-vec cells remained noise-level;
-- overall 99-case median +1.14%.
+Rule: **state purpose determines execution route**. Reconstructing committed standard state must use committed/standard semantics even when the same model is capable of speculation.
 
-### Promoted Metal qualification rules
+### A late join must not replay existing rows
 
-- Kernel route crossover is part of numerical correctness. Test **both sides of every dispatch threshold**.
-- A short-context/low-row correctness pass does not certify a higher-width prefill route.
-- Any Metal kernel that narrows a dynamic activation/control operand to FP16 needs either a proven range bound or a runtime-safe scaling strategy.
-- Add finite/range assertions to diagnostic builds at HC/GDN/MoE/QSA route boundaries.
-- Correctness ladders should include `[threshold-1, threshold, threshold+1]` geometry cells, not only powers of two.
-- If the fix adds a reduction/scan, profile whether it serializes the GPU; correctness repair still needs a parallel implementation.
+The later commit changes the active-batch join path. Instead of rebuilding prior requests, the drained MTP batch feeds each request's last committed main token into standard decode and then admits the new row.
 
-This is transfer evidence, not a Qwen-specific performance receipt, but it is directly applicable to our custom Metal work.
+New tests deliberately fail if the old full-history reconciliation path is called during a late join. They also cover unequal acceptance, three-row joins, staggered completion, exact next-token/logprob state and terminal cache history.
+
+### Transfer to our scheduler
+
+For dynamic batch membership, certify:
+- pre-join request cache/frontier identity;
+- one authoritative handoff token/state per existing row;
+- no O(prompt/history) replay for rows whose committed frontier is already materialized;
+- new rows receive only their own priming work;
+- late join / cancellation / staggered finish cannot change an existing row's accepted prefix.
+
+This is directly relevant if our MTP implementation ever batches request rows locally before or after the PP traversal.
 
 ---
 
-## Promoted Flash-Next conversion evidence — oMLX `ef07ca6a`: streaming calibration must preserve runtime identity before touching weights
+## Promoted Flash-Next cache-conversion correctness — oMLX #3703
 
-Fresh substantive commit timestamp: `2026-09-16 09:04:46 UTC`.
+Source PR created: `2026-09-16 16:35:41 UTC`.
 
-This change adds layer-streamed imatrix/sensitivity calibration for models larger than RAM and extends it to the Qwen4-Exp / Flash-Next layout. Several implementation failures are highly relevant to our future pack-building/certification lane.
+This is the last high-value source-time-qualified item found before the requested cutoff.
 
-### 1. Module identity / configuration ordering can materialize the wrong physical state
+Qwen4-Exp uses a heterogeneous cache stack: vendored linear `ArraysCache` objects plus QSA KV caches. Lightning MTP's singleton rebuild passes caches through mlx-lm's generic batch converter. The QSA cache already supplied its own `to_batch`, but the vendored linear cache did not.
 
-The PLE runtime needed mmap mode. A pre-load patch could reinstall the model module after the mode had been configured, leaving the layer class bound to a different module object. One path thought PLE was mmap while the constructor thought it was resident.
+Consequences at concurrency >= 2:
+- MTP parking could fail to restore calibration/standard state;
+- a second request joining an MTP singleton could fail to restore committed batch cache;
+- the engine loop could terminate and require model reload.
 
-Observed consequence:
-- full ~100GB N-gram table became active;
-- streaming budget aborted around **114GB active**.
-
-After configuring the exact module object *after* pre-load patching, active memory stayed **~11.6GB** across layers/rounds on the truncated fixture.
-
-### 2. Filtering after materialization is not filtering
-
-The streamed layer loader originally popped/materialized all PLE shard tensors and only then discarded the unwanted mmap-mode shards.
-
-Observed RSS:
-- before: **~11GB -> 113GB** while sourcing PLE;
-- after moving the predicate before the pop/materialization: **12.9GB peak** on the same probe.
-
-Rule: exclusion must happen before any read/allocation of the excluded physical tensor.
-
-### 3. Training/eval mode is execution identity
-
-Freshly constructed streamed blocks defaulted to training mode. Qwen-family GDN selected a different fused-kernel path based on `not self.training`. One-BF16-ULP differences were enough to flip borderline MoE routing choices and break bitwise parity against the resident collector.
-
-Calling `block.eval()` restored bitwise routing counts and parity.
-
-### 4. Silent sanitizer/raw-key fallback can create the wrong artifact while appearing successful
-
-On one cache-hit/sensitivity path, sanitizer discovery failed and writing silently fell back to raw checkpoint keys:
-- expert stacking did not happen;
-- recipe matching missed;
-- output became **349GB** instead of the predicted **206GB**.
-
-The path now fails hard when the required sanitizer is unavailable.
-
-### 5. Synthetic model placeholders are not checkpoint parameters
-
-The mmap PLE module registered a synthetic `weight_scale` placeholder not present in the source artifact. Writing it made strict loaders reject the output. It must be stripped rather than treated as serialized source state.
-
-### Promoted artifact gate
-
-Before any benchmark of our generated Q6/Q8/Flash pack:
-- certify exact module/runtime identity during calibration;
-- force evaluation mode consistently;
-- record physical source tensors actually read;
-- reject unexpected materialization of excluded/SSD/mmap state;
-- require planned output-byte accounting to match emitted artifact within defined tolerance;
-- sanitizer/stacking failure is fatal, never a silent passthrough;
-- distinguish checkpoint tensors from runtime/synthetic placeholders;
-- strict-load the produced artifact and compare routing/state probes against the source model.
-
-This complements the prior missing-FP8-scale finding: artifact construction and runtime correctness must be proven before throughput is meaningful.
-
----
-
-## Promoted sparse-indexer transfer — vLLM #57129: fused score+top-k has huge operator gain but small E2E gain
-
-Source PR created: `2026-09-16 06:31:59 UTC`.
-
-The proposed backend replaces a DeepGEMM score operation plus separate exact top-k with a fused score/remap path for constrained SM90 decode geometry.
-
-H200 operator speedup vs baseline:
-- 4K: **2.78x**;
-- 8K: **3.22x**;
-- 16K: **3.86x**;
-- 32K: **4.61x**;
-- 64K: **5.40x**.
-
-Yet serving E2E throughput changes are only about:
-- 4K/4K: +0.9%;
-- 8K/8K: +0.9%;
-- 1K -> 32K: +0.7%;
-- 32K -> 1K: +0.7%.
-
-Accuracy comparisons passed for the fused operator.
-
-### Transfer to Flash QSA
-
-- Fuse score/select only after measuring its share of **full verifier cycle** at target context.
-- A 5x kernel win can be sub-1% system win if projection, gather, GDN, MoE, synchronization or transport dominates.
-- Track `QSA score`, `select`, `gather`, `attention`, `proposal`, `target verify`, and TB4 transport as separate cycle slices.
-- Re-run micro-optimization value after each larger bottleneck shift.
-
-This does not reduce the value of QSA work; it changes how we decide which QSA work is worth engineering first.
-
----
-
-## Promoted GDN/spec transfer — vLLM #57140: write directly into the authoritative output when ownership is clear
-
-Source PR created: `2026-09-16 09:01:42 UTC`.
-
-Mixed speculative/non-speculative GDN batches allocated an output-sized `merged_out`, scattered both partitions into it, then copied the complete tensor into `core_attn_out`. The patch scatters directly into the caller-owned output buffer.
-
-H100 isolated assembly, one GDN layer:
-- 32 tokens: eager **35.05 -> 17.95 us**, graph **6.59 -> 5.33 us**;
-- 256: **36.71 -> 18.55**, graph **8.92 -> 7.05**;
-- 4096: **109.37 -> 75.60**, graph **102.74 -> 71.61**.
-
-But E2E serving on Qwen3.5-4B + MTP3 is geometry-dependent:
-- client B1: +0.32%;
-- B4: +3.92%;
-- B8: +4.10%;
-- B16: -1.01%;
-- B32: -0.46%.
-
-Some tail-latency cells also regress at high client batch.
-
-### Transfer
-
-- If ownership/order are exact, write directly into the authoritative destination and avoid merge temporaries.
-- Do not assume a local copy removal is universally beneficial after graph capture / batching.
-- For our primary single-stream lane, prioritize this only where profiling shows a real buffer-copy bubble.
-- Any direct-write fusion must preserve aliasing, padding rows and rollback semantics exactly.
-
----
-
-## Promoted graph/sentinel correctness — vLLM #57158: graph capture can mutate the null block into poison
-
-Source PR created: `2026-09-16 10:36:55 UTC`.
-
-CUDA graph capture runs dummy batches whose block table points at the reserved null block. Capture left block 0 with non-finite data:
-- eager slot-0 NoPE: `0.0`;
-- PIECEWISE capture slot-0 NoPE: `NaN`;
-- PIECEWISE slot-0 RoPE: approximately `3.2e35`.
-
-Sparse attention kernels deliberately clamp invalid indices to slot 0 and rely on a mask to make that contribution zero. That is only valid when the sentinel data itself is finite: `0 * NaN` remains NaN and poisons real tokens.
-
-Zeroing the reserved null block once after capture restored correct output. The report also shows why simply forcing eager is not acceptable as the final answer: on that setup single-stream CUDA-graph throughput was **32.6 tok/s vs 17.2 tok/s eager**.
+The proposed fix adds batch conversion to the cache class itself. A fresh cache receives the batch left-padding stamp; a **warm singleton is returned untouched** because it represents one running unpadded row. Tests found that stamping warm running state caused token mismatches.
 
 ### Promoted rules
 
-- Reserved/padding/sentinel buffers are **persistent state**, not constants merely because they are conceptually “unused.”
-- After warmup/JIT/graph capture, revalidate sentinel finiteness/zero invariants.
-- A mask does not sanitize NaN/Inf payloads.
-- Dummy/warmup/capture paths must be tested for writes to persistent cache/state.
-- For our Metal graph/command-buffer warmup, perform before/after hashes or sentinel probes on KV/QSA/GDN/MTP scratch/state that should remain invariant.
-
-This composes with the previous padded-selection sentinel and zero-length graph-row findings.
+- Every heterogeneous cache family participating in batching must define its own conversion/merge/split semantics; a central converter's type table is not sufficient evidence.
+- **Fresh-cache conversion and warm-running-cache conversion are different state transitions.** Never mutate padding/ownership metadata merely because a generic conversion function was entered.
+- Cache conversion belongs in the same qualification matrix as trim/rollback/prefix restore: cold, warm, late join, split, merge, park, resume and staggered finish.
 
 ---
 
-## Promoted indexer/prefill transfer — vLLM #57161: collapse launches and overlap independent preparation, but judge the whole workload
+## Promoted capacity evidence — vLLM #57170: profile geometry must come from the executed backend
 
-Source PR created: `2026-09-16 10:59:30 UTC`, inside the cutoff by ~8 minutes.
+Source PR created: `2026-09-16 12:33:38 UTC`.
 
-Fresh GLM-5.3-Flash sparse-indexer work changes kpool compress and scheduling:
-- two-pass softmax -> online softmax, reading gate scores once;
-- prefill compress/write path **12 launches -> 1**;
-- eager pure-prefill can overlap compress/tail writes on an auxiliary stream with top-k-buffer and gather/logits preparation;
-- graph/breakable-graph modes use different scheduling to keep capture semantics valid;
-- head gate avoids an explicit FP32 input copy while retaining FP32 accumulation/output.
+A profile-run temporary for MLA prefill was always sized from dense MLA geometry even when the runtime used a sparse MLA backend that could never generate that many projected rows.
 
-H100 component measurements:
-- prefill compress-write wall **154–216 us -> 32–36 us** at n=256/2048/8192 (-79% to -84%);
-- summed GPU kernel time at n=2048: **29.0 -> 4.4 us**;
-- n=8192: **67.9 -> 6.7 us**;
-- Indexer.forward T48: **39.7 -> 22.7 us** (-43%);
-- T288: **50.8 -> 30.8 us** (-39%);
-- T1024: **94.4 -> 54.3 us** (-42%);
-- decode tail remains launch-bound and effectively unchanged.
+Measured GLM-5.3-Flash configuration:
+- dense-profile allocation: **69,632 rows / 4.25 GiB**;
+- sparse backend reachable cap: **16,384 rows / 1.00 GiB**.
 
-8x H100 E2E, MTP5:
-- 8192-in / 16-out, C1: mean TTFT -3.2%, output throughput +2.7%;
-- same prefill-heavy shape at C16: mean E2EL -4.8%, output throughput +5.1%;
-- decode-heavy 2048-in / 256-out is neutral/noisy, including a small throughput regression in some cells.
+A memory snapshot attributed 4.250 GiB of the roughly 4.5 GiB profile peak to that one temporary.
 
-### Transfer to our Flash implementation order
+End-to-end capacity effect on the tested 4x GA100 PP4 setup:
+- peak activation per GPU: **4.52–4.60 -> 1.29–1.35 GiB**;
+- available KV cache on rank 0: **9.84 -> 13.09 GiB**;
+- GPU KV capacity: **770,703 -> 1,102,315 tokens (+43%)**;
+- GSM8K and MTP acceptance unchanged.
 
-- Build the QSA/indexer **launch census** first; small dependent-kernel chains can be worth collapsing even when individual kernels look fast.
-- Prefer single-pass/online reductions where they remove repeated memory reads and intermediate tensors without changing required numerics materially.
-- Overlap only genuinely independent work and explicitly gate scheduling by capture/graph mode.
-- Separate prefill and decode optimization ledgers; a strong prefill win may be irrelevant to TG.
-- Always report E2E after a large microbenchmark win.
+### Transfer to our 128K Flash qualification
 
-For the dual-M1 target, the most relevant analog is to collapse local preparation before TB4 transfer and overlap independent stage-local work with communication, without introducing extra synchronization points.
+Our memory ruler must distinguish:
+
+`configured maximum geometry -> executed backend reachable geometry -> profile/warmup allocation -> settled live allocation`.
+
+A profile-only impossible dense shape can steal enough unified memory to invalidate a 128K admission result even when steady-state sparse execution would fit. Profile and warmup transients are therefore first-class physical-capacity evidence, not bookkeeping noise.
 
 ---
 
-## Fresh items screened but not promoted as target evidence
+## Promoted prefix-cache rule — vLLM #57180: proof horizon is not reusable horizon
 
-### External benchmark/community pages
+Source PR created: `2026-09-16 13:41:59 UTC`.
 
-A fresh web screen surfaced:
-- an oMLX M2 Ultra Flash-Next performance page dated September 15;
-- tracker/aggregator pages for Flash-Next and Qwen3.8-27B;
-- several RTX5070Ti community measurements from September 9–12 and August.
+With MTP/EAGLE and Mamba/recurrent state, prefix lookup may intentionally drop a speculative hash/checkpoint unit. The old coordinator also capped the search at the final reusable-token limit, so the two restrictions compounded.
 
-They are useful background but their measurement/source times predate this window. They therefore **do not advance the hard freshness boundary and do not move targets**.
+Example from the PR:
+- prompt length: 16,000;
+- hash width: 16;
+- old search could stop at 15,968;
+- safe saved recurrent checkpoint existed at 15,984.
 
-### Merge-only repository activity
+Allowing lookup to inspect through 16,000 gives enough **proof margin** for the later speculative drop to land on the safe 15,984 checkpoint, while the returned reusable hit still obeys the caller's original reuse limit.
 
-Several vLLM commits merged during this window whose underlying PR/evidence source was older. Those were deliberately excluded from freshness promotion. A later merge timestamp is not new evidence.
+Real Qwen3.5-0.8B reproduction:
+- repeated 16K prompt cached tokens: **15,120 -> 15,984**;
+- prompt recomputed: **880 -> 16**;
+- cold/warm token IDs equal for all 6/6 comparisons.
 
-### DS4 / mlx-serve
+This is a cache-correctness/recompute result, not a serving-throughput claim.
 
-No fresh source-time-qualified target-changing DS4-0731 or mlx-serve dual-M1 receipt appeared after the boundary. Routine/UI activity was not promoted.
+### Promoted rule
 
----
+Maintain separate variables for:
+- **proof/search horizon** — how far metadata may be inspected to establish safety;
+- **reusable/commit horizon** — how many tokens may actually be adopted.
 
-## Changes to implementation/certification plan from this pass
-
-Add these explicit gates to the Flash implementation checklist:
-
-1. **PP stage-interface certificate**
-   - enumerate hidden/residual + HC `post/comb` + recurrent/QSA/MTP/PLE side state;
-   - prove receiver state equals single-device reference at every cut;
-   - only then optimize/collapse the TB4 payload.
-
-2. **Physical commit epoch**
-   - rollback/prefix reuse chooses actual committed snapshots;
-   - never approximate speculative invalidation with logical block subtraction unless proven identical.
-
-3. **Metal route-threshold numeric sweep**
-   - test threshold-1 / threshold / threshold+1 for every kernel route crossover;
-   - assert finite/range bounds around FP16 narrowing and reductions.
-
-4. **Post-warmup persistent-state audit**
-   - sentinel/null rows finite and initialized;
-   - graph/JIT/warmup/dummy routes cannot leave cache poison.
-
-5. **Artifact construction certificate**
-   - exact runtime module identity and eval mode;
-   - filter excluded tensors before materialization;
-   - sanitizer/stacking failure is fatal;
-   - emitted byte budget checked against plan;
-   - strict-load + routing/state parity before perf qualification.
-
-6. **Optimization accounting**
-   - microbench improvement is recorded separately from full-cycle and E2E;
-   - launch/copy/indexer fusions promoted only after target-context bottleneck accounting;
-   - prefill and decode ledgers remain separate.
-
-7. **Lightning MTP state ownership**
-   - computation may batch/share;
-   - acceptance, commit frontier, rollback, termination and history remain request-owned;
-   - distributed rank authority remains explicit for depth/policy and commit.
-
-These additions strengthen correctness and should reduce wasted tuning passes; none changes the current numeric performance target.
+Registration and lookup must also use the same global speculation/drop contract. Per-group draft flags cannot silently disagree with scheduler-wide commit semantics.
 
 ---
 
-## Target status after this pass
+## Promoted Apple batching correctness — mlx-serve `dcb0ede5`: logical rows undercounted physical sidecar handles
 
-**Unchanged.**
+Source commit: `dcb0ede51dc5db3b291a7f9c5b52168a6b1f8a05`.
+Source timestamp: `2026-09-16 13:58:00 UTC`.
 
-For dual-M1 Flash, the new Apple Lightning-MTP numbers are encouraging mechanism evidence, but they do not establish our topology/context/quant target. The main new practical consequence is architectural: the PP bridge must propagate the full HC deferred-state contract before we trust any speed result.
+Qwen3.8-Flash-Next batched decode crashed once more than ten streams survived a repack. The state-repack view buffer reserved **one handle per row** but could store up to **three handles per row**. At 11+ streams the buffer overran and the server segfaulted.
 
-Current interpretation remains:
-- `<30–34 TG @128K`: important failure / missing mechanism;
+The release note reports 32 streams decoding together after the fix at **185 tok/s aggregate on M4 Max**.
+
+That number is a concurrency aggregate, not B1 sustained TG and not a target-moving receipt.
+
+### Promoted rule
+
+Logical row count is not enough for scratch sizing. For each batched state family record:
+
+`rows x max physical handles/views per row x bytes/handle + alignment/padding`.
+
+Qualify the actual multiplicity at B1/B2/B4 and at a high-concurrency stress cell. This is the sidecar analogue of the existing physical billing-width rule.
+
+The same commit also fixed `top_p=0`, which previously produced an empty nucleus and random-vocabulary sampling instead of greedy selection. Sampling-edge tests remain part of execution correctness, especially when comparing speculative and non-speculative paths.
+
+---
+
+## Promoted DS4 runtime update — fresh Qwen3.8 Metal batched MTP integration
+
+Fresh author-time-qualified DS4 changes in this window include:
+- `8e608a66e07aea0645ee3651755758465bd20f63` at `12:46:28 UTC`;
+- `d1620ba061328caa7a6a81c434b09aa5fc4224f8` at `13:02:09 UTC`;
+- `ab38bc6b7af916901e6160afc7d1445e13445a2a` at `13:17:25 UTC`;
+- documentation/QA update `8db1d1d155cb0400a86a86b9c62d0defb3a6148b` at `13:17:26 UTC`.
+
+The implementation now allows Qwen3.8 Metal session batching with MTP while keeping session-local recurrence, attention cache and n-gram history. Important safety behavior in the fresh integration:
+- exact sampled requests can remain on ordinary batches;
+- stale verification snapshots are cleared after ordinary batched progress;
+- logical context/output limits are enforced independently of physical allocation room;
+- speculative timing estimates are reset when batch width changes;
+- speculative batches above the supported width, images and steering fall back to ordered execution;
+- QA explicitly tests row isolation, reordered companions, mixed ordinary/MTP cycles, failed reads, snapshot recovery, cancellation, prefix reuse and short output limits.
+
+A second fresh commit hardens the concurrency benchmark so failed/truncated streams cannot be counted as successful throughput. It now requires a valid terminal reason, valid completion-token usage, a completed `[DONE]` stream and all requested jobs to finish; failed grid cells propagate a nonzero exit status.
+
+### What was deliberately NOT promoted from the same merge wave
+
+A number of highly interesting Qwen batch-kernel measurements landed on main during this window but have September 15 or early-September-16 author/measurement timestamps. Examples include grouped MoE specialization, batched predictor work, row-wise recurrent/attention kernels and various C=16 throughput observations.
+
+Those remain useful older transfer evidence but **do not refresh this window's measurement timestamp** and therefore do not move any target here.
+
+### Promoted rules
+
+- Speculative policy is a **whole-cycle economics** problem: compare accepted tokens per cycle against the measured plain/spec cycle cost at the current batch width.
+- A policy's cost model becomes stale when batch width/topology changes; reset or re-learn it.
+- Benchmark validity is binary: incomplete/failed/truncated streams do not become slower successful samples.
+- Batched correctness requires companion/reordering isolation tests, not only aggregate output plausibility.
+
+---
+
+## Promoted graph/JIT identity transfer — llama.cpp `2f3fd025`: MTP phases need separate graph arenas
+
+Fresh merge commit timestamp: `2026-09-16 16:16:54 UTC`.
+
+MTP alternates between topologically different work:
+- output-producing draft/decode batches;
+- no-output prefill/catch-up batches.
+
+llama.cpp previously stored both in one previous-graph arena. The shapes repeatedly replaced one another's cache identity, causing recurring graph capture instead of stable reuse.
+
+The fix keeps separate graph-result arenas keyed by whether outputs are produced and tracks which arena is currently valid. Scheduler/memory resets invalidate both.
+
+The PR includes an RTX5090 Qwen3.6 MTP3 measurement around +4–5%, but that benchmark predates this watch window, so it is **not** promoted as fresh performance evidence.
+
+### Transfer to Metal
+
+Even without CUDA graphs, the same identity rule applies to Metal/JIT caches:
+
+`semantic phase + output contract + row/depth geometry + kernel route` is part of compile/cache identity.
+
+Draft, verify, catch-up and ordinary decode should not accidentally ping-pong one specialization slot when their graph/topology differs.
+
+---
+
+## Promoted lifecycle correctness — vLLM #57163: quant side state can disappear across sleep/reload
+
+Source PR created: `2026-09-16 11:11:32 UTC`.
+
+`CompressedTensorsKVCacheMethod` rebound calibrated `_q_scale/_k_scale/_v_scale` values from buffers into parameters. `sleep(level=2)` only snapshots named buffers before discarding the allocation, so those scales were omitted and returned as zero after a weights-only reload.
+
+Observed failure included NaN logprobs and wrong tokens. On one characterized checkpoint all 96 affected scales returned as zero before the fix; after restoring the buffer registration invariant, 36/36 rounds were bit-exact against the never-slept control. The PR also notes that a tiny ~4.657e-09 injected scale perturbation could flip a greedy decision, so approximate restoration is not an adequate certificate.
+
+### Promoted rule
+
+Lifecycle identity includes registration/ownership metadata, not only tensor names and values. For any sleep/offload/reload/checkpoint path, census all persistent side state:
+
+`weight / scale / zero-point / recurrent state / cache sidecar -> registration class -> saved by lifecycle operation? -> restored bit-exact?`.
+
+This matters for future model reloads and runner orchestration even if our first dual-M1 campaign keeps both processes resident.
+
+---
+
+## Scoped QSA/indexer updates — vLLM #57206 and #57202
+
+### #57206 — prefill selector eligibility is chunk-local
+
+Created `2026-09-16 16:39:26 UTC`, seven minutes before cutoff.
+
+The new prefill DeepSelect path is eligible only for specific chunk geometry: one request in the indexer chunk, supported alignment/device, and no incompatible context parallelism. Multi-request chunks fall back, although a multi-request batch can still benefit if the planner splits requests into independent chunks.
+
+The PR quotes strong earlier GB200 kernel profiles, but explicitly labels them earlier validation and not fresh standalone E2E measurements. We therefore promote the routing rule, not the old speed numbers.
+
+Rule: QSA/indexer route identity includes **request multiplicity within the chunk, causal row start/end, CP mode, alignment and selected-K**, not just total context length.
+
+Tie qualification still needs deterministic membership/order where our runtime promises it; matching selected scores alone is weaker evidence.
+
+### #57202 — launch partitions should be bounded by work available
+
+Created `2026-09-16 16:01:51 UTC` as a draft. It caps score/top-k producer counts from already CPU-visible page/block bounds instead of instantiating maximum launch geometry for short contexts. No new GPU/performance run accompanies the publication, so this is a test-plan transfer only.
+
+Rule: derive launch topology from **available work**, not configured maxima, when the bound is already known without device synchronization.
+
+---
+
+## Screened but not target-moving
+
+### vLLM #57162 — ROCm sampler failure on Flash-Next
+
+Created `2026-09-16 11:08:27 UTC`, just after the previous boundary. AITER's top-k/top-p sampler segfaulted on MI300X/gfx942 even with eager execution; falling back to native sampling restored serving and produced normal GSM8K results. Useful backend-admission evidence, but it does not transfer directly to our Metal target.
+
+### Fresh HF/community pages
+
+Search surfaced current-index pages for:
+- M3 Ultra oQ6e/oQ8e Flash-Next packs;
+- Rapid-MLX Flash-Next 4-bit;
+- M3 Max low-bit Flash packs;
+- RTX5070Ti Flash-Next/EXL3 community benchmarks;
+- older DS4-0731 oMLX comparisons.
+
+Several contain useful numbers, including long-context Apple and 5070Ti receipts, but the measurement/source timestamps are older or not independently qualified inside this exact window. Crawler freshness is not measurement freshness. None is promoted here.
+
+---
+
+## Implementation consequences for the dual-M1 Flash campaign
+
+The new findings strengthen the first-pass implementation checklist:
+
+1. **PP stage interface:** enumerate all deferred HC/mixer state and test sender-side canonicalization before deciding what crosses TB4.
+2. **MTP weight provenance:** certify drafter embeddings/projections on the actual rank that executes them; do not infer from target-model ownership.
+3. **Dynamic MTP state transitions:** test late join, park/resume, split/merge, cancellation and staggered finish without replaying committed history.
+4. **Cache conversion:** every heterogeneous cache class gets cold/warm batch-conversion and rollback tests.
+5. **Memory admission:** profile/warmup workspace follows actual backend reachable geometry; record transient and settled allocator peaks separately.
+6. **Prefix proof vs reuse:** keep proof/search margin distinct from accepted reusable prefix.
+7. **Scratch billing:** multiply logical rows by physical sidecar/view multiplicity.
+8. **Compile/graph identity:** draft/verify/catch-up/ordinary phases retain separate stable identities where topology differs.
+9. **Benchmark validity:** failed or incomplete runs are excluded by failing the cell, never by quietly counting fewer tokens.
+10. **Lifecycle side state:** if sleep/reload/offload enters the runner workflow, certify scales and sidecars bit-exact across the transition.
+
+These rules change how we build and certify the system, but they do not justify changing the planning targets before exact dual-M1 measurements exist.
+
+## Planning interpretation
+
+For Flash-Next dual M1 Max64/TB4:
+- `<30 tok/s @ ~128K`: important failure;
+- `30–34`: below desired mature system;
 - `35–39`: decent but keep tuning;
 - `40–45`: realistic core success range;
 - `45–50`: good stretch;
@@ -446,6 +365,6 @@ No evidence in this window justifies moving the **40 @ ~128K / 400 cold PP** pla
 
 ## New hard source-freshness boundary
 
-`2026-09-16 11:07:39 UTC`
+`2026-09-16 16:46:32 UTC`
 
 The next complete pass must evaluate substantive source/measurement activity **strictly after** this timestamp. Crawler time, merge-only time and rediscovery of older measurements do not qualify.
