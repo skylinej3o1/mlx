@@ -1,14 +1,16 @@
-# External runtime watch — 2026-09-17 16:33 ET
+# External runtime watch — 2026-09-17 19:18 ET
 
 ## Search window
 
-Complete incremental pass over substantive source activity strictly after `2026-09-17 19:34:29 UTC` through `2026-09-17 20:33:27 UTC`.
+Complete incremental pass over substantive source activity strictly after `2026-09-17 20:33:27 UTC` through `2026-09-17 23:18:58 UTC`.
 
-Evidence time means substantive source / measurement time, not crawler, merge, rebase, label, or comment time. PRs, issues, and default-branch commits were screened across the standing runtime set, with relevant community/model surfaces checked under the same timestamp rule.
+PRs, issues, and default-branch commits were screened across DS4, vLLM, oMLX, mlx-serve/related MLX serving surfaces, and llama.cpp; relevant oMLX benchmark and Hugging Face model surfaces were also checked. Evidence time means substantive source/measurement time, not crawler, merge, rebase, label, or comment time.
+
+The user also supplied a same-day oMLX M5 Max benchmark and a DragonScale quality receipt for explicit evaluation. Those are evaluated below even where their substantive timestamp is not inside the incremental window.
 
 ## Executive result
 
-**No exact active-topology receipt appeared for any canonical target. No target moves.**
+**No exact active-topology receipt appeared for any canonical target. Numeric targets do not move.**
 
 Canonical planning targets remain:
 - Qwen3.8-Flash-Next, dual M1 Max 64GB/TB4: **40 tok/s TG at ~128K active context / 400 tok/s cold PP**.
@@ -16,54 +18,78 @@ Canonical planning targets remain:
 - Qwen3.8-27B, RTX 5070 Ti 16GB + host RAM: **120 tok/s TG / 250 tok/s cold PP**.
 - DS4-0731, dual M1 Max 64GB/TB4: **15 tok/s TG / 180 tok/s cold PP**.
 
-## New evidence — vLLM #57440: allocator ownership can hide real device headroom
+However, the new user-supplied M5 Max/oMLX receipt materially strengthens the architecture-level plausibility of the Flash-Next target: the same model family/runtime path sustains **64.6 tok/s at 128K** and **59.9 tok/s near 200K** while prefill remains **1,279 / 1,239 tok/s**. This is not M1/TB4 proof, but it is strong evidence that the model/runtime no longer inherently collapses at long context.
 
-Issue #57440 was created at `2026-09-17 19:51:36 UTC`. It reports vLLM 0.28.0 on 2–4 nodes of 8x B200, Kimi-K3 MXFP4, fastsafetensors, FP8 KV, TP/DP/EP, with DeepEP v2/NCCL and a speculative Kimi-K3-DSpark configuration.
+## Evaluated receipt — oMLX community benchmark dalhnt9f
 
-The exact measured receipt is startup-memory behavior, not throughput:
-- before Kimi-K3 load: driver free **46.338 GiB**;
-- immediately after load, PyTorch `reserved - allocated` **40.626 GiB**, driver free **5.537 GiB**;
-- after MXFP4 repack, stranded cache **45.611 GiB**, driver free only **0.494 GiB**;
-- explicit GC + empty-cache at the lifecycle boundaries returned **45.483 GiB** total and restored driver free to **45.865 GiB**.
+Public benchmark page: Qwen3.8-Flash-Next-oQ4e-mtp on **M5 Max 40-core GPU / 128 GB**, oMLX **0.7.0.dev2**, macOS 26.5.2, Code (Mixed), TurboQuant KV 4-bit, Lightning MTP, thinking enabled.
 
-Operationally, the reporter says the unpatched 2-node DeepEP-v2 setup had to clamp `max_num_seqs / max_num_batched_tokens` from 256/8192 to 32/512 to start, while the cleanup patch allowed 256/8192 again. The same startup pressure was reproduced with the speculative draft model.
+The public page confirms:
+- 1K: **960.8 PP / 65.4 TG**, peak listed 71.3 GB;
+- 8K: **1,453 PP / 42.7 TG**, 72.3 GB;
+- 16K: **1,405 PP / 67.7 TG**, 72.6 GB;
+- 32K: **1,343 PP / 53.0 TG**, 73.1 GB;
+- 64K: **1,293 PP / 63.5 TG**, 74.7 GB;
+- 128K: **1,279 PP / 64.6 TG**, 79.0 GB;
+- ~195K: **1,239 PP / 59.9 TG**, 80.8 GB;
+- batching: B1 **65.4 TG**, B2 **93.3 TG**, **1.43x** aggregate speedup.
 
-Classification: **exact non-target startup-memory receipt; strong transfer evidence for fit/admission instrumentation.** The proposed causal explanation involving raw driver allocations is still partly hypothesis and is not promoted as independently proven mechanism.
+Resource telemetry for the 1K result reports peak footprint **86.04 GB**, MLX active peak **70.84 GB**, MLX cache peak **1.71 GB**, system used peak **96.68 GB**, GPU average **83.5%**, GPU max **100%**, thermal state nominal.
 
-### Project 51 rule
+The public recipe confirms MTP enabled, TurboQuant KV4 enabled, speculative prefill disabled, DFlash disabled, and Qwen ANE prefill disabled. This matters: the high long-context PP/TG is not an ANE-prefill artifact and does not require DFlash.
 
-Record memory by allocator/owner and lifecycle boundary, not only aggregate free/used memory. A fit receipt should distinguish model-live bytes, framework-reserved-but-unallocated bytes, driver-visible free memory, communication/workspace reservations, and temporary load/repack staging. A model can be semantically unloaded from a temporary path while its bytes remain unavailable to another allocator.
+Classification: **exact same-model-family oMLX/M5 performance receipt; strong architecture/runtime transfer evidence, not active-topology evidence.**
 
-## New evidence — llama.cpp #29045: cache families can disagree on sequence frontier
+### Interpretation for dual M1 Max target
 
-Issue #29045 was created at `2026-09-17 19:59:05 UTC` and reports a Mac/iSWA cache failure. After partial sequence removal below the sliding window, the sliding cache can report `seq_pos_max = -1` while the base cache still owns earlier positions. A position-implicit batch then derives position zero, writes over the logical prefix, and silently accumulates duplicate base-cache cells.
+This is the strongest same-runtime evidence in the watch chain that **40 TG at ~128K is not blocked by Qwen3.8-Flash-Next's long-context algorithmic shape**. At 128K, M5 Max produces 64.6 TG, 61% above the Project 51 40-TG floor, while PP is >3x the 400-PP target.
 
-Measured on Gemma 4 E2B, excess stored cells grew **+277 -> +699 -> +1,099 -> +1,542 -> +1,954 -> +2,808 -> +3,559**, then both caches filled and decode failed with `failed to find a memory slot`. The reporter also notes that llama-server's explicit-position path does not rely on this derived-position behavior; the downstream wrapper was using a helper the public header says to avoid.
+But the receipt cannot be scaled by core count or memory bandwidth directly to dual M1 Max. M5 has newer GPU/Metal behavior; Project 51 adds TB4 distributed execution; the benchmark uses oQ4e rather than the preferred higher-quality lane; and its 79 GB listed peak / 86 GB footprint cannot fit unchanged on one 64 GB M1. The relevant question is now less “can Flash-Next remain fast at 128K?” and more “can we preserve enough of this efficient local execution after repartitioning across two M1 Max nodes and a quality-preserving quant lane?”
 
-Classification: **exact Mac cache-correctness/failure receipt, different model/runtime path; strong state-identity transfer evidence.**
+**Confidence direction:** upward for the architecture-level 40@128K target, but not enough to move the numeric target or promote the 45–50 stretch band.
 
-### Project 51 rule
+### User-reported 390K session
 
-For every cache/state family, sequence frontier is part of state identity. Never derive a global next position from a narrower sliding/auxiliary cache unless its frontier is guaranteed to represent the superset. After truncate/rollback/replay operations, assert frontier agreement or explicitly choose the authoritative family. Add repeated partial-truncate/reappend to long-session qualification because silent duplicate cells can masquerade as a memory leak until late failure.
+The user supplied a report of medium-effort operation to ~390K session context with PLE SSD offload, ~1,200 tok/s prefill near the end and ~44 tok/s decode, versus prior long-context collapse. This is highly interesting long-session evidence, but those exact 390K numbers were not independently visible on the public benchmark page checked in this pass. Keep them as **user-supplied external receipt pending source-level verification**, not a canonical measured anchor yet.
 
-## Commit-level delta
+If verified, the key implication is not merely speed: it would show that the gathered-QSA / SSD-PLE / cache stack can preserve useful throughput far beyond the 128K Project 51 qualification point.
 
-vLLM default branch commits inside the window included `ac2f0ea82c0d3005eb1de081cda715f0ee524c16`, `9a5bd373cfe59e236f2b32c30530f4dbbf24120d`, `2b02c6c29b72147de18905ba4e7dc8f284655b40`, `acc2ed2a5f1fbe79575a220fc743a80c2d068ce8`, and `9612f77077e09acbae9cc1d1b2ddf14a23e91597`.
+## Quality receipt — DragonScale 98.75 / 100
 
-The last is the merge of vLLM #56902, FlashMLA stale-workspace-view release. The PR's substantive measurement predates this incremental window, so merge time does not make it new evidence. For continuity, its measured deployed-version receipt was 5,904 MiB stale FlashMLA storage retained beside a new 6,144 MiB MoE workspace on 18/64 ranks; the fix recovered **103.78125 GiB** aggregate and raised minimum per-rank KV capacity **490,816 -> 603,904 tokens**. This reinforces the allocator/lifetime rule above but is not counted as newly timestamped evidence.
+The user supplied DragonScale run `run-QWEN38NF-JundotoQ4-001`, timestamped `2026-09-17T17:08:08.234467Z`, seed 42, model `UNOBTANIUM/Qwen3.8-Flash-Next-oQ4e-mtp`.
 
-Other in-window vLLM merges were screened as commit coverage and do not move the active topology targets.
+Reported deterministic score: **98.75/100**, no gate failures. Components included hidden suite 25/25, passability 12/12, replay 8/8, own tests 5/5, contract 8/8, git 5/5, human-play 30/30, packaging 2/2, and mutation 3.75/5. Visible tests: **13 passed / 0 failed / 0 errors**. Mutation panel killed 3/4 applicable mutants; `rng_seed_mix` survived. Human-play smoke completed successfully, including level progression, idle-time progression, quit handling, Ctrl+C responsiveness, and small-terminal overflow checks.
 
-## PR / issue delta
+Classification: **strong task-level quality evidence for an oQ4-derived Flash-Next lane, but not a general model-quality proof and not an exact receipt for Jundot's artifact unless model identity/checksum equivalence is established.** The run's substantive timestamp predates the previous hard boundary, so it is evaluated here because the user explicitly supplied it, not counted as newly timestamped window evidence.
 
-vLLM #57441 added video support to the Transformers backend with L4 measurements, unrelated to the target model/topologies. No newly timestamped exact active-topology target receipt was found in the standing DS4/oMLX/mlx-serve/llama.cpp surfaces beyond the llama.cpp cache-correctness receipt above.
+### Project 51 quality implication
+
+This materially reduces concern that an oQ4e-style lane is automatically “too lossy to be useful” for agentic coding. It does **not** justify replacing the preferred Q6/Q8 quality lane or claiming broad benchmark parity. Add the oQ4e lane as a serious capacity/performance comparator in qualification, with checksum/provenance, deterministic replay, coding/eval suites, and long-context semantic checks. A 98.75 task-harness score can justify testing the lane; it cannot by itself certify general intelligence retention.
+
+## Incremental source delta
+
+No new oMLX, DS4, or llama.cpp default-branch commit in the strict window produced a new active-topology performance receipt.
+
+vLLM had several default-branch merges in-window. The most architecture-adjacent was `db7a24c230a4db6ae3a568ed01b01f3f7172069d`, merge of #55960, adding fused DFlash2 grouped convolution. Its substantive PR work predates this window, so the merge timestamp does not make its measurements new evidence. Other in-window vLLM merges covered KV-cache release APIs, metadata/event plumbing, ROCm/GLM sparse-MLA boot correctness, CI/frontend, and MoE layout handling; none changes the Project 51 target distributions.
+
+A same-day oMLX issue #3723 (created before the prior boundary) is an important caution for interpreting fresh-process benchmark numbers: on M3 Ultra 256 GB / oMLX 0.7.0.dev2 / Qwen3.8-Flash-Next oQ4e-MTP, a reporter measured pooled-median decode **20.48 tok/s after ~10h uptime** versus **66.45 tok/s after restart** on the same MLX 0.32.0 stack; MLX 0.32.2 fresh was 70.83 and custom kernels 73.85. The reporter attributes the decay to the backbone, while MTP remained ~90.8% acceptance / 3.20 tok per cycle. Cause is not isolated. This is older than the strict window and therefore not new evidence, but it reinforces that Project 51 must qualify sustained uptime, not only fresh-process peaks.
+
+## New/strengthened qualification rules
+
+1. **Long-context speed is now a two-part gate:** fresh-process 128K throughput plus sustained-session/uptime retention. A spectacular fresh M5 receipt does not supersede long-session stability.
+2. **Quant lane is part of topology identity.** oQ4e performance can raise architecture confidence without directly certifying a Q6/Q8 target.
+3. **Public benchmark recipe provenance matters.** Record MTP, KV quant, PLE offload, DFlash/spec-prefill, ANE state, thinking/sampling state, context, and memory telemetry with every receipt.
+4. **Quality promotion requires artifact identity.** If a quality run names a repack/alias, establish checksum or tensor provenance before transferring the score to another named quant.
+5. Add an **oQ4e comparator lane** to Flash-Next qualification because the current performance/quality evidence makes it a credible practical fallback, while retaining Q6/Q8 as the preferred quality-preserving target lane.
 
 ## Target decision
 
-**Hold all canonical targets.**
+**Hold all canonical numeric targets.**
 
-This window changes qualification more than expected speed. Two independent receipts reinforce the same architectural point: apparent free capacity depends on ownership and authoritative state. For Project 51, both memory ownership across allocators and sequence-frontier ownership across cache families need explicit receipts before a long-context run is considered healthy.
+The M5 Max/oMLX receipt is a meaningful positive update. It moves the Flash-Next 40@128K target from being constrained by uncertainty about long-context runtime collapse toward being constrained mainly by **M1-generation silicon, dual-node/TB4 partition economics, memory fit, and quant-quality choice**. That is exactly the direction we wanted external evidence to move.
+
+Do not extrapolate 64.6 M5 TG into a predicted dual-M1 number. The next decisive receipt remains exact dual-M1 Max 64GB/TB4 at ~128K with the intended distributed topology and quality lane.
 
 ## Hard freshness boundary
 
-`2026-09-17 20:33:27 UTC`
+`2026-09-17 23:18:58 UTC`
