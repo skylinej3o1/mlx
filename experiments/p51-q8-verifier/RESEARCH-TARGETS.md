@@ -42,6 +42,14 @@ This correction is **not** an evidence-driven downgrade and then re-upgrade. No 
 measurement forced 40 -> 30. It restores the intended denominator for the existing goal.
 
 The 40 @ ~128K number remains a **planning target / hypothesis**, not a measured dual-M1 receipt.
+
+### 2026-09-18 recovered Q5-class target-lane evidence
+
+A previously missed 2026-09-15 oMLX community session is directly on the intended **Q5-class** Flash lane: `Qwen3.8-Flash-Next-Uncensored-oQ5e-mtp` on M5 Max 40-core / 128 GB, oMLX 0.7.0.dev2. The public benchmark recipe has MTP, DFlash, speculative prefill, ANE prefill and TurboQuant KV disabled. It reports **1,203 PP / 47.3 TG at 131,072 tokens** and **1,236 PP / 47.4 TG at 200,000 tokens**, with 91.4 / 97.4 GB MLX-active peaks. This is stronger-Apple transfer evidence, not dual-M1 proof, but it removes the stale assumption that the headline Flash lane was Q6/Q8 and materially strengthens the case that Q5-class target-only execution itself can remain above 40 tok/s deep into long context.
+
+The same artifact's model card reports **5.72 bpw effective**, 128.54 GB on disk, with the PLE table SSD-offloaded on a 128 GB Mac; a real **250,073-token** request completed at **1,165 PP** and about **30 TG** with Lightning MTP + TurboQuant KV4, while the full native 262,144-token window fit. The sibling oQ6e build is listed at 150.5 GB on disk / about 101 GiB resident with MTP off and does **not** keep the full 262K window on 128 GB (about 131K limit). This is why **Q5-class remains the canonical Flash quality/capacity lane**: it is the highest published oQe level in this family that preserves the full-context fit on a 128 GB Apple machine.
+
+These receipts raise qualitative confidence in the 40@128K architecture target but do not change the numeric target or assign a new exact-target probability; M1-generation silicon, TB4 partitioning, per-node working-set balance and distributed correctness remain unmeasured.
 The September 10 r/oMLX backfill adds useful stronger-Apple long-context transfer receipts (including
 30+ tok/s-class 120K-150K harness use and a separate warm ~40 tok/s report), but those do not become
 exact M1-Max/TB4 evidence.
