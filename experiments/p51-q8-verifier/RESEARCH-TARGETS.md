@@ -176,11 +176,11 @@ Rationale:
 Qualification rule: every Flash PP result must record PLE lazy/resident mode, page-cache condition,
 competing I/O, stage placement, prompt length, prefill chunking and actual TB4 traffic. Qualification
 must also report **scheduler admission-to-first-prefill delay** separately from model PP/TTFT and sweep
-prefill chunk size; exact M1 evidence shows that an otherwise useful optimization can halve PP at chunk
-128 while leaving chunk 2048 essentially unaffected. In addition, the same prompt must be checked across
-chunk widths at the **logit/cache-state level**: DS4 #1056 showed phase-inappropriate projection kernels
-could make chunk size alter subsequent logits by order-1 values even when sampled tokens still happened
-to agree.
+prefill chunk size. Every receipt must verify the **effective runtime-resolved chunk width** rather than
+trusting the requested CLI flag: DS4 #1056 exposed a case where base silently used 8192 despite
+`--prefill-chunk 128`, invalidating an apparent regression. The same prompt must also be checked across
+chunk widths at the **logit/cache-state level**: chunked execution can remain numerically different from
+an unchunked reference even when final sampled text happens to agree.
 
 ---
 
