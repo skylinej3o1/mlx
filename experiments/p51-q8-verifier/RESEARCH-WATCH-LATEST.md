@@ -1,14 +1,14 @@
-# External runtime watch — 2026-09-17 23:56 ET
+# External runtime watch — 2026-09-18 05:21 ET
 
 ## Search window
 
-Complete incremental pass over substantive source activity strictly after `2026-09-18 02:28:04 UTC` through `2026-09-18 03:56:56 UTC`.
+Complete incremental pass over substantive source activity strictly after `2026-09-18 03:56:56 UTC` through `2026-09-18 09:21:44 UTC`.
 
-PRs, issues, and default-branch commits were explicitly screened across DS4, vLLM, oMLX, mlx-serve, and llama.cpp. Current Qwen3.8-Flash-Next Hugging Face/community and oMLX benchmark surfaces were also searched. Evidence time means substantive source/measurement time, not crawler, merge, rebase, label, or comment time.
+PRs, issues, comments/reviews, and default-branch commits were explicitly screened across DS4, vLLM, oMLX, mlx-serve, and llama.cpp. Current Qwen3.8-Flash-Next Hugging Face/oMLX/community surfaces were also searched. Evidence time means the substantive measurement or investigation timestamp, not crawler, merge, rebase, label, or generic review-bot time.
 
 ## Executive result
 
-**No exact active-topology dual-M1/TB4 Q5 receipt appeared. Numeric canonical targets do not move.**
+**No exact active-topology dual-M1/TB4 Q5 receipt appeared. The canonical numeric targets do not move.**
 
 Flash-Next remains:
 - canonical quant lane: **Q5-class / eventual ~5.x BPW**
@@ -16,187 +16,312 @@ Flash-Next remains:
 - headline target: **40 tok/s sustained TG at ~128K active context**
 - cold PP target: **400 tok/s**
 
-However, this pass recovers a materially useful exact-M1 physical anchor and adds a new strict-window sparse-cache correctness result:
+The evidence picture does improve enough to durably recalibrate confidence:
+- **40 TG @ ~128K:** about **55% engineering confidence**
+- **400 cold PP:** about **65-70% engineering confidence**
 
-1. **RECOVERED OLDER EVIDENCE:** a full Qwen3.8-Flash-Next PLE-last GGUF on **one M1 Max 64 GB** reports about **21 tok/s at 128K** and about **200 tok/s prefill**, with the huge PLE table mmap/SSD-backed. A separate MTP sidecar gives about **24 tok/s on code**. This is low-bit Q2/IQ1 rather than Q5, so it strengthens the M1 silicon/runtime case without certifying the production quant lane.
-2. **NEW:** vLLM #57477 shows that a sparse-indexer tail-cache stride bug can silently corrupt unrelated hot prefix-cache pages over time. The bug survives normal serving for a while and then progressively destroys cached answers. This is highly transferable to Project 51's QSA/indexer/cache qualification.
-3. **RECOVERED CALIBRATION:** nominal `oQ5e` is not enough to identify a performance lane. Public M5 Max Q5 artifacts/recipes show substantially different deep-context TG, reinforcing that artifact/revision + recipe + fast-path state must be recorded with every receipt.
+Those are planning estimates, not statistical probabilities.
 
-## RECOVERED OLDER EVIDENCE — exact M1 Max 64 GB long-context Flash receipt
+The strongest additions are:
+1. **NEW substantive M1 evidence in the strict window:** DS4 #1068 received a detailed M1 Max 64 GB resident-mode A/B that reaches **31.71 TG MTP at 5.8K** and **28.76 TG MTP at ~17.4K**, with **~254-270 PP** at the correct chunk size. The same comment exposes a severe chunk-size-dependent PP regression.
+2. **NEW exact Qwen3.8-Flash-Next offload evidence:** vLLM #57497 keeps the full PLE n-gram table off GPU on one MI300X, remains bit-identical against device-resident PLE, recalls 105K/209K needles, and cuts a 16K TTFT **3.5 -> 1.9 s** using asynchronous start/finalize prefetch.
+3. **NEW interactive-serving finding:** oMLX #3726 fixes prefill-admission starvation; a request with only 1,161 uncached tokens had waited ~50 s. Controlled first-token latency fell **8.86 -> 0.73 s** without MTP and **7.28 -> 1.16 s** with MTP.
+4. **NEW hidden-state warning:** vLLM #57493 shows identical greedy requests producing different decode logprobs/text depending on prior filler traffic even with prefix caching off and max_num_seqs=1.
 
-Source:
-- https://huggingface.co/whm0627/Qwen3.8-Flash-Next-177B-A3B-fits64GB-PLElast-GGUF
-- benchmark commit: https://huggingface.co/whm0627/Qwen3.8-Flash-Next-177B-A3B-fits64GB-PLElast-GGUF/commit/2cbcd1e173ea46a98b51ff558d2166195f82257b
+## NEW / RECOVERED — DS4 #1068 gives a stronger exact-M1 Flash calibration
 
-Configuration:
-- Apple **M1 Max 64 GB**
-- llama.cpp Metal, `-ngl 99 -fa on`
-- full Qwen3.8-Flash-Next model
-- Q2_K_XL PLE-last GGUF, 79 GB file; sibling IQ1_S 68 GB
-- same quantized tensors as the source GGUF; PLE-last only reorders tensors so the large PLE/n-gram table can remain disk/mmap-backed
-- reported wired/VRAM use about **44-48 GB**
-- ~27 GB PLE/embedding table read on demand from SSD/mmap
+PR #1068 itself predates this window, so its original table is **recovered older evidence**, not relabeled new.
 
-Reported performance:
-- Q2_K_XL decode: **~21 tok/s**
-- prefill: **~200 tok/s**
-- **128K context: same ~21 tok/s decode rate**
-- MTP sidecar on structured/code output: **~24 tok/s**
-- source says MTP yields roughly **27-41%** on structured code/JSON/repetitive output with 85-100% draft acceptance, but little benefit on free-form prose.
+Exact original setup:
+- MacBook Pro M1 Max 64 GB
+- macOS 25.5
+- Metal
+- DS4 `8db1d1d`
+- `Qwen3.8-Flash-Next-Q2.gguf`
+- 137.10 GiB on disk
+- **41.72 GiB resident**
+- n-gram table disk-only
+- prefill chunk 2048.
 
-Small quality smoke:
-- Q2_K_XL GSM8K: **37/40**
-- IQ1_S GSM8K: **38/40**
-- Q2_K_XL HumanEval: **20/20**
-- IQ1_S HumanEval: **19/20**
-- reported perplexity: **1.084 / 1.156** respectively.
+Original measured sweep:
+- 2K: **288.41 PP / 24.15 TG**
+- 4K: **274.97 / 24.41**
+- 8K: **274.78 / 24.45**
+- 12K: **275.57 / 24.46**
+- 16K: **273.95 / 24.26**
 
-Classification: **exact M1-generation / exact Flash-Next model-family physical receipt, but low-bit non-target quant and community benchmark methodology. Strong silicon/runtime/offload calibration; not Q5 production proof.**
+A real 32,113-token prompt:
+- **271.94 PP**
+- **22.76 TG**
 
-### Project 51 interpretation
+Built-in MTP:
+- **33.19 TG** on highly predictable output
+- **28.91 TG** on prose
+- about 3% PP cost.
 
-This is much more useful than a stronger-chip transfer result for one specific question: **can an M1 Max execute full Flash-Next at deep context without collapsing into single-digit TG?** This receipt says yes for a sufficiently low-bit, PLE-offloaded layout: about 21 TG at 128K on one M1 Max.
+Classification: **exact M1-generation and exact Flash-Next family, but Q2 rather than the canonical Q5 lane. Strong silicon/runtime calibration, not direct target proof.**
 
-That materially strengthens the plausibility of the dual-M1 40-TG thesis because the target is no longer being inferred only from old ~8-13 TG single-M1 paths. But do **not** double 21:
-- Q2/IQ1 is materially lighter than the target Q5;
-- PP2 introduces TB4 transfer/bubbles;
-- Q5 per-stage working sets and bandwidth differ;
-- the community report does not provide our frozen workload/measurement protocol.
+### NEW strict-window #1068 comment: resident-mode optimized A/B
 
-The correct takeaway is **higher architecture confidence, unchanged numeric target**.
+At **2026-09-18 04:29:47 UTC**, a new physical M1 Max 64 GB A/B was posted. Base was current DS4 main `8db1d1d`; the candidate was the Qwen Metal optimization branch. Both were separately built from matching worktrees.
 
-### New implementation clue: physical checkpoint order can matter
+Selected results:
 
-The PLE-last repack does not requantize; it changes tensor ordering so expert weights remain contiguous for GPU residency while the huge PLE table remains mmap-backed and is touched on demand.
+5,760-token prompt:
+- ordinary decode: **21.91 -> 26.63 TG (+22%)**
+- MTP: **28.20 -> 31.71 TG (+12%)**
+- prefill: ~274 -> ~271 PP ordinary; ~268 -> ~262 PP MTP.
 
-For oMLX we already have explicit SSD PLE machinery, so the literal GGUF trick is not directly portable. The transferable principle is that **checkpoint/storage layout is part of offload performance identity** when the runtime relies on mmap/page-cache behavior. Project 51 should record physical PLE shard/file layout and page-fault pattern in SSD-offload experiments, not only logical tensor placement.
+17,408-token prompt:
+- ordinary decode: **22.92 -> 24.81 TG (+8%)**
+- MTP: **24.81 -> 28.76 TG (+16%)**
+- prefill: ~268 -> ~270 PP ordinary; ~259 -> ~253 PP MTP.
 
-## RECOVERED CALIBRATION — “Q5” alone does not define the performance lane
+Reported decode ranges did not overlap in any tested cell. MTP acceptance counters reproduced the branch's expected counts.
 
-A separate public Q5 artifact:
-https://huggingface.co/tls20/Qwen3.8-Flash-Next-oQ5e-mtp
+Classification: **new exact M1 hardware A/B, low-bit/non-target quant, medium-context rather than 128K.**
 
-reports on M5 Max 40c / 128 GB:
-- 1K: **35.5 TG / 1,031 PP**
-- 4K: **36.2 TG / 1,318 PP**
-- 32K: **31.5 TG / 791 PP**
-- 64K: **33.0 TG / 862 PP**
-- 131,072: **25.8 TG / 904.7 PP**, peak 101.5 GB.
+### Important negative result: chunk 128 can halve resident PP
 
-That differs sharply from the already-recorded M5 Max oQ5e receipt at **47.3 TG / 1,203 PP at 128K**.
+On the 5,760-token prompt with resident weights:
+- `--prefill-chunk 128`: **282 -> 136 PP**, about a 52% loss
+- `--prefill-chunk 2048`: prefill stays roughly flat around 270 PP.
 
-The cards are not sufficiently controlled to infer a single cause: model artifact, mixed-precision allocation/imatrix provenance, oMLX version, MTP/recipe state, PLE policy, sampling/thinking state, and fast-path eligibility can all differ.
+The regression bisected to the #1047 streaming-foundation commit even though resident mode was being used. Decode remained improved.
 
-Classification: **recovered cross-artifact calibration, not a matched A/B.**
+Project 51 action:
+- prefill chunk is **performance topology**, not a cosmetic knob;
+- M1 bring-up must sweep 128 / 512 / 1024 / 2048, and larger only when memory allows;
+- do not certify an optimization from one chunk width.
 
-Durable rule: **quant label is not topology identity.** Every Q5 receipt must record exact artifact/revision/checksum and runtime recipe before comparison. Do not average nominally identical bit-width results.
+This new exact M1 evidence is the main reason the durable PP target confidence is now **65-70% for 400 PP**, while the numeric target remains 400.
 
-A separate oQ5e community card (GBP-DE) also reports selected reasoning/constraint tests where Q5 was more robust than Q4, while other tests tied and Q4 was faster. Those are useful qualitative support for keeping Q5 as the quality lane but are not a standardized general-quality proof.
+## NEW — vLLM #57497: Qwen4Exp PLE CPU offload + asynchronous prefetch
 
-## NEW — vLLM #57477: padded sparse-cache stride silently corrupts hot prefixes
+PR #57497 was created **2026-09-18 05:04:02 UTC**.
 
-PR #57477, created **2026-09-18 02:39:06 UTC**, fixes GLM-5.3-Flash NVIDIA kpool tail-cache addressing.
+Exact evaluated model/hardware:
+- `Qwen/Qwen3.8-Flash-Next-FP8`
+- **1x MI300X**
+- max model length 262,144
+- PLE table in pinned host memory through UVA
+- 120 GiB CPU KV tier.
 
-Mechanism:
-- the tail cache lives inside a padded indexer pool with a physical stride of **38,016 bytes** per block;
-- the seed kernel incorrectly used a dense **2,048-byte** stride;
-- a request therefore failed to seed its own tail block and instead wrote 2,048 bytes into another request's indexer region;
-- prefix-cached blocks are not recomputed, so corruption accumulates across unrelated requests.
+Purpose:
+- keep the official FP8 PLE n-gram table (~**51 GiB**) entirely off GPU;
+- support the bf16 table path (~**102 GiB**) for NVFP4 artifacts;
+- start the next PLE layer lookup on a side stream, then join/copy only when that layer consumes it;
+- keep lookup start/finalize behind custom ops so compilation does not materialize a full bf16 copy of the table.
 
-Kernel reproduction:
-- physical tail view stride: `(19008, 512, 128, 1)` elements;
-- main, tail block 200: own block remains unseeded; write lands at bytes `[409600, 411648)`, inside indexer block 10;
-- fixed PR: write lands in block 200 bytes `0..2048` as intended.
+Correctness:
+- 50/50 PLE tests pass;
+- offload vs device top-8 logprobs **bit-identical, max diff 0.0**;
+- exact needle recall at **105K and 209K**;
+- simple arithmetic prompt correct.
 
-End-to-end:
-- GLM-5.3-Flash TP4 on **4x GB300**
-- 14.5K-token cached system prompt
-- 800-block pool forced to wrap quickly
-- 8 rounds x 50 unrelated filler prompts
-- watched 38 cached indexer pages.
+Capacity/performance:
+- GPU KV pool: **1.57M tokens**, about **6.0x 262K**
+- 16K TTFT: **3.5 s synchronous -> 1.9 s asynchronous**
+- single-stream decode: about **77-84 TG**.
 
-Progressive damage on main:
-- after 50 fillers: **16/38 pages modified**, 18.4 KB
-- after 150: 21/38, 36.7 KB, lookup already wrong
-- after 400: **30/38 pages modified**, 64.1 KB
-- final seven lookups: **1/7 correct**.
+Classification: **new exact same-model-family offload receipt, wrong hardware/runtime for direct M1 transfer. Strong architecture evidence.**
 
-With fix:
-- **0 watched pages modified**
-- final seven lookups: **7/7 correct**.
+Project 51 action:
+- SSD PLE on M1 should use the same conceptual split phase: **launch gather early -> continue useful work -> join only at consumption**;
+- compile boundaries must not accidentally materialize offloaded PLE state;
+- correctness gate compares offload/resident logprobs or tensor outputs, not only final text.
 
-Classification: **new exact sparse-cache correctness receipt; non-target hardware/model but very strong transfer evidence.**
+Target impact: no numeric move. Confidence in the chosen offload architecture rises.
 
-### Project 51 action
+## NEW — vLLM #57491: sparse n-gram offload can be effectively free when hidden
 
-Add a cache-isolation qualification cell:
-- snapshot a hot long prefix's QSA/indexer/cache pages;
-- issue many unrelated requests until allocator/block IDs wrap;
-- byte/hash compare the hot prefix state after each epoch;
-- re-hit semantic fixtures throughout;
-- assert logical block ID -> physical stride/offset mapping for every cache family.
+PR #57491 was created **2026-09-18 04:43:22 UTC** for DeepSeek-V4.1-Flash on ROCm.
 
-A one-time successful prefix-cache hit is not enough. **Unrelated traffic must be unable to mutate cached sparse state.**
+On MI355X TP4, moving Engram tables from device to pinned host memory:
+- available KV memory: **107.8 -> 154.38 GiB (+43.2%)**
+- KV capacity: **4,325,113 -> 6,194,599 tokens (+43.2%)**
+- max concurrency @ 33,792: **127.99x -> 183.32x**.
 
-This extends the existing rule that physical span/group/write ownership is part of distributed-cache identity.
+Serving, 4096 input / 512 output, C8:
+- base mean TPOT: **11.35 +/- 0.02 ms**
+- offload: **11.35 +/- 0.02 ms**
+- output throughput: **620.64 vs 621.10 tok/s** in paired measurement, statistically flat.
 
-## NEW — vLLM #57475: fit can fail after KV admission because graph capture needs margin
+Micro-shape:
+- 1 token / 18 rows: UVA **9.3 us**, HBM **10.7 us**
+- 1024 tokens / 18,432 rows: UVA **89.0 us**, HBM **10.3 us**
+- background prefetch is intended to hide the wider-prefill delta.
 
-Issue #57475, created **2026-09-18 02:32:19 UTC**:
-- Qwen3.8-27B NVFP4
-- RTX 5090 Laptop 24 GB / SM12x
-- FlashInfer
-- max model len 124K
-- CUDA graphs.
+A strict-window follow-up cross-check at 8x MI355X reported GSM8K parity between base/offload arms within sampling error.
 
-At `--gpu-memory-utilization 0.98`:
-- available KV: **2.97 GiB**
-- KV capacity: **150,745 tokens**
-- graph estimate: **0.46 GiB**
-- engine passes KV admission, then real graph capture OOMs trying to allocate 136 MiB with only 120.88 MiB free.
+Classification: **new exact non-target sparse-table offload evidence.**
 
-At `0.97`:
-- available KV: **2.73 GiB**
-- capacity: **138,588 tokens**
-- boots and serves.
+Project 51 implication:
+Sparse table residency should be treated independently from dense model residency. If the access can be launched early and hidden, a very large table can be moved out of the scarce compute-memory tier without paying an output-throughput tax.
 
-Eager mode at 0.98 reportedly permits ~166K KV tokens but loses graph speed.
+Do not transfer the +43.2% capacity number to Apple; memory architecture and storage tier differ.
 
-Classification: **new same-Qwen-generation fit/lifecycle evidence, not Flash/M1 evidence.**
+## NEW — oMLX #3726: raw PP does not guarantee interactive TTFT
 
-Project 51 already separates model-live, allocator, workspace and staging memory. Strengthen that rule: **fit certification must include all post-admission compiled/graph/fast-path initialization**, not stop when model + KV allocation succeeds. On Apple, the analogous concern is compiled-kernel/cache/transient footprint rather than CUDA graph memory.
+PR #3726 was created **2026-09-18 05:09:06 UTC** and merged as `ca32d928ca561af4921a6724de89adee9d70c7b3` at 05:18 UTC.
 
-## NEW transfer-only items
+Failure:
+- decode active;
+- existing chunked prefills always got the first prefill opportunity;
+- those chunks accrued decode debt;
+- admission gate reclosed before new waiting requests could enter.
 
-vLLM #57478 (created 02:39 UTC) adds a fused DeepSeek-V4.1 router gate on MI355X/gfx950. Its kernel operation is **1.47-3.86x** faster than the runnable unfused baseline across measured M, but the PR explicitly has no serving dispatch and claims no model-level speedup. Useful kernel-mining evidence only; no target movement.
+Observed production symptom:
+- a classifier request hit cache and had only **1,161 tokens** left to prefill;
+- it still waited about **50 seconds** for admission;
+- request cancelled around 60 seconds after HTTP entry.
 
-DS4 #1074 (created 03:47 UTC) broadens server parsing of `reasoning_effort` string values for Pi compatibility. No inference-speed evidence.
+Controlled Qwen3.5 9B test, concurrent 16K prefill + decode + later short request:
 
-oMLX #3710 / #3290 commits landed just after the boundary, but their substantive measurements and investigations predate it. They are not relabeled new merely due merge/rebase timing.
+MTP OFF:
+- first token **8.86 -> 0.73 s**
+- completion **12.11 -> 1.18 s**
 
-llama.cpp's strict-window PR #29062 is an Intel SYCL large-register optimization and does not inform Apple Flash targets. mlx-serve's strict-window activity is media-generation related. No strict-window oMLX Flash PR/issue introduced a new target performance receipt.
+MTP ON:
+- first token **7.28 -> 1.16 s**
+- completion **10.65 -> 1.16 s**.
+
+The fix alternates the first prefill opportunity between waiting requests and already-running prefills while keeping memory/concurrency/decode-debt guards.
+
+Classification: **new exact oMLX scheduler result; different model, highly transferable serving behavior.**
+
+Project 51 action:
+Every user-facing PP receipt now needs separate timing for:
+1. request arrival -> admission,
+2. admission -> first prefill execution,
+3. model prefill PP,
+4. first-token wall time.
+
+A system can have excellent PP and still feel unusably slow if stage 1/2 starves under concurrent decode.
+
+## NEW — vLLM #57493: prior requests can perturb greedy decode with cache disabled
+
+Issue #57493 was created **2026-09-18 04:57:06 UTC**.
+
+Setup:
+- Qwen3-8B bf16
+- Ryzen AI Max+ 395 / Radeon 8060S, gfx1151
+- ROCm attention backend
+- `max_num_seqs=1`
+- eager execution
+- prefix caching **disabled**
+- same greedy probe repeated after filler prompts of different lengths.
+
+ROCm attention over 20 trials:
+- prefill-driven logprob[0]: **1 distinct value**
+- decode logprob[5]: **4 distinct values**
+- completions: **2 distinct outputs**, 14 vs 6 occurrences.
+
+Triton attention:
+- logprob[0]: **1**
+- logprob[5]: **1**
+- completion: **1**, 20/20 identical.
+
+Classification: **new non-target kernel/state correctness receipt.**
+
+Project 51 action:
+A fixed greedy probe must be replayed after variable unrelated filler traffic, not only from a fresh process. Compare token logprobs/hash as well as text. This test applies even with prefix cache disabled and B1 scheduling, because stale scratch/kernel state can create cross-request dependence outside the explicit cache.
+
+## NEW — DS4/V4.1 distributed prefill warning
+
+DS4 issue #1078, created **2026-09-18 07:29:44 UTC**:
+- 2x DGX Spark
+- DeepSeek-V4.1-Flash Q2
+- tensor parallel over RDMA
+- reported decode **18-20 TG**
+- prefill roughly **400 PP**.
+
+A tool-use prompt shows a long apparent freeze:
+- prompt start at 09:16:36;
+- first logged prefill progress at 32,768 / 56,603 tokens only at 09:17:54;
+- total prompt wall **157.9 s**, average **358.4 PP**.
+
+No root cause is established yet. Do not convert the progress gap into a kernel conclusion.
+
+Classification: **new exact non-target distributed serving symptom.**
+
+Project 51 implication:
+Distributed prefill qualification should include per-chunk timestamps and “time before first progress” rather than trusting only final average PP.
+
+## NEW — vLLM #57521: a plausible prefill fusion regressed TTFT
+
+Issue #57521, created **2026-09-18 07:34:33 UTC**, reports A-B-A testing of a DeepSeek-V4 context-WKV stacking optimization on:
+- 2x DGX Spark / GB10
+- TP2 over RoCE
+- DeepSeek-V4-Flash-0731 NVFP4
+- DSpark k=5.
+
+TTFT:
+- 8K A1/B/A2: **2.502 / 2.589 / 2.512 s**
+- 32K: **10.191 / 10.551 / 10.221 s**
+- regression: roughly **+3.2-3.3%**.
+
+Same-build A1<->A2 TTFT spread is only 0.3-0.4%, while decode throughput and acceptance fluctuate 6-7% between boots. The patch also reduces KV capacity about 1.5%.
+
+Classification: **new exact non-target distributed regression and methodology evidence.**
+
+Project 51 action:
+For small PP changes, use A-B-A or mirrored interleaving and measure the metric's own same-build noise floor. Do not infer prefill wins from noisy decode/acceptance movement.
+
+## Low-impact / negative scan results
+
+- oMLX #3589 merged in-window, but its main Qwen Flash expert-offload measurements predate the hard boundary. It remains useful supporting evidence: parallel `pread` turns serial expert-miss I/O into a much faster pipeline, but is not relabeled new because of merge time.
+- oMLX dev4 got a startup-failure issue (#3730) with no diagnostic detail by the cutoff; no Project 51 conclusion follows yet.
+- mlx-serve #454, created just after the prior boundary, shows a Qwen3.8-27B DFlash2 drafter shape mismatch on M3 Max. It is a 27B speculative-path issue, not Flash-Next target evidence.
+- llama.cpp strict-window commits/PRs contain no new exact Flash-Next M1/TB4 Q5 receipt. The relevant current Flash PR set is unchanged.
+- Current HF/oMLX searches found no new exact dual-M1 Q5 benchmark in this window. Older M5 Q5 and M1 low-bit results remain the calibration anchors already recorded.
+- vLLM #57514 has no measurements; it is not used as performance evidence.
 
 ## Target / confidence decision
 
 ### Flash-Next dual M1
 
-**Hold 40 TG @ ~128K and 400 cold PP. Hold Q5-class as canonical quant.**
+**Keep 40 TG @ ~128K / 400 cold PP. Keep Q5-class as the canonical quant lane.**
 
-Confidence moves **up modestly** because the recovered physical M1 receipt demonstrates roughly 21 TG at 128K on one M1 Max with the full Flash model and practical PLE offload. The strongest remaining unknown is now even more specifically **Q5 PP2 economics over TB4**, not whether M1 silicon can sustain useful deep-context Flash execution at all.
+Current planning-confidence ladder at ~128K:
+- >=30 TG: **~85-90%**
+- >=35 TG: **~70-75%**
+- >=40 TG: **~55%**
+- >=45 TG: **~30-35%**
+- >=50 TG: **~15-20%**.
 
-Do not promote the target to 45-50:
-- exact dual-M1 Q5 remains unmeasured;
-- the 21-TG M1 anchor is Q2/IQ1;
-- PP2/TB4 and distributed state correctness are still unresolved.
+Cold PP:
+- >=250: **~97%**
+- >=300: **~90%**
+- >=350: **~80%**
+- >=400: **~65-70%**
+- >=450: **~45-50%**
+- >=500: **~30-35%**
+- >=600: **~12-15%**
+- >=700: **~5%**.
 
-### Qualification changes
+Why confidence moved:
+- exact M1 low-bit execution is now supported by a better reproducible DS4 receipt around 24.4 TG / 275 PP through 16K, plus ~22.8 TG / 272 PP at 32K;
+- the strict-window M1 optimization A/B reaches roughly 29-32 TG with MTP on medium contexts;
+- the prior independent M1 PLE-last receipt remains about 21 TG at 128K;
+- the exact-Q5 M5 receipt remains 47.3 TG / 1,203 PP at 128K without MTP;
+- offload/prefetch evidence increasingly shows the PLE table can be taken off the scarce fast-memory tier without making it the steady-state bottleneck.
 
-1. **Artifact identity gate:** nominal Q5 is insufficient; record exact artifact/revision/checksum and full runtime recipe.
-2. **Cache isolation under churn:** hot prefix state must survive allocator/block-pool wrap caused by unrelated requests.
-3. **Physical-stride assertion:** cache family logical block mapping must match actual padded/strided storage views.
-4. **Checkpoint/offload layout:** record PLE physical file/shard ordering and page-fault/mmap behavior when offload is used.
-5. **Post-admission fit:** fit is certified only after compiled/graph/fast-path initialization and representative first execution.
+Why confidence does not move higher:
+- no exact Q5 dual-M1/TB4 physical receipt;
+- Q2/IQ1 bandwidth economics differ substantially from Q5;
+- PP2/TB4 bubbles, stage balance and distributed recurrent/QSA/MTP state remain unmeasured on the target topology;
+- chunking and scheduler policy can erase otherwise-good kernel speed.
+
+## New/strengthened qualification rules
+
+1. **Prefill chunk sweep:** chunk width is part of the benchmark identity; sweep 128/512/1024/2048 at minimum on M1.
+2. **Admission latency decomposition:** request->admission and admission->first-prefill are reported separately from model PP.
+3. **Async PLE split phase:** measure synchronous lookup against launch-early/join-late overlap; require output/logprob parity.
+4. **Cross-request hidden-state probe:** repeat a fixed greedy/logprob probe after variable filler traffic even with prefix cache disabled.
+5. **Distributed progress telemetry:** record first-progress delay and per-chunk wall times, not only average PP.
+6. **Noise-floor A/B:** small PP/TTFT claims need mirrored/A-B-A runs and same-build drift measurement.
 
 ## Hard freshness boundary
 
-`2026-09-18 03:56:56 UTC`
+`2026-09-18 09:21:44 UTC`
