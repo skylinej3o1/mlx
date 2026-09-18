@@ -110,13 +110,13 @@ These are engineering planning estimates, not statistical probabilities. They in
 
 | Mature B1 TG @ ~128K | Current confidence |
 |---:|---:|
-| >=30 tok/s | ~85-90% |
-| >=35 tok/s | ~70-75% |
-| **>=40 tok/s** | **~55%** |
-| >=45 tok/s | ~30-35% |
-| >=50 tok/s | ~15-20% |
+| >=30 tok/s | ~85% |
+| >=35 tok/s | ~70% |
+| **>=40 tok/s** | **~50%** |
+| >=45 tok/s | ~30% |
+| >=50 tok/s | ~15% |
 
-The new M1 evidence strengthens the silicon/runtime side of the thesis: DS4 Q2 now has repeatable ~24.4 TG through 16K, ~22.8 TG at 32K, and optimized MTP cells around 29-32 TG at 6K-17K, while the separate PLE-last M1 receipt remains ~21 TG at 128K. None of these numbers is Q5, so they raise confidence rather than numerically determine the Q5 target.
+The newer low-bit M1 evidence strengthens the silicon/runtime side of the thesis: DS4 Q2 has repeatable ~24.4 TG through 16K, ~22.8 TG at 32K, optimized MTP cells around 29-32 TG at 6K-17K, and the separate PLE-last M1 receipt remains ~21 TG at 128K. However, recovered **M1 Ultra Q5** evidence from the older llama.cpp path measures 27.7-31.8 TG at 2K-8K and 12.3 TG at 261,888 tokens with MTP depth 2. That same-generation target-quant counterweight is why 40@128K is now held at roughly **50%** rather than 55%: the target still looks plausible only if modern QSA/MTP/kernel/pipeline work closes a large runtime gap.
 
 ### Historical September 4 ~128K confidence ladder — retained for provenance, not target definition
 
@@ -170,14 +170,17 @@ Rationale:
 - the ~27 GiB PLE/n-gram table can make PP vary dramatically depending on residency/page-cache
   state, so this target assumes an explicitly qualified PLE policy rather than accidental warm
   page cache;
-- stronger-hardware 800-900+ tok/s gathered-prefill receipts show substantial implementation
-  headroom but are not numerically transferred to M1.
+- stronger-hardware prefill evidence now includes M5 Max mixed-4/8 HC+GDN fusion measurements of **1618 PP at ~16K**, **1850 at ~33K**, and a fusion-on plateau of **~1858-1873 PP through ~131K**. This reinforces architectural PP headroom but is not numerically transferred to M1;
+- stronger-hardware 800-900+ tok/s gathered-prefill receipts remain supporting evidence from other runtimes/hardware classes, not direct M1 forecasts.
 
 Qualification rule: every Flash PP result must record PLE lazy/resident mode, page-cache condition,
 competing I/O, stage placement, prompt length, prefill chunking and actual TB4 traffic. Qualification
 must also report **scheduler admission-to-first-prefill delay** separately from model PP/TTFT and sweep
 prefill chunk size; exact M1 evidence shows that an otherwise useful optimization can halve PP at chunk
-128 while leaving chunk 2048 essentially unaffected.
+128 while leaving chunk 2048 essentially unaffected. In addition, the same prompt must be checked across
+chunk widths at the **logit/cache-state level**: DS4 #1056 showed phase-inappropriate projection kernels
+could make chunk size alter subsequent logits by order-1 values even when sampled tokens still happened
+to agree.
 
 ---
 
