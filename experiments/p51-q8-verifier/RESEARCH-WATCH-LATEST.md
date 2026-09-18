@@ -1,346 +1,261 @@
-# External runtime watch — 2026-09-18 09:32 ET
+# External runtime watch — 2026-09-18 11:03 ET
 
 ## Search window
 
-Complete incremental pass over substantive source activity strictly after `2026-09-18 09:21:44 UTC` through `2026-09-18 13:32:09 UTC`.
+Complete incremental pass over substantive source activity strictly after `2026-09-18 13:32:09 UTC` through `2026-09-18 15:03:36 UTC`.
 
-PRs, issues, comments/reviews, and default-branch commits were explicitly screened across DS4, vLLM, oMLX, mlx-serve, and llama.cpp. Current Qwen3.8-Flash-Next Hugging Face/community and oMLX benchmark surfaces were also searched. Evidence time means substantive measurement/investigation time, not crawler, merge, rebase, label, or generic bot activity.
+PRs, issues, comments/reviews, and default-branch commits were explicitly screened across DS4, vLLM, oMLX, mlx-serve, and llama.cpp. Current Qwen3.8-Flash-Next Hugging Face/community surfaces were also searched. Evidence time means substantive measurement/investigation time, not crawler, merge, label, bot or rebase timestamps.
 
 ## Executive result
 
-**No exact active-topology dual-M1-Max/TB4 Q5 receipt appeared. Canonical numeric targets do not move.**
+**No exact dual-M1-Max/TB4 Q5 receipt appeared. Numeric targets and planning confidence stay unchanged.**
 
 Flash-Next remains:
 - canonical quant lane: **Q5-class / eventual ~5.x BPW**
 - target topology: **2x M1 Max 64 GB / TB4**
-- headline target: **40 tok/s sustained TG at ~128K active context**
-- cold PP target: **400 tok/s**
+- headline target: **40 TG sustained at ~128K**
+- cold PP target: **400 PP**
+- planning confidence: **~55% for 40 TG @128K**, **~65-70% for 400 PP**
 
-Current planning confidence changes slightly:
-- **40 TG @ ~128K: ~55%** (restored after reclassifying the historical M1 Ultra Q5 run as a capacity/correctness receipt rather than a tuned performance anchor)
-- **400 cold PP: ~65-70%** (unchanged)
+The most important change in this pass is a **correction**, not a new target receipt: the prior DS4 claim that the optimized M1 path halved prefill at chunk128 was invalid because the base binary did not actually honor the CLI chunk value. Once effective settings are matched, the optimized M1 path is faster.
 
-Post-pass correction: the **recovered older M1 Ultra Q5 receipt** is useful target-quant fit/correctness evidence, but its source labels the numbers historical and its recipe is too baseline-oriented to serve as a tuned performance counterweight. It therefore does not justify lowering the modern dual-M1 forecast by itself.
+## NEW — corrected DS4 #1056 M1 Max 64 GB resident A/B
 
-The strongest strict-window additions are:
-1. **DS4 #1056:** phase-correct prefill dispatch collapses chunk-size-dependent logit drift from order-1 values to ~1e-6 after prefill and <1e-3 through the checked decode steps.
-2. **mlx-serve #438/#460:** HC+GDN fusions give +8.7% to +13.6% measured prefill on M5 Max, with the fused path holding roughly 1.86k PP through ~131K; additional combined prefill paths show more unisolated headroom.
-3. **vLLM #57562:** async scheduling can incorrectly emit sampled tokens during incomplete chunked prefill under concurrency, corrupting output even with speculation and prefix-cache effects removed.
-4. **oMLX #3732:** memory emergency logic must distinguish reclaimable Metal buffers from a true physical-cap breach.
-5. **DS4 #1083:** overlapping cached expert compute with SSD miss reads yields ~7-8% repeatable CUDA decode gains, but a Metal-derived threshold is measurably wrong on CUDA.
+Substantive comment: **2026-09-18 14:41:39 UTC**.
 
-## RECOVERED OLDER EVIDENCE — M1 Ultra Q5 target-quant anchor
+Hardware/model:
+- Apple **M1 Max 64 GB**
+- Qwen3.8-Flash-Next **Q2**
+- Metal
+- resident mode for the main A/B
+- base `8db1d1d`
+- candidate `04c0867`
+- temp 0, no-think
+- ABBA/BAAB, four observations per ordinary cell, two for deep/streaming cells.
 
-Source:
-- https://huggingface.co/apetersson/Qwen3.8-Flash-Next-GGUF
-- historical context record dated **2026-09-07**
+### Measurement correction
 
-Configuration:
-- **Apple M1 Ultra, 128 GiB unified memory**
-- Qwen3.8-Flash-Next **Q5_K_M**
-- Metal / llama.cpp
-- MTP depth 2
-- one slot
-- batch 512 / ubatch 128
-- temperature 0, seed 1234
-- prompt cache off
-- native 262,144 context with F16 KV
-- BF16 n-gram table kept out of the Q5 trunk / lazy storage path.
+The earlier base test passed `--prefill-chunk 128`, but upstream `ds4_engine_generate_argmax` actually reads `DS4_QWEN4_PREFILL_CHUNK` and otherwise defaults to 8192.
 
-Measured:
-- 2,048 input / 256 output: **176.4 PP / 27.7 TG**
-- 8,192 / 256: **175.8 PP / 31.8 TG**
-- 261,888 / 23: **100.7 PP / 12.3 TG**
-- a later card also preserves a 1,048,320-input historical row at **53.68 PP / 4.05 TG** under extended-context settings.
+Control on the same base binary / long prompt:
+- requested chunk128, env unset → actually 8192: **267.5 PP**
+- effective chunk128 forced through env: **125.7 PP**
 
-Native-context correctness/memory:
-- all 261,888 input tokens processed
-- **3/3 checkpoint codes recovered**
-- no truncation/context shifting
-- about **95.5 GiB peak system wired memory**
-- swap did not grow.
+Therefore the previously recorded roughly 282→136 PP “regression” was an **8192-vs-128 configuration mismatch**.
 
-Classification: **recovered exact M1-generation / target-Q5 physical receipt, but non-target topology and older runtime. Strong transfer evidence and an important counterweight.**
+With effective chunk128 pinned in both arms:
+- base → candidate: **127.5 -> 136.6 PP (+7%)**.
 
-### Project 51 interpretation
+The negative throughput finding is retracted.
 
-This receipt matters because it attacks a different uncertainty from the low-bit M1 data. Q2/IQ1 showed that modern M1 Flash can remain useful at deep context; this Q5 receipt shows what the **actual target precision class** looked like on an M1-generation dual-die Apple system before the modern gathered-QSA / fused-GDN / newer MTP work.
+### Corrected resident performance — chunk2048
 
-It does **not** imply that dual M1 Max must reproduce 12.3 TG:
-- the deep cell is ~262K, not 128K;
-- the runtime is older;
-- modern selected/gathered QSA removes substantial long-context work;
-- the M1 Ultra's on-package fabric is not equivalent to PP2 over TB4;
-- conversely, an Ultra can expose both dies to a single layer more efficiently than B1 pipeline stages across TB4.
+5,760-token prompt:
+- ordinary PP: **274.4 -> 288.0 (+5%)**
+- ordinary TG: **24.96 -> 28.57 (+14%)**
+- MTP TG: **27.24 -> 31.75 (+17%)**
+- MTP PP: **273.5 -> 259.0 (-5.3%)**
+- MTP acceptance: **72.2% -> 79.1%**
 
-The durable conclusion is therefore narrower: **40 TG @128K cannot be justified by aggregate M1 bandwidth alone.** It requires meaningful runtime uplift plus enough MTP/multi-row pipeline overlap to keep the two Maxes productively overlapped.
+17,408-token prompt:
+- ordinary PP: **271.4 -> 285.0 (+5%)**
+- ordinary TG: **23.39 -> 26.80 (+15%)**
+- MTP TG: **24.76 -> 28.41 (+15%)**
+- MTP PP: **272.6 -> 265.9 (-2.5%)**
+- MTP acceptance: **59.5% -> 70.8%**
 
-After re-reviewing the recipe, this receipt is retained as a capacity/correctness anchor but **does not reduce** the modern 40@128K planning confidence. The target remains 40 TG and confidence remains about **55%**.
+Reported decode ranges do not overlap in these cells.
 
-## NEW — DS4 #1056: phase-correct dispatch restores chunk/logit invariance
+Classification: **new exact M1 Max physical A/B, exact model family, low-bit Q2 and medium context. Strong M1 runtime evidence, but not target-Q5/128K proof.**
 
-Substantive comment at **2026-09-18 12:18:40 UTC**, commit `2d6a207`.
+### Corrected numerical interpretation
 
-Problem:
-- short prefill chunks/tails could select projection kernels intended for decode/batch work;
-- F16/Q8 tile choices and split-K FP32 reductions changed prefill arithmetic;
-- therefore changing prefill chunk size could alter state/logits carried into decode.
+Unchunked 5,760-token prefill:
+- base @8192 and candidate @8192 are **bit-identical**.
 
-Setup:
-- Apple M1 Max 32 GiB
-- Qwen3.8-Flash-Next Q2
-- Metal SSD streaming
-- 1,024 cached experts
-- context 8,192
-- MTP disabled
-- comparison against the earlier reference branch.
+Chunked vs unchunked max logit delta:
+- candidate chunk2048: **0.424518**
+- candidate chunk128: **0.424518**
+- base chunk2048: **0.594551**
+- base chunk128: **1.132671**.
 
-Before correction, maximum raw-logit differences versus reference included:
-- 575-token fixture: **0.4221 prefill / 1.3767 decode**
-- 5,760-token fixture chunk128: **0.4873 / 1.0015**
-- same fixture chunk2048: **0.1793 / 0.4338**.
+Thus the candidate's chunk128 and chunk2048 paths are internally identical and closer to the unchunked reference than base, but **a residual ~0.4245 difference between chunked and unchunked remains open**.
 
-After phase-correct dispatch:
-- prefill max error roughly **1.4e-6 to 1.9e-6**
-- worst checked decode error roughly **3.2e-4 to 8.3e-4**
-- **85 frontiers / 21,107,200 logit pairs** checked.
+Project 51 action:
+1. benchmark manifests record the **effective runtime-resolved setting**, not only requested CLI flags;
+2. chunk-size performance A/Bs are invalid unless both arms prove the same effective chunk;
+3. chunked-vs-unchunked logit/cache-state parity remains a correctness gate even after throughput is fixed.
 
-Most important for our qualification design:
-- the 5,760-token fixture at chunk128 and chunk2048 produced **bit-identical logits at all 17 measured frontiers**, including subsequent decode after the correction;
-- before correction, the two chunk widths differed by as much as **0.45611 after prefill** and **1.07523 during decode**.
+Target impact: **no numeric or confidence move**. The corrected data removes a false negative and strengthens medium-context M1 headroom, but does not close the Q5/128K/TB4 gap.
 
-The corrected dispatch retained decode/batch optimized kernels and restored reference arithmetic for contiguous prefill/tails.
+## NEW — oMLX #3738: Flash-Next dev4 64 GB memory regression
 
-Performance check for the correction itself:
-- 575/chunk128: prefill 34.931 -> 34.682 PP (-0.7%), decode 5.402 -> 5.487 (+1.6%)
-- 5,760/chunk2048: prefill 141.779 -> 145.376 (+2.5%), decode 5.013 -> 5.420 (+8.1%), but the author explicitly treats the decode increase as preliminary whole-model behavior, not a kernel-speed claim.
-
-Classification: **new exact M1 correctness evidence; Q2/SSD-streaming rather than target Q5/resident topology.**
-
-### Project 51 action
-
-Chunk-size qualification now has **two independent gates**:
-1. throughput/memory sweep across chunk widths;
-2. state/logit invariance across those chunk widths.
-
-Final-text equality is insufficient. Near-ties can hide large numerical drift until a later token flips.
-
-Also record the execution phase explicitly in any compiled/kernel dispatch cache key. A prefill tail is still prefill; it must not inherit a decode-optimized arithmetic contract merely because M is small.
-
-## NEW — mlx-serve #438 / #460: long-context prefill fusion headroom
-
-At **2026-09-18 13:03:59 UTC**, #438 received post-merge full-model measurements.
+Issue created **2026-09-18 13:54:03 UTC**.
 
 Setup:
-- M5 Max 128 GB
-- macOS 26.5
-- Flash-Next mixed-4/8
-- prefix cache off
-- MTP/PLD off
-- KV quant off
-- prefill chunk 8192
-- three runs per rung
-- one arm per boot.
-
-HC+GDN fusions ON vs OFF:
-- ~16.4K (17,085 tokens): **1488 -> 1618 PP (+8.7%)**
-- ~32.8K: **1628 -> 1850 PP (+13.6%)**
-- fusion-ON at ~65.5K: **1873 PP**
-- fusion-ON at ~131K: **1858 PP**.
-
-The OFF arm stopped serving during the 64K rung, so no controlled 64K/131K percentage is claimed. Fusion-ON drift was reported as -2.1%. Decode sat at **51-55 TG** in both arms with speculation disabled.
-
-Issue #460, created **13:03:44 UTC**, records remaining unisolated prefill candidates:
-- QSA-pair
-- PLE-ahead
-- PLE-packed
-- grouped MoE prefill
-- HC upmix.
-
-As a **combination**, on top of a core config already containing QSA-pair/HC/GDN, one 64,947-token uncached HTTP timing reads:
-- **2163.9 -> 2323.4 PP** (~+7.4%).
-
-That single screen read does not assign causal credit to any path and is not promotion evidence. The issue explicitly calls for isolated A/Bs and quality/parity bars.
-
-Classification: **new exact stronger-Apple / exact-model-family PP evidence; mixed-4/8 and M5, not target Q5/M1.**
-
-### Project 51 implication
-
-This supports keeping the **400 PP target and 65-70% confidence unchanged**. Modern Flash prefill has substantial architecture-level headroom even at ~131K, and HC/GDN fusion improvements are demonstrably long-context-stable on stronger Apple silicon.
-
-Do not transfer 1.8k PP to M1. The value is that the model's prefill graph is still optimizable at large context rather than inherently saturated.
-
-## NEW — vLLM #57562: incomplete prefill must never emit decode tokens
-
-Issue created **2026-09-18 12:26:51 UTC**.
-
-Setup:
-- Qwen3.6-35B-A3B-FP8 hybrid GDN/attention MoE
-- H100 NVL
-- vLLM 0.29.0
-- async scheduling on
-- chunked prefill
-- max-num-batched-tokens 8192
-- max model length 262,144
-- concurrency
-- **no speculative decoding**
-- prefix caching reproduced both on and off.
+- M4 Max 64 GB
+- oMLX **0.7.0.dev4**
+- Qwen3.8-Flash-Next-oQ4e
+- 25% resident experts
+- MoE SSD offload
+- n-gram SSD offload
+- context benchmark targeting 16K, Max Context prefill priority.
 
 Observed:
-- scheduler reserves no output placeholder for an incomplete prefill chunk;
-- model runner nevertheless returns a sampled token for some such steps;
-- placeholder count underflows and the assertion kills EngineCore;
-- clamping the assertion exposes that the token would otherwise be appended, i.e. this is output corruption rather than bookkeeping only.
+- during a 4,096-token prefill, process memory reaches **53.9 GB**
+- hard watermark is **53.2 GB**
+- Metal cap ceiling **56.0 GB**
+- request aborts and model is eventually evicted.
 
-Controlled results:
-- prompts <= batch-token limit / single chunk: **0 underflows across 18 requests**
-- mixed multi-chunk prompts up to ~143K, 12 requests: **44 underflows**
-- one ~143K request alone: **0**
-- ~143K prompts: ~14 occurrences each
-- ~42K: 4-5
-- ~9K: 1
-- prefix caching disabled: still fails
-- async scheduling disabled: **24/24 complete, 0 underflows**
-- reported throughput cost of disabling async scheduling was below that benchmark's noise floor.
+Reporter states:
+- same behavior occurs with a GBP-DE **oQ5e** Flash artifact;
+- dev2 ran slowly but did not show the same runaway memory behavior.
 
-Classification: **new hybrid-GDN scheduler correctness evidence; wrong model/hardware, strongly transferable to Flash continuous batching.**
+No root cause/fix existed by cutoff.
 
-### Project 51 action
+Classification: **new same-model-family Apple 64 GB runtime-regression evidence, not target-topology evidence.**
 
-Add a mixed-length concurrent chunked-prefill test with speculation **off**:
-- an incomplete prefill row may not produce/commit an output token;
-- output-placeholder/token counts must remain exact;
-- compare async and synchronous scheduler modes;
-- verify final output and internal sequence frontier, not only absence of crashes.
+Project 51 action:
+- pin exact oMLX/MLX/runtime SHA in fit/performance receipts;
+- run a prefill-memory staircase before accepting a runtime upgrade;
+- distinguish model intrinsic fit from a version-specific memory-manager/transient regression;
+- do not lower Q5 target confidence from this issue unless the behavior reproduces on the chosen Project 51 runtime.
 
-This is separate from MTP/ragged verify correctness; it can fail without speculation.
+## NEW — oMLX #3737: dev4 27B MTP/ANE regression
 
-## NEW — oMLX #3732: reclaimable Metal buffers are not a physical OOM
+Issue created **2026-09-18 13:47:22 UTC**.
 
-PR created **2026-09-18 09:39:52 UTC**.
+Setup:
+- M4 Max 64 GB
+- Qwen3.8-27B-4bit + VLM MTP drafter
+- oMLX dev1 vs dev4
+- same benchmark/config.
 
-Mechanism:
-- concurrent long prefills can temporarily lower the dynamic memory ceiling below process footprint;
-- several GiB of unused MLX Metal buffers may still be reclaimable;
-- old background enforcement could treat that dynamic ceiling crossing as an emergency and abort all requests before the scheduler reclaimed the pool.
+VLM MTP TG, dev1 -> dev4:
+- 1K: **44.2 -> 35.4**
+- 4K: **41.2 -> 32.4**
+- 16K: **42.9 -> 25.4**.
 
-Change:
-- emergency abort uses stable physical cap / Metal cap;
-- dynamic ceiling remains for admission and soft/hard pressure;
-- first soft-pressure tick asks scheduler to return pooled Metal buffers.
+Acceptance stays essentially unchanged:
+- 62.1/59.4/74.9% -> 62.8/57.1/75.5%.
 
-Validation:
-- 208 memory-enforcer/prefill-guard tests pass;
-- no live large-model replay at cutoff.
+That points toward verify-round/runtime cost rather than poorer drafting.
 
-Classification: **new Apple runtime memory-lifecycle fix; tests only, no performance receipt.**
+At 16K with the drafter loaded:
+- ANE banks are released for headroom;
+- reported freed amount: **11.94 GB**
+- PP: **302 -> 239**
+- with MTP off, banks remain and PP returns to ~302.
+
+One unload then leaves **16.45 GB active** after emergency reclaim failure until server restart.
+
+Classification: **new exact oMLX runtime regression for the 27B lane.**
+
+Project 51 action:
+27B qualification records:
+- runtime version/SHA,
+- MTP verify cost separately from acceptance,
+- ANE-bank residency/release events,
+- post-unload active memory.
+
+No 27B hardware target moves from a software regression.
+
+## NEW — vLLM #57569: auto-calibration can be unstable
+
+PR created **2026-09-18 14:02:50 UTC** to calibrate DMA-vs-Triton KV-load cutoffs at handler initialization.
+
+A30 initial measurements show the concept can select hardware-specific cutoffs with roughly **~20 ms actual measurement overhead**, aside from first Triton/JIT cost.
+
+But a GB10 cross-check at **14:20 UTC** finds repeated identical calibration calls can choose very different thresholds.
+
+Examples across seven consecutive calls:
+
+16 KiB:
+- 5-rep calibration picks **32, 16, 256, 32, 16, 64, 256**
+- 25-rep calibration narrows somewhat to **16, 32, 16, 16, 16, 16, 16**.
+
+64 KiB remains unstable even at 25 reps:
+- **128, 256, 128, 32, 32, 32, 128**.
+
+The DMA arm is reported stable to ~2%; Triton median latency at N=16 can move from roughly 0.037 to 0.25 ms, about **6x**, and the selection algorithm amplifies one noisy crossover.
+
+Classification: **new exact auto-tuning methodology evidence, non-target hardware.**
 
 Project 51 rule:
-Fit/pressure telemetry must distinguish:
-- live model/state
-- reclaimable MLX cache/pool
-- admission ceiling
-- true physical/Metal hard cap.
+automatic threshold tuning cannot promote from a single sweep. Require:
+- a meaningful winning margin / hysteresis,
+- repeated independent sweeps or consensus,
+- raw spread persisted in artifacts,
+- fail-closed/default behavior when the surface is unstable.
 
-Soft pressure should attempt deterministic reclamation before declaring a physical-fit failure.
+This is directly relevant to future autonomous Mac tuning loops.
 
-## NEW transfer evidence — DS4 #1083: overlap thresholds are backend specific
+## NEW — vLLM #57575: sparse-prefill transients must be reserved before KV sizing
 
-PR created **2026-09-18 11:34:35 UTC**.
+Draft PR created **2026-09-18 14:35:22 UTC** for GLM sparse MLA.
 
-DGX Spark GB10 / DeepSeek-V4.1-Flash Q2 / CUDA SSD expert streaming:
-- run cached expert hits while SSD misses read in parallel;
-- gate/up for all misses are queued before down reads;
-- down partials are summed in slot order;
-- output/logprob hashes reported byte-identical.
+Reported 4,096-token prefill transient buffers:
+- padded query: **288 MiB**
+- FlashMLA output: **256 MiB**
+- compact mixed-batch output: **128 MiB**
+- plus ~2 MiB internal statistics tensors.
 
-Against current base `8db1d1d`:
-- round D: **10.70 vs 9.83 TG (+8.0%)**, 3/3 repeats
-- round E: **10.57 vs 9.62 (+6.9%)**, 3/3.
+Startup profiling had skipped attention, so these allocations were not included before KV sizing and could appear later at runtime.
 
-An older set reported +6.5 to +12.3%.
+The draft reserves the large buffers through the workspace manager before KV sizing. However:
+- GPU tests were not run because dependency setup hit HTTP 429;
+- no physical reproduction/performance/eval receipt exists yet.
 
-Important negative:
-- porting the Metal split threshold to CUDA produced only **+3.98%** versus the branch's **+6.89%** in the same round;
-- on this backend, one expert read is ~321-411 us while a CUDA kernel launch is single-digit us, so splitting at one/two misses remains worthwhile.
+Classification: **new mechanism evidence / unvalidated draft**, not performance evidence.
 
-Classification: **new non-target offload overlap evidence.**
+Project 51 action:
+representative sparse-prefill workspace must be part of fit admission before allocating cache. Existing post-admission fit rules are strengthened to explicitly include the largest planned prefill chunk.
 
-Project 51 implication:
-Never import an overlap/admission threshold from CUDA, Metal, or another Apple generation just because the mechanism is the same. Measure backend-local launch cost, read latency, hit rate and batch shape.
+## Strict-window negative/no-promotion findings
 
-## NEW transfer evidence — vLLM #57555: offload copy thresholds are device specific
-
-Issue created **2026-09-18 11:27:27 UTC**.
-
-A30 measurements show the DMA-vs-Triton KV-offload crossover changes materially with both copy size and batch count, contradicting one H100-tuned global threshold. Examples:
-- 8 KiB: crossover near N~32-64
-- 1 KiB: closer to N~128
-- 28-32 KiB: Triton can win from ~N=128 on A30 even though the H100-derived rule always selects DMA there.
-
-Classification: **new non-target copy-path evidence.**
-
-Project 51 implication:
-PLE/KV/offload copy path selection should be a small measured surface by transfer size and concurrency, not one static threshold copied from another device.
-
-## Strict-window items not promoted to target evidence
-
-- vLLM #57548 routes Qwen4Exp QSA indexer top-k through a shared dispatcher but contains **no benchmark or correctness receipt** at the cutoff.
-- vLLM #57560 adds an opt-in ROCm FlyDSL GDN prefill backend and has 8 unit tests passing, but its serving A/B and accuracy A/B are explicitly **pending**.
-- vLLM #57318 has useful small-M GDN projection evidence on RTX 5090/GB10: Flash-Next's 96x2560 projection is roughly 3.0-3.5x faster at M=2-4 with the alternate kernel, while the same path can lose at M=1 and has no gain on B200/B300. This reinforces token-count/hardware-specific dispatch, but is not Apple evidence and does not move targets.
-- oMLX #3672 received a large refactor/hardening update with 14,180 non-slow/non-integration tests passing, but no new physical Qwen Flash speed receipt in the strict window.
-- oMLX #3735 is a startup/network-settings migration fix, not inference evidence.
-- llama.cpp strict-window commits contain no new Flash-Next Apple target receipt.
-- Hugging Face/oMLX community search found **no new exact dual-M1-Max/TB4 Q5 measurement** through the cutoff.
+- vLLM #57560 still has no serving/accuracy A/B for the ROCm FlyDSL GDN prefill backend at the cutoff.
+- vLLM #57578 is a GLM NoPE sparse-MLA compatibility bug on GB10, not Flash-Next evidence.
+- DS4 #1085 proposes ternary PTQ for DeepSeek V4.1 and extrapolates possible streaming gains; no V4.1 ternary quant or benchmark exists yet, so no Project 51 target change.
+- llama.cpp strict-window commits contain no new Flash-Next Apple performance receipt.
+- mlx-serve had no new strict-window Flash measurement after the #438/#460 evidence already recorded.
+- Fresh Hugging Face/community search found no exact **dual-M1 Max / TB4 / Q5** receipt. A current Reddit thread contains a roughly 20 TG / 200 PP M1 Max 64 GB user claim, but without a sufficiently specified recipe to improve upon the exact M1 receipts already in the repo.
 
 ## Target / confidence decision
 
-### Flash-Next dual M1 Max
+**No change.**
 
-**Hold the numeric target: 40 TG @ ~128K / 400 cold PP. Hold Q5-class as canonical quant.**
+Flash-Next dual M1 Max:
+- **40 TG @ ~128K: ~55%**
+- **400 cold PP: ~65-70%**
 
-Updated ~128K TG planning ladder:
-- >=30 TG: **~85-90%**
-- >=35 TG: **~70-75%**
-- >=40 TG: **~55%**
-- >=45 TG: **~30-35%**
-- >=50 TG: **~15-20%**.
+TG ladder:
+- >=30: ~85-90%
+- >=35: ~70-75%
+- >=40: ~55%
+- >=45: ~30-35%
+- >=50: ~15-20%.
 
-Cold PP remains:
-- >=250: **~97%**
-- >=300: **~90%**
-- >=350: **~80%**
-- >=400: **~65-70%**
-- >=450: **~45-50%**
-- >=500: **~30-35%**
-- >=600: **~12-15%**
-- >=700: **~5%**.
+PP ladder:
+- >=250: ~97%
+- >=300: ~90%
+- >=350: ~80%
+- >=400: ~65-70%
+- >=450: ~45-50%
+- >=500: ~30-35%
+- >=600: ~12-15%
+- >=700: ~5%.
 
-Why TG confidence stays around ~55%:
-- the historical M1 Ultra Q5 receipt proves target-quant native-context fit/correctness but is not a tuned-speed benchmark: older llama.cpp path, MTP depth 2, F16 KV, one slot, no prompt cache, vision loaded, and an external-SSD deep run with only 23 generated tokens;
-- it has no 128K cell and predates much of the current gathered-QSA, GDN/HC and MTP work;
-- modern low-bit M1 results are materially faster and modern stronger-Apple receipts show substantial runtime headroom;
-- exact Q5 dual-M1/TB4 remains unmeasured, so confidence still should not rise beyond the mid-50s without physical target-topology evidence.
-
-Why PP confidence stays:
-- exact M1 low-bit PP around ~272-275 already exists;
-- long-context M5 fusion-on PP remains ~1.86k through ~131K;
-- PP2 can pipeline chunks much more naturally than B1 decode;
-- current uncertainties are stage balance/chunking/TB4 and scheduler behavior, not evidence of an intrinsic Flash prefill wall near 400.
+The corrected DS4 result improves confidence in the **quality of the M1 optimization path**, but because it is Q2 and medium-context it is not enough to raise the 40@128K Q5 forecast above the current mid-50s.
 
 ## New/strengthened qualification rules
 
-1. **Phase is kernel identity:** short prefill tails cannot silently reuse decode/batch arithmetic.
-2. **Chunk invariance is numerical:** compare logits/cache state across chunk widths, not text only.
-3. **Incomplete-prefill output prohibition:** under concurrency, a row with prompt tokens remaining may not emit or commit a decode token.
-4. **Reclaim before abort:** distinguish reclaimable Metal buffers from true physical-cap breach.
-5. **Backend-local overlap thresholds:** measure transfer/read latency and launch overhead before setting hit/miss split rules.
-6. Existing gates remain: admission latency decomposition, async PLE start/finalize, cross-request hidden-state probes, distributed progress telemetry, and mirrored/A-B-A noise-floor measurements.
-
-## Post-pass interpretation correction — 2026-09-18 13:41 UTC
-
-The M1 Ultra Q5 receipt above was initially overweighted as a performance counterweight. Re-review of its model card and recipe shows it is better classified as a **historical capacity/correctness receipt** than a tuned modern Flash benchmark. The source itself labels the numbers historical. The recipe lacks the modern tuned stack Project 51 is targeting and includes several baseline/capacity-oriented choices. Therefore the temporary ~50% confidence for 40 TG @ ~128K is reverted to **~55%**. No numeric target changes, and the hard freshness boundary remains unchanged because no new external search window was opened.
+1. **Requested setting != effective setting:** benchmark manifests must capture runtime-resolved chunk size, backend, cache/offload policy and acceleration state.
+2. **Matched effective configuration before A/B:** a benchmark is invalid if the arms silently resolve different settings.
+3. **Chunked/un-chunked numerical gate:** self-consistency across chunk widths is necessary but not sufficient; compare to an unchunked/reference path where feasible.
+4. **Runtime upgrade memory staircase:** rerun fit/prefill peak tests on every oMLX/MLX version change.
+5. **Autotune stability gate:** threshold learners need margin, repeated consensus and raw variance artifacts.
+6. **Largest-prefill workspace in fit admission:** reserve/price sparse transient buffers before cache sizing.
 
 ## Hard freshness boundary
 
-`2026-09-18 13:32:09 UTC`
+`2026-09-18 15:03:36 UTC`
