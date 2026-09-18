@@ -110,13 +110,13 @@ These are engineering planning estimates, not statistical probabilities. They in
 
 | Mature B1 TG @ ~128K | Current confidence |
 |---:|---:|
-| >=30 tok/s | ~85-90% |
-| >=35 tok/s | ~70-75% |
-| **>=40 tok/s** | **~55%** |
-| >=45 tok/s | ~30-35% |
-| >=50 tok/s | ~15-20% |
+| >=30 tok/s | ~95% |
+| >=35 tok/s | ~85% |
+| **>=40 tok/s** | **~65%** |
+| >=45 tok/s | ~40% |
+| >=50 tok/s | ~20-25% |
 
-The newer low-bit M1 evidence strengthens the silicon/runtime side of the thesis: DS4 Q2 has repeatable ~24.4 TG through 16K, ~22.8 TG at 32K, optimized MTP cells around 29-32 TG at 6K-17K, and the separate PLE-last M1 receipt remains ~21 TG at 128K. A recovered **M1 Ultra Q5** receipt proves target-quant fit/correctness at native context, but its source labels the numbers historical and the recipe is not representative of the modern tuned stack (older llama.cpp path, shallow MTP, F16 KV, one slot, no prompt cache, vision loaded, external-SSD deep run). It therefore does **not** lower the current 40@128K planning confidence by itself.
+The confidence ladder now also includes a much stronger recovered modern **M1 Max 64 GB** receipt: AtomicChat **4.27 bpw** weights, Q8 KV, indexed QSA, direct PLE, and **MTP off** sustain **23.31 TG at 117,764 prompt tokens** (384 generated) and **20.51 TG at 148,476**. This is near-target quant precision on exact M1 hardware with raw checked-in receipts, so it materially raises confidence that the single-node physical floor near 128K is already in the low 20s on a modern path. It is still not Q5 or dual-M1/TB4, and the long-context machine was using system swap, so 40 remains a target rather than an extrapolated result.
 
 ### Historical September 4 ~128K confidence ladder — retained for provenance, not target definition
 
@@ -150,20 +150,20 @@ target. A mature system that reaches 40 here but misses badly at ~128K has not c
 
 | Mature cold PP | Confidence |
 |---:|---:|
-| >=250 tok/s | ~97% |
-| >=300 tok/s | ~90% |
-| >=350 tok/s | ~80% |
-| **>=400 tok/s** | **~65-70%** |
-| >=450 tok/s | ~45-50% |
-| >=500 tok/s | ~30-35% |
-| >=600 tok/s | ~12-15% |
-| >=700 tok/s | ~5% |
+| >=250 tok/s | ~98% |
+| >=300 tok/s | ~95% |
+| >=350 tok/s | ~88% |
+| **>=400 tok/s** | **~75%** |
+| >=450 tok/s | ~55-60% |
+| >=500 tok/s | ~40% |
+| >=600 tok/s | ~15-20% |
+| >=700 tok/s | ~5-8% |
 
 **Working target: 400 tok/s cold PP.**
 
 Rationale:
 
-- exact single-M1 Flash-Next Q2 evidence is now materially stronger than the old ~150-180+ PP anchors: DS4 #1068 measures roughly **~275 PP** from 4K-16K and **271.94 PP** on a real 32,113-token prompt when the M1 Max 64 GB remains resident with a 2048 prefill chunk; this is low-bit and therefore raises confidence without being transferred numerically to Q5;
+- exact single-M1 evidence now includes both the DS4 Q2 ~272-275 PP medium-context lane **and** a recovered modern 4.27-bpw long-context receipt at **208.84 PP @84,984**, **203.18 PP @117,764**, and **152.03 PP @148,476** with indexed QSA/direct PLE/Q8 KV. The latter is much closer to target precision and context, so it materially strengthens the 400-PP PP2 thesis without being doubled mechanically;
 - sufficiently long prompts can pipeline chunks across a balanced PP2 split, so cluster PP has a
   much stronger scaling case than B1 decode;
 - gathered-QSA prefill and sparse selected-K/V are structurally favorable;
