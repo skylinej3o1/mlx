@@ -119,6 +119,13 @@ Future passes should seek status/performance updates rather than rediscover thes
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
 
+### 2026-09-18 recovered exact M1 long-context Flash anchor
+
+- **Single M1 Max 64 GB / llama.cpp Metal / Flash-Next low-bit physical receipt:** a community PLE-last GGUF repack of the full model reports Q2_K_XL at about **21 tok/s decode and ~200 tok/s prefill**, with **128K context at the same ~21 tok/s decode rate**; a separate MTP sidecar reaches about **24 tok/s on code**. The ~27 GiB PLE/n-gram table stays mmap/SSD-backed and wired use is reported around **44-48 GB**. This is exact M1-generation hardware and exact model family, but **not the canonical Q5 target lane**: Q2/IQ1 weight precision materially changes bandwidth/quality economics. Treat it as a silicon/runtime/offload anchor, not a direct Q5 forecast.
+- The same source's small quality checks (GSM8K 40 items, HumanEval 20 items, perplexity) are useful smoke evidence only and do not promote Q2/IQ1 into the production quality lane.
+- **Nominal quant label is insufficient topology identity.** Public M5 Max oQ5e artifacts span materially different long-context outcomes (for example ~25.8 TG at 131K on one oQ5e card versus the previously recorded 47.3 TG at 128K on another). Record artifact/revision, sensitivity/imatrix provenance, oMLX/runtime version, MTP state, KV quant, PLE/offload policy, sampling/thinking state, and fast-path eligibility before comparing “Q5” numbers.
+- **Sparse-cache physical stride is semantic state.** vLLM #57477 showed a GLM sparse-indexer tail seed writing with a dense stride into a padded shared pool, silently corrupting unrelated prefix-cached indexer pages. Project 51 cache qualification must assert logical block id -> physical stride/offset mapping and verify that unrelated requests cannot mutate hot cached-prefix pages.
+
 ### 2026-09-18 durable Flash lane / runtime corrections
 
 - **Canonical Flash quant identity is Q5-class / eventual ~5.x BPW.** Do not describe Q6/Q8 as the preferred Flash-Next lane. oQ4e is a speed/quality comparator; Q6/Q8 remains relevant only where separately named (for example smaller 27B lanes/verifier work).
