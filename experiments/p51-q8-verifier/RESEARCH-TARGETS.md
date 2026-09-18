@@ -91,6 +91,8 @@ Useful success interpretation for the mature system:
 
 Why 40 remains the goal rather than a measured claim:
 
+- recovered exact-M1 low-bit evidence now shows the **full Flash-Next model on one M1 Max 64 GB** sustaining about **21 tok/s at 128K** with PLE mmap/SSD backing and about **24 tok/s on code with an MTP sidecar**. This materially strengthens the M1 silicon/runtime plausibility of the dual-node thesis, but the weights are Q2/IQ1-class rather than the canonical Q5-class, so the number is not doubled or transferred into the target forecast;
+
 - single-M1 Flash-Next target-only work is around ~10-13 tok/s in the known tuned lane;
 - native MTP has reached roughly ~18-22 tok/s on one M1 Max depending on context/configuration;
 - PP2/layer ownership can reduce per-node target work without requiring a chatty TP collective;
