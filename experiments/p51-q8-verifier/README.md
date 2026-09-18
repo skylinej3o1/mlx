@@ -47,6 +47,21 @@ Also report the final commit SHA and new hard freshness boundary. Mention meanin
 
 The briefing should be **reasonably detailed and analytical, comparable to the fuller Project 51 research summaries from earlier conversations**, while avoiding a dump of irrelevant PRs/commits. Measurements must remain clearly separated from estimates, extrapolations, and speculation.
 
+## High-reasoning tuning control plane
+
+Project 51 tuning must separate **decision authority** from **execution**.
+
+- ChatGPT web running **GPT-5.6 Sol with High reasoning effort** is the experiment decision/orchestration plane for substantial tuning decisions: proposing the next mutation, interpreting causal evidence, promoting/rejecting an optimization, or changing the benchmark plan.
+- GitHub Actions and the self-hosted Macs are the execution plane. They may compile, benchmark, collect telemetry/artifacts, verify SHAs, and finish work that was already approved, but they must not invent or promote the next tuning mutation on their own.
+- Use an explicit lifecycle such as: **PROPOSED -> HIGH-APPROVED -> RUNNING -> RESULTS -> AWAITING-HIGH-REVIEW**.
+- A new experiment definition may run only from **HIGH-APPROVED**. After results are produced, the workflow must stop at **AWAITING-HIGH-REVIEW** until a later High-reasoning ChatGPT turn reviews the result and explicitly approves the next experiment.
+- Record provenance in a machine-readable experiment manifest. At minimum include: `decision_model: GPT-5.6 Sol`, `reasoning_effort: High`, `decision_source: ChatGPT web`, experiment ID, approving/decision commit SHA, exact benchmark/runtime SHA(s), and the state transition.
+- This provenance is an operational gate, **not a cryptographic attestation**: GitHub Actions cannot independently verify the user's ChatGPT web model-picker/reasoning setting. Therefore a workflow may trust only the repository's explicit approval state, not infer High from environment or account state.
+- If the ChatGPT reasoning allowance changes, an already approved run may finish, but **no new hypothesis or mutation may auto-promote**. The next decision waits for a fresh High-reasoning review.
+- For distributed runs, keep the existing invariant: `Mac1 SHA == Mac2 SHA == result metadata SHA` before accepting a result.
+
+This rule is intended to ensure that **High does the thinking; Actions does the labor** while preserving reproducible, auditable tuning loops.
+
 ## Continuity rule
 
 If a future conversation's chat context or memory conflicts with these files, re-read the repository and follow the repository's current state. If this protocol itself changes, update this README so the next conversation inherits the change.
