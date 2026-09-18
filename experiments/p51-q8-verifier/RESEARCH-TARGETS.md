@@ -104,6 +104,20 @@ Why 40 remains the goal rather than a measured claim:
 - there is still no sustained exact physical 2x-M1 Flash TG receipt at ~128K, so this remains an
   engineering target rather than a measured result.
 
+### Current September 18 ~128K engineering-confidence ladder
+
+These are engineering planning estimates, not statistical probabilities. They incorporate the exact-Q5 stronger-Apple long-context receipt plus the recovered and newly strengthened exact-M1 low-bit receipts, while retaining a large discount for the still-unmeasured Q5 + PP2 + TB4 combination.
+
+| Mature B1 TG @ ~128K | Current confidence |
+|---:|---:|
+| >=30 tok/s | ~85-90% |
+| >=35 tok/s | ~70-75% |
+| **>=40 tok/s** | **~55%** |
+| >=45 tok/s | ~30-35% |
+| >=50 tok/s | ~15-20% |
+
+The new M1 evidence strengthens the silicon/runtime side of the thesis: DS4 Q2 now has repeatable ~24.4 TG through 16K, ~22.8 TG at 32K, and optimized MTP cells around 29-32 TG at 6K-17K, while the separate PLE-last M1 receipt remains ~21 TG at 128K. None of these numbers is Q5, so they raise confidence rather than numerically determine the Q5 target.
+
 ### Historical September 4 ~128K confidence ladder — retained for provenance, not target definition
 
 The original normalization captured this evidence-confidence ladder:
@@ -148,8 +162,7 @@ target. A mature system that reaches 40 here but misses badly at ~128K has not c
 
 Rationale:
 
-- reproducible single-M1 Flash-Next prefill has been roughly ~150-180+ tok/s in older custom
-  llama.cpp configurations;
+- exact single-M1 Flash-Next Q2 evidence is now materially stronger than the old ~150-180+ PP anchors: DS4 #1068 measures roughly **~275 PP** from 4K-16K and **271.94 PP** on a real 32,113-token prompt when the M1 Max 64 GB remains resident with a 2048 prefill chunk; this is low-bit and therefore raises confidence without being transferred numerically to Q5;
 - sufficiently long prompts can pipeline chunks across a balanced PP2 split, so cluster PP has a
   much stronger scaling case than B1 decode;
 - gathered-QSA prefill and sparse selected-K/V are structurally favorable;
@@ -160,7 +173,10 @@ Rationale:
   headroom but are not numerically transferred to M1.
 
 Qualification rule: every Flash PP result must record PLE lazy/resident mode, page-cache condition,
-competing I/O, stage placement, prompt length, prefill chunking and actual TB4 traffic.
+competing I/O, stage placement, prompt length, prefill chunking and actual TB4 traffic. Qualification
+must also report **scheduler admission-to-first-prefill delay** separately from model PP/TTFT and sweep
+prefill chunk size; exact M1 evidence shows that an otherwise useful optimization can halve PP at chunk
+128 while leaving chunk 2048 essentially unaffected.
 
 ---
 
