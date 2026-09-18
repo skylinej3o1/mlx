@@ -111,12 +111,12 @@ These are engineering planning estimates, not statistical probabilities. They in
 | Mature B1 TG @ ~128K | Current confidence |
 |---:|---:|
 | >=30 tok/s | ~95% |
-| >=35 tok/s | ~85% |
-| **>=40 tok/s** | **~65%** |
-| >=45 tok/s | ~40% |
-| >=50 tok/s | ~20-25% |
+| >=35 tok/s | ~80% |
+| **>=40 tok/s** | **~60%** |
+| >=45 tok/s | ~35% |
+| >=50 tok/s | ~15-20% |
 
-The confidence ladder now also includes a much stronger recovered modern **M1 Max 64 GB** receipt: AtomicChat **4.27 bpw** weights, Q8 KV, indexed QSA, direct PLE, and **MTP off** sustain **23.31 TG at 117,764 prompt tokens** (384 generated) and **20.51 TG at 148,476**. This is near-target quant precision on exact M1 hardware with raw checked-in receipts, so it materially raises confidence that the single-node physical floor near 128K is already in the low 20s on a modern path. It is still not Q5 or dual-M1/TB4, and the long-context machine was using system swap, so 40 remains a target rather than an extrapolated result.
+The confidence ladder includes a strong recovered modern **M1 Max 64 GB** receipt: AtomicChat **4.27 bpw** weights, Q8 KV, indexed QSA, direct PLE, and **MTP off** sustain **23.31 TG at 117,764 prompt tokens** (384 generated) and **20.51 TG at 148,476**. This proves a modern exact-M1 low-20s physical floor near headline context. However, re-reading the pinned fork shows that this is already a substantially tuned single-node stack: model-specific Qwen4Exp Metal kernels, indexed sparse attention, QSA block scoring, HC/GDN-oriented paths, direct PLE staging and a dedicated Q8 selected-row gather/dequant kernel are already present. Therefore the receipt should not be treated as a lightly tuned baseline with large easy single-node headroom remaining. The 40-TG thesis still depends primarily on Q5-efficient execution plus MTP/multi-row pipeline occupancy across the second M1, so planning confidence is held around **60%**, not 65%.
 
 ### Historical September 4 ~128K confidence ladder — retained for provenance, not target definition
 
@@ -152,12 +152,12 @@ target. A mature system that reaches 40 here but misses badly at ~128K has not c
 |---:|---:|
 | >=250 tok/s | ~98% |
 | >=300 tok/s | ~95% |
-| >=350 tok/s | ~88% |
-| **>=400 tok/s** | **~75%** |
-| >=450 tok/s | ~55-60% |
-| >=500 tok/s | ~40% |
-| >=600 tok/s | ~15-20% |
-| >=700 tok/s | ~5-8% |
+| >=350 tok/s | ~85% |
+| **>=400 tok/s** | **~70%** |
+| >=450 tok/s | ~50% |
+| >=500 tok/s | ~30-35% |
+| >=600 tok/s | ~12-15% |
+| >=700 tok/s | ~5% |
 
 **Working target: 400 tok/s cold PP.**
 
