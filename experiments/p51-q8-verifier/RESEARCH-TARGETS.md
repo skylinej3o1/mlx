@@ -149,14 +149,15 @@ target. A mature system that reaches 40 here but misses badly at ~128K has not c
 ## Cold PP — realistic long agent/document prompts
 
 | Mature cold PP | Confidence |
-|---|---:|
-| >=250 tok/s | ~95% |
-| >=300 tok/s | ~85% |
-| >=350 tok/s | ~70% |
-| **>=400 tok/s** | **~55-60%** |
-| >=450 tok/s | ~40% |
-| >=500 tok/s | ~25% |
-| >=600 tok/s | ~10% |
+|---:|---:|
+| >=250 tok/s | ~97% |
+| >=300 tok/s | ~90% |
+| >=350 tok/s | ~80% |
+| **>=400 tok/s** | **~65-70%** |
+| >=450 tok/s | ~45-50% |
+| >=500 tok/s | ~30-35% |
+| >=600 tok/s | ~12-15% |
+| >=700 tok/s | ~5% |
 
 **Working target: 400 tok/s cold PP.**
 
