@@ -110,13 +110,13 @@ These are engineering planning estimates, not statistical probabilities. They in
 
 | Mature B1 TG @ ~128K | Current confidence |
 |---:|---:|
-| >=30 tok/s | ~85% |
-| >=35 tok/s | ~70% |
-| **>=40 tok/s** | **~50%** |
-| >=45 tok/s | ~30% |
-| >=50 tok/s | ~15% |
+| >=30 tok/s | ~85-90% |
+| >=35 tok/s | ~70-75% |
+| **>=40 tok/s** | **~55%** |
+| >=45 tok/s | ~30-35% |
+| >=50 tok/s | ~15-20% |
 
-The newer low-bit M1 evidence strengthens the silicon/runtime side of the thesis: DS4 Q2 has repeatable ~24.4 TG through 16K, ~22.8 TG at 32K, optimized MTP cells around 29-32 TG at 6K-17K, and the separate PLE-last M1 receipt remains ~21 TG at 128K. However, recovered **M1 Ultra Q5** evidence from the older llama.cpp path measures 27.7-31.8 TG at 2K-8K and 12.3 TG at 261,888 tokens with MTP depth 2. That same-generation target-quant counterweight is why 40@128K is now held at roughly **50%** rather than 55%: the target still looks plausible only if modern QSA/MTP/kernel/pipeline work closes a large runtime gap.
+The newer low-bit M1 evidence strengthens the silicon/runtime side of the thesis: DS4 Q2 has repeatable ~24.4 TG through 16K, ~22.8 TG at 32K, optimized MTP cells around 29-32 TG at 6K-17K, and the separate PLE-last M1 receipt remains ~21 TG at 128K. A recovered **M1 Ultra Q5** receipt proves target-quant fit/correctness at native context, but its source labels the numbers historical and the recipe is not representative of the modern tuned stack (older llama.cpp path, shallow MTP, F16 KV, one slot, no prompt cache, vision loaded, external-SSD deep run). It therefore does **not** lower the current 40@128K planning confidence by itself.
 
 ### Historical September 4 ~128K confidence ladder — retained for provenance, not target definition
 
