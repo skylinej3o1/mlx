@@ -17,10 +17,10 @@ Flash-Next remains:
 - cold PP target: **400 tok/s**
 
 Current planning confidence changes slightly:
-- **40 TG @ ~128K: ~50%** (down from ~55%)
+- **40 TG @ ~128K: ~55%** (restored after reclassifying the historical M1 Ultra Q5 run as a capacity/correctness receipt rather than a tuned performance anchor)
 - **400 cold PP: ~65-70%** (unchanged)
 
-The TG confidence reduction is driven by a **recovered older M1 Ultra Q5 receipt**: same M1 generation and target quant class, but an older llama.cpp runtime and a fused on-package Ultra topology rather than dual Max/TB4. It is strong enough to constrain the thesis, not strong enough to redefine the target.
+Post-pass correction: the **recovered older M1 Ultra Q5 receipt** is useful target-quant fit/correctness evidence, but its source labels the numbers historical and its recipe is too baseline-oriented to serve as a tuned performance counterweight. It therefore does not justify lowering the modern dual-M1 forecast by itself.
 
 The strongest strict-window additions are:
 1. **DS4 #1056:** phase-correct prefill dispatch collapses chunk-size-dependent logit drift from order-1 values to ~1e-6 after prefill and <1e-3 through the checked decode steps.
@@ -75,7 +75,7 @@ It does **not** imply that dual M1 Max must reproduce 12.3 TG:
 
 The durable conclusion is therefore narrower: **40 TG @128K cannot be justified by aggregate M1 bandwidth alone.** It requires meaningful runtime uplift plus enough MTP/multi-row pipeline overlap to keep the two Maxes productively overlapped.
 
-This is why 40@128K engineering confidence moves from ~55% to **~50%**, while the 40 target itself stays fixed.
+After re-reviewing the recipe, this receipt is retained as a capacity/correctness anchor but **does not reduce** the modern 40@128K planning confidence. The target remains 40 TG and confidence remains about **55%**.
 
 ## NEW — DS4 #1056: phase-correct dispatch restores chunk/logit invariance
 
@@ -300,11 +300,11 @@ PLE/KV/offload copy path selection should be a small measured surface by transfe
 **Hold the numeric target: 40 TG @ ~128K / 400 cold PP. Hold Q5-class as canonical quant.**
 
 Updated ~128K TG planning ladder:
-- >=30 TG: **~85%**
-- >=35 TG: **~70%**
-- >=40 TG: **~50%**
-- >=45 TG: **~30%**
-- >=50 TG: **~15%**.
+- >=30 TG: **~85-90%**
+- >=35 TG: **~70-75%**
+- >=40 TG: **~55%**
+- >=45 TG: **~30-35%**
+- >=50 TG: **~15-20%**.
 
 Cold PP remains:
 - >=250: **~97%**
@@ -316,17 +316,11 @@ Cold PP remains:
 - >=600: **~12-15%**
 - >=700: **~5%**.
 
-Why TG confidence moves down modestly:
-- the newly recovered M1 Ultra Q5 physical receipt shows only 27.7-31.8 TG at short context and 12.3 TG at ~262K on the older path;
-- that is much closer in silicon generation and quant class than M5/Q2 transfer evidence;
-- dual M1 Max over TB4 has a harder interconnect/state problem than an Ultra's fused package.
-
-Why it only moves to ~50%, not lower:
-- the old receipt predates much of the current gathered-QSA, GDN/HC and MTP work;
-- it has no 128K cell;
-- modern low-bit M1 results are materially faster;
-- modern stronger-Apple prefill/decode receipts show substantial runtime headroom;
-- PP2 plus multi-row/MTP overlap can change utilization geometry versus the old single-device path.
+Why TG confidence stays around ~55%:
+- the historical M1 Ultra Q5 receipt proves target-quant native-context fit/correctness but is not a tuned-speed benchmark: older llama.cpp path, MTP depth 2, F16 KV, one slot, no prompt cache, vision loaded, and an external-SSD deep run with only 23 generated tokens;
+- it has no 128K cell and predates much of the current gathered-QSA, GDN/HC and MTP work;
+- modern low-bit M1 results are materially faster and modern stronger-Apple receipts show substantial runtime headroom;
+- exact Q5 dual-M1/TB4 remains unmeasured, so confidence still should not rise beyond the mid-50s without physical target-topology evidence.
 
 Why PP confidence stays:
 - exact M1 low-bit PP around ~272-275 already exists;
@@ -342,6 +336,10 @@ Why PP confidence stays:
 4. **Reclaim before abort:** distinguish reclaimable Metal buffers from true physical-cap breach.
 5. **Backend-local overlap thresholds:** measure transfer/read latency and launch overhead before setting hit/miss split rules.
 6. Existing gates remain: admission latency decomposition, async PLE start/finalize, cross-request hidden-state probes, distributed progress telemetry, and mirrored/A-B-A noise-floor measurements.
+
+## Post-pass interpretation correction — 2026-09-18 13:41 UTC
+
+The M1 Ultra Q5 receipt above was initially overweighted as a performance counterweight. Re-review of its model card and recipe shows it is better classified as a **historical capacity/correctness receipt** than a tuned modern Flash benchmark. The source itself labels the numbers historical. The recipe lacks the modern tuned stack Project 51 is targeting and includes several baseline/capacity-oriented choices. Therefore the temporary ~50% confidence for 40 TG @ ~128K is reverted to **~55%**. No numeric target changes, and the hard freshness boundary remains unchanged because no new external search window was opened.
 
 ## Hard freshness boundary
 
