@@ -119,6 +119,13 @@ Future passes should seek status/performance updates rather than rediscover thes
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
 
+### 2026-09-18 durable Flash lane / runtime corrections
+
+- **Canonical Flash quant identity is Q5-class / eventual ~5.x BPW.** Do not describe Q6/Q8 as the preferred Flash-Next lane. oQ4e is a speed/quality comparator; Q6/Q8 remains relevant only where separately named (for example smaller 27B lanes/verifier work).
+- Recovered exact stronger-Apple target-lane receipt: M5 Max 128 GB / oMLX 0.7.0.dev2 / Qwen3.8-Flash-Next-Uncensored-oQ5e, MTP/DFlash/spec-prefill/ANE/TurboQuant disabled, measured **47.3 TG / 1,203 PP at 128K** and **47.4 TG / 1,236 PP at 200K**. This raises architecture confidence but is not dual-M1/TB4 evidence.
+- A transient optimized-path exception must not become a silent process-lifetime performance mode. oMLX commit `9052b3952d1af3258fe85939b4fefbcc6c6c3e28` fixed a Qwen4 hyper-connection path where one exception permanently disabled fused optimization for every later Qwen4 call in the process. Long-session qualification must record optimization eligibility/fallback state and verify recovery after a one-shot injected failure.
+- Shared MTP verify must keep row-local boundary work row-local. oMLX #3724 showed that a one-row paged-boundary forward on the whole batch cache could broadcast a KV write across rows and collapse GDN state. Boundary emits/rollback/replay that are semantically per-row must use extracted private row state and explicit merge-back; cache padding identity must be refreshed after ragged finalize when the model caches metadata by array identity.
+
 ## Long-context QSA evidence
 
 ### llama.cpp #28213 — gathered selected-K/V decode
