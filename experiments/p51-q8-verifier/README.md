@@ -16,9 +16,10 @@ The repository is the durable source of truth. Do not reconstruct project state 
 
 ## Canonical lane reminders
 
-- **Flash-Next target quant is Q5-class / eventual ~5.x BPW, not Q6/Q8.** Q6/Q8 wording for the Flash lane is stale. The current headline remains Qwen3.8-Flash-Next on 2x M1 Max 64 GB / TB4 at ~128K active context, targeting 40 tok/s TG and 400 tok/s cold PP.
-- **oQ4e is a comparator/fallback lane**, useful for measuring the speed/quality frontier; it is not the canonical Flash target unless a later evidence-driven decision explicitly changes the target.
-- Q6/Q8 may still be relevant to the much smaller Qwen3.8-27B lanes and to verifier work; do not transfer that wording to Flash-Next.
+- **Flash-Next deployment-quant design is now a custom mixed lane, not a stock whole-model BPW label.** Target approximately **4.6-4.9 effective BPW on the hot compute trunk**, with PLE/ngram precision and MTP precision tracked separately. Do not compare quants by one whole-file BPW number when tens of billions of PLE parameters live on SSD/offload paths.
+- **oQ5e remains the quality/certification comparator.** The custom deployment quant should retain essentially oQ5e/BF16 behavior on the frozen Project 51 eval battery before it can replace the quality reference.
+- **oQ4e remains the aggressive performance comparator/fallback lane**, useful for bounding the speed side of the frontier; it is not the quality reference.
+- Q6/Q8 may still be relevant to sensitive Flash submodules (for example MTP/QSA/GDN/HC/head) and to the smaller Qwen3.8-27B lanes; do not interpret those local precisions as a whole-model Flash target.
 
 ## Research-update search protocol
 
