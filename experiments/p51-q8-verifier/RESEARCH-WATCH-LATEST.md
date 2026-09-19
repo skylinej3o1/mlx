@@ -1,399 +1,255 @@
-# External runtime watch — 2026-09-18 17:34 ET
+# External runtime watch — 2026-09-19 03:51 ET
 
 ## Search window
 
-Complete incremental pass over substantive source activity strictly after `2026-09-18 16:27:22 UTC` through `2026-09-18 21:34:45 UTC`.
+Complete incremental pass over substantive source activity strictly after `2026-09-18 21:34:45 UTC` through `2026-09-19 07:51:54 UTC`.
 
-PRs, issues, comments/reviews, and default-branch commits were explicitly screened across DS4, vLLM, oMLX, mlx-serve, and llama.cpp. Fresh Qwen3.8-Flash-Next Hugging Face/community/web surfaces were also searched. Evidence time means substantive source/measurement time, not crawler, merge, label, bot, or rebase timestamps.
-
-A major **RECOVERED OLDER EVIDENCE** item was surfaced during this pass. Its repository/measurements date to **2026-09-08**, so it is not called new merely because it was discovered now.
+PRs, issues, comments/reviews, and default-branch commits were screened across DS4, vLLM, oMLX, mlx-serve, and llama.cpp. Fresh Qwen3.8-Flash-Next Hugging Face/community/web surfaces were also searched. Evidence time means the substantive source/measurement time, not crawler, merge, label, bot or rebase timestamps.
 
 ## Executive result
 
-**No exact dual-M1-Max/TB4 Q5 receipt appeared, so the numeric targets stay fixed. Planning confidence rises because of a newly recovered exact-M1, near-target-precision long-context receipt.**
+**No exact dual-M1-Max/TB4 Q5/custom-quant receipt appeared. Canonical physical targets and current planning confidence remain unchanged.**
 
-Flash-Next remains:
-- canonical quant lane: **Q5-class / eventual ~5.x BPW**
+Flash-Next:
 - target topology: **2x M1 Max 64 GB / TB4**
 - headline target: **40 TG sustained at ~128K**
 - cold PP target: **400 PP**
+- current planning confidence: **~60% for 40 TG**, **~70% for 400 PP**.
 
-Updated planning confidence:
-- **40 TG @ ~128K: ~65%** (from ~55%)
-- **400 cold PP: ~75%** (from ~65-70%)
+The major durable change is quant identity:
+- **oQ5e = quality/certification comparator**
+- **oQ4e = aggressive performance comparator**
+- **deployment design = custom mixed quant around ~4.6-4.9 hot-trunk BPW**
+- **PLE/ngram BPW and MTP BPW are reported separately**.
 
-The confidence move is driven by a public, raw-data-backed M1 Max 64 GB receipt at **4.27 bpw** with modern indexed QSA/direct PLE and **MTP off**, not by stronger-chip extrapolation.
+Whole-file BPW is no longer acceptable as the primary Flash quant label because the giant PLE table can consume many bits while sitting on an SSD/offload path rather than the hot decode-weight path.
 
-## RECOVERED OLDER EVIDENCE — modern M1 Max 64 GB / 4.27-bpw / ~118K receipt
+## QUANT STRATEGY UPDATE — hot-trunk BPW, not whole-file BPW
 
-Source:
-- repository: `kadirbalalan/qwen38-mac-fast`
-- repository commit: `feeb3d57bf340f027f55eb56760c736cd80c4326`
-- commit date: **2026-09-08 09:17:30 UTC**
-- runtime fork commit: `535e1f69d4bdf9c9aa51619636595d155ff02ccf`
-- raw JSON checked into `benchmarks/raw/`.
+AtomicChat's published “4.27 bpw” build is the clearest example of why the old shorthand is misleading.
 
-Exact setup:
-- Apple **M1 Max 64 GB**
-- Qwen3.8-Flash-Next
-- AtomicChat **AD-4.27bpw-Q4_K_M-M64**, 33 shards, ~94.5 GB download
-- Q8_0 K / Q8_0 V
-- Flash Attention ON
-- Metal indexed QSA with Q8-aware selected-row gather/dequant
-- direct PLE: `--lazy-mode on-direct`
-- one slot
-- batch / ubatch: 512 / 256
-- prompt cache RAM: 0
-- **MTP OFF**
-- n-gram sidecar OFF
-- Q8 vision projector kept off Metal
-- Metal wired limit 57,344 MiB.
+Its giant ~51.2B-parameter PLE/ngram table is stored at roughly 6-bit-class precision. Using 177B total parameters, a simple arithmetic back-out:
 
-Controlled sweep, each with **384 generated tokens**:
+`(4.27*177 - 6*51.2) / (177 - 51.2) ~= 3.57 bpw`
 
-| Actual prompt | PP | TG |
-|---:|---:|---:|
-| 84,984 | **208.84** | **23.80** |
-| 93,212 | **206.87** | **23.79** |
-| 101,396 | **205.27** | **23.47** |
-| 109,580 | **202.46** | **23.28** |
-| 117,764 | **203.18** (`on-direct`) | **23.31** |
-| 148,476 stress | **152.03** | **20.51** |
+for the non-PLE remainder.
 
-The raw 117,764-token JSON records 384 generated tokens, 596.10 s total wall, ~56.98 GiB system-wide wired memory after the run and ~11.37 GB swap after. The 148,476 stress run reaches ~58.09 GiB system-wide wired and ~11.57 GB swap.
+That is an **engineering estimate**, not a model-card-reported hot-trunk figure, and file-format overhead is ignored. But it is enough to show that “4.27 overall” is not comparable to a true ~4.6-4.9 compute-trunk design.
 
-Q8 KV controlled A/B around 77K:
-- F16/F16: **209.78 PP / 24.01 TG**
-- Q8/Q8: **211.00 PP / 23.92 TG**
-- system-wide wired memory drops by roughly **1.0 GiB** with Q8 KV.
+Project 51 quant receipts must now report:
+1. hot compute-trunk BPW
+2. PLE/ngram BPW and placement
+3. MTP BPW
+4. protected high-precision tensor groups
+5. resident vs streamed/offloaded byte footprint.
 
-The repository separately preserves a 39-generation real Pi coding session, but its mixed-workload task TG varies materially with request shape/page residency; the controlled JSON sweep is the correct context-scaling anchor.
+## NEW — nitinpanj Flash-Next V3: role-aware quant allocation buys large quality for small speed cost
 
-Classification: **recovered exact target-generation hardware / exact model family / near-target precision / modern long-context physical receipt. Not exact Q5, not dual-M1/TB4.**
+Newly published fork/checkpoint during this window:
+- model: Qwen3.8-Flash-Next
+- checkpoint size: **95.5 GiB**
+- intended machine: 64-GB Apple Silicon
+- base quant: bartowski Q4_0
+- `output.weight`: Q8_0
+- five resident groups spliced from UD-IQ4_XS:
+  - attention
+  - hyperconnection
+  - token embeddings
+  - SSM output
+  - shared experts.
 
-### Project 51 interpretation
+Paired 40-chunk comparison versus the unspliced checkpoint:
+- perplexity: **5.2777 -> 4.3148 (-17.8%)**
+- wins: **40/40 chunks**
+- MTP draft acceptance: **0.751 -> 0.817**
+- decode-speed cost: **-2.7%**
+- disk cost: **+1.69 GiB**.
 
-This is materially stronger than the previous M1 Q2/IQ1 anchors:
-- it is **4.27 bpw**, much closer to the Q5-class goal;
-- it uses modern indexed QSA and direct PLE;
-- it reaches the actual neighborhood of the headline context target;
-- it generates 384 output tokens rather than a tiny capacity smoke;
-- MTP is **off**, so the low-20s decode rate is the target-only physical path.
+The author also reports that keeping only attention/hyperconnection/token-embedding protection gives the same perplexity score but makes decode **14% slower**; adding SSM-output/shared-expert tensors restores about 11 points of decode despite not moving that perplexity test.
 
-It cannot be doubled:
-- Q5-class will be heavier than 4.27 bpw;
-- the machine is under substantial memory pressure and uses swap;
-- PP2 over TB4 introduces stage balance and activation handoff costs;
-- B1 decode cannot achieve ideal 2x PP scaling without useful multi-row/speculative overlap;
-- this is a custom llama.cpp fork.
+Classification: **strong fresh quant-allocation evidence; M5-Pro/streamed topology, not target hardware.**
 
-But it removes a major uncertainty: a current M1 Max path can sustain about **23 TG at ~118K** and about **20.5 TG at ~148K** near the intended precision class before MTP. That is why 40@128K moves to about **65%**, not because of a simple 2x extrapolation.
+Project 51 implication:
+precision assignment must jointly consider **quality sensitivity + runtime traffic/residency**. A tensor can be worth higher precision because it enables a faster kernel/resident path even if the sampled perplexity metric barely moves.
 
-For PP, a single M1 already sustains roughly **203 PP at ~118K** near target precision. A balanced dual-stage long-prefill pipeline plus the known modern prefill headroom makes **400 PP materially more plausible**, so confidence moves to about **75%**.
+## NEW — 64-GB Apple streaming Flash receipt with MTP
 
-## NEW — vLLM #57616: plain native MTP was silently disabling prefix cache
+Same V3 fork, M5 Pro 64 GB:
+- target-only decode: **18.0-18.6 TG**
+- MTP decode: **~27.6 TG**
+- 4K prompt processing: **~367 PP**
+- real chat at ~29K: **~20.6 TG**
+- MTP depth 3 reported optimal; depth 4 slower
+- 36-GiB expert cache, internal SSD streaming.
 
-PR created **2026-09-18 19:22:59 UTC**.
+The fork warns that over-growing expert cache can collapse performance: on its 64-GB machine, 38 GiB cache drove generation from roughly 24 TG to ~3.7 TG as macOS began swapping.
 
-Exact evaluated setup:
-- DGX Spark / GB10
-- Qwen3.8-Flash-Next NVFP4
-- MTP k=3
-- align mode
-- prefix caching on
-- piecewise CUDA graphs
-- 262K context
-- disk-backed PLE in the decode benchmark.
+Classification: **fresh stronger-chip/different-topology transfer evidence.**
 
-Mechanism:
-- native/plain MTP shares target KV and has **no separate draft KV group**;
-- the cache coordinator saw “no draft group identified” and conservatively marked **all groups as EAGLE**;
-- replay-boundary arithmetic then produced only boundary 0, so `cache_blocks()` inserted nothing;
-- repeated byte-identical prompts therefore had zero cache hits.
+This does not change the M1 target. It does reinforce:
+- MTP can provide a large effective-generation gain when acceptance is healthy;
+- memory pressure is sharply non-monotonic;
+- streamed-expert cache size must be tuned under real swap telemetry.
 
-Measured:
-- nightly, no workaround: prefix hits **0**, repeat 4,137-token TTFT **3.6 s every time**
-- broad workaround: **6400/12778 = 50.1%** hits, TTFT **3.6 -> 1.6 s**
-- targeted fix: same **50.1%** hit rate and **3.6 -> 1.6 s**, while retaining the trailing-block pollution guard
-- MTP acceptance remains **44.5%**
-- 8-category decode median remains about **38.9 TG** with the disk-backed PLE setup.
+## NEW — PLE direct-read prefill evidence
 
-Classification: **new exact same-model-family native-MTP/cache evidence; wrong hardware for target performance transfer.**
+The same publication attributes major prompt-processing gains to replacing mmap/page-fault PLE gathers with direct file reads for the ~26.8-GiB per-layer embedding table. Public measurements report approximately:
+- 512-token PP: **181 -> 401**
+- 8K PP: **274 -> 451**.
+
+Classification: **community/fork A/B; useful but not Project-51-controlled.**
+
+This is consistent with prior PLE findings. PLE precision/storage policy and PLE I/O policy must be optimized independently from hot-trunk quantization.
+
+## NEW — oMLX #3755: dev4 loses deep-context Flash decode while prefill improves
+
+Exact Apple/same-model-family report:
+- M3 Ultra 96 GB
+- Qwen3.8-Flash-Next-oQ4e-mtp
+- MTP OFF
+- SSD n-gram offload ON
+- matched serving settings.
+
+Decode medians, older tested build -> dev4:
+- 4K cold: roughly neutral
+- 16K cold: **49.2 -> 45.6 TG (-7.4%)**
+- 64K cold: ~46.7 -> ~46.0
+- ~128K cold: **41.3 -> 37.6 (-9.0%)**
+- ~128K warm: **~41.0 -> 36.5 (-10.9%)**.
+
+Prefill is **~3-7% faster** on dev4 and peak MLX residency is flat around 68 GB.
+
+Classification: **new exact Apple / same-model-family runtime-regression evidence; stronger chip and oQ4e, not target topology.**
+
+Action:
+- exact oMLX/MLX dependency SHA stays benchmark identity;
+- runtime promotion needs deep-context TG and PP separately;
+- a release can improve PP while regressing the metric we care about most.
+
+No target-confidence move: this is a software regression, not hardware evidence.
+
+## NEW — llama.cpp #29110: Apple small-row MTP verify kernels can remove large overhead
+
+M3 Ultra Metal, Q4_0/Q8_0, verify-row width 2..8.
+
+Op-level small-row matvec speedups are commonly **~1.3-1.9x**.
+
+Qwen3.8-27B Q8_0 at 131K, MTP:
+- depth 1: essentially control
+- depth 2: **32.5 -> 44.5 TG (+37%)**
+- acceptance: **0.836**
+- output: byte-identical.
+
+At a real 89,575-token code prompt, depth 2:
+- **17.06 -> 20.28 TG (+19%)**
+- acceptance unchanged at **0.678**
+- prefill unchanged.
+
+Classification: **new exact Apple MTP/verify evidence; different Qwen model and M3 Ultra.**
+
+Project 51 implication:
+small-row verification is not necessarily an irreducible cost. A substantial part of MTP economics can live in memory-traffic/dispatch inefficiency, which strengthens the technical plausibility of the multi-row PP2 thesis without changing the numerical target.
+
+## NEW — recurrent rollback must track state provenance
+
+llama.cpp #29117 identifies stale recurrent/hybrid restores after a multi-token snapshot is followed by one or more single-token decode steps.
+
+Proposed mechanism:
+- record the last snapshot epoch/end/plane count;
+- restore by exact index shift;
+- refuse rollback when the requested prior state no longer exists, forcing re-prefill.
+
+External matrix:
+- fixed path: **9/9 exact**
+- vanilla: only **3/9 exact at m=0**, plus stale restores/refusals.
+
+PR was closed administratively due contributor PR-count rules, not because the mechanism was disproven.
+
+Classification: **new recurrent-state correctness evidence.**
+
+Project 51 action:
+speculative rejection/edit-turn rollback must carry state provenance and must fail closed to re-prefill when exact state is unavailable.
+
+## NEW — distributed hybrid-state transfer identity needs geometry
+
+vLLM #57661, DeepSeek-V4.1-Flash P/D disaggregation:
+- silent garbled/empty output
+- root cause: transfer-region aliases shared a base address but had different block lengths
+- example: 32,768-byte compressor state vs 19,008-byte SWA view
+- deduplication by base address truncated/misaligned transferred state
+- deduplication by **(base_addr, block_len)** fixes the cluster reproduction.
+
+After fix:
+- 0% garble over reported 200-token generations
+- clean output across 6 concurrent streams.
+
+Classification: **new non-Apple distributed hybrid-state correctness evidence.**
 
 Project 51 rule:
-Native model-owned MTP should be modeled as speculation over **target state** unless an actual separate draft state exists. EAGLE/DFlash/draft-model cache fallbacks must not be applied merely because “speculation is enabled.”
+distributed state identity includes base/offset/stride/block length/owner; shared backing storage alone is not semantic identity.
 
-Prefix-cache qualification must include:
-- plain native MTP
-- separate-draft speculation
-- MTP on/off
-- repeated prompt TTFT/hit counters
-- trailing-block state correctness.
+## NEW — dynamic speculative width must feed admission
 
-## NEW — vLLM #57608: token-indexed PLE must stage after draft proposal
+vLLM #57658 fixes Hybrid Mamba scheduling that chose a smaller step-local speculative K but still reserved memory using maximum K.
 
-Issue created **2026-09-18 18:40:05 UTC**.
+Qwen3.5-4B DFlash:
+- concurrency 16: **414.8 -> 752.6 tok/s**
+- concurrency 32: **392.2 -> 950.2 tok/s**.
 
-Setup:
-- DGX Spark GB10
-- Qwen3.8-Flash-Next NVFP4
-- MTP k=3
-- disk-backed n-gram PLE
-- FULL_DECODE_ONLY vs PIECEWISE graphs.
+The gain is from admitting more requests, not a faster model kernel.
 
-Problem:
-`prepare_inputs` runs before MTP draft proposal. Verify input includes the newly proposed draft tokens, so PLE rows staged at `prepare_inputs` are missing the draft tail.
+Classification: **new scheduler transfer evidence; not Flash B1 evidence.**
 
-Measured:
-- correct in-forward/piecewise PLE staging acceptance: **44.5%**
-- too-early pre-`execute_model` staging: **34.6%**
-- visible output-quality regression accompanies the acceptance loss
-- piecewise correct execution costs about **7% decode throughput** versus FULL_DECODE_ONLY on this setup.
+Project 51 B2-B4 rule:
+admission must use the **actual step-local verify width**, while retaining a safe hard-cap guard. Static max-K reservation can destroy aggregate utilization.
 
-Classification: **new exact same-model-family PLE/MTP state evidence; non-Apple hardware.**
+## TRANSFER — DS4 #1090 shows large Apple hybrid-MoE fusion headroom on other models
 
-Project 51 rule:
-Any token-indexed side data used by verify—PLE rows, token-dependent QSA side state, etc.—must be staged against the **final verify token sequence after draft proposal**. Draft proposal -> verify is an explicit state/preparation frontier.
+Archived M3 Ultra campaigns:
+- GLM-5.3-Flash Q4 decode: **+28.5-29.6%**
+- DeepSeek-V4.1-Flash Q4: about **+36-37% decode**
+- techniques include HC/KDA/projection fusion, tiled sparse attention, router/shared-expert fusion and avoiding unused expert-tile work.
 
-Do not “optimize” host I/O by staging from target-only input IDs if speculation will append IDs later.
+Classification: **historical/different-model Apple transfer evidence.**
 
-## NEW — vLLM #57605: lookahead can corrupt recurrent state at page boundaries
+Do not add these percentages to Kadir or the Project 51 forecast. They only show that mature-looking Apple hybrid-MoE paths can still hide substantial model-specific execution losses.
 
-PR created **2026-09-18 18:01:04 UTC**, rebased again before cutoff.
+## Quant/community search
 
-Failure:
-- Mamba/GDN align mode
-- prefix caching
-- lookahead/speculative capacity
-- prefill chunk ends exactly on a state-page boundary.
+Fresh search did **not** surface an exact dual-M1-Max/TB4 custom-Q5 receipt.
 
-Two corruption modes:
-1. no next page materialized, so a state write targets a recycled stale block;
-2. lookahead-inflated padding displaces the actual running-state column with a null slot, and the next chunk chains from null state.
-
-Physical reproduction:
-- 4-node Arm / Thor SM110 cluster
-- GLM-5.3-Flash
-- NVFP4
-- MTP
-- prefix caching
-- chunked prefill.
-
-Before:
-- boundary-ending chunks produce deterministic **0% spec-decode acceptance** from first decode step.
-
-After:
-- full prompt-size ladder remains coherent;
-- **22-turn conversation / 360K prompt tokens** remains coherent;
-- reported mean acceptance length ~**3**.
-
-Classification: **new recurrent-state boundary correctness evidence; model/hardware differ, mechanism strongly transfers.**
-
-Project 51 action:
-Add page-aligned recurrent-state fixtures with lookahead enabled. Verify:
-- next-page block is physically materialized before boundary write;
-- null padding cannot displace running state;
-- worker running-state column equals scheduler/block-table identity;
-- multi-turn acceptance does not collapse after exact page boundaries.
-
-## NEW — llama.cpp #29092: fused GDN leaks recurrent state across requests
-
-Issue created **2026-09-18 17:37:58 UTC**.
-
-Models:
-- Qwen3.6-35B-A3B Q4_K_M
-- **Qwen3.8-27B Q4_K_M**
-- HIP/ROCm / gfx1151 Strix Halo.
-
-With the fused Gated DeltaNet operation enabled, a reused server slot can carry the previous request's recurrent state into the next request.
-
-Three-request deterministic probe:
-- R1 contains synthetic document A and returns A correctly;
-- R2 has a different document B but restored prefix checkpoint; output contains A's abstract and a verbatim A clause;
-- R3 deliberately breaks the prefix so the runtime performs full `memory_seq_rm [0,end)` and reprocesses from position 0; output **still contains A**.
-
-Control on the older tested build:
-- moving layer 0 to CPU disables the fused GDN path;
-- the leak disappears.
-
-The reporter varied graph reuse, HIP graphs, context checkpoints, cache RAM, context shift, F16 KV, expert placement and slot settings; only fused-GDN disable clears the older-build repro.
-
-29-document warm-runner observation:
-- contamination accumulates;
-- output eventually degrades into unterminated generation;
-- ubatch changes onset rather than mechanism.
-
-Cost of the workaround on qwen3.6:
-- prompt latency per token: **0.89 -> 1.10-1.12 ms (+24%)**
-- decode latency per token: **18.3 -> 23.0-23.7 ms (+26-29%)**.
-
-Classification: **new serious non-Apple recurrent-state isolation evidence, including Qwen3.8-27B.**
-
-### Project 51 action
-
-Cross-request state isolation becomes a mandatory **privacy/correctness gate**:
-- disjoint synthetic vocabularies/documents
-- same server slot, repeated requests
-- checkpoint restore path
-- complete cache/state clear path
-- cancellation/preemption path
-- MTP on/off
-- warm runner over many requests.
-
-After a logical reset, hash/snapshot GDN/recurrent state and require zero dependence on prior-request content. A clean text response alone is not enough; use state/logit probes where possible.
-
-## NEW — oMLX #3742: mlx-vlm upgrade halves Lightning-MTP acceptance
-
-Issue created **2026-09-18 16:47:25 UTC**.
-
-Model/hardware:
-- Qwen3.6-35B-A3B-oQ6-mtp
-- M3 Ultra 80 GPU / 512 GB
-- pp16384 / tg128
-- custom kernels rebuilt at every bisect point.
-
-Bisected transition:
-- parent `76d19fed`, mlx-vlm `78b96eb5`: mean TG **116.7**
-- `a1663771`, mlx-vlm `3fb24e90`: **70.0**
-- current dev4: **73.1**.
-
-Telemetry:
-- acceptance **72.5% -> 34.7%**
-- tokens/cycle **2.48 -> 1.44**
-- backbone/cycle **18.16 -> 18.47 ms**
-- prefill unchanged around **2740-2757 PP**
-- no distribution overlap: old minimum 102.2 > new maximum 77.0.
-
-The commit changes speculative verify/rollback integration, including delegation of rollback to upstream mlx-vlm.
-
-Classification: **new exact oMLX speculative-state regression, different Qwen model but highly relevant mechanism.**
-
-Project 51 action:
-MTP acceptance is not merely a workload statistic; a large acceptance discontinuity at unchanged target-cycle time can indicate **state rollback/verify correctness divergence**.
-
-Runtime upgrades must replay frozen MTP acceptance/token-cycle fixtures before promotion.
-
-## NEW — oMLX #3748: dev4 can fail to load a Flash-Next custom qwen4_exp pack
-
-Issue created **2026-09-18 20:45:08 UTC**.
-
-Model:
-- `pipenetwork/Qwen3.8-Flash-Next-MLX-mixed-4_8bit`
-- ~103.9 GB
-- PLE mmap
-- custom `qwen4_exp.py`.
-
-Reported:
-- dev2 loads/runs at approximately **20 TG**
-- dev4 / mlx-vlm 0.7.1 calls `custom_model.ModelConfig.from_dict`
-- the custom module has no `ModelConfig`
-- VLM load fails; LLM fallback is blocked by the trust-remote-code gate; requests return 409.
-
-This is separate from the dev4 memory regression already recorded.
-
-Classification: **new same-model-family loader/version regression; not target performance evidence.**
-
-Project 51 action:
-Keep exact runtime dependency pins in all Flash manifests. “Same model + same command” is not a reproducible configuration if mlx-vlm/mlx-lm pins change underneath it.
-
-## UPDATE — distributed autotune cache is rank-specific, not identical
-
-vLLM #57635, created **2026-09-18 21:26:58 UTC**, provides a stronger field diagnosis than the earlier generic cache-sync proposal.
-
-8x H100 / TP8+EP8 field report:
-- rank 0's persisted FlashInfer file contains keys for `ep_rank=0`;
-- on restart, rank 0 hits those keys while ranks 1-7 enter tuning collectives;
-- 18 crash-loop restarts reproduce the hang over 8.5 hours;
-- clearing only the autotune-cache directory changes the next start: all ranks retune for ~1 s, engine reaches READY in ~20 s;
-- reported as **19 identical failures, then one success with one variable changed**.
-
-The proposed fix persists per-rank files and loads them only if every rank's expected file exists.
-
-This corrects an over-simple earlier Project 51 formulation: distributed tuning caches need not be byte-identical when the key includes rank/stage identity.
-
-Durable rule:
-- same source/runtime/topology manifest
-- same tuning schema/epoch
-- complete expected per-rank/per-stage cache set
-- each rank loads only its role's cache
-- group-wide all-hit or all-retune decision.
-
-## 27B side finding — exact 2-bit Bonsai verify path on M4 Max
-
-mlx-serve commit `bbf652a589d8b7dc2d7e8299581003c14a1bf229`, **2026-09-18 21:30:45 UTC**.
-
-Prism Ternary-Bonsai-2-27B:
-- M4 Max
-- exact 2-bit GEMV
-- MTP depth 2
-- verify M=2..3 uses half2 storage widened to f32 FMA.
-
-Reported:
-- 3-row trunk forward: **35.4 -> 32.2 ms**
-- at 4K: **38.3 -> 34.7 ms**
-- S=2: **28.6 -> 24.8 ms**
-- llmprobe 512/1K/2K decode: **73.5 TG vs 67.9**
-- prefill: **271 PP vs 255**.
-
-Classification: **new exact M4/ternary/short-context 27B transfer evidence; not an M1 target receipt.**
-
-Keep it on the 27B extreme-compression watchlist; do not alter the M1 27B target from this result.
-
-## Strict-window negative / no-promotion findings
-
-- vLLM #57575 merged in this window, reserving sparse-prefill workspace before KV-cache sizing. The mechanism was already recorded in the previous watch; merge time does not make the old measurements new.
-- vLLM #57603/#57604 add DeepSeek-V4.1 GPU overlap/staging optimizations; they are non-Apple transfer evidence and do not move the DS4 dual-M1 target.
-- vLLM #57590 still had no completed performance/accuracy table for the new rope-free sparse-MLA ROCm backend at the relevant cutoff.
-- DS4 default branch had no new substantive commit in the strict window. #1056 had no new benchmark beyond the corrected M1 A/B already recorded.
-- Fresh HF/community searching found **no exact dual M1 Max / TB4 / Q5 physical receipt**.
-- Current M4/M5 oMLX Q5 benchmark aggregators are useful stronger-chip context but do not supersede the recovered exact-M1 4.27-bpw receipt for M1 planning.
+Useful current quant observations:
+- PipeNetwork's existing MLX ablation remains important: uniform 4-bit is +20.6% perplexity vs BF16, while 4-bit routed experts + 8-bit non-expert sensitive weights is only +1.3% for ~2.4 GB more.
+- Current community discussion explicitly distinguishes non-PLE BPW from whole-model BPW; this reinforces the new Project 51 accounting rule but is not used as target evidence.
+- A current M1 Max 64-GB REAP 4-bit artifact is reported to load with native MTP and ~40.3 GB short-test peak, but no qualified long-context throughput receipt is published.
 
 ## Target / confidence decision
 
-### Flash-Next dual M1 Max
+**No numeric target or confidence change.**
 
-**Keep numeric targets: 40 TG @ ~128K / 400 cold PP. Keep Q5-class as canonical quant.**
+Current Flash-Next dual-M1 plan:
+- **40 TG @ ~128K: ~60%**
+- **400 cold PP: ~70%**.
 
-Updated TG planning ladder:
-- >=30 TG: **~95%**
-- >=35 TG: **~85%**
-- >=40 TG: **~65%**
-- >=45 TG: **~40%**
-- >=50 TG: **~20-25%**.
+Quant strategy changes, not physical forecast:
+- custom deployment design: **~4.6-4.9 hot-trunk BPW**
+- oQ5e: quality/certification reference
+- oQ4e: speed comparator
+- PLE and MTP precision reported separately.
 
-Updated PP ladder:
-- >=250 PP: **~98%**
-- >=300: **~95%**
-- >=350: **~88%**
-- >=400: **~75%**
-- >=450: **~55-60%**
-- >=500: **~40%**
-- >=600: **~15-20%**
-- >=700: **~5-8%**.
-
-Why confidence moves:
-- exact M1 Max / modern long-context / near-target precision now has a raw controlled anchor at **23.31 TG / 203.18 PP @117,764** with MTP off;
-- the same physical path remains above **20 TG at 148K**;
-- this removes much of the uncertainty around modern M1 indexed-QSA/direct-PLE viability near headline context.
-
-Why confidence does not move higher:
-- target quant is Q5-class, not 4.27 bpw;
-- exact dual-M1/TB4 behavior is still unknown;
-- the M1 long-context receipt uses substantial system swap;
-- single-request PP2 decode depends on meaningful multi-row/MTP overlap rather than simple stage doubling;
-- distributed recurrent/QSA/cache correctness remains a real qualification risk.
+A future custom-quant performance stretch above 40/400 is not promoted until a physical target-topology receipt exists.
 
 ## New/strengthened qualification rules
 
-1. **Near-target single-M1 ruler:** add a 4.x/5.x-bpw 96K/118K/128K/148K sweep with 384+ generated tokens before cluster tuning.
-2. **Native-MTP cache semantics:** plain MTP shares target state unless an actual draft state/group exists.
-3. **Post-draft token-indexed staging:** PLE/QSA side data for verify is prepared from final verify IDs.
-4. **Page-boundary lookahead fixture:** exact state-page boundaries + speculation must preserve running-state ownership.
-5. **Cross-request state privacy:** reused slots must prove zero recurrent-state leakage across users/requests.
-6. **MTP acceptance as state-health metric:** frozen acceptance/token-cycle fixtures gate runtime upgrades.
-7. **Rank-role-aware autotune manifest:** per-rank cache payloads may differ; schema/epoch/topology/completeness must agree.
-8. Existing effective-setting, chunk-parity, memory-staircase, autotune-stability, workspace-admission and admission-latency gates remain.
+1. **Quant identity is component-wise:** hot trunk / PLE / MTP / protected tensor groups.
+2. **Quality + traffic co-design:** high precision may be justified by runtime placement/kernel economics even when perplexity is flat.
+3. **Deep-context runtime promotion gate:** version upgrades need matched TG and PP at ~128K.
+4. **MTP verify-row profiling:** benchmark small-row matvec/verify separately from target decode.
+5. **Exact recurrent rollback provenance:** refuse unavailable state rather than restoring stale snapshots.
+6. **Distributed geometry identity:** base pointer alone never defines state-transfer equivalence.
+7. **Effective dynamic K in admission:** reserve what this step will actually verify, subject to hard safety bounds.
+8. Existing effective-setting, chunk-parity, state-isolation, PLE-staging, memory-staircase and autotune-stability gates remain.
 
 ## Hard freshness boundary
 
-`2026-09-18 21:34:45 UTC`
+`2026-09-19 07:51:54 UTC`
