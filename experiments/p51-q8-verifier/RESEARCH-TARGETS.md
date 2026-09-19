@@ -72,6 +72,22 @@ are deliberately not the 90%-confidence floors and not the low-probability stret
 
 # 1. Qwen3.8-Flash-Next — 2x M1 Max 64 GB / TB4
 
+## Quant design identity — custom mixed deployment lane
+
+Project 51 no longer treats one whole-file BPW value as the Flash quant identity.
+
+- **Quality/certification comparator:** oQ5e / high-quality 5-bit-class builds.
+- **Aggressive speed comparator:** oQ4e.
+- **Intended deployment-design lane:** approximately **4.6-4.9 effective BPW on the hot compute trunk**, with tensor-role-aware allocation.
+- **PLE/ngram table precision + placement:** reported separately; SSD/offloaded PLE bits should not inflate the decode-bandwidth label.
+- **MTP precision:** reported separately and kept relatively high until acceptance/quality evidence proves lower precision safe.
+- Sensitive QSA/indexer, GDN, hyperconnection, routing/shared-expert and head tensors may receive Q6/Q8-class precision even when the routed expert mass is lower.
+
+The frozen quality gate is behavioral: a custom quant must retain essentially oQ5e/BF16 capability on Project 51's hard coding, long-context, tool/state and MTP-acceptance fixtures. A faster quant that materially changes routing/state behavior does not qualify merely because average perplexity is close.
+
+**Canonical performance targets remain 40 TG @ ~128K / 400 cold PP.** A custom quant may create stretch headroom beyond these numbers, but no higher numeric target is promoted until physical target-topology evidence exists.
+
+
 ## TG — headline target is B1 at ~128K active context
 
 **Working target: 40 tok/s sustained TG at approximately 128K active context.**
@@ -116,7 +132,7 @@ These are engineering planning estimates, not statistical probabilities. They in
 | >=45 tok/s | ~35% |
 | >=50 tok/s | ~15-20% |
 
-The confidence ladder includes a strong recovered modern **M1 Max 64 GB** receipt: AtomicChat **4.27 bpw** weights, Q8 KV, indexed QSA, direct PLE, and **MTP off** sustain **23.31 TG at 117,764 prompt tokens** (384 generated) and **20.51 TG at 148,476**. This proves a modern exact-M1 low-20s physical floor near headline context. However, re-reading the pinned fork shows that this is already a substantially tuned single-node stack: model-specific Qwen4Exp Metal kernels, indexed sparse attention, QSA block scoring, HC/GDN-oriented paths, direct PLE staging and a dedicated Q8 selected-row gather/dequant kernel are already present. Therefore the receipt should not be treated as a lightly tuned baseline with large easy single-node headroom remaining. The 40-TG thesis still depends primarily on Q5-efficient execution plus MTP/multi-row pipeline occupancy across the second M1, so planning confidence is held around **60%**, not 65%.
+The confidence ladder includes a strong recovered modern **M1 Max 64 GB** physical receipt: AtomicChat's **4.27 whole-file BPW** artifact, Q8 KV, indexed QSA, direct PLE and **MTP off** sustains **23.31 TG at 117,764 prompt tokens** (384 generated) and **20.51 TG at 148,476**. The 4.27 label must not be treated as near-Q5 hot-trunk precision: the giant high-precision PLE table inflates whole-file BPW while much of the compute trunk is far more aggressively quantized. The receipt therefore proves a modern exact-M1 low-20s physical floor for an aggressive mixed quant, not for the intended 4.6-4.9 hot-trunk deployment lane. The pinned fork is also already substantially tuned. The 40-TG thesis still depends on higher-quality hot-trunk execution plus MTP/multi-row pipeline occupancy across the second M1, so planning confidence remains around **60%**.
 
 ### Historical September 4 ~128K confidence ladder — retained for provenance, not target definition
 
@@ -163,7 +179,7 @@ target. A mature system that reaches 40 here but misses badly at ~128K has not c
 
 Rationale:
 
-- exact single-M1 evidence includes both the DS4 Q2 ~272-275 PP medium-context lane **and** the recovered 4.27-bpw long-context receipt at **208.84 PP @84,984**, **203.18 PP @117,764**, and **152.03 PP @148,476** with indexed QSA/direct PLE/Q8 KV. The latter is closer to target precision/context and materially supports the 400-PP PP2 thesis, but its packed-QSA path is not parity-certified, so it is discounted rather than treated as a fully qualified ruler;
+- exact single-M1 evidence includes both the DS4 Q2 ~272-275 PP medium-context lane **and** the recovered Atomic mixed-quant long-context receipt at **208.84 PP @84,984**, **203.18 PP @117,764**, and **152.03 PP @148,476** with indexed QSA/direct PLE/Q8 KV. Its whole-file 4.27 BPW is not comparable to the intended hot-trunk precision, and its packed-QSA path is not parity-certified, so it is useful physical PP evidence but not a direct custom-quant ruler;
 - sufficiently long prompts can pipeline chunks across a balanced PP2 split, so cluster PP has a
   much stronger scaling case than B1 decode;
 - gathered-QSA prefill and sparse selected-K/V are structurally favorable;
