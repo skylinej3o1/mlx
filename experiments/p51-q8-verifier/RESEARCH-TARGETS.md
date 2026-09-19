@@ -163,7 +163,7 @@ target. A mature system that reaches 40 here but misses badly at ~128K has not c
 
 Rationale:
 
-- exact single-M1 evidence now includes both the DS4 Q2 ~272-275 PP medium-context lane **and** a recovered modern 4.27-bpw long-context receipt at **208.84 PP @84,984**, **203.18 PP @117,764**, and **152.03 PP @148,476** with indexed QSA/direct PLE/Q8 KV. The latter is much closer to target precision and context, so it materially strengthens the 400-PP PP2 thesis without being doubled mechanically;
+- exact single-M1 evidence includes both the DS4 Q2 ~272-275 PP medium-context lane **and** the recovered 4.27-bpw long-context receipt at **208.84 PP @84,984**, **203.18 PP @117,764**, and **152.03 PP @148,476** with indexed QSA/direct PLE/Q8 KV. The latter is closer to target precision/context and materially supports the 400-PP PP2 thesis, but its packed-QSA path is not parity-certified, so it is discounted rather than treated as a fully qualified ruler;
 - sufficiently long prompts can pipeline chunks across a balanced PP2 split, so cluster PP has a
   much stronger scaling case than B1 decode;
 - gathered-QSA prefill and sparse selected-K/V are structurally favorable;
