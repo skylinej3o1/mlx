@@ -119,6 +119,15 @@ Future passes should seek status/performance updates rather than rediscover thes
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
 
+### 2026-09-20 13:58 UTC rewindable-agent / Apple-runtime additions
+
+- **NEW DS4 #1089:** M5 Max / Metal / ~21K tool chat rewinds a live V4.1 session to the safe shared prefix instead of replaying full client-rendered history. Batched turn 2 re-read **21,357 tokens / 197.6 s -> 95 / 7.4 s**; turn 3 **21,445 / 196.3 s -> 89 / 6.9 s**. P51 `sup` should preserve a rewindable active-session checkpoint and >=2 live slots when auxiliary calls could evict it.
+- **NEW exact Qwen3.8 cache rule — vLLM #57128:** after MTP rejection, skip the newest matched recurrent checkpoint if it can contain rejected draft state; do not blindly subtract a token/hash margin because real checkpoints are sparse. Live ~24K shared-prefix case reused **15,440/~18,528** available tokens and cut ~77 s cold to 30-32 s warm on 2x5060Ti.
+- **NEW Apple admission/MTP evidence — mlx-serve 06d53afb:** re-bill requests against live wired memory immediately before prefill; stale concurrent admission of four 64K prompts could kernel-panic macOS. M4 Max MTP row-batching reports **109->119 aggregate tok/s** at N=4 and a four-stream policy **64->122 tok/s**. Directional only for M1.
+- **NEW Apple prefill tuning method — Splash #36:** M4 Max Apple9 Q4 prefill measured N128/4-simdgroup ahead of N256/8; cold 128K GPU prefill **-2.3%**, 2K-50K ~**-3.6 to -3.7%**, bit-identical. M1 must tune actual contention/continuation row sizes rather than inherit M4 constants.
+- **UPDATE:** vLLM #56810 merged cache-class separation; #43310 merged per-request speculative metrics; #56742 explicitly places Qwen4Exp MTP buffers and warms its target kernels; #56698 reinforces that profiled KV maximum is only an upper bound under activation/allocator/concurrency pressure.
+- **NEW agent preparation:** Splash #32/#33/#34/#35 add bounded tokenization reuse, phase latency histograms, contention-aware prefill and single-flight grammar compilation. Extend `sup` prewarm beyond model state to stable tokenizer/grammar/tool-schema artifacts.
+
 ### 2026-09-20 10:43 UTC cache-integrity / workspace / score-only additions
 
 - **NEW prefix-cache integrity failure — vLLM #57477:** a padded-stride bug in GLM-5.3-Flash tail seeding silently overwrote long-lived cached indexer pages while prefix-cache hit metrics remained healthy. Under allocator churn a cached 14.5K system prompt degraded from 7/7 to **1/7** final lookups; fixed branch stayed **7/7**, and a fresh cache-salt copy was also 7/7. P51 `sup` prewarm must validate **semantic state integrity under churn**, not merely cache hits: long-lived-prefix stress, fresh-namespace control, stage stride/layout identity and behavioral probes are mandatory.
