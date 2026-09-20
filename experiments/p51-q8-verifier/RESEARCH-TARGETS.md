@@ -23,6 +23,7 @@ Definitions:
   production PP rulers.
 - For cluster PP, long enough prompts are assumed to permit useful chunk/pipeline overlap.
 - Prefix/session reuse is a separate latency objective and should not be folded into cold PP.
+- **Agent wake/prewarm** is also separate: a lightweight Slack/Telegram/iMessage wake signal may pre-materialize the invariant system/tools/skills/repo prefix and certified recurrent/QSA state before the real task arrives. Measure wake->ready and real-task->TTFT independently; the 400-PP ruler remains genuinely cold.
 - A target can move only when new direct physical evidence or a materially stronger mechanism case
   changes the planning distribution. Mechanism transfer alone should normally change the test plan,
   not silently become a measured rate.
@@ -35,13 +36,30 @@ The original 2026-09-04 normalization file accidentally made the Flash executive
 look like a short/medium-context target while also placing a lower probability ladder under the
 ~128K subsection. Subsequent project discussion clarified that the intended headline system goal is:
 
-> **Qwen3.8-Flash-Next, quality-preserving Q5-class / eventual ~5.x-BPW weights, PP2 on 2x M1 Max
-> 64 GB over TB4, ~128K active context: ~40 tok/s sustained TG, with ~400 tok/s realistic cold PP.**
+> **Qwen3.8-Flash-Next, quality-preserving mixed dynamic-4-bit deployment with an initial
+> ~4.6-4.9 effective-BPW hot-trunk search band, PP2 on 2x M1 Max 64 GB over TB4, ~128K active
+> context: ~40 tok/s sustained TG, with ~400 tok/s realistic cold PP.**
 
 This correction is **not** an evidence-driven downgrade and then re-upgrade. No negative exact-target
 measurement forced 40 -> 30. It restores the intended denominator for the existing goal.
 
 The 40 @ ~128K number remains a **planning target / hypothesis**, not a measured dual-M1 receipt.
+
+### 2026-09-20 quant-identity correction — flat Q4 vs dynamic Q4
+
+Project 51 should no longer describe the intended Flash lane as "basically Q5" or identify it by one whole-file BPW.
+
+Current public MLX bracketing references:
+
+- **MTPLX Bare Speed:** flat Q4 for every MoE expert/dense matrix, 64-weight groups; 16-bit GDN/recurrent/norm/QSA-indexer/MTP islands; ~74 GB resident weights with the n-gram sidecar on SSD.
+- **MTPLX Optimized Speed:** dynamic Q4 with the **QSA projections promoted to Q8** plus the same 16-bit sensitive islands. This is the higher-quality recommended sibling, but it is not a literal uniform Q5 quant.
+- **APEX / Myric Flash evidence:** heterogeneous allocation can push selected expert classes lower while protecting small sensitive paths, but the published Flash APEX artifact omits the MTP head and uses GGUF formats whose M1 kernel economics do not transfer automatically.
+
+The deployment objective remains an **initial ~4.6-4.9 effective-BPW hot compute trunk**, with PLE/ngram and MTP precision accounted separately. APEX-inspired ~4.3-4.6 arms are now explicit experiments, not promoted targets.
+
+The optimizer's objective is **behavioral quality and MTP acceptance per M1 hot byte / microsecond saved**, not minimum file size. The first baseline experiment is to make the MTPLX 16-bit BF16 islands/compute path M1-FP16-friendly while keeping the quantized tensors unchanged.
+
+This is a **target-definition refinement, not a TG/PP probability change**.
 
 ### 2026-09-18 recovered Q5-class target-lane evidence
 
@@ -78,7 +96,9 @@ Project 51 no longer treats one whole-file BPW value as the Flash quant identity
 
 - **Quality/certification comparator:** oQ5e / high-quality 5-bit-class builds.
 - **Aggressive speed comparator:** oQ4e.
-- **Intended deployment-design lane:** approximately **4.6-4.9 effective BPW on the hot compute trunk**, with tensor-role-aware allocation.
+- **Public MLX bracketing endpoints:** MTPLX **Bare = flat Q4 trunk**; MTPLX **Optimized = dynamic Q4 with Q8 QSA**. Neither should be mislabeled as a uniform Q5.
+- **Intended deployment-design lane:** begin around **4.6-4.9 effective BPW on the hot compute trunk**, with tensor-role-aware allocation; test ~4.3-4.6 experimental arms only where measured Flash sensitivity and M1 kernel timing justify them.
+- **Optimization objective:** quality/tool-state/long-context/MTP acceptance per **M1 hot byte and microsecond saved**, not whole-file BPW.
 - **PLE/ngram table precision + placement:** reported separately; SSD/offloaded PLE bits should not inflate the decode-bandwidth label.
 - **MTP precision:** reported separately and kept relatively high until acceptance/quality evidence proves lower precision safe.
 - Sensitive QSA/indexer, GDN, hyperconnection, routing/shared-expert and head tensors may receive Q6/Q8-class precision even when the routed expert mass is lower.
