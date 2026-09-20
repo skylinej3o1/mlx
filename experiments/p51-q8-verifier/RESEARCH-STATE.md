@@ -119,6 +119,12 @@ Future passes should seek status/performance updates rather than rediscover thes
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
 
+### 2026-09-20 14:50 UTC verify-fusion / warmup-lifetime additions
+
+- **NEW direct Flash verify-fusion fix — oMLX #3776:** Qwen4Exp's post-upgrade verifier uses L2 normalization, so the old RMS-compatible fused GDN prework gate silently failed. A bit-exact L2 fused variant restores T=4 Apple-Silicon verify backbone from **38.9-43.2 -> 33.7-36.1 ms/cycle**, back near the 33.5-34 ms pre-upgrade band, with ~70-77% acceptance unchanged. P51 fast paths must match the active numerical contract rather than simply relax compatibility gates, and must expose engagement/rejection diagnostics.
+- **NEW warmup pointer-lifetime bug — vLLM #57807:** dummy graph warmup can initialize a shared hybrid-state context against temporary block-table/cache pointers that later survive into serving. P51 `sup` prewarm must separate compile/warmup artifacts from live state bindings and tear down/rebind every temporary cache/QSA/recurrent pointer before admitting a real request.
+- **UPDATE sparse scoring — vLLM #54335/#56984:** selected-token prefill scoring can avoid generic full-row/full-vocab logprob cost, but prefix/session reuse complicates row ownership; skipped rows must never be returned as fabricated scores. Keep classifier candidate domains small and tensorized because nested Python per-row metadata can dominate serialization/copy time.
+
 ### 2026-09-20 13:58 UTC rewindable-agent / Apple-runtime additions
 
 - **NEW DS4 #1089:** M5 Max / Metal / ~21K tool chat rewinds a live V4.1 session to the safe shared prefix instead of replaying full client-rendered history. Batched turn 2 re-read **21,357 tokens / 197.6 s -> 95 / 7.4 s**; turn 3 **21,445 / 196.3 s -> 89 / 6.9 s**. P51 `sup` should preserve a rewindable active-session checkpoint and >=2 live slots when auxiliary calls could evict it.
