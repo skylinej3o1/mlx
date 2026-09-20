@@ -123,7 +123,7 @@ Project 51 no longer treats one whole-file BPW value as the Flash quant identity
 - **Public MLX bracketing endpoints:** MTPLX **Bare = flat Q4 trunk**; MTPLX **Optimized = dynamic Q4 with Q8 QSA**. Neither should be mislabeled as a uniform Q5.
 - **Intended deployment-design lane:** begin around **4.6-4.9 effective BPW on the hot compute trunk**, with tensor-role-aware allocation; test ~4.3-4.6 experimental arms only where measured Flash sensitivity and M1 kernel timing justify them.
 - **Optimization objective:** quality/tool-state/long-context/MTP acceptance per **M1 hot byte and microsecond saved**, not whole-file BPW.
-- **PLE/ngram table precision + placement:** reported separately; SSD/offloaded PLE bits should not inflate the decode-bandwidth label.
+- **PLE/ngram table precision + placement:** reported separately; SSD/offloaded PLE bits should not inflate the decode-bandwidth label. **However, PLE precision is part of the long-context MTP/quality gate, not a free capacity knob**: community Flash-Next evidence shows a possible deep-context acceptance penalty when the n-gram table is aggressively quantized, so Q4/Q6/Q8/source PLE arms must be tested through 128K before promotion.
 - **MTP precision:** reported separately and kept relatively high until acceptance/quality evidence proves lower precision safe.
 - Sensitive QSA/indexer, GDN, hyperconnection, routing/shared-expert and head tensors may receive Q6/Q8-class precision even when the routed expert mass is lower.
 

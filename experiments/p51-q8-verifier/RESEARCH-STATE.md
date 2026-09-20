@@ -119,6 +119,14 @@ Future passes should seek status/performance updates rather than rediscover thes
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
 
+### 2026-09-20 19:37 UTC routing-layout / cache-geometry / PLE-quality additions
+
+- **NEW MoE routing correctness — vLLM #57823:** compiled router logits can have padded physical row strides; assuming packed `row * num_experts` silently changed expert selection. P51 >=38 certification must prove eager/reference vs compiled/fused router-selection parity under padded/aligned layouts before attributing any behavior change to quantization.
+- **NEW mixed cache geometry — vLLM #57824:** speculative/draft and target cache groups may have different tokens-per-block. Sleep/offload/checkpoint state must use per-group native block geometry or an explicitly versioned canonical form; one target-derived token/block conversion is not safe.
+- **NEW nearer-Apple transfer — Splash #43:** capability-gated Splash backend now validates on M2 Max / Apple8, but has no real-model throughput/quality receipt and still provides no M1 proof. Confidence unchanged.
+- **NEW Metal observability rule — Splash #44:** command completion/watchdog disarm must precede memory telemetry. Diagnostics cannot sit on the GPU-completion critical path.
+- **RECOVERED PLE quality warning:** provenance-verified Strix Halo Flash-Next runs report a 128K MTP reversal between Q8 PLE and IQ4_NL PLE (26.9 vs 18.6 tok/s in one run; mechanism/ratio explicitly unverified, n=1). PLE/ngram precision remains separately accounted from hot-trunk BPW but must be qualified as a **long-context MTP/quality dimension**, not treated as capacity-only.
+
 ### 2026-09-20 18:18 UTC quality-floor / batch-invariance / resume-retention additions
 
 - **USER QUALITY TARGET PROMOTED:** production Flash quant must preserve **>=38 AA-class behavior**, with **39-40 preferred**. Current source Flash-Next remains AA Intelligence Index **40**. Quant optimization is now lexicographic: pass the quality floor first, then maximize M1 TG. Candidates below 38 remain experimental speed quants even if faster.
