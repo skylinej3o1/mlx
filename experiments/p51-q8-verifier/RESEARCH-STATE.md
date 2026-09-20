@@ -119,6 +119,10 @@ Future passes should seek status/performance updates rather than rediscover thes
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
 
+### 2026-09-20 15:28 UTC sleep-preserved prefix tier addition
+
+- **NEW agent sleep/wake rule — vLLM #57810:** accelerator pause/sleep can release device KV and working memory while preserving the external CPU/SSD prefix tier. P51 should distinguish **hot idle**, **sleep idle** and **cold**; `sup` can wake from sleep idle by restoring certified prefix/checkpoint material instead of cold-prefilling. Retained state must be namespaced by model/weights, quant, tokenizer/template, stable-prefix hash, runtime schema and PP2/recurrent-QSA format, and explicitly invalidated when any identity changes. Sleep itself must not imply cache invalidation.
+
 ### 2026-09-20 14:50 UTC verify-fusion / warmup-lifetime additions
 
 - **NEW direct Flash verify-fusion fix — oMLX #3776:** Qwen4Exp's post-upgrade verifier uses L2 normalization, so the old RMS-compatible fused GDN prework gate silently failed. A bit-exact L2 fused variant restores T=4 Apple-Silicon verify backbone from **38.9-43.2 -> 33.7-36.1 ms/cycle**, back near the 33.5-34 ms pre-upgrade band, with ~70-77% acceptance unchanged. P51 fast paths must match the active numerical contract rather than simply relax compatibility gates, and must expose engagement/rejection diagnostics.
