@@ -45,6 +45,30 @@ measurement forced 40 -> 30. It restores the intended denominator for the existi
 
 The 40 @ ~128K number remains a **planning target / hypothesis**, not a measured dual-M1 receipt.
 
+### 2026-09-20 quality floor — preserve >=38 AA-class behavior
+
+The user explicitly prioritizes retaining model intelligence over the last few tok/s.
+
+Current source reference (Artificial Analysis v4.3.2):
+https://artificialanalysis.ai/models/qwen3-8-flash-next
+
+- source Qwen3.8-Flash-Next Intelligence Index: **40**;
+- production P51 quant hard floor: **>=38 AA-class behavior**;
+- preferred production band: **39-40**;
+- below 38: **experimental speed quant only**, not the default agent model.
+
+This makes the quant search **lexicographic**:
+
+1. satisfy the >=38 quality/capability floor across coding, agentic/tool, long-context and stateful behavior;
+2. preserve MTP acceptance/correction behavior and QSA/recurrent correctness;
+3. only then maximize sustained M1 TG / minimize hot bytes and microseconds.
+
+The current ~4.6-4.9 hot-trunk BPW band remains a **search region, not a requirement**. If a slightly heavier quant is needed to stay >=38, quality wins. APEX-inspired ~4.3-4.6 arms remain valuable experiments, but cannot be promoted solely from perplexity or throughput.
+
+Certification should preferably include the actual comparable AA evaluation. Until that is practical, the frozen P51 proxy suite must be calibrated against source/Optimized/oQ5e behavior and include hard coding, tool use, long-context retrieval, QSA/indexer stability, recurrent-state replay and MTP acceptance. **A guessed "38+" is not certification.**
+
+This is a **quality-target change only**. It does not change the 40 TG @ ~128K / 400 cold-PP planning targets or their current confidence ladder.
+
 ### 2026-09-20 quant-identity correction — flat Q4 vs dynamic Q4
 
 Project 51 should no longer describe the intended Flash lane as "basically Q5" or identify it by one whole-file BPW.
@@ -103,7 +127,7 @@ Project 51 no longer treats one whole-file BPW value as the Flash quant identity
 - **MTP precision:** reported separately and kept relatively high until acceptance/quality evidence proves lower precision safe.
 - Sensitive QSA/indexer, GDN, hyperconnection, routing/shared-expert and head tensors may receive Q6/Q8-class precision even when the routed expert mass is lower.
 
-The frozen quality gate is behavioral: a custom quant must retain essentially oQ5e/BF16 capability on Project 51's hard coding, long-context, tool/state and MTP-acceptance fixtures. A faster quant that materially changes routing/state behavior does not qualify merely because average perplexity is close.
+The frozen quality gate is behavioral and now has an explicit production floor: **>=38 AA-class behavior, preferably 39-40**. A custom quant must retain essentially source/oQ5e/Optimized capability on Project 51's hard coding, long-context, tool/state, QSA/recurrent-stability and MTP-acceptance fixtures. A faster quant that materially changes routing/state behavior or falls below the quality floor does not qualify merely because average perplexity is close.
 
 **Canonical performance targets remain 40 TG @ ~128K / 400 cold PP.** A custom quant may create stretch headroom beyond these numbers, but no higher numeric target is promoted until physical target-topology evidence exists.
 

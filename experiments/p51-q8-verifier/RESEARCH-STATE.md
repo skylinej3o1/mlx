@@ -119,6 +119,14 @@ Future passes should seek status/performance updates rather than rediscover thes
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
 
+### 2026-09-20 18:18 UTC quality-floor / batch-invariance / resume-retention additions
+
+- **USER QUALITY TARGET PROMOTED:** production Flash quant must preserve **>=38 AA-class behavior**, with **39-40 preferred**. Current source Flash-Next remains AA Intelligence Index **40**. Quant optimization is now lexicographic: pass the quality floor first, then maximize M1 TG. Candidates below 38 remain experimental speed quants even if faster.
+- **NEW in-flight retention — vLLM #57813:** unfinished requests can preferentially pin CPU-offloaded chunks they will resume from, with pressure fallback. P51 sleep/rewind tiers should use request lifetime as an eviction signal so active coding-agent checkpoints outlive completed/background sessions without becoming unevictable.
+- **NEW quality/determinism gate — vLLM #57815:** sparse-indexer backend/algorithm selection can vary with batch rows, padded width and concurrency, silently changing selected attention keys even at greedy temperature. P51 >=38 certification must compare B1/B2/B4 + mixed-length batches at QSA-selection/logit/recurrent/MTP levels or pin a genuinely batch-invariant path.
+- **NEW PP2 constraint — vLLM #57817:** generic GPU n-gram speculative state is not automatically PP-safe; sampled/draft-token state must be transported/owned explicitly. This is distinct from Flash-Next's PLE/n-gram embedding sidecar, but any P51 n-gram self-speculation under PP2 needs an explicit state-transport design.
+- **UPDATE SSD checkpoint viability — Splash #3:** bounded SSD caching now covers KV plus recurrent state with shared-prefix restores, cancellation/failure handling and 128K real-model validation. This strengthens the P51 sleep-idle tier without changing TG/PP targets.
+
 ### 2026-09-20 15:28 UTC sleep-preserved prefix tier addition
 
 - **NEW agent sleep/wake rule — vLLM #57810:** accelerator pause/sleep can release device KV and working memory while preserving the external CPU/SSD prefix tier. P51 should distinguish **hot idle**, **sleep idle** and **cold**; `sup` can wake from sleep idle by restoring certified prefix/checkpoint material instead of cold-prefilling. Retained state must be namespaced by model/weights, quant, tokenizer/template, stable-prefix hash, runtime schema and PP2/recurrent-QSA format, and explicitly invalidated when any identity changes. Sleep itself must not imply cache invalidation.
