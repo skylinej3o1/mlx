@@ -119,6 +119,16 @@ Future passes should seek status/performance updates rather than rediscover thes
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
 
+### 2026-09-21 10:36 UTC MTP-recovery / direct-RCO-Flash / recurrent-transfer additions
+
+- **NEW current Apple Flash MTP — oMLX #3791:** Qwen3.8-Flash-Next-oQ4e-mtp on M3 Ultra recovered from 94.34 TG to **116.42-117.13 TG** by eliminating short-block gate/up materialization, reusing verifier fused paths and restoring fused router top-k; MTP acceptance stayed ~90-92%. Audit verify/history-fold copies and fused-path engagement separately from target-only decode. Router fusion changes arithmetic/order and therefore requires behavior + acceptance recertification.
+- **NEW quality-first KV mechanism — mlx-serve f66634e:** optimized KV8 attention on M4 Max Qwen3.8-27B improved MTP decode **45->55 @16K** and **37->51 @32K**, beating BF16 KV at 32K on that path. Keep Q8 KV as the default quality baseline until lower precision proves necessary; first optimize dequant/attention kernels.
+- **NEW speculative cache-integrity rule — vLLM #56734:** dummy draft steps can write through stale block-table rows and poison cached drafter KV, producing request-local 0% MTP acceptance until cache reset. Padding/warmup/dummy/cancelled rows must be write-inert unless they own a live slot.
+- **NEW recurrent-transfer evidence — vLLM #51052:** cross-node/pipeline restore must transfer recurrent conv/SSM state alongside attention KV and define an exact replay landing boundary; KV hit alone is not a valid hybrid-model checkpoint.
+- **NEW Apple-family kernel evidence — Splash #88:** Apple9 Q4/MoE decode gains can be very large, but split-K was withdrawn after prompt-specific speculative-acceptance regressions. Arithmetic-changing M1 kernels need rollback toggles and MTP/behavior gates.
+- **RECOVERED direct Flash quant evidence — ISTA-DASLab GSQ/RCO:** exact Qwen3.8-Flash-Next **3.00-bpw transformer** allocation retains **99.4% of BF16** on AIME25/GPQA-D/LCB-v6 task average. Public allocation strongly protects HC/recurrent/indexer/control tensors while driving routed expert mass toward ~2-bit classes. Add GSQ/RCO as a first-class sensitivity/allocation prior beside APEX. This is not AA certification and has no MTP-head result.
+- **USER-SUPPLIED M3 Ultra cross-runtime receipt:** mlx-serve mixed-4/8 Flash MTP reports **113.1 TG think-off / ~70 TG xhigh**, ~960 PP cold @64K and ~892 PP on a 258K request with 64K cached. Together with oMLX #3791 it strengthens the upside tail, not exact dual-M1 confidence.
+
 ### 2026-09-20 19:37 UTC routing-layout / cache-geometry / PLE-quality additions
 
 - **NEW MoE routing correctness — vLLM #57823:** compiled router logits can have padded physical row strides; assuming packed `row * num_experts` silently changed expert selection. P51 >=38 certification must prove eager/reference vs compiled/fused router-selection parity under padded/aligned layouts before attributing any behavior change to quantization.
