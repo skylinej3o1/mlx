@@ -103,7 +103,7 @@ exact M1-Max/TB4 evidence.
 | Model / hardware lane | Working TG target | Confidence / status | Working cold PP target | Confidence |
 |---|---:|---:|---:|---:|
 | **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s @ ~128K active context** | **planning objective; exact confidence not separately calibrated** | **400 tok/s** | **~55-60%** |
-| **Qwen3.8-27B — M1 Max 64** | **25 tok/s** | **~55-60%** | **110 tok/s native/exact-runtime** | **~60%** |
+| **Qwen3.8-27B — M1 Max 64** | **25 tok/s** | **~65%** | **110 tok/s native/exact-runtime** | **~60%** |
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
@@ -255,12 +255,31 @@ numbers and do not alter P69 certification.
 | Mature B1 TG | Confidence |
 |---|---:|
 | >=20 tok/s | ~95% |
-| >=22 tok/s | ~80% |
-| **>=25 tok/s** | **~55-60%** |
+| >=22 tok/s | ~90% |
+| **>=25 tok/s** | **~65%** |
 | >=28 tok/s | ~30% |
 | >=30 tok/s | ~15% |
 
 **Working target: 25 tok/s.**
+
+### 2026-09-22 direct Apple7 calibration
+
+Splash #95 adds the first clean exact-hardware M1 Max 64 GB receipt from the model-specific Splash
+runtime. On an M1 Max 32-core GPU, a measured Apple7 policy produces **25.7 / 15.4 / 25.8 tok/s**
+across three short prompts (about **22.3 tok/s mean**) versus 23.2 / 14.0 / 23.7 untuned, with
+byte-identical greedy output versus the untuned Apple7 path in the reporter's single-request and
+three-concurrent-request A/B.
+
+This is strong enough to raise the mature **>=22 TG** planning cell from ~80% to **~90%** and the
+headline **>=25 TG** cell from ~55-60% to **~65%**. It does **not** justify moving >=28 or >=30:
+one prompt remains heavily acceptance-limited at 15.4 TG, reasoning was off, the workload was short,
+and the tested quant/runtime is not the frozen P69 identity. The same report measures only ~49 tok/s
+cold PP on a 7,244-token prompt, so the separate 110-PP production target and confidence remain
+unchanged; Apple7 prefill is explicitly the weak part of the current Splash policy.
+
+The result also changes experiment ordering: reproduce the measured Apple7 policy before inventing
+new kernels. Its failed Simdgroup experiment is a mandatory warning that isolated Metal kernel tests
+can pass while full-model greedy output is wrong.
 
 Anchors:
 
