@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-23 12:30 ET.
+Last consolidated: 2026-09-23 15:03 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -785,3 +785,15 @@ Highest-value missing measurements:
 - **SECONDARY MiMo speculation evidence — oMLX #3877:** correct speculative serving requires isolated draft state, predictor-index preservation and full rollback after sliding-window cache rotation. MiMo M3-Ultra Lightning-MTP gains (+11% to +20% at 4K-32K) are non-Flash transfer only; author notes long-context token identity still varies across cache/batch conditions, so no P51 target credit.
 
 **Target effect:** none. No new exact dual-M1 Flash receipt and no new DASLab xhigh quality result appeared. Keep xhigh ~3.0-3.6 search, ~3.3-3.6 source-like frontier hypothesis, 40 TG @ ~128K / 400 cold PP, and ~70% >=40 planning confidence.
+
+
+### 2026-09-23 19:03 UTC Metal batching / PLE-system-cost / external-state-restore update
+
+- **PROVISIONAL Metal long-context batch-risk — llama.cpp #29335:** an M3-Ultra/Qwen3.8-Flash report shows severe degradation when multiple long sequences share one Metal decode batch, while independent singleton processes scale much better. The exact ratios are not promoted because the maintainer says the custom script reports some effects incorrectly and the model is unsupported in that build. P51 nevertheless adds an explicit Apple7 B1/B2/B4/B8 long-context verifier-width benchmark and singleton-process control before PP2 multi-row overlap receives performance credit.
+- **PLE microbench != system bottleneck — SGLang #40947:** a shared-host Flash PLE backend cuts gather time from ~11.2 us to ~2.2-3.6 us and removes one TP4 collective/step, yet whole-server decode is only +0.17% and the prefill-heavy workload is -0.26%. Prioritize verifier GDN/MoE, QSA/indexer geometry and PP2 occupancy ahead of PLE-collective elimination unless P51 profiling shows otherwise.
+- **Exact-family external restore — vLLM #58413:** Qwen3.8-27B + MTP3 at 100K moves external adoption 0 -> 99,008 tokens by giving align-mode recurrent groups their own hash-block offload geometry. TTFT drops ~11.7-12.3 s -> 377 ms; restored and cold continuations are byte-identical and MTP acceptance remains 2.601. P51 warm state must support per-group checkpoint/chunk geometry rather than one global cache grid.
+- **KV-PP concrete planning — vLLM #58428:** target layers receive explicit physical owners, draft/EAGLE state remains rank-local, logical scheduler blocks are decoupled from rank-local physical tensors, and transfer scratch is budgeted separately. PP4 unit tests report ~3.2x logical block-capacity expansion; runtime transport is not implemented, so no performance credit.
+- **Progress-based liveness — vLLM #58422:** a Blackwell Qwen3.8 hybrid/MTP deployment can wedge with active requests and a 200 health endpoint while generation counters stop. P51 long-running service health must include forward/token progress and a validated restart+state-restore path, not HTTP/process health alone.
+- **Weak CUDA QSA-prefill evidence — llama.cpp #29326:** enabling radix top-k for the Qwen4Exp indexer reportedly improves prompt processing ~20% through ~148K on CUDA. Keep QSA/indexer top-k as a cold-PP seam; no Apple transfer or target credit.
+
+**Target effect:** none. No exact dual-M1 Flash receipt and no new DASLab xhigh result appeared. Keep 40 TG @ ~128K / 400 cold PP and ~70% >=40 planning confidence.
