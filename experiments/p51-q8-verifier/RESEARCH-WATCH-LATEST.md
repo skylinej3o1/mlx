@@ -1,355 +1,298 @@
-# Project 51 primary-lane research watch — 2026-09-23 09:53 ET
+# Project 51 primary-lane research watch — 2026-09-23 12:30 ET
 
-**Freshness boundary checked:** prior hard boundary **2026-09-23 10:19:31 UTC**. This pass covers substantive evidence through the user cutoff **2026-09-23 13:53:27 UTC**.
+**Freshness boundary checked:** prior hard boundary **2026-09-23 13:53:27 UTC**. This pass covers substantive evidence through the user cutoff **2026-09-23 16:30:12 UTC**.
 
 ## Decision
 
 **No canonical TG/PP or xhigh-quality target change.**
 
-The strongest fresh result is an exact-family cache-correctness receipt: SGLang now demonstrates on Qwen3.8-Flash-Next that restoring ordinary KV from host while leaving the QSA compressed-index keys stale can produce large divergence, while restoring the QSA sidecar with the KV preserves argmax and packed-MTP acceptance. This materially strengthens Project 51's existing rule that a warm/restored Flash session is a **multi-state-machine restore**, not "KV cache reuse."
+No new exact 2x M1 Max / TB4 Flash-Next throughput receipt appeared, and no new DASLab / GSQ-RCO xhigh behavioral result appeared.
 
-Other useful deltas:
+The useful deltas are operational/correctness-oriented:
 
-1. oMLX #3873 opens a bounded Flash-Next FP16 PLE/HyperConnection path and publishes historical M2 Ultra measurements suggesting large prefill upside, but current-main GDN/L2-verify/MTP correctness is explicitly unfinished.
-2. vLLM #58329 proposes layer-owned KV pipeline parallelism. Its supporting cache-pooling data is strong, but its own RFC warns decode-time broadcasts can lose when cache capacity is not the bottleneck. For P51 this strengthens **stage-local state ownership**, not remote per-token KV movement.
-3. EXL3 #403 provides a real 90K-135K agent-session DFlash2-vs-MTP comparison: DFlash2 draft acceptance is ~28 points below MTP and does not create a clear session-level win. Keep MTP as the 27B production baseline; DFlash2 remains a challenger that must prove itself on the actual long-agent workload.
-4. llama.cpp #29313 is another concrete acceptance-collapse bug caused by runtime graph-allocation corruption rather than the draft model. Acceptance telemetry must be treated as a correctness sensor, not just a quality metric.
-5. vLLM #58340 adds the exact metric P51 needs for adaptive verify: **verified draft tokens**, distinct from proposed draft tokens.
+1. vLLM #58368 demonstrates that hybrid Mamba/GDN + MTP prefix reuse can lose the prompt-tail recurrent checkpoint and collapse a valid 1,536-token reuse to **zero**. This strengthens the rule that a cache hit includes the correct recurrent checkpoint boundary, not merely matching token hashes/KV blocks.
+2. llama.cpp #29322 shows `--sleep-idle-seconds` can keep prompt-cache RAM allocated during sleep and then discard the cache on wake, forcing a full re-prefill. This directly affects Project 51's planned agent sleep/wake/prewarm design.
+3. llama.cpp #29324 shows token-count cache budgets are badly misleading for hybrid/recurrent models because fixed recurrent state dominates short entries: about **~640 MiB private-memory growth per ~1.2K-token prompt** in the reported Qwen3.8-27B setup. P51 cache budgets must be byte/state aware.
+4. SGLang opened #40925 and #40929 for DSA-indexer and MTP KV-cache sharding. They are potentially relevant to state partitioning, but the PRs currently contain no accuracy/performance evidence and get no architectural promotion beyond "watch."
+5. llama.cpp merged missing Metal f32 x BF16 matrix-vector variants needed by BF16 depthwise 1D convolution. It fixes a real Metal compatibility hole, but the code is guarded by native-BF16 support and therefore gives no direct M1-Max performance credit.
 
-No new exact 2x M1 Max / TB4 Flash-Next throughput receipt appeared. No new DASLab / GSQ-RCO xhigh behavioral result appeared. Keep:
-
-- production quant search: **~3.0 / 3.2 / 3.4 / 3.6 average transformer BPW**;
-- current likely source-like xhigh region: **~3.3-3.6**, center hypothesis **~3.4-3.5**;
+Keep:
+- Flash-Next xhigh production quant search: **~3.0 / 3.2 / 3.4 / 3.6 average transformer BPW**;
+- likely source-like xhigh region: **~3.3-3.6**, center hypothesis **~3.4-3.5**;
 - dual-M1 Flash: **40 TG @ ~128K**, **400 cold PP**;
 - planning confidence for >=40 TG: **~70%**;
 - 50/500 remains stretch/headline territory.
 
 ---
 
-## NEW — SGLang #40916: QSA compressed keys are part of durable Flash cache state
+## NEW — vLLM #58368: MTP prompt-tail cache reuse requires the recurrent checkpoint at the shifted boundary
 
 Source:
-https://github.com/sgl-project/sglang/pull/40916
+https://github.com/vllm-project/vllm/pull/58368
 
-This is the most important fresh finding in this window.
+Created **2026-09-23 14:10:53 UTC**, still open at this cutoff.
 
-On main, Qwen4Exp/Qwen3.8-Flash-Next host-cache restore could restore normal KV while leaving the QSA compressed index keys stale because those keys live outside the ordinary full-KV pool. The restored session then uses stale block-selection state.
+Affected regime:
+- hybrid Mamba/GDN models;
+- MTP enabled;
+- prefix caching enabled;
+- aligned recurrent-cache mode;
+- hash block size smaller than the recurrent/Mamba block size.
 
-Reported failure magnitude on main:
-- host-restore KL against a warm reference: **~0.39 to 0.87**.
+Concrete example from the PR:
+- `hash_block_size = 64`;
+- prompt A length = **1,600 tokens**;
+- prompt B begins with A;
+- MTP prefix lookup intentionally drops the final 64-token matched block, so the reusable boundary should be **1,536**;
+- scheduler ends a prefill chunk at 1,536 to compute recurrent state there;
+- regression saves the recurrent state at 1,600 instead of 1,536;
+- result: prompt B reuses **0 tokens instead of 1,536**.
 
-The PR adds a separately declared host pool for the QSA compressed key state and waits for its layer transfer before the indexer can read it.
-
-Qwen3.8-Flash-Next BF16, TP8 validation:
-- host stack: **KV + INDEXER + MAMBA**;
-- QSA indexer host storage: **0.91 GB**;
-- geometry: 12 layers x 18,446 pages x 4,096 B;
-- host-restore KL against warm: **2.9e-3, 4.3e-3, 5.9e-3**;
-- argmax: matching;
-- packed MTP / EAGLE 3-step acceptance: **3.317 warm vs 3.317 host**;
-- chat-format GSM8K: **96.97 with HiCache vs 96.89 without**.
+The bug came from using the wrong semantic flag: checkpoint-tail storage depended on `use_eagle`, while the scheduler's actual boundary-shift condition is represented by `drop_eagle_checkpoint_block`.
 
 ### P51 consequence
 
-Promote this from a general cache principle to an **exact-family hard gate**.
+Promote a more precise cache-identity rule:
 
-A restorable Flash checkpoint / warm-agent state must version and restore together:
+> a reusable prefix is `token-prefix identity + exact recurrent/QSA checkpoint boundary + state schema`, not token hashes alone.
 
-- ordinary target KV;
-- QSA compressed/indexer keys and any selection metadata;
-- recurrent/GDN checkpoint state;
-- PLE/history state needed by the selected runtime;
-- draft/MTP cache/history/checkpoint state where speculation is retained;
-- PP-stage ownership / cache geometry identity.
+For every warm-prefix entry, record:
+- logical matched token length;
+- actual replay/resume boundary;
+- recurrent checkpoint token index;
+- QSA/indexer checkpoint token index;
+- draft/MTP checkpoint boundary;
+- hash-block and recurrent-block geometry;
+- model/runtime/quant identity.
 
-A target-KV hit is **not** a valid warm hit if its QSA sidecar is missing or stale.
+A checkpoint stored at the wrong boundary invalidates the hit even if the prefix token hashes match.
 
-Restore ordering matters: QSA compressed keys must be complete before any indexer/attention use.
+Add a regression fixture with non-aligned prompt lengths around every block boundary and require the restored continuation to match a no-cache reference.
 
 ---
 
-## NEW — SGLang #40913-#40917: declare every cache sidecar, fail closed if one is missing
+## NEW — llama.cpp #29322: sleep holds prompt-cache RAM, then wake discards the cache
+
+Source:
+https://github.com/ggml-org/llama.cpp/issues/29322
+
+Created **2026-09-23 16:17:18 UTC**.
+
+Reported setup:
+- Qwen3.8-27B hybrid GDN model;
+- RTX 5090 32 GB / Windows;
+- `--cache-ram` plus `--sleep-idle-seconds`.
+
+Observed lifecycle:
+1. entering sleep destroys model/context/speculative state but leaves `prompt_cache` allocated;
+2. wake reloads the model and constructs a new prompt cache;
+3. the old cache entries are therefore discarded **after consuming host RAM throughout sleep**.
+
+Minimal behavioral receipt:
+- before sleep, repeated prompts process only **4 tokens** after cache restore;
+- after wake, the same prompts re-process **3,974** and **3,624 tokens**.
+
+The reporter notes that for ~100K agent sessions, a wake can therefore add a full re-prefill on top of model reload.
+
+### P51 consequence
+
+The P51 agent sleep/wake plan must explicitly distinguish:
+
+- **model residency state**;
+- **prompt/warm-state persistence**;
+- **host/SSD cache residency**;
+- **post-wake validity**.
+
+A process reporting "cache retained in memory" is insufficient. The acceptance test is a post-wake cache hit that restores the full typed Flash state manifest and reproduces the reference continuation.
+
+Required wake benchmark:
+1. establish a long warm session;
+2. verify warm-hit token count / TTFT;
+3. enter the real sleep state;
+4. measure resident host/SSD bytes while asleep;
+5. wake;
+6. verify the same prefix hit survives;
+7. measure wake->ready and task->TTFT separately.
+
+If a runtime cannot preserve logical cache entries across model unload/reload, P51 should own persistence outside the runtime rather than relying on its in-process cache.
+
+---
+
+## NEW — llama.cpp #29324: recurrent prompt-cache entries need byte-based budgets, not token-count budgets
+
+Source:
+https://github.com/ggml-org/llama.cpp/issues/29324
+
+Created **2026-09-23 16:19:20 UTC**.
+
+Reported setup:
+- Qwen3.8-27B hybrid GDN;
+- RTX 5090 32 GB;
+- 96 GB host RAM;
+- unified KV / Q8 K+V;
+- `--cache-ram -1`.
+
+Implementation issue:
+- `-1` removes the byte limit but leaves the total token cap at `n_ctx`;
+- hybrid/recurrent saved states have a large fixed per-entry cost independent of prompt length;
+- token count is therefore a poor predictor of memory use.
+
+Measured with 100 distinct ~1.2K-token prompts:
+- `--cache-ram -1`: roughly **+640 MiB per new prompt**, linear;
+- 10 prompts: **+6.2 GiB**;
+- 20: **+12.5 GiB**;
+- 30: **+18.7 GiB**;
+- 40: **+25.0 GiB**;
+- stopped at 44: **+27.5 GiB**, still growing;
+- explicit 24,576-MiB cache budget: growth plateaued around **+23.4 GiB**.
+
+Reporter estimates recurrent state around **~300 MiB per saved state**, with checkpointing adding comparable fixed cost.
+
+### P51 consequence
+
+Warm-agent cache capacity must be planned in **bytes per complete state bundle**, not token count.
+
+Required telemetry per entry:
+- token count;
+- target KV bytes;
+- QSA/indexer bytes;
+- recurrent/GDN bytes;
+- checkpoint history bytes;
+- draft/MTP bytes;
+- PLE/history sidecar bytes;
+- metadata/schema overhead;
+- total host / SSD resident bytes.
+
+Eviction should be governed primarily by total bytes and value/reuse policy, with token count only secondary.
+
+This is especially important if many small independent agent sessions are retained: short prompts are not cheap merely because they contain few tokens.
+
+---
+
+## NEW / WATCH ONLY — SGLang #40925 and #40929 open cache-sharding work for DSA indexer and MTP
 
 Sources:
-- #40913 DSA indexer host-pool declarations
-- #40914 separate draft sidecars
-- #40915 hybrid-Mamba indexer host pool
-- #40916 QSA compressed-key host pool
-- #40917 plain-KV assembly through the same declaration system
+- https://github.com/sgl-project/sglang/pull/40925
+- https://github.com/sgl-project/sglang/pull/40929
 
-The stack replaces architecture-specific "remember to also allocate this sidecar" code with explicit device-pool declarations. A declared dependent state pool that is not assembled now fails rather than silently serving with incomplete state.
+Created:
+- #40925: **2026-09-23 14:26:58 UTC**;
+- #40929: **2026-09-23 14:55:54 UTC**.
 
-Related direct evidence:
-- GLM-5.3-Flash hybrid-Mamba + stale indexer path on main: KL **0.06 to 0.71**;
-- after restoring the declared indexer sidecar: **1.9e-3, 1.6e-3, 3.5e-3**.
+Titles:
+- "Support kv cache sharding for DSA indexer"
+- "Support kv cache sharding for MTP"
+
+At this cutoff both PR descriptions are still empty templates:
+- no mechanism explanation;
+- no accuracy result;
+- no speed result;
+- CI is not green.
+
+The diffs are non-trivial (#40925 ~768 additions; #40929 ~950 additions), so this is real implementation activity, but there is not enough evidence to infer semantics or performance safely.
 
 ### P51 consequence
 
-Adopt a typed state-manifest design rather than implicit cache ownership.
+Watch closely because this may become useful cross-framework evidence for:
+- indexer/MTP state ownership;
+- state sharding geometry;
+- PP/disaggregated cache transfer.
 
-For every P51 stage/model identity, the runtime should be able to enumerate:
-- required durable state components;
-- shape/dtype/layout;
-- owner stage;
-- whether state is target-only, draft-only, or shared;
-- restore dependency/order;
-- version/schema identity.
+Do **not** change P51 state ownership or PP2 design from the PR titles alone.
 
-Missing declared state should **fail closed or force replay**, never silently degrade.
-
-This is directly relevant to the planned SSD sleep/wake tier and PP2 warm-agent restore.
+No target credit.
 
 ---
 
-## NEW — vLLM #58329: KV pipeline parallelism / layer-owned cache is useful only when capacity/reuse pays for communication
+## UPDATE — llama.cpp #28741 merged: missing Metal f32 x BF16 depthwise-convolution path
 
 Source:
-https://github.com/vllm-project/vllm/issues/58329
+https://github.com/ggml-org/llama.cpp/pull/28741
+Merged commit in this window:
+`9575389609d6f8437de0b205561a4824d217c409`
 
-The RFC proposes **KV-PP**: each rank persistently owns the KV for a subset of layers and broadcasts a complete layer bundle to the other compute ranks when that layer runs.
-
-Important state-contract detail:
-- one ownership bundle includes the layer's main KV, indexer cache and associated scales;
-- draft caches that must remain rank-local are excluded;
-- scratch buffers are temporary and must not be advertised as durable state.
-
-Supporting Ascend A5 cache-pooling evidence with ~90% shared prefix:
-- one node / 8 dies input throughput: **66,362.5 -> 97,318.3 tok/s (+46.65%)**;
-- HBM prefix-hit rate: **8.46% -> 45.46%**;
-- two nodes / 16 dies / PP2: **86,438.8 -> 125,699.3 tok/s (+45.42%)**;
-- HBM prefix-hit rate: **0.59% -> 53.87%**;
-- cited logical KV capacity increase: **5.35x-8.17x**.
-
-But the RFC also reports the important counterexample:
-- when there is no capacity-constrained pooling benefit, KV-PP produces **2.30%-12.77% lower input-token throughput** in the cited A5 tests.
-
-The RFC explicitly says simple layer-ahead broadcasting is much harder to hide during decode because per-token compute is small.
+The fix adds missing Metal `f32 x bf16` matrix-vector variants used by BF16 depthwise 1D convolution. Before the fix, that convolution shape aborted because `ggml_conv_1d_dw` builds an F32 im2col and multiplies it by a BF16 kernel.
 
 ### P51 consequence
 
-This strengthens, rather than weakens, our PP2 design:
+This is useful ecosystem correctness for hybrid/GDN models on newer Apple devices with native BF16 support.
 
-- persistent state should remain **stage-local**;
-- a layer bundle includes KV + indexer + scales/sidecars, not KV alone;
-- do **not** add per-token cross-TB4 KV broadcasts just because layer-sharded storage works in cache-pooling regimes;
-- TB4 should continue carrying the minimum stage-boundary activation/control traffic.
+However the implementation is guarded by `GGML_METAL_HAS_BF16`; devices without native BF16 support are unchanged. Therefore it gives **no direct M1-Max speed/correctness credit** to Project 51's Apple7 target.
 
-KV-PP is useful evidence for **ownership semantics and cache-capacity economics**, not a new P51 decode topology.
-
-No TG/PP forecast credit.
+It does reinforce why P51's M1 lane should prefer intentional FP16 protected-island compute rather than assuming BF16 kernel parity.
 
 ---
 
-## NEW — oMLX #3873: Flash-Next FP16 PLE + HyperConnection work opens the M1/M2 FP16 lane, but GDN/MTP is not ready
+## NEW / SECONDARY — oMLX #3877 MiMo Lightning MTP reinforces speculative-state isolation and rollback
 
 Source:
-https://github.com/jundot/omlx/pull/3873
+https://github.com/jundot/omlx/pull/3877
 
-Created in this window.
+Although MiMo is not the primary P51 Flash target, this merged work is relevant to speculative-state engineering:
 
-The draft fixes two Qwen4Exp FP16 incompatibilities while preserving packed oQ weights:
+- isolates speculative head state with cache copies;
+- retains predictor index;
+- rolls rejected drafts back after sliding-window cache rotation;
+- preserves MTP heads and calibration statistics through oQ conversion.
 
-- PLE mmap/FP8 row decoding now preserves the loaded shared scale's compute dtype instead of forcing BF16-specific behavior;
-- fused HyperConnection decode/prefill paths accept uniform FP16 metadata and QuantizedLinear subclasses.
+M3 Ultra / MiMo-V2.6-Flash-RL-oQ4e-mtp reported Lightning-MTP TG changes:
+- 4K: **44.4 -> 49.3 (+11.0%)**;
+- 16K: **41.6 -> 50.0 (+20.2%)**;
+- 32K: **38.5 -> 46.0 (+19.5%)**.
 
-Current branch validation:
-- combined PLE + HC suites: **131 passed**;
-- existing Qwen4 compatibility: **67 passed, 2 failed**, with the same two tiny FP32 exact-equality failures reproducing on untouched base;
-- full model serving and full repository suite are **not** acceptance-complete;
-- current-main FP16 GDN decode and Qwen4 **L2** verify remain unfinished;
-- MTP/cache rollback acceptance remains unfinished.
-
-### Historical M2 Ultra motivation published with the PR
-
-Local dev2 experiment, M2 Ultra 128 GB, packed oQ4e-mtp, adaptive Lightning MTP, cold prefix cache:
-
-| prompt | BF16 PP | FP16 PP | BF16 TG | FP16 TG |
-|---:|---:|---:|---:|---:|
-| ~4K | 451.7 | **527.7** | **42.5** | 38.6 |
-| ~31K | 585.3 | **805.9** | 36.6 | **42.1** |
-| ~62K | 578.9 | **796.8** | 33.9 | **38.3** |
-
-Approximate historical deltas:
-- PP: +17% at ~4K and ~+38% at ~31K/~62K;
-- decode: -9% at ~4K, +15% at ~31K, +13% at ~62K.
-
-### Qualification
-
-These are **historical local records, not reproducible current-PR acceptance**. MTP acceptance varied; one prompt length differs by one token; raw immutable artifacts are not published; and the old GDN path had known migration/correctness defects.
+But the author explicitly notes long-context greedy token IDs can differ across cache/batching conditions with MTP enabled, so this is not a clean equivalence proof.
 
 ### P51 consequence
 
-Keep **M1-FP16-friendly compute for the protected floating islands** as a high-priority baseline experiment.
+No Flash target credit.
 
-The result is especially interesting for cold PP, but receives no numeric target credit until:
-- current Qwen4 L2 GDN verify is implemented correctly;
-- cache transitions/rollback pass;
-- real-model xhigh/tool/agent parity passes;
-- balanced current-main A/B exists on Apple7.
+Durable general lesson already consistent with P51:
+- speculative state must be isolated from target state;
+- rejected branches must roll back every mutable cache/index;
+- predictor/draft position is part of cache identity;
+- oQ conversion must preserve MTP tensor identity and calibration.
 
 ---
 
-## UPDATE — oMLX #3869 first MCDMA stage-edge transport merged; #3870 extension remains unvalidated on real hardware
+## Community / Hugging Face delta
 
-Source:
-https://github.com/jundot/omlx/pull/3869
+Explicit searches for fresh post-boundary:
+- DASLab / GSQ-RCO xhigh updates;
+- Flash-Next M1/M2/M3/M5 long-context measurements;
+- new MTP/DFlash2 128K receipts.
 
-The first MCDMA Mac<->CUDA stage-edge transport from the prior watch is now represented in main commits during this window, including follow-up probe/service-lifetime fixes.
+No qualifying new result in the **13:53:27-16:30:12 UTC** window was found.
 
-The broader #3870 work (all hops, sampled-token piggyback, remote vLLM prefill) still states that it has not been run on ConnectX hardware or inside live vLLM.
+Search surfaced older material only, including:
+- Halogen/Strix-Halo Flash measurements;
+- Litwein REAP320/MTPLX artifacts;
+- prior M5/M3/M1 community cards;
+- older SSD-PLE / DGX-Spark experiments.
 
-### P51 consequence
-
-Status confidence in the **message/ownership design** rises; throughput confidence does not.
-
-No target change.
-
----
-
-## NEW — EXL3 #403: DFlash2 loses to native MTP as the stable baseline in a real 90K-135K 27B agent session
-
-Source:
-https://github.com/turboderp-org/exllamav3/issues/403
-
-Hardware/runtime:
-- RTX 3090 24 GB, 250 W;
-- Qwen3.8-27B EXL3 4.00 bpw target;
-- third-party Qwen3.8-27B DFlash2 EXL3 4.00-bpw draft;
-- exllamav3 1.5.1 plus PR #379 q-aware verify overlay;
-- max sequence ~180K;
-- real long agentic coding session with heavy prefix reuse.
-
-Acceptance from server logs:
-
-| regime | 30-90K | 100-135K |
-|---|---:|---:|
-| native MTP | **69% median** | **69% median** |
-| DFlash2 | **43% median** | **41% median** |
-
-DFlash2 is roughly **28 acceptance points lower** through the long-context region.
-
-Real-session decode:
-- DFlash2 requests: roughly **35.3-51.1 TG**;
-- warm MTP requests: roughly **41.5-49.0 TG**;
-- full session aggregate: **40.28 TG over 38,464 generated tokens**.
-
-Synthetic contrast:
-- 10K, stock token-match verify: **15.2 TG, 53% acceptance**;
-- 10K, q-aware overlay: **75.1 TG, 40% acceptance**;
-- 100K q-aware: **52.1 TG non-streaming / 43.1 TG streaming, 46% acceptance**.
-
-The q-aware path drafts more tokens per output token and can be dramatically faster in a synthetic prompt while lowering the simple accepted/proposed ratio; that speed advantage did not clearly survive into the real long prefix-cached session.
-
-### P51 consequence
-
-For the RTX 5070 Ti 27B lane:
-
-- keep **native MTP as the production baseline**;
-- treat DFlash2 as a challenger, not an assumed upgrade;
-- qualify draft quants independently from target quants;
-- run the actual 100K+ prefix-cached agent workload before promotion;
-- report drafts/token, verified width, accepted useful tokens, verifier cost and E2E TG—not acceptance alone.
-
-This does **not** change the 5070 Ti 120-TG mature target, which was not based on assuming DFlash2.
-
----
-
-## NEW — llama.cpp #29313: acceptance collapse can be allocator/output-lifetime corruption
-
-Source:
-https://github.com/ggml-org/llama.cpp/issues/29313
-
-A stale `ggml_gallocr` graph plan can be reused after tensors change to OUTPUT lifetime. The old allocation plan then aliases multiple outputs that must remain live, and later writes overwrite earlier draft candidates.
-
-EAGLE-3 symptom, five concurrent slots:
-- broken backend-sampling path: mean accepted length **1.33**, acceptance **alpha=0.251**;
-- backend sampling disabled: mean accepted length **2.10**, acceptance **alpha=0.53**.
-
-### P51 consequence
-
-Add graph/output-liveness to compiled-path identity.
-
-If acceptance suddenly collapses:
-1. verify draft numerics;
-2. verify target/verify numerical parity;
-3. verify cache/checkpoint state;
-4. verify graph capture/allocation/output lifetime;
-5. only then conclude the draft model itself is weak.
-
-This is another concrete example where speculative acceptance is a **runtime correctness sensor**.
-
----
-
-## NEW — vLLM #58340: count verified draft tokens separately from proposed draft tokens
-
-Source:
-https://github.com/vllm-project/vllm/pull/58340
-
-Adaptive verification can verify fewer tokens than the drafter proposed. Existing "draft tokens total" therefore does not represent actual target verification work.
-
-The PR adds:
-- `spec_decode_num_verified_draft_tokens_total`.
-
-### P51 consequence
-
-The mandatory speculative telemetry becomes:
-
-- proposed/drafted tokens;
-- **verified draft tokens**;
-- accepted/committed tokens;
-- accepted tokens per verification pass;
-- verification rows/width distribution;
-- target-only passes;
-- verify wall time / target-forward-equivalents;
-- draft wall time;
-- MTP park/fallback cycles.
-
-This directly supports the P51 objective:
-**accepted useful tokens per expensive target verification cycle**, not raw acceptance percentage.
-
----
-
-## NEW — vLLM #58343: quantized DFlash2 selector/head ownership work converges on the same loader-identity rule
-
-Source:
-https://github.com/vllm-project/vllm/pull/58343
-
-The draft passes quantization settings into DFlash2 selector projections / explicitly owned heads and rejects some missing-head cases instead of silently treating packed tensors as ordinary float parameters.
-
-Validation:
-- focused allocation/loading tests pass;
-- DFlash2 test file: **12 passed, 10 CUDA tests skipped**;
-- **GPU execution, post-load quantized inference and real-checkpoint quality/performance are still pending**.
-
-### P51 consequence
-
-Useful convergent implementation evidence, but weaker than the real-model SGLang quantized-draft receipt from the previous pass.
-
-No target or experiment-order change beyond the already-promoted draft tensor-consumption/load-identity gate.
+None is classified as NEW for this pass.
 
 ---
 
 ## Checked with no qualifying fresh target evidence
 
-Between the hard boundary and cutoff:
-
-- **DASLab / GSQ-RCO:** no new xhigh-quality receipt or updated weights located; the existing medium-vs-xhigh calibration discussion remains unchanged.
 - **MTPLX:** no new commit/PR/issue in-window.
+- **EXL3:** no new commit/PR/issue in-window.
+- **PonyExl3:** no new commit/PR/issue in-window.
+- **mlx-serve:** no P51-relevant fresh change.
 - **official Qwen3.8 repo:** no new commit/PR/issue in-window.
-- **MiaAI-Lab dual-DGX-Spark Flash repo:** no new commit/PR/issue in-window.
+- **MiaAI-Lab dual-DGX-Spark Flash:** no new commit/PR/issue in-window.
 - **flashnext-hybrid:** no new commit/PR/issue in-window.
-- **Weschera single-DGX-Spark Flash repo:** no new commit/PR/issue in-window.
-- **PonyExl3:** no new commit/PR in-window.
-- **mlx-serve:** no P51-relevant fresh item.
-- **DS4:** new #1111 merely asks about the DASLab quant; no substantive reply at this cutoff.
+- **Weschera single-DGX-Spark Flash:** no new commit/PR/issue in-window.
+- **DS4:** no qualifying new performance/correctness receipt.
+- **DASLab / GSQ-RCO:** no new xhigh behavioral receipt.
 - no new exact **2x M1 Max/TB4 Flash-Next** TG or cold-PP receipt.
-- no new **5070 Ti exact-rig** result strong enough to move its canonical target.
+- no new exact **RTX 5070 Ti** receipt strong enough to move its target.
 
 ## Target / confidence impact
 
 Unchanged:
 
-- Flash-Next xhigh production quant search: **~3.0-3.6 average BPW**.
+- Flash-Next xhigh production quant: search **~3.0-3.6 average BPW**.
 - likely source-like xhigh region: **~3.3-3.6** (engineering hypothesis only).
 - dual-M1 Flash: **40 TG @ ~128K**, **400 cold PP**.
 - planning confidence for >=40 TG: **~70%**.
@@ -358,4 +301,4 @@ Unchanged:
 
 ## New hard boundary
 
-**2026-09-23 13:53:27 UTC**
+**2026-09-23 16:30:12 UTC**
