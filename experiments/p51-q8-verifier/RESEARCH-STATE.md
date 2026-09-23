@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-23 03:55 ET.
+Last consolidated: 2026-09-23 06:19 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -745,3 +745,16 @@ Highest-value missing measurements:
 - **Qwen4:** Flash-Next remains the public architectural preview. Preserve PP2 stage ownership, external lookup placement, dynamic expert residency and heterogeneous allocation because these abstractions are more likely to transfer than whole-file quant assumptions.
 
 **Planning effect:** retain **~70% confidence for >=40 TG @ ~128K** and the **400 cold-PP** working target. The new evidence improves architectural confidence and implementation specificity more than it changes the numeric forecast.
+
+
+### 2026-09-23 10:19 UTC transport / PLE-bounds / quantized-DFlash loader update
+
+- **NEW oMLX #3869/#3870 distributed-transport direction:** pipeline edges can be independently moved off the ordinary ring; #3870 additionally piggybacks sampled tokens and adds remote-prefill KV handoff. Current evidence is stand-in/integration correctness only, not ConnectX/vLLM hardware throughput. P51 transferable rule: stage-edge transport is per-edge state, must be preflight-verified, must fail back cleanly, and should carry control/token metadata on already-required activation messages where possible. No numeric forecast credit.
+- **NEW vLLM #58325 PLE work-bounds rule:** Qwen4Exp PLE preprocessing must slice persistent workspaces to actual live token count rather than configured `max_num_batched_tokens`. The current PR is designed bit-identical but has no ROCm E2E result yet. Add actual-live-row/token bounds to every PLE/QSA/indexer profile.
+- **NEW SGLang #40883 packed target-head evidence:** Qwen3.8-27B W8A16 packed `lm_head` can serve NEXTN and DFlash2 with essentially unchanged acceptance when the target quant method is used rather than requiring a dense `.weight`. Keep output/head protected, but allow an eventual Q8/W8 experimental head arm after xhigh/agent parity.
+- **NEW SGLang #40884 draft-loader identity rule:** quantized DFlash2 drafts can preserve BF16-like acceptance only if module names used for quantization match checkpoint tensor names and unsupported tensor/layout mismatches fail closed instead of being silently dropped. Add a tensor-consumption/module-identity audit before finite-state and acceptance checks on Apple7 drafts.
+- **RECOVERED exact-chip evidence — oMLX #3853:** on M1 Max 64 GB, automatically routing eligible Qwen3.5/3.6 FP16 B1/T1 GDN decode through the fused prework kernel improves whole-server decode ~5.8-6.2% across mixed 4/5/6-bit conversions with extensive numerical/server validation. This is same-chip / nearby-GDN evidence only; Flash-Next uses a distinct Qwen4 route, so do not transfer the percentage or raise the Flash target.
+- **NEW llama.cpp #29305 quant-harness opportunity:** source-model tokens/logits can be cached once and reused to compare later conversion candidates. P51 should freeze a source-logit artifact for the quant allocation sweep, but retain the hierarchy: xhigh/agent behavioral evaluation > hard task behavior > held-out sequence behavior > KLD/logit divergence > PPL.
+- **NEW negative cross-family evidence — llama.cpp #29298:** a sparse-FA prefill gate materially improves DeepSeek-V4 long-context PP (+23% at ~65K depth, +42% at ~131K) while the submitted Qwen4Exp benchmark remains ~1.00x. Do not transfer sparse-attention kernel wins across hybrid architectures without direct Qwen4Exp measurement.
+
+**Target effect:** none. No exact dual-M1 Flash receipt and no new DASLab/xhigh quality result appeared. Keep the xhigh ~3.0-3.6 search, ~3.3-3.6 source-like frontier hypothesis, 40 TG @ ~128K / 400 cold PP, and ~70% >=40 planning confidence.
