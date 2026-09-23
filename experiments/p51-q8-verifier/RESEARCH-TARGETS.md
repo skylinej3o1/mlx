@@ -69,6 +69,27 @@ Certification should preferably include the actual comparable AA evaluation. Unt
 
 This is a **quality-target change only**. It does not change the 40 TG @ ~128K / 400 cold-PP planning targets or their current confidence ladder.
 
+### 2026-09-23 xhigh-only production specialization
+
+The user's actual local Flash-Next operating policy is now explicit: **drive the production model at xhigh reasoning**. Project 51 therefore optimizes for the intended production distribution rather than requiring one aggressive quant to preserve medium/xhigh/thinking-off equally.
+
+This changes the **quant search policy**, not the headline TG/PP target:
+
+- desired production quality: **source-like ~AA40-class behavior at xhigh**;
+- >=38 remains a hard rejection floor, not the desired endpoint;
+- start the first serious custom allocation around **~3.5 average transformer BPW**;
+- search approximately **3.0 / 3.2 / 3.4 / 3.6** heterogeneous arms;
+- current engineering hypothesis for the source-like xhigh frontier: **~3.3-3.6 average transformer BPW**, center ~3.4-3.5;
+- preserve higher precision in QSA/indexer, recurrent/GDN-sensitive tensors, norms, router/shared experts, output/head and MTP-sensitive paths;
+- compress the routed expert bank first;
+- PLE/ngram and MTP/draft precision remain separately reported identities.
+
+The DASLab 3.00-bpw Flash result is especially relevant because its calibration and published hard-reasoning evidence are xhigh-oriented. Its medium-effort degradation is still an important warning about calibration-domain specialization, but medium parity is no longer a production admission criterion for the xhigh-only artifact.
+
+**Certification rule:** repeated paired source-vs-quant xhigh trajectories must cover hard reasoning, coding, tool use, long-context retrieval, multi-turn agent state, thinking-token distribution and MTP acceptance. One-run benchmark parity, KLD, perplexity or teacher-logit similarity is insufficient.
+
+**Performance target effect:** none numerically. Keep **40 TG @ ~128K** (~70% planning confidence) and **400 cold PP** as the working dual-M1 goals. Lower BPW earns speed credit only after source-like xhigh behavior is demonstrated.
+
 ### 2026-09-20 quant-identity correction — flat Q4 vs dynamic Q4
 
 Project 51 should no longer describe the intended Flash lane as "basically Q5" or identify it by one whole-file BPW.
@@ -121,13 +142,13 @@ Project 51 no longer treats one whole-file BPW value as the Flash quant identity
 - **Quality/certification comparator:** oQ5e / high-quality 5-bit-class builds.
 - **Aggressive speed comparator:** oQ4e.
 - **Public MLX bracketing endpoints:** MTPLX **Bare = flat Q4 trunk**; MTPLX **Optimized = dynamic Q4 with Q8 QSA**. Neither should be mislabeled as a uniform Q5.
-- **Intended deployment-design lane:** begin conservatively around **4.6-4.9 effective BPW on the hot compute trunk**, with tensor-role-aware allocation. Direct Flash-Next GSQ/RCO evidence now justifies **RCO-inspired ~3.0-4.6 experimental allocation arms** where M1/MLX kernels are actually efficient; these are research arms, not production targets. The production winner is whichever allocation satisfies the >=38 quality floor and MTP/state gates at the best M1 hot-byte/microsecond cost.
+- **Intended deployment-design lane:** production is now **xhigh-specialized**. Begin the first serious custom build around **~3.5 average transformer BPW** and search approximately **3.0/3.2/3.4/3.6** heterogeneous allocations where M1/MLX kernels are efficient. The current engineering hypothesis for source-like xhigh behavior is **~3.3-3.6 average BPW**. This is a search region, not certification. The production winner is the lowest-cost allocation that remains source-like on repeated xhigh hard-reasoning/coding/tool/long-context/agent trajectories and passes MTP/state gates.
 - **Optimization objective:** quality/tool-state/long-context/MTP acceptance per **M1 hot byte and microsecond saved**, not whole-file BPW. **Allocation method should combine APEX-style perturbation evidence with GSQ/RCO-style exact-budget optimization**, while adding M1 runtime cost and P51 behavioral/MTP losses to the objective.
 - **PLE/ngram table precision + placement:** reported separately; SSD/offloaded PLE bits should not inflate the decode-bandwidth label. **However, PLE precision is part of the long-context MTP/quality gate, not a free capacity knob**: community Flash-Next evidence shows a possible deep-context acceptance penalty when the n-gram table is aggressively quantized, so Q4/Q6/Q8/source PLE arms must be tested through 128K before promotion.
 - **MTP precision:** reported separately and kept relatively high until acceptance/quality evidence proves lower precision safe.
 - Sensitive QSA/indexer, GDN, hyperconnection, routing/shared-expert and head tensors may receive Q6/Q8-class precision even when the routed expert mass is lower.
 
-The frozen quality gate is behavioral and now has an explicit production floor: **>=38 AA-class behavior, preferably 39-40**. A custom quant must retain essentially source/oQ5e/Optimized capability on Project 51's hard coding, long-context, tool/state, QSA/recurrent-stability and MTP-acceptance fixtures. Direct Flash GSQ/RCO evidence shows that very low nominal transformer BPW can preserve several reasoning/coding benchmarks, but **that does not substitute for AA-class and agentic certification**. A faster quant that materially changes routing/state behavior or falls below the quality floor does not qualify merely because average perplexity or a narrow task average is close.
+The frozen quality gate is behavioral: **source-like ~AA40-class behavior at xhigh is the production objective; >=38 is the hard rejection floor, not the desired endpoint**. A custom quant must retain essentially source/oQ5e/Optimized capability on Project 51's hard coding, long-context, tool/state, QSA/recurrent-stability and MTP-acceptance fixtures. Direct Flash GSQ/RCO evidence shows that very low nominal transformer BPW can preserve several reasoning/coding benchmarks, but **that does not substitute for AA-class and agentic certification**. A faster quant that materially changes routing/state behavior or falls below the quality floor does not qualify merely because average perplexity or a narrow task average is close.
 
 **Canonical performance targets remain 40 TG @ ~128K / 400 cold PP.** A custom quant may create stretch headroom beyond these numbers, but no higher numeric target is promoted until physical target-topology evidence exists.
 
