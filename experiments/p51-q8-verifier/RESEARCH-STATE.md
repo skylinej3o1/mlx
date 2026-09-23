@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-23 15:03 ET.
+Last consolidated: 2026-09-23 16:42 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -797,3 +797,17 @@ Highest-value missing measurements:
 - **Weak CUDA QSA-prefill evidence — llama.cpp #29326:** enabling radix top-k for the Qwen4Exp indexer reportedly improves prompt processing ~20% through ~148K on CUDA. Keep QSA/indexer top-k as a cold-PP seam; no Apple transfer or target credit.
 
 **Target effect:** none. No exact dual-M1 Flash receipt and no new DASLab xhigh result appeared. Keep 40 TG @ ~128K / 400 cold PP and ~70% >=40 planning confidence.
+
+
+### 2026-09-23 20:42 UTC batching correction / PLE-lifetime / sparse-row-I/O update
+
+- **CORRECTION — llama.cpp #29335 is not evidence of a generic Metal long-context batching collapse.** The reporter reran on current master with `llama-batched-bench` and closed the issue: Qwen3.8-Flash-Next Q8_0 at 32K rises **29.6 -> 38.2 -> 43.8 aggregate TG** for N=1/2/4, and corrected server-only-generation measurements are ~30.0/38.0/43.2. The prior custom script mixed decode timing with other slots' prefill work. Keep the Apple7 B1/B2/B4/B8 verifier-width qualification because exact M1/TB4 speculative multi-row scaling is still unmeasured, but do not treat #29335 as negative batching evidence.
+- **Stable async PLE inputs are mandatory — vLLM #58441.** On Qwen3.8-Flash-Next/GB10, a side-stream PLE lookup reading IDs directly from graph-pool storage was nondeterministic (cold==warm **2/8**, max |Δlogprob| **1.41**); copying IDs to a persistent buffer or doing the lookup on the current stream restores **8/8, Δ=0**. P51 asynchronous PLE/QSA/sidecar work must own stable input storage through completion; transient graph/capture allocations cannot be assumed live merely because work was enqueued.
+- **File-backed PLE can be viable if row pages are explicitly prefetched — vLLM #58439.** A 47.68-GiB FP8 PLE table mapped directly from safetensors on DGX Spark cuts the prior worker path's steady swap **50-53 -> 5-6 GiB** while keeping summed TTFT and c=16 decode essentially neutral/slightly better. But a cold ~30K prefill is **88 s** with one-by-one GPU page faults versus **~1.6 s** when 64 CPU threads fault the needed rows first. Treat explicit row prefetch as part of the storage design, not an optional optimization.
+- **Explicit direct sparse reads gain another implementation anchor — llama.cpp #29030 / `e32c6243d72e`.** Qwen4Exp/Gemma4 lazy rows now use explicit positional reads rather than mmap demand paging; integrated GPUs auto-select lazy rows. Existing Strix-Halo PR data is 181.0->400.8 PP512, 191.7->421.1 PP2048 and 273.8->451.4 PP8192. This is cross-hardware transfer only, but strengthens the P51 requirement to benchmark explicit SSD/host sparse-row gather against demand paging on M1.
+- **Speculative padding must preserve recurrent rollback semantics — vLLM #58434.** A one-token prompt tail padded to K+1 for speculation can be misclassified as prefill, causing placeholder draft tokens to be committed into GDN/KDA/Mamba recurrent state. P51 metadata must distinguish committed prompt tokens, proposed tokens and rollback-only padding; a padded tail over prior recurrent state must use a rollback-capable path.
+- **Target and draft state/config are separate ownership domains — SGLang #40953/#40955/#40962.** Target-only prefill does not initialize EAGLE draft KV/proposal state; valid decode must transfer the required proposal/state identity or explicitly replay and account the cost. Adaptive target resources must also be built outside draft TP/MoE/A2A contexts. Carry this rule into PP2/MTP state ownership even though the exact EAGLE mechanism is transfer evidence.
+- **Cross-family heterogeneous-precision support — DS4 #1011 fresh `57e0b93bf624`.** A Strix-Halo GLM-5.3 mixed artifact uses Q2 routed experts while retaining Q4 for the rest, including MTP. It is much slower than the all-Q2 arm but improves the reported weighted-NLL results. This supports the structural idea of compressing the routed bank hardest while protecting sensitive/nonexpert/MTP paths; it does **not** certify Flash-Next's 3.x-bpw xhigh frontier.
+- **M5 wide-query FA tuning — llama.cpp #28439:** fresh tuning reports 882 selected wide-tile cases without a clear loss and 4,956/4,956 tests passing. This reinforces per-device/per-shape Metal tuning for long-context prefill; no M1 target credit.
+
+**Target effect:** none. No new exact dual-M1 Flash receipt and no new DASLab/GSQ xhigh behavioral result appeared. Keep xhigh ~3.0-3.6 search, ~3.3-3.6 source-like frontier hypothesis, **40 TG @ ~128K / 400 cold PP**, and **~70% planning confidence for >=40 TG**.
