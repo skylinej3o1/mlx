@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-02 05:30 ET.
+Last consolidated: 2026-09-23 03:55 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -727,3 +727,20 @@ Highest-value missing measurements:
 4. M1 Max plain batching vs singleton-MTP-lane vs batched-depth-1 MTP;
 5. M1 Max MTP temp=0 vs realistic agent sampling acceptance/economics;
 6. PP2 B2/B4 aggregate with stage-idle % and actual TB4 traffic.
+
+
+### 2026-09-23 07:55 UTC xhigh quant / PP2 / verifier-economics consolidation
+
+- **Production distribution is now xhigh-specific.** P51 no longer spends bandwidth solely to preserve medium reasoning. The production quant objective is the minimum Apple execution cost that remains source-like at xhigh across hard reasoning, coding, tool use, long-context retrieval and multi-turn agent trajectories. Medium/thinking-off remain diagnostic cross-tests for calibration-domain specialization, not production admission requirements.
+- **Current quant search hypothesis:** start near ~3.5 average transformer BPW and test approximately 3.0/3.2/3.4/3.6 heterogeneous arms. The current likely source-like xhigh frontier is estimated around **3.3-3.6 average BPW**; this is an engineering hypothesis, not AA certification. Preserve QSA/indexer, recurrent/GDN-sensitive tensors, norms, router/shared experts, output/head and MTP-sensitive paths; compress routed expert mass most aggressively.
+- **SiliconSpecies Swift/Splash:** reverse-engineered Splash packaging is operational and exposes a high-leverage norm-storage semantic (most BF16 norms use gamma+1, GDN norm excepted). The saturated 95/95 quality suite is a catastrophic-conversion guard, not source-intelligence certification. Keep real-model greedy/logit/agent parity above isolated kernel tests.
+- **EXL3:** current converter/optimizer supports heterogeneous per-tensor recipes, HQ promotion and separate head/MTP/ngram precision. Treat trellis/KLD machinery as an allocation/runtime challenger, not proof that nominal EXL3 BPW maps directly to agent intelligence. PonyExl3 proves Metal execution viability but does not currently replace Apple7 production paths.
+- **oMLX #3520 merged gathered-QSA:** removes full-cache transpose/copy from small-row decode/verify gathers. M5 Max reports +18% at ~134K and +28% at ~229K serial decode, +25%/+36% under adaptive MTP. Use stored-layout gather for small verify/decode widths and a width/context-sensitive alternate path for larger prefill widths. Do not transfer percentages to M1.
+- **oMLX #3374 verify economics:** measured Flash-Next depth-5 verify cost on M3 Ultra is ~2.3x a target forward: +0.5x GDN sequential recurrence, +0.6x MoE expert union, +0.2x QSA indexer. Proposed MoE union dedup + chunked/TreeWY-style GDN verify target ~1.5x; 2.3x is measured, 1.5x is a hypothesis. This is now the central mechanism behind the ~40-TG thesis.
+- **SGLang #39393 PP2:** Qwen4-Exp / Flash-Next PP2 is demonstrated across two physical nodes with temperature-0 correctness and production-like replay. The mHC boundary carries the wide hidden-state representation rather than a normal hidden+residual contract. PP2 feasibility is now high confidence; M1/TB4 throughput remains unmeasured.
+- **SGLang #37792 expert residency:** at a 184/512-expert resident floor, ~84.3% routing mass is served locally and remote expert traffic collapses from 26 GB/token to 0.31 GB/token on the reported 24-GB GPU setup. Preserve stage-local dynamic expert residency as an architectural feature; never fetch experts across TB4.
+- **flashnext-hybrid:** thin-link hybrid deployment independently shows high draft acceptance can still reduce throughput when speculative widths fragment target batches. Maximize accepted useful tokens per expensive target verification batch, not nominal acceptance. This strengthens multi-row PP2 verify scheduling.
+- **oMLX #3771:** current public runtime still contains substantial verify-path regressions/fast-path misses. Instrument target/draft/verify fast-path engagement separately and treat public runtime TG as a moving implementation point, not a ceiling.
+- **Qwen4:** Flash-Next remains the public architectural preview. Preserve PP2 stage ownership, external lookup placement, dynamic expert residency and heterogeneous allocation because these abstractions are more likely to transfer than whole-file quant assumptions.
+
+**Planning effect:** retain **~70% confidence for >=40 TG @ ~128K** and the **400 cold-PP** working target. The new evidence improves architectural confidence and implementation specificity more than it changes the numeric forecast.
