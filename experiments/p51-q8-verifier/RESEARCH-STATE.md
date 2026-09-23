@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-23 06:19 ET.
+Last consolidated: 2026-09-23 09:53 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -758,3 +758,18 @@ Highest-value missing measurements:
 - **NEW negative cross-family evidence — llama.cpp #29298:** a sparse-FA prefill gate materially improves DeepSeek-V4 long-context PP (+23% at ~65K depth, +42% at ~131K) while the submitted Qwen4Exp benchmark remains ~1.00x. Do not transfer sparse-attention kernel wins across hybrid architectures without direct Qwen4Exp measurement.
 
 **Target effect:** none. No exact dual-M1 Flash receipt and no new DASLab/xhigh quality result appeared. Keep the xhigh ~3.0-3.6 search, ~3.3-3.6 source-like frontier hypothesis, 40 TG @ ~128K / 400 cold PP, and ~70% >=40 planning confidence.
+
+
+### 2026-09-23 13:53 UTC QSA restore / KV ownership / long-agent speculation update
+
+- **DIRECT exact-family warm-restore rule — SGLang #40916:** Qwen3.8-Flash-Next host restore that reloads KV but leaves QSA compressed index keys stale shows KL ~0.39-0.87 versus a warm reference. Restoring a separately declared QSA compressed-key pool yields KL 2.9e-3/4.3e-3/5.9e-3 with matching argmax; packed-MTP acceptance is exactly 3.317 warm vs 3.317 host. QSA compressed/indexer keys are therefore mandatory durable state, not reconstructible decoration. A target-KV cache hit is invalid if the QSA sidecar is stale/missing.
+- **STATE-MANIFEST architecture — SGLang #40913-#40917:** dependent KV/indexer/draft/Mamba/QSA pools should be explicitly declared with geometry/ownership and fail closed if a required pool is absent. P51 warm/sleep checkpoints should use a typed state manifest covering target KV, QSA/indexer state, recurrent/GDN state, PLE/history dependencies, draft/MTP state and PP-stage ownership.
+- **KV-PP / LayerSplit transfer evidence — vLLM #58329:** layer-owned KV can materially raise cache capacity and HBM prefix-hit rate in cache-capacity-bound, ~90%-reuse workloads (supporting Ascend data: +46.65% one-node and +45.42% two-node input throughput), but cited non-pooling tests lose 2.30%-12.77%. P51 lesson: ownership bundles include KV+indexer+scales, but per-token remote KV broadcast is not a default decode strategy. Preserve stage-local state over TB4.
+- **Flash FP16 path — oMLX #3873:** current draft enables FP16 PLE compute dtype and HC kernels while preserving packed oQ weights; current-main FP16 GDN/L2 verify/MTP acceptance is explicitly unfinished. Historical M2 Ultra dev2 data shows ~+38% PP and ~+13-15% decode at ~31K-62K but regresses ~4K decode; treat as motivation only. Keep M1-FP16 protected-island baseline high priority, with zero forecast credit until current-main real-model acceptance.
+- **UPDATE oMLX #3869:** first MCDMA stage-edge transport is now represented in main; broader #3870 all-hop/token/remote-prefill work still lacks real ConnectX/live-vLLM hardware evidence. Message-contract confidence rises, throughput confidence does not.
+- **27B long-agent speculation — EXL3 #403:** on RTX 3090 / Qwen3.8-27B EXL3 4.0 bpw at 90K-135K, native MTP holds ~69% median acceptance while a third-party DFlash2 EXL3 draft is ~41%; real-session DFlash2 and MTP decode overlap around the 40s TG with no clear DFlash2 E2E win. Keep native MTP as the 5070-Ti production baseline; DFlash2 must win the actual long prefix-cached agent workload before promotion.
+- **SPEC correctness — llama.cpp #29313:** stale graph-allocation plans can alias output tensors and cut EAGLE-3 acceptance from alpha~0.53 / mean accepted length 2.10 to alpha~0.251 / 1.33. Add graph/output-liveness/capture identity to the acceptance-collapse diagnostic tree.
+- **SPEC telemetry — vLLM #58340:** proposed draft tokens and actually verified draft tokens are different under adaptive verification. P51 must record proposed, verified, accepted/committed tokens, verify-width distribution and verify wall time separately.
+- **Quantized draft loader convergence — vLLM #58343:** selector/head allocation must respect the draft quantization configuration and explicit ownership. GPU/model quality validation is still pending, so this adds no performance evidence beyond the already-promoted draft tensor-consumption gate.
+
+**Target effect:** none. No exact dual-M1 Flash receipt and no new DASLab xhigh quality result appeared. Keep xhigh ~3.0-3.6 search, ~3.3-3.6 source-like frontier hypothesis, 40 TG @ ~128K / 400 cold PP, and ~70% >=40 planning confidence.
