@@ -1,325 +1,267 @@
-# Project 51 research watch — 2026-09-23 03:55 ET
+# Project 51 primary-lane research watch — 2026-09-23 06:19 ET
 
-**Freshness boundary:** consolidates the Project 51 research deltas discussed after the prior canonical cutoff **2026-09-22 15:59:04 UTC**, through approximately **2026-09-23 07:55 UTC**.
+**Freshness boundary checked:** prior hard boundary approximately **2026-09-23 07:55 UTC**. This pass covers substantive evidence through the user cutoff **2026-09-23 10:19:31 UTC**.
 
 ## Decision
 
-This pass makes three durable changes:
+**No canonical TG/PP or xhigh-quality target change.**
 
-1. **Production quant identity is now xhigh-specialized, not universal-medium/xhigh.** The user's intended local operating mode is xhigh. The optimization target is therefore the cheapest Apple execution representation that remains source-like at xhigh/agent use, rather than a quant that must preserve every reasoning-effort distribution equally.
-2. **PP2 feasibility confidence increases materially.** Qwen4-Exp / Flash-Next PP2 is now demonstrated across two physical nodes with correctness checks and a documented mHC boundary contract. This does not prove M1/TB4 throughput, but it substantially reduces architectural feasibility risk.
-3. **The path from ~mid-20s target decode to ~40 TG is now mechanistically better defined.** Current Flash-Next MTP verification has a measured ~2.3x target-forward cost on Apple; the identified GDN + MoE verify overheads are large enough that reducing verify toward ~1.5x would plausibly produce the ~1.5-1.7x effective uplift P51 needs.
+The strongest fresh evidence is implementation-side rather than a new target-topology receipt:
 
-Canonical headline targets remain **40 TG @ ~128K**, **400 cold PP**, with **~70% planning confidence for >=40 TG**. The quality objective is strengthened to **source-like ~AA40-class behavior at xhigh**; >=38 remains a rejection floor, not the desired production endpoint.
+1. oMLX opened a new MCDMA pipeline-transport series that moves stage activations, sampled tokens and optionally remote-prefill KV outside the ordinary ring, but it has **not** yet been validated on real ConnectX hardware or against a live vLLM producer.
+2. vLLM opened a Qwen4Exp PLE fix that stops decode/MTP preprocessing from scanning the configured maximum token workspace on every step; outputs are designed to be bit-identical, but end-to-end ROCm numbers are still pending.
+3. SGLang opened two useful Qwen3.8-27B DFlash2 correctness PRs proving that quantized target heads and quantized drafts can retain essentially identical acceptance when loader/module-name contracts are correct.
+4. A newly surfaced oMLX M1-Max result shows 5.8-6.2% decode improvement on Qwen3.5/3.6 35B-A3B by automatically engaging the existing fused FP16 GDN prework path. This is exact-chip / same-GDN-family evidence, **not Flash-Next throughput evidence**.
+
+No new exact 2x M1 Max / TB4 Flash-Next decode receipt appeared. No new DASLab / GSQ-RCO xhigh behavioral result appeared. Keep:
+
+- production quant search: **~3.0 / 3.2 / 3.4 / 3.6**, center hypothesis **~3.4-3.5**, likely source-like xhigh region **~3.3-3.6 average transformer BPW**;
+- dual-M1 Flash: **40 TG @ ~128K**, **400 cold PP**;
+- planning confidence for >=40 TG: **~70%**;
+- 50/500 remains stretch/headline territory.
 
 ---
 
-## NEW — xhigh-specialized production quant policy
+## NEW — oMLX #3869 / #3870: direct stage-edge transport and remote prefill plumbing
 
-Source/prior:
-- ISTA-DASLab Qwen3.8-Flash-Next GSQ/RCO release and discussion on reasoning-effort sensitivity.
-- Project 51 user workload policy: local Flash-Next will be driven at **xhigh**, not medium.
+Sources:
+- https://github.com/jundot/omlx/pull/3869
+- https://github.com/jundot/omlx/pull/3870
 
-The DASLab 3.00-bpw Flash allocation remains unusually strong xhigh evidence: its calibration traces and published reasoning benchmarks were generated at xhigh, while community medium-effort tests show materially larger degradation. For a universal-serving artifact this is a limitation. For P51's actual production distribution, it is specialization toward the intended workload.
+#3869 was created **2026-09-23 08:15 UTC**. It adds an MCDMA-backed stage edge for Mac<->CUDA pipeline deployments. The receiver verifies the link before launch, all ranks vote on whether the edge is usable, and a failed link falls back to the ordinary MLX ring. Integration tests verify bit-exact activation transfer, shape/dtype checks, and failure-on-link-drop rather than hanging.
+
+#3870 was created **2026-09-23 10:11 UTC** and generalizes the design:
+
+- every pipeline edge can independently use MCDMA;
+- sampled tokens can ride the next activation request, removing the ordinary ring all-sum from the steady decode step when all edges are live;
+- long prompts can optionally be remotely prefilled by a vLLM server and have only the missing KV pages handed back;
+- large received frames can be copied into MLX from Metal-visible buffers, avoiding an extra CPU copy.
+
+Important qualification: the PR explicitly says it has **not yet been run on ConnectX hardware or inside live vLLM**. Current evidence is unit/integration/stand-in transport correctness, not a production throughput receipt.
 
 ### P51 consequence
 
-Do **not** spend bandwidth merely to preserve medium reasoning if medium is not a production mode.
+This strongly reinforces our **stage-boundary-activations-only** communication design, but receives **zero numeric TG/PP forecast credit** until hardware measurements exist.
 
-Current search policy:
+Durable transport rules:
 
-- start near **~3.5 average transformer BPW**;
-- explicitly test approximately **3.0 -> 3.2 -> 3.4 -> 3.6** heterogeneous allocation arms;
-- preserve high precision in QSA/indexer, recurrent/GDN-sensitive tensors, norms, router/shared experts, output/head and MTP-sensitive paths;
-- push the routed-expert bank hardest;
-- promote the lowest-cost arm that is statistically source-like on repeated xhigh coding, hard reasoning, tool use, long-context retrieval and multi-turn agent trajectories.
+- probe every stage edge independently;
+- make transport choice per edge, not globally;
+- fail closed / fall back cleanly on link loss;
+- sampled-token/control traffic should piggyback on already-required pipeline messages where possible;
+- remote prefill must prove cache-layout identity before injecting state;
+- do not infer PP speedup from transport microbenchmarks alone.
 
-Current engineering estimate for the likely source-like xhigh frontier is **~3.3-3.6 average transformer BPW**, with ~3.4-3.5 as the center hypothesis. This is **not measured AA certification**.
-
-Medium-effort cross-tests remain useful diagnostics for calibration-domain overfitting, but they are no longer a production admission requirement for the xhigh-only artifact.
+For dual M1 / TB4 specifically, MCDMA itself is not our transport. The transferable idea is the **message contract and edge ownership**, not the RDMA mechanism.
 
 ---
 
-## NEW — SiliconSpecies Swift/Splash audit
+## NEW — vLLM #58325: Qwen4Exp PLE preprocessing should scale with actual tokens, not configured maximum
 
 Source:
-https://huggingface.co/SiliconSpecies/Swift-Qwen3.8-27B-Splash
+https://github.com/vllm-project/vllm/pull/58325
 
-### Supported
+Created **2026-09-23 10:14 UTC**.
 
-- reverse-engineered Splash package representation is operational and includes concrete format discoveries;
-- most BF16 norm tensors use a stored `gamma + 1` convention, with GDN norm as an exception;
-- controlled M5 Max prompt-length sweep includes cache salting to avoid false prefill wins;
-- 64K result reports **87.8 TG Splash vs 36.6 TG oMLX** for the tested system configurations.
+On the AMD Qwen4Exp path, the persistent PLE workspace is sized to
+`[max_num_reqs, max_num_batched_tokens]`. Before this PR, n-gram shift / EOS-segment / hash preprocessing ran over the full configured second dimension even when a decode step contained only one token per request or a small MTP verify width.
+
+Example from the PR: with `max_num_batched_tokens=16384`, an ordinary decode step still preprocesses 16,384 columns.
+
+The fix slices the workspace to `[:num_reqs, :num_tokens]`. The author argues downstream indexes are already bounded by `num_tokens`, so outputs should remain bit-identical and only never-read columns stop being touched.
+
+### Evidence level
+
+- unit-test plan: bit-identical sliced vs full-width reference across ragged MTP, graph padding and single-request shapes;
+- persistent memory footprint unchanged;
+- **ROCm E2E Flash-Next throughput and accuracy measurements are still TODO**.
+
+### P51 consequence
+
+Add a durable rule:
+
+> every PLE/QSA/indexer preprocessing loop must be bounded by **actual live rows/tokens**, not the configured maximum workspace or context.
+
+This belongs in the verifier profile because the error gets especially wasteful for B1 decode and small MTP widths.
+
+No target credit until end-to-end measurements land.
+
+---
+
+## NEW — SGLang #40883: packed target lm_head works with NEXTN / DFlash2 when the quant method is used correctly
+
+Source:
+https://github.com/sgl-project/sglang/pull/40883
+
+Created **2026-09-23 08:38 UTC**.
+
+The target can serve a pack-quantized `lm_head` through its quant method, but the speculative paths previously assumed `.weight` exists and refused to start.
+
+Qwen3.8-27B validation, RTX 6000 Ada, TP1:
+
+| target head | spec path | result | GSM8K/200 | mean accept length |
+|---|---|---|---:|---:|
+| BF16 | NEXTN | serves | 0.970 | 3.629 |
+| BF16 | DFlash2 | serves | 0.970 | 6.035 |
+| W8A16 packed | NEXTN | old main fails | - | - |
+| W8A16 packed | DFlash2 | old main fails | - | - |
+| W8A16 packed | NEXTN, PR | serves | 0.965 | 3.629 |
+| W8A16 packed | DFlash2, PR | serves | 0.970 | 6.035 |
+
+### P51 consequence
+
+The output/head should remain a protected tensor class in the quality-first allocator, but **protected does not necessarily mean BF16 forever**. A Q8/W8-style head can be a legitimate experimental arm if paired source-vs-quant xhigh/agent tests remain source-like and MTP acceptance is unchanged.
+
+Do not change the current production precision policy yet; this is 27B/Ada evidence, not Flash/M1 evidence.
+
+---
+
+## NEW — SGLang #40884: quantized DFlash2 draft can preserve acceptance if module-name / tensor-loader contracts are correct
+
+Source:
+https://github.com/sgl-project/sglang/pull/40884
+
+Created **2026-09-23 08:38 UTC**.
+
+The important bug was silent: draft modules were constructed under names that did not match checkpoint quantization rules. Ignore patterns for q/k/v therefore failed, fused layers were built quantized, BF16 checkpoint tensors were silently dropped, and the draft could reach warmup with effectively invalid/uninitialized state.
+
+The PR makes the draft build under checkpoint names and **refuses tensors that the instantiated module cannot actually consume** rather than silently discarding them.
+
+Qwen3.8-27B, RTX 6000 Ada:
+
+| draft | result | GSM8K/200 | accept length |
+|---|---|---:|---:|
+| BF16 DFlash2, main | serves | 0.970 | 6.035 |
+| BF16 DFlash2, PR | serves | 0.970 | 6.035 |
+| W8A16 draft, main | device-side assert in warmup | - | - |
+| W8A16 draft, PR | serves | 0.970 | **6.031** |
+
+The quantized draft keeps q/k/v, selector, convolution kernels and norms at higher precision in the published recipe.
+
+### P51 consequence
+
+Strengthen the Apple7 DFlash2 gate:
+
+1. verify every draft tensor is consumed by the intended module;
+2. reject unexpected dense-vs-packed / packed-vs-dense mismatches;
+3. record protected draft submodules explicitly;
+4. only after load-identity passes should finite-hidden/logit checks and acceptance tests be trusted.
+
+The existing M1 `w4a32` finite-state rule remains valid; this is an additional **loader identity** gate.
+
+---
+
+## RECOVERED OLDER EVIDENCE — oMLX #3853: exact M1 Max FP16 GDN decode fusion
+
+Source:
+https://github.com/jundot/omlx/pull/3853
+
+The PR was created before the prior hard boundary (2026-09-22 20:43 UTC), so this is classified as **RECOVERED OLDER EVIDENCE**, not fresh creation. It was updated again inside this pass.
+
+Hardware:
+- Apple M1 Max 64 GB
+- MLX 0.32.2
+- Qwen3.5/3.6 35B-A3B
+- B1/T1 greedy decode
+- thinking/speculation off
+- FP16 convolution/input, FP32 recurrent state
+
+Whole-server A/B:
+
+| mixed conversion | main TG | fused TG | gain |
+|---|---:|---:|---:|
+| 4-bit default | 73.79 | **78.33** | ~6.2% |
+| 5-bit default | 59.75 | **63.32** | ~6.0% |
+| 6-bit default | 57.97 | **61.35** | ~5.8% |
+
+Complete 256-token response time falls about 4.8-5.9%.
+
+Validation includes 2,268 real-weight numerical cases and 270 synthetic server rows; no new test failures relative to the same main baseline.
 
 ### Qualification
 
-The 64K ratio is a valid end-to-end configuration comparison, **not** a clean kernel-only 2.4x result: the target representations and speculative behavior differ.
-
-The published 95/95 quality suite is saturated and therefore useful as a catastrophic-conversion guard, not evidence of source-level intelligence retention.
-
-The stronger durable lesson is the format/correctness trap: local reconstruction or isolated kernel tests can pass while a small semantic mismatch destroys multi-step reasoning.
+This is **exact M1 Max evidence**, but it is **not Flash-Next** and it does not cover speculative verification. Qwen4/Flash uses a separate BF16/normalization route.
 
 ### P51 consequence
 
-Keep **real-model greedy/logit/agent parity above isolated kernel-unit correctness**. Package/quant conversion validation must include actual model behavior, especially for small high-leverage tensors.
+This is useful exact-chip evidence that fused GDN prework remains worth pursuing on Apple7 and that a ~6% B1 gain is physically available on a nearby GDN architecture when the route is shape/precision-matched.
+
+It does **not** justify increasing the 40-TG probability.
 
 ---
 
-## NEW — EXL3 / trellis audit
-
-Sources:
-- https://github.com/turboderp-org/exllamav3/blob/master/doc/convert.md
-- https://github.com/turboderp-org/exllamav3/blob/master/sc_optimize.py
-- https://github.com/beamivalice/PonyExl3/blob/master/README.md
-
-EXL3 is materially more interesting than a uniform "N bpw" hardware map implies. Current conversion supports higher-bit heads, separate MTP / n-gram precision, HQ promotion of sensitive structures, and arbitrary per-tensor recipes. The optimizer uses sensitivity/logit-divergence information to allocate rate.
-
-### P51 consequence
-
-Treat EXL3 as a **heterogeneous-allocation/runtime challenger**, not as evidence that a low nominal BPW has a universal quality equivalence.
-
-Teacher-logit / KLD proximity remains an allocator signal, not an AA/agent-intelligence certificate.
-
-PonyExl3 proves the trellis representation can be executed from compressed form in Metal, but current M1 dense-27B performance does not displace the Apple7/Splash/oMLX production path. Keep EXL3/Pony as a research branch.
-
----
-
-## NEW / MERGED — oMLX #3520 gathered-QSA long-context path
+## NEW — llama.cpp #29305: cache source logits once, compare conversion candidates later
 
 Source:
-https://github.com/jundot/omlx/pull/3520
+https://github.com/ggml-org/llama.cpp/pull/29305
 
-The merged PR removed a major long-context decode pathology: gathered QSA previously transposed / reshaped the whole KV cache before selecting the small sparse subset. On M5 Max, per-QSA-layer gather cost at 206K fell from **1.83 ms** to **0.27 ms**.
+Created **2026-09-23 10:07 UTC**.
 
-Reported serial decode improvements vs prior main:
-
-- 63K: **+7.5%**
-- 134K: **+18%**
-- 229K: **+28%**
-
-With adaptive MTP under production sampling:
-
-- 63K: **+8.5%**
-- 134K: **+25%**
-- 229K: **+36%**
-
-The implementation also demonstrates a width-sensitive policy: very small query/verify widths prefer stored-layout gathers, while larger prefill widths can prefer copy-once / flat-gather below a context threshold.
+The PR adds a conversion workflow that lets a source-model token/logit run be saved once and later reused to verify converted candidates, avoiding repeated execution of the huge reference model.
 
 ### P51 consequence
 
-This directly supports:
+Adopt the concept in the quant-search harness:
 
-- no whole-cache transformation on token decode;
-- gathered sparse-QSA verification;
-- **width-sensitive verify/prefill kernel dispatch** rather than one universal path.
+- freeze source tokens/logits for a controlled prompt suite;
+- reuse the source artifact across 3.0/3.2/3.4/3.6 candidate conversions;
+- still run behavioral xhigh/agent evaluation separately.
 
-Do not numerically transfer M5 gains to M1, but prioritize the same structural optimization.
+This reduces quant-search cost, but **logit parity remains an allocator/correctness signal, not AA40 certification**.
 
 ---
 
-## RECOVERED / PROMOTED — measured MTP verify economics, oMLX #3374
+## NEW / NEGATIVE TRANSFER — llama.cpp #29298 sparse-FA prefill changes DS4, not Qwen4Exp in the submitted benchmark
 
 Source:
-https://github.com/jundot/omlx/issues/3374
+https://github.com/ggml-org/llama.cpp/pull/29298
 
-Measured on Qwen4-Exp / Flash-Next, M3 Ultra, depth-5:
+Created **2026-09-23 08:03 UTC**.
 
-- base forward: **1.0x**
-- GDN sequential recurrence: **~+0.5x**
-- MoE expert union: **~+0.6x**
-- QSA indexer: **~+0.2x**
-- total verify cost: **~2.3x one target forward**
+DGX Spark, long-context pp2048:
 
-At that cost:
-- prose ~2.4 accepted tok/cycle => ~**1.04x** effective;
-- tool calling ~3.1 => ~**1.35x**.
+DeepSeek-V4:
+- @65K depth: **238.24 -> 293.35 PP (+23%)**
+- @131K depth: **172.75 -> 244.46 PP (+42%)**
+- TG essentially unchanged.
 
-Proposed/estimated improvements:
-- expert-union dedup: save ~0.3x;
-- chunked/TreeWY-style GDN verify: save ~0.5x;
-- combined verify target: **~1.5x**.
-
-The 2.3x decomposition is measured. The 1.5x outcome is a hypothesis / implementation target.
+Qwen4Exp A3B IQ1_S:
+- 0K / 16K / 32K / 65K PP and TG are essentially unchanged (~1.00x).
 
 ### P51 consequence
 
-The P51 40-TG thesis should be expressed as a verifier-economics problem, not a generic "MTP multiplier":
+Do not transfer sparse-attention kernel gains across hybrid model families merely because both expose sparse attention. The selection geometry / batch gate that helps DSV4 prefill is not automatically useful to Qwen4Exp.
 
-> target execution in the mid-20s TG + verify cost reduced enough to realize ~1.5-1.7x useful-token uplift.
-
-Prioritize MoE union dedup and parallel/chunked GDN verification after gathered-QSA.
+This is a useful negative result and supports model-specific kernel dispatch.
 
 ---
 
-## NEW — SGLang Qwen4-Exp PP2 proof, #39393
+## Checked with no qualifying fresh target evidence
 
-Source:
-https://github.com/sgl-project/sglang/issues/39393
+Between the hard boundary and cutoff:
 
-A production-like local patch runs Flash-Next / Qwen4-Exp with **PP2 across two physical 8x4090 nodes**, no NVLink/P2P across nodes, under a 160-request replay. Temperature-0 correctness passes.
+- **MTPLX:** no new commit/PR/issue.
+- **EXL3:** no new commit/PR/issue.
+- **PonyExl3:** no new commit/PR/issue.
+- **official Qwen3.8 repo:** no new commit/PR/issue.
+- **MiaAI-Lab dual-DGX-Spark Flash repo:** no new commit/PR/issue.
+- **flashnext-hybrid:** no new commit/PR/issue.
+- **mlx-serve:** no new commit/PR/issue.
+- **DS4:** no qualifying new item.
+- no new exact **2x M1 Max/TB4 Flash-Next** TG or cold-PP receipt.
+- no new **DASLab Flash xhigh quality** result.
+- no new **5070 Ti** result strong enough to move its canonical target.
 
-Key mechanism evidence:
+## Target / confidence impact
 
-- TP16 cross-node AllReduce: ~**17 ms/layer** in the reported setup;
-- PP2 stage-boundary transfer: **<0.4 ms per request window**;
-- PP2 avoids repeated cross-node layer collectives.
+Unchanged:
 
-Important model-specific contract:
-- HyperConnection / mHC PP boundary carries the already-wide `hidden_states` representation;
-- copying a normal Qwen3-style `{hidden_states, residual}` contract is incorrect.
-
-Important warning:
-- PP2 + CUDA graph was correct in the report;
-- an eager PP path could silently corrupt output after several generated tokens.
-
-### P51 consequence
-
-PP2 is now demonstrated on the exact architecture family. Increase architectural feasibility confidence, but do **not** transfer NVIDIA throughput to M1.
-
-Stage ownership remains mandatory:
-- embeddings only where needed;
-- each stage owns its GDN/QSA/KV/MTP state;
-- TB4 carries stage-boundary activations, not expert weights or chatty collectives.
-
----
-
-## NEW — dynamic expert residency evidence, SGLang #37792
-
-Source:
-https://github.com/sgl-project/sglang/issues/37792
-
-A 2.572-bpw Flash-Next build on a 24-GB Blackwell GPU + 32-GB host RAM demonstrates tiered expert residency.
-
-At the minimum resident cache:
-- **184 / 512 experts per layer resident**
-- those experts cover **84.3% of routing mass**
-- expert traffic drops from **26 GB/token -> 0.31 GB/token**
-- same-machine optimization ladder reaches the mid-50s TG at ~10K context.
-
-This is capacity/runtime evidence, not quality evidence and not M1 transfer.
-
-### P51 consequence
-
-Promote **stage-local dynamic expert residency** from optional future capacity trick to an architecture feature worth preserving from day one.
-
-Even if 2x64 GB can fully hold the chosen production quant, hot-expert locality may still reduce cache/memory pressure and becomes highly relevant to future Qwen4 / larger sparse models.
-
-Never fetch experts across TB4; misses must be serviced from the owning stage's local hierarchy.
-
----
-
-## NEW — thin-link Flash-Next systems evidence: flashnext-hybrid
-
-Source:
-https://github.com/ucicelos/flashnext-hybrid/blob/main/README.md
-
-Cross-hardware system: large-memory AMD APU + RTX 3090 Ti eGPU over a thin PCIe link.
-
-Key lessons are architectural rather than numeric:
-
-- placement/state/rollback mistakes can dominate;
-- sparse attention can accidentally pay dense-context bandwidth;
-- speculative batches can fragment into singleton target work;
-- **~90% draft acceptance can still make throughput worse** if verification destroys batching;
-- forcing common verification width can lower nominal acceptance while increasing aggregate TG.
-
-### P51 consequence
-
-Optimize **accepted useful tokens per expensive target verification batch**, not raw acceptance percentage.
-
-This independently supports P51's planned multi-row PP2 verifier:
-- keep verification width scheduler-visible;
-- batch rows even when some low-confidence drafts are likely to reject;
-- pipeline those verify batches across PP stages.
-
----
-
-## UPDATE — oMLX #3771 remains a correctness/performance warning
-
-Source:
-https://github.com/jundot/omlx/issues/3771
-
-Flash-Next dev4 failed to engage fused GDN verify prework on all 36 GDN layers because fast-path eligibility relied on exact method identity rather than semantic capability.
-
-Measured M5 Max code:
-- older working path: **96.4 TG**
-- dev4 + separate transaction fix: **77.4**
-- restoring fused prework gate: **81.1**
-
-### P51 consequence
-
-Public runtime numbers are not mature ceilings. Instrument fast-path engagement separately for target, draft and verify.
-
-Compatibility gates should express numerical contracts, not exact class/method identity.
-
----
-
-## UPDATE — M5 Ultra is a reference ceiling, not a P51 transfer
-
-Reference:
-https://www.macstories.net/stories/m5-ultra-mac-studio-review-the-dream-mac-for-local-ai-agents/
-
-Current M5 Ultra 256-GB oMLX/Flash-Next measurements show genuinely filled long-context decode remaining strong and cold prefill in the multi-thousand tok/s range.
-
-### P51 consequence
-
-Use M5 Ultra as a **single-node reference / upper-bound environment** only. Do not numerically transfer its rates to Apple7.
-
-Its existence strengthens the view that Flash-Next long-context architecture itself is not the limiting problem; P51's challenge is extracting comparable software efficiency from much older M1 silicon.
-
----
-
-## UPDATE — Qwen4 relevance
-
-Sources:
-- https://github.com/QwenLM/Qwen3.8-Flash-Next
-- official Alibaba Qwen4 roadmap announcements
-
-Flash-Next is explicitly presented as an early preview of the architecture used in Qwen4. Qwen4 is reported as in training; no reliable public total/active-parameter or local-inference requirement exists yet.
-
-### P51 consequence
-
-Preserve generality in:
-- stage-local sparse expert residency;
-- QSA/recurrent state ownership;
-- external PLE/lookup placement;
-- heterogeneous quant allocation;
-- PP2 activation-only transport.
-
-These are likely to transfer to the next architecture generation better than model-specific whole-file quant assumptions.
-
----
-
-## Canonical planning state after this true-up
-
-### Quality / quant
-
-- Production use mode: **xhigh**.
-- Desired quality: **source-like ~AA40-class behavior at xhigh**.
-- >=38 remains a hard reject floor, not the production goal.
-- Current search band: **~3.0-3.6 experimental**, with **~3.3-3.6** the current likely source-like xhigh region and ~3.5 the recommended first serious candidate.
-- Whole-file BPW remains non-authoritative; PLE and MTP precision are tracked separately.
-
-### Dual-M1 Flash
-
-- PP2 remains primary; TP2 is a falsification/control benchmark.
-- 40 TG @ ~128K: **~70% planning confidence**.
-- 400 cold PP remains the working target.
-- 50/500 remains stretch/headline territory, not promoted expectation.
-
-### Implementation priority
-
-1. xhigh-source-like heterogeneous quant qualification;
-2. exact PP2 stage ownership / mHC boundary semantics;
-3. gathered QSA for decode and verify;
-4. MoE expert-union dedup;
-5. chunked / parallel GDN verification;
-6. width-sensitive verify dispatch;
-7. PP2 pipeline overlap across verification batches;
-8. stage-local hot-expert residency;
-9. real-model greedy/logit/tool/agent parity after every optimization.
+- Flash-Next xhigh production quant: search ~3.0-3.6; likely source-like region ~3.3-3.6 (hypothesis only).
+- dual-M1 Flash: **40 TG @ ~128K**, **400 cold PP**.
+- **~70%** planning confidence for >=40 TG.
+- single-M1 27B: **25 TG**.
+- RTX 5070 Ti 27B: **120 TG** mature target.
 
 ## New hard boundary
 
-**2026-09-23 ~07:55 UTC**
+**2026-09-23 10:19:31 UTC**
