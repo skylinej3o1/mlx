@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-23 09:53 ET.
+Last consolidated: 2026-09-23 12:30 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -773,3 +773,15 @@ Highest-value missing measurements:
 - **Quantized draft loader convergence — vLLM #58343:** selector/head allocation must respect the draft quantization configuration and explicit ownership. GPU/model quality validation is still pending, so this adds no performance evidence beyond the already-promoted draft tensor-consumption gate.
 
 **Target effect:** none. No exact dual-M1 Flash receipt and no new DASLab xhigh quality result appeared. Keep xhigh ~3.0-3.6 search, ~3.3-3.6 source-like frontier hypothesis, 40 TG @ ~128K / 400 cold PP, and ~70% >=40 planning confidence.
+
+
+### 2026-09-23 16:30 UTC warm-cache boundary / sleep persistence / byte-budget update
+
+- **PREFIX-TAIL checkpoint identity — vLLM #58368:** hybrid Mamba/GDN + MTP prefix reuse can match token hashes yet miss the required recurrent checkpoint boundary. A concrete 1,600-token prompt with 64-token hash blocks should reuse 1,536 tokens; saving state at 1,600 instead of the scheduler-shifted 1,536 boundary collapses reuse to zero. P51 cache identity must include logical matched length, actual resume boundary, recurrent/QSA/draft checkpoint token index, block geometry and runtime/model identity.
+- **SLEEP/WAKE cache persistence — llama.cpp #29322:** current prompt-cache state can remain allocated throughout sleep and then be discarded during model reload, converting a pre-sleep 4-token warm hit into ~3.6-4.0K re-prefill after wake in the reported Qwen3.8-27B setup. P51's agent-wake acceptance must test the real post-sleep hit, not RAM residency. If a runtime cannot preserve logical cache state across unload/reload, P51 should own typed state persistence externally.
+- **BYTE-BASED cache budget — llama.cpp #29324:** recurrent/hybrid cache entries have large fixed per-entry state; ~1.2K-token Qwen3.8-27B prompts grew private memory by ~640 MiB each in the reported setup, with ~27.5 GiB growth after 44 entries under an unbounded-byte cache. P51 cache eviction/capacity must account target KV, QSA/indexer, recurrent/GDN, checkpoint history, draft/MTP and metadata bytes explicitly; token count alone is not a capacity metric.
+- **WATCH ONLY — SGLang #40925/#40929:** DSA-indexer and MTP KV-cache sharding work opened in-window, but both PRs currently have empty descriptions, no accuracy/performance evidence and failing CI. Track them for future state-ownership/sharding evidence; do not infer topology or target gains from titles/diff size alone.
+- **Metal BF16 depthwise-conv compatibility — llama.cpp #28741:** missing f32 x bf16 mul_mv variants were merged, fixing BF16 depthwise 1D convolution on native-BF16 Metal devices. This is not M1-Max target evidence because the path is guarded by native BF16 capability. It further supports intentional FP16 protected-island compute on Apple7.
+- **SECONDARY MiMo speculation evidence — oMLX #3877:** correct speculative serving requires isolated draft state, predictor-index preservation and full rollback after sliding-window cache rotation. MiMo M3-Ultra Lightning-MTP gains (+11% to +20% at 4K-32K) are non-Flash transfer only; author notes long-context token identity still varies across cache/batch conditions, so no P51 target credit.
+
+**Target effect:** none. No new exact dual-M1 Flash receipt and no new DASLab xhigh quality result appeared. Keep xhigh ~3.0-3.6 search, ~3.3-3.6 source-like frontier hypothesis, 40 TG @ ~128K / 400 cold PP, and ~70% >=40 planning confidence.
