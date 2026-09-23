@@ -1,7 +1,8 @@
 # Runtime TG / PP Targets and Planning Confidence
 
 Calibrated: **2026-09-04 06:40 ET**  
-Target-definition correction: **2026-09-10 ET**
+Target-definition correction: **2026-09-10 ET**  
+Latest strategy true-up: **2026-09-23 03:55 ET**
 
 This is the canonical planning-target file for the three recurring model families:
 
@@ -63,7 +64,7 @@ This makes the quant search **lexicographic**:
 2. preserve MTP acceptance/correction behavior and QSA/recurrent correctness;
 3. only then maximize sustained M1 TG / minimize hot bytes and microseconds.
 
-The current ~4.6-4.9 hot-trunk BPW band remains a **search region, not a requirement**. If a slightly heavier quant is needed to stay >=38, quality wins. APEX-inspired ~4.3-4.6 arms remain valuable experiments, but cannot be promoted solely from perplexity or throughput.
+Historical note: the ~4.6-4.9 hot-trunk band was the quality-first search region at this point. **This is superseded by the 2026-09-23 xhigh-only specialization below**, which moves the active search toward ~3.0-3.6 average transformer BPW while requiring source-like xhigh behavior. Quality still wins over speed.
 
 Certification should preferably include the actual comparable AA evaluation. Until that is practical, the frozen P51 proxy suite must be calibrated against source/Optimized/oQ5e behavior and include hard coding, tool use, long-context retrieval, QSA/indexer stability, recurrent-state replay and MTP acceptance. **A guessed "38+" is not certification.**
 
@@ -100,7 +101,7 @@ Current public MLX bracketing references:
 - **MTPLX Optimized Speed:** dynamic Q4 with the **QSA projections promoted to Q8** plus the same 16-bit sensitive islands. This is the higher-quality recommended sibling, but it is not a literal uniform Q5 quant.
 - **APEX / Myric Flash evidence:** heterogeneous allocation can push selected expert classes lower while protecting small sensitive paths, but the published Flash APEX artifact omits the MTP head and uses GGUF formats whose M1 kernel economics do not transfer automatically.
 
-The deployment objective remains an **initial ~4.6-4.9 effective-BPW hot compute trunk**, with PLE/ngram and MTP precision accounted separately. APEX-inspired ~4.3-4.6 arms are now explicit experiments, not promoted targets.
+Historical 2026-09-20 objective: **~4.6-4.9 effective-BPW hot compute trunk**, with PLE/ngram and MTP precision accounted separately. **Superseded for the active production search by the 2026-09-23 xhigh-only policy**: start near ~3.5 average transformer BPW and search ~3.0/3.2/3.4/3.6, promoting only source-like xhigh behavior.
 
 The optimizer's objective is **behavioral quality and MTP acceptance per M1 hot byte / microsecond saved**, not minimum file size. The first baseline experiment is to make the MTPLX 16-bit BF16 islands/compute path M1-FP16-friendly while keeping the quantized tensors unchanged.
 
@@ -123,7 +124,7 @@ exact M1-Max/TB4 evidence.
 
 | Model / hardware lane | Working TG target | Confidence / status | Working cold PP target | Confidence |
 |---|---:|---:|---:|---:|
-| **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s @ ~128K active context** | **planning objective; exact confidence not separately calibrated** | **400 tok/s** | **~55-60%** |
+| **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s @ ~128K active context** | **~70% planning confidence for >=40** | **400 tok/s** | **~70%** |
 | **Qwen3.8-27B — M1 Max 64** | **25 tok/s** | **~65%** | **110 tok/s native/exact-runtime** | **~60%** |
 | **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
