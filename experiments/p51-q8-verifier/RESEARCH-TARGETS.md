@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-23 03:55 ET**
+Latest strategy true-up: **2026-09-23 15:03 ET**
 
 This is the canonical planning-target file for the three recurring model families:
 
@@ -30,6 +30,47 @@ Definitions:
   not silently become a measured rate.
 - **Context is part of target identity.** A short/medium-context rate must never silently substitute
   for the ~128K Flash headline target.
+
+### 2026-09-23 first-principles floor / center recalibration
+
+This is a **derived engineering scenario model**, not a new benchmark and not a target change. It was rebuilt from the measured single-M1 long-context anchor instead of reasoning backward from the 40-TG goal.
+
+Starting point:
+- modern tuned M1 Max / Flash-Next / ~4.27-bpw target-only measurements are ~23.3 TG at 117.8K and ~20.5 TG at 148.5K, implying roughly **~22-23 TG around 128K**;
+- that stack is already substantially optimized, so ordinary target-only kernel headroom should not be assumed to be enormous.
+
+If the current xhigh quant hypothesis succeeds:
+- a source-like **~3.4-3.6 average transformer BPW** artifact that maps efficiently to Apple7 is estimated at roughly **~25-27 target-only TG @ ~128K**;
+- this estimate assumes only part of target-forward time scales with routed-expert bytes, so it does **not** convert the BPW reduction linearly into TG.
+
+Required uplift to hit 40:
+- 25 TG needs **1.60x** effective speculative/distributed acceleration;
+- 26 TG needs **1.54x**;
+- 27 TG needs **1.48x**.
+
+This is materially less demanding than the earlier Q5-ish design, where a ~21-22-TG target-only base would have needed roughly **~1.8-1.9x** effective acceleration.
+
+Current scenario interpretation:
+- **physical fallback / speculation contributes almost nothing:** ~24-27 TG;
+- **practical mature-system downside with at least modest speculation:** ~30-32 TG;
+- **central planning region:** ~39-41 TG;
+- **headline target:** 40 TG;
+- **stretch:** ~50 TG.
+
+The central mechanism remains verifier economics:
+- measured Flash depth-5 verification cost: **~2.3 target-forward equivalents** on stronger Apple hardware;
+- proposed MoE-union + GDN/chunked verification goal: **~1.5x**;
+- ~2.4 useful accepted tokens / 1.5x verify cost gives ~1.6x effective uplift, approximately enough to turn a 25-TG target-only system into the 40-TG headline result.
+
+PP2 does not magically double B1 causal decode. Its throughput value is primarily the ability to overlap **multi-row speculative verification** across stages. The new Metal batching-risk watch therefore makes Apple7 B2/B4 verifier efficiency a first-order acceptance gate.
+
+Cold-PP derived scenario:
+- exact modern single-M1 long-context PP is roughly ~200 tok/s in the tuned lane;
+- useful long-prompt PP2 overlap plus modest lower-bit/fusion gains yields a current **~370-390 PP center**;
+- **~320-340 PP** is the mature downside region;
+- **400 cold PP** remains the success target.
+
+**Probability/target effect:** none numerically. Keep the existing **~70% planning confidence for >=40 TG** and the 40/400 targets. This section clarifies the floor/center and what must be true for the target to land.
 
 ## 2026-09-10 target-definition correction
 
