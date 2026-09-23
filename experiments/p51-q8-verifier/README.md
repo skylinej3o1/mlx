@@ -16,12 +16,20 @@ The repository is the durable source of truth. Do not reconstruct project state 
 
 ## Canonical lane reminders
 
-- **Flash-Next deployment-quant design is now a custom mixed lane, not a stock whole-model BPW label.** Target approximately **4.6-4.9 effective BPW on the hot compute trunk**, with PLE/ngram precision and MTP precision tracked separately. Do not compare quants by one whole-file BPW number when tens of billions of PLE parameters live on SSD/offload paths.
+- **Flash-Next deployment-quant design is an xhigh-specialized custom mixed lane, not a stock whole-model BPW label.** Start the serious production search around **~3.5 average transformer BPW** and test roughly **3.0 / 3.2 / 3.4 / 3.6** heterogeneous arms, with the current likely source-like xhigh frontier estimated around **~3.3-3.6 BPW**. PLE/ngram precision and MTP precision are tracked separately. Promotion requires repeated source-like xhigh reasoning/coding/tool/long-context/agent behavior; nominal BPW alone is never certification.
 - **oQ5e remains the quality/certification comparator.** The custom deployment quant should retain essentially oQ5e/BF16 behavior on the frozen Project 51 eval battery before it can replace the quality reference.
 - **oQ4e remains the aggressive performance comparator/fallback lane**, useful for bounding the speed side of the frontier; it is not the quality reference.
 - Q6/Q8 may still be relevant to sensitive Flash submodules (for example MTP/QSA/GDN/HC/head) and to the smaller Qwen3.8-27B lanes; do not interpret those local precisions as a whole-model Flash target.
 
 ## Research-update search protocol
+
+**User shorthand:** when the user says **"search and update"**, that is an instruction to do both halves in the same turn:
+
+1. **Search** for fresh Project 51 evidence after the current hard freshness boundary.
+2. **Update / true up GitHub**: write the dated research watch, replace `RESEARCH-WATCH-LATEST.md`, update `RESEARCH-STATE.md` and/or `RESEARCH-TARGETS.md` whenever durable conclusions or planning state changed, commit on `project51-q8-verifier`, then read back and verify the final canonical state.
+
+A chat-only research summary does **not** satisfy "search and update." Do not wait for a second request such as "update GitHub." If the search produces no durable change, still advance the dated watch / `LATEST` freshness boundary and record that targets/state are unchanged.
+
 
 For every external research update:
 
