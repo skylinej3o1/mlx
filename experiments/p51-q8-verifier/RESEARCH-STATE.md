@@ -18,6 +18,7 @@ Before any new search:
 5. Never call an old source new merely because it was absent from a later note.
 6. After a useful pass, update the dated delta, this state when a durable conclusion changes,
    and `RESEARCH-WATCH-LATEST.md`.
+7. **Standing shorthand:** if the user says **"search and update"**, perform the search **and** true up GitHub in the same turn. A chat-only summary is incomplete. Write/advance the dated watch and `RESEARCH-WATCH-LATEST.md`; update this file and `RESEARCH-TARGETS.md` when durable conclusions or planning state changed; commit and verify the final branch head.
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
