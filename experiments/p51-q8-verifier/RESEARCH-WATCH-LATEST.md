@@ -1,6 +1,6 @@
-# Project 51 primary-lane research watch — 2026-09-23 12:30 ET
+# Project 51 primary-lane research watch — 2026-09-23 15:03 ET
 
-**Freshness boundary checked:** prior hard boundary **2026-09-23 13:53:27 UTC**. This pass covers substantive evidence through the user cutoff **2026-09-23 16:30:12 UTC**.
+**Freshness boundary checked:** prior hard boundary **2026-09-23 16:30:12 UTC**. This pass covers substantive evidence through the user cutoff **2026-09-23 19:03:50 UTC**.
 
 ## Decision
 
@@ -8,297 +8,318 @@
 
 No new exact 2x M1 Max / TB4 Flash-Next throughput receipt appeared, and no new DASLab / GSQ-RCO xhigh behavioral result appeared.
 
-The useful deltas are operational/correctness-oriented:
+The most useful new evidence is about where the remaining risk actually sits:
 
-1. vLLM #58368 demonstrates that hybrid Mamba/GDN + MTP prefix reuse can lose the prompt-tail recurrent checkpoint and collapse a valid 1,536-token reuse to **zero**. This strengthens the rule that a cache hit includes the correct recurrent checkpoint boundary, not merely matching token hashes/KV blocks.
-2. llama.cpp #29322 shows `--sleep-idle-seconds` can keep prompt-cache RAM allocated during sleep and then discard the cache on wake, forcing a full re-prefill. This directly affects Project 51's planned agent sleep/wake/prewarm design.
-3. llama.cpp #29324 shows token-count cache budgets are badly misleading for hybrid/recurrent models because fixed recurrent state dominates short entries: about **~640 MiB private-memory growth per ~1.2K-token prompt** in the reported Qwen3.8-27B setup. P51 cache budgets must be byte/state aware.
-4. SGLang opened #40925 and #40929 for DSA-indexer and MTP KV-cache sharding. They are potentially relevant to state partitioning, but the PRs currently contain no accuracy/performance evidence and get no architectural promotion beyond "watch."
-5. llama.cpp merged missing Metal f32 x BF16 matrix-vector variants needed by BF16 depthwise 1D convolution. It fixes a real Metal compatibility hole, but the code is guarded by native-BF16 support and therefore gives no direct M1-Max performance credit.
+1. A new Metal report shows potentially catastrophic long-context multi-sequence batching behavior on an M3 Ultra, including a case where two separate singleton processes substantially outperform one batched process. The report is **provisional**: it uses an older prebuilt, Qwen4Exp is not upstream-supported in that llama.cpp build, and the maintainer explicitly says the custom script does not account for some effects correctly. Still, it creates a mandatory P51 gate: verify-width B2/B4/B8 must be benchmarked at long context on Apple7 before PP2 overlap gets forecast credit.
+2. SGLang #40947 makes Flash-Next PLE lookup substantially cheaper at the microkernel level by sharing one host table across TP ranks, but end-to-end throughput is effectively neutral. This is valuable negative evidence: PLE lookup collectives can look expensive in isolation without being a material system bottleneck.
+3. vLLM #58413 demonstrates exact hybrid-state offload/replay on Qwen3.8-27B + MTP3 at 100K: external adoption rises **0 -> 99,008 tokens**, TTFT falls from about **11.7-12.3 s to 377 ms**, greedy continuation is byte-identical, and MTP accept length remains **2.601**. Correct per-group state geometry can make warm external restore work extremely well.
+4. vLLM #58428 turns the KV-PP RFC into a concrete Phase-1 planning prototype: physical layer ownership is decoupled from logical KV planning, draft state stays rank-local, and PP4 unit tests report ~3.2x block-capacity expansion. Runtime communication is still unimplemented, so this is architecture evidence only.
+5. A Blackwell Qwen3.8 hybrid/MTP report (#58422) shows a silent engine wedge with health still returning 200. Backend-specific, but operationally important: P51 liveness must include token-progress probes, not only process/HTTP health.
+6. A CUDA Qwen4Exp report (#29326) claims ~20% long-context PP gain through a radix top-k path for the QSA indexer. It is not Apple evidence and is not yet a merged/controlled upstream result, but reinforces that indexer top-k remains a legitimate prefill optimization seam.
 
-Keep:
-- Flash-Next xhigh production quant search: **~3.0 / 3.2 / 3.4 / 3.6 average transformer BPW**;
-- likely source-like xhigh region: **~3.3-3.6**, center hypothesis **~3.4-3.5**;
-- dual-M1 Flash: **40 TG @ ~128K**, **400 cold PP**;
-- planning confidence for >=40 TG: **~70%**;
-- 50/500 remains stretch/headline territory.
+### Planning interpretation carried forward
+
+The first-principles forecast completed after the previous watch is now the canonical interpretation of the unchanged 40/400 target:
+
+- measured modern single-M1 4.27-bpw target-only anchor implies roughly **~22-23 TG around 128K**;
+- if a source-like ~3.4-3.6-bpw P51 quant maps efficiently to Apple7, a reasonable design estimate is **~25-27 TG target-only**;
+- therefore **40 TG requires ~1.48-1.60x effective speculative/distributed uplift**, materially less heroic than the old Q5-ish design;
+- **physical fallback if speculation/PP2 contributes almost nothing:** ~24-27 TG;
+- **practical mature-system downside with at least modest speculation:** ~30-32 TG;
+- **current central planning region:** ~39-41 TG;
+- **headline target:** 40 TG;
+- **stretch:** 50 TG;
+- cold-PP derived center remains roughly **370-390**, downside **320-340**, with **400** the success target.
+
+These are derived engineering scenarios, not new measurements. They do **not** change the existing ~70% planning confidence for >=40 TG.
 
 ---
 
-## NEW — vLLM #58368: MTP prompt-tail cache reuse requires the recurrent checkpoint at the shifted boundary
+## NEW / PROVISIONAL — llama.cpp #29335: Metal long-context batched decode can collapse badly
 
 Source:
-https://github.com/vllm-project/vllm/pull/58368
+https://github.com/ggml-org/llama.cpp/issues/29335
 
-Created **2026-09-23 14:10:53 UTC**, still open at this cutoff.
+Created **2026-09-23 17:56:40 UTC**.
 
-Affected regime:
-- hybrid Mamba/GDN models;
-- MTP enabled;
-- prefix caching enabled;
-- aligned recurrent-cache mode;
-- hash block size smaller than the recurrent/Mamba block size.
+Reported hardware/runtime:
+- Apple M3 Ultra, 512 GB;
+- Unsloth prebuilt llama.cpp b10830, not current master;
+- Qwen3.8-Flash-Next Q8_0;
+- several unique long-context requests decoding inside one server batch.
 
-Concrete example from the PR:
-- `hash_block_size = 64`;
-- prompt A length = **1,600 tokens**;
-- prompt B begins with A;
-- MTP prefix lookup intentionally drops the final 64-token matched block, so the reusable boundary should be **1,536**;
-- scheduler ends a prefill chunk at 1,536 to compute recurrent state there;
-- regression saves the recurrent state at 1,600 instead of 1,536;
-- result: prompt B reuses **0 tokens instead of 1,536**.
+Reported aggregate decode:
 
-The bug came from using the wrong semantic flag: checkpoint-tail storage depended on `use_eagle`, while the scheduler's actual boundary-shift condition is represented by `drop_eagle_checkpoint_block`.
+| Context | N=1 | N=2 | N=4 | N=8 |
+|---:|---:|---:|---:|---:|
+| 256 | 32.8 | 45 | 60 | 78 |
+| 16K | 25.9 | 10.3 | 6.9 | 5.2 |
+| 32K | 25.7 | 8.6 | 5.5 | — |
+
+At 32K:
+- one process, N=1: **25.7 TG**;
+- one process, N=2 batch: **8.6 aggregate TG**;
+- two independent N=1 processes: **39.4 aggregate TG**.
+
+The reporter says the same qualitative cliff appears on GLM-5.3-Flash, suggesting a Metal batched-attention path rather than a Qwen-only issue.
+
+### Critical qualification
+
+The llama.cpp maintainer replied that:
+- the custom script does not account for some effects correctly and can report incorrect numbers;
+- `llama-batched-bench` should be used;
+- these model architectures are not currently upstream-supported in llama.cpp.
+
+Therefore the exact ratios are **not promoted as reliable measurements**.
 
 ### P51 consequence
 
-Promote a more precise cache-identity rule:
+The mechanism risk is still important because P51 depends on multi-row speculative verification and PP2 overlap.
 
-> a reusable prefix is `token-prefix identity + exact recurrent/QSA checkpoint boundary + state schema`, not token hashes alone.
+Add an Apple7 verifier-width gate before any PP2 throughput projection is trusted:
 
-For every warm-prefix entry, record:
-- logical matched token length;
-- actual replay/resume boundary;
-- recurrent checkpoint token index;
-- QSA/indexer checkpoint token index;
-- draft/MTP checkpoint boundary;
-- hash-block and recurrent-block geometry;
-- model/runtime/quant identity.
+- B1, B2, B4, B8 at 4K / 32K / 128K;
+- same shared-prefix verification geometry used by the real MTP path;
+- target-only and verify path separately;
+- Metal GPU occupancy and per-stage idle%;
+- one process batched vs multiple singleton-process control;
+- same exact quant/kernel policy.
 
-A checkpoint stored at the wrong boundary invalidates the hit even if the prefix token hashes match.
+If long-context B2/B4 is slower than repeated B1 on M1, PP2 scheduling must avoid the pathological batching path or use a different kernel/row layout.
 
-Add a regression fixture with non-aligned prompt lengths around every block boundary and require the restored continuation to match a no-cache reference.
+**Target effect:** none until reproduced on supported current code and P51's actual shared-prefix verify geometry.
 
 ---
 
-## NEW — llama.cpp #29322: sleep holds prompt-cache RAM, then wake discards the cache
+## NEW / NEGATIVE SYSTEM EVIDENCE — SGLang #40947: faster PLE gather, neutral end-to-end performance
 
 Source:
-https://github.com/ggml-org/llama.cpp/issues/29322
+https://github.com/sgl-project/sglang/pull/40947
 
-Created **2026-09-23 16:17:18 UTC**.
+Created **2026-09-23 17:18:35 UTC**.
 
-Reported setup:
-- Qwen3.8-27B hybrid GDN model;
-- RTX 5090 32 GB / Windows;
-- `--cache-ram` plus `--sleep-idle-seconds`.
+The PR adds an opt-in shared host-table backend for Qwen3.8-Flash-Next PLE offload:
+- one complete ~47.68-GiB anonymous host table is shared by all TP ranks;
+- each rank directly gathers its needed rows;
+- the normal PLE lookup all-reduce is removed;
+- checkpoint loaders still see rank-local partition views.
 
-Observed lifecycle:
-1. entering sleep destroys model/context/speculative state but leaves `prompt_cache` allocated;
-2. wake reloads the model and constructs a new prompt cache;
-3. the old cache entries are therefore discarded **after consuming host RAM throughout sleep**.
+Accuracy:
+- 370 tests passed, 4 skipped;
+- 2,048 frozen-input logprobs exactly match baseline at TP1 and TP4;
+- GSM8K results within run noise;
+- all TP4 schedulers map the same inode/table.
 
-Minimal behavioral receipt:
-- before sleep, repeated prompts process only **4 tokens** after cache restore;
-- after wake, the same prompts re-process **3,974** and **3,624 tokens**.
+Micro-level:
+- shared PLE gather: **~2.2-3.6 µs**;
+- repeated baseline capture: **~11.2 µs**;
+- TP4 decode removes one collective per step: **98 -> 97 kernels**.
 
-The reporter notes that for ~100K agent sessions, a wake can therefore add a full re-prefill on top of model reload.
+End-to-end:
+- TP4 C1 decode: **107.200 -> 107.383 output TG (+0.17%)**;
+- TP4 prefill-heavy: **211.621 -> 211.064 output TG (-0.26%)**;
+- TP1 effectively unchanged;
+- TP4 weight-load stages rise roughly **32 s -> 69 s**;
+- KV capacity decreases ~0.098%.
 
 ### P51 consequence
 
-The P51 agent sleep/wake plan must explicitly distinguish:
+This is strong negative evidence against prioritizing PLE lookup-collective elimination solely because the microkernel/collective looks expensive.
 
-- **model residency state**;
-- **prompt/warm-state persistence**;
-- **host/SSD cache residency**;
-- **post-wake validity**.
+For P51:
+- continue treating PLE as a placement/offload/correctness problem first;
+- profile PLE in whole-server target and verify traces before spending engineering effort;
+- do not translate a 3-5x gather microbenchmark improvement into TG/PP forecast credit.
 
-A process reporting "cache retained in memory" is insufficient. The acceptance test is a post-wake cache hit that restores the full typed Flash state manifest and reproduces the reference continuation.
-
-Required wake benchmark:
-1. establish a long warm session;
-2. verify warm-hit token count / TTFT;
-3. enter the real sleep state;
-4. measure resident host/SSD bytes while asleep;
-5. wake;
-6. verify the same prefix hit survives;
-7. measure wake->ready and task->TTFT separately.
-
-If a runtime cannot preserve logical cache entries across model unload/reload, P51 should own persistence outside the runtime rather than relying on its in-process cache.
+The more important long-context seams remain verifier GDN/MoE cost, QSA/indexer geometry, Apple7 kernel dispatch, and PP2 occupancy.
 
 ---
 
-## NEW — llama.cpp #29324: recurrent prompt-cache entries need byte-based budgets, not token-count budgets
+## NEW — vLLM #58413: exact 100K hybrid-state offload restore with MTP
 
 Source:
-https://github.com/ggml-org/llama.cpp/issues/29324
+https://github.com/vllm-project/vllm/pull/58413
 
-Created **2026-09-23 16:19:20 UTC**.
+Created **2026-09-23 17:10:21 UTC**.
 
-Reported setup:
+Affected topology:
 - Qwen3.8-27B hybrid GDN;
-- RTX 5090 32 GB;
-- 96 GB host RAM;
-- unified KV / Q8 K+V;
-- `--cache-ram -1`.
+- MTP3;
+- `mamba_cache_mode=align`;
+- external CPU/filesystem KV tiering;
+- 8x H200 test deployment.
 
-Implementation issue:
-- `-1` removes the byte limit but leaves the total token cap at `n_ctx`;
-- hybrid/recurrent saved states have a large fixed per-entry cost independent of prompt length;
-- token count is therefore a poor predictor of memory use.
+Before the fix, MTP shifted recurrent handoff boundaries onto a hash boundary that was not the global offload chunk boundary. The connector dropped the recurrent state, so every-group matching failed and external adoption was **zero**.
 
-Measured with 100 distinct ~1.2K-token prompts:
-- `--cache-ram -1`: roughly **+640 MiB per new prompt**, linear;
-- 10 prompts: **+6.2 GiB**;
-- 20: **+12.5 GiB**;
-- 30: **+18.7 GiB**;
-- 40: **+25.0 GiB**;
-- stopped at 44: **+27.5 GiB**, still growing;
-- explicit 24,576-MiB cache budget: growth plateaued around **+23.4 GiB**.
+The fix gives align-mode recurrent groups their own hash-block-granular offload geometry rather than forcing the global full-attention chunk geometry.
 
-Reporter estimates recurrent state around **~300 MiB per saved state**, with checkpointing adding comparable fixed cost.
-
-### P51 consequence
-
-Warm-agent cache capacity must be planned in **bytes per complete state bundle**, not token count.
-
-Required telemetry per entry:
-- token count;
-- target KV bytes;
-- QSA/indexer bytes;
-- recurrent/GDN bytes;
-- checkpoint history bytes;
-- draft/MTP bytes;
-- PLE/history sidecar bytes;
-- metadata/schema overhead;
-- total host / SSD resident bytes.
-
-Eviction should be governed primarily by total bytes and value/reuse policy, with token count only secondary.
-
-This is especially important if many small independent agent sessions are retained: short prompts are not cheap merely because they contain few tokens.
-
----
-
-## NEW / WATCH ONLY — SGLang #40925 and #40929 open cache-sharding work for DSA indexer and MTP
-
-Sources:
-- https://github.com/sgl-project/sglang/pull/40925
-- https://github.com/sgl-project/sglang/pull/40929
-
-Created:
-- #40925: **2026-09-23 14:26:58 UTC**;
-- #40929: **2026-09-23 14:55:54 UTC**.
-
-Titles:
-- "Support kv cache sharding for DSA indexer"
-- "Support kv cache sharding for MTP"
-
-At this cutoff both PR descriptions are still empty templates:
-- no mechanism explanation;
-- no accuracy result;
-- no speed result;
-- CI is not green.
-
-The diffs are non-trivial (#40925 ~768 additions; #40929 ~950 additions), so this is real implementation activity, but there is not enough evidence to infer semantics or performance safely.
+100K end-to-end receipt:
+- external adopted tokens: **0 -> 99,008**;
+- recurrent state files: 0 -> 1/1/1;
+- CPU->GPU load: **7.05 GB**;
+- cold TTFT: **11.7-12.3 s**;
+- CPU-tier warm TTFT: **377 ms**;
+- filesystem-tier replay after reset: **375 ms**;
+- roughly **31x** improvement versus the broken full-recompute path;
+- cold full compute vs 99,008-token restored replay: **byte-identical 128-token greedy continuation**;
+- MTP accept length: **2.601 vs 2.601**;
+- non-MTP control still adopts 99,840 tokens.
 
 ### P51 consequence
 
-Watch closely because this may become useful cross-framework evidence for:
-- indexer/MTP state ownership;
-- state sharding geometry;
-- PP/disaggregated cache transfer.
+This is strong exact-family transfer evidence for the warm-agent design:
 
-Do **not** change P51 state ownership or PP2 design from the PR titles alone.
+- recurrent/QSA/full-attention state groups may require **different checkpoint/block geometry**;
+- external persistence is viable if every group's semantic boundary is preserved;
+- a shared global chunk size is not a sufficient cache identity;
+- warm restore should be certified by actual adopted-token count + continuation parity + unchanged speculative acceptance.
 
-No target credit.
+It does not change cold PP or sustained TG targets, but materially de-risks the long-session sleep/wake objective.
 
 ---
 
-## UPDATE — llama.cpp #28741 merged: missing Metal f32 x BF16 depthwise-convolution path
+## NEW — vLLM #58428: KV-PP planning prototype makes layer ownership explicit
 
 Source:
-https://github.com/ggml-org/llama.cpp/pull/28741
-Merged commit in this window:
-`9575389609d6f8437de0b205561a4824d217c409`
+https://github.com/vllm-project/vllm/pull/58428
 
-The fix adds missing Metal `f32 x bf16` matrix-vector variants used by BF16 depthwise 1D convolution. Before the fix, that convolution shape aborted because `ggml_conv_1d_dw` builds an F32 im2col and multiplies it by a BF16 kernel.
+Created **2026-09-23 18:44:28 UTC**.
+
+This is Phase 1 of the earlier KV-PP / LayerSplit RFC.
+
+Implemented:
+- explicit `kv_pipeline_parallel_size`;
+- immutable placement plan;
+- contiguous balanced target-layer ownership by rank;
+- **draft/EAGLE/MTP groups remain rank-local on every rank**;
+- physical KV tensors are allocated only for owned target layers + local draft layers;
+- scheduler retains a common logical block footprint;
+- scratch budget = **2 x maximum target-layer bundle size** for future double-buffered transfers.
+
+Unit-test example:
+- PP4 planning yields about **~3.2x block-capacity expansion** after scratch reservation.
+
+### Qualification
+
+Runtime execution and communication are **not implemented yet**. There is no throughput receipt.
 
 ### P51 consequence
 
-This is useful ecosystem correctness for hybrid/GDN models on newer Apple devices with native BF16 support.
+This converges strongly with our state-ownership design:
+- target state belongs to the stage/layer owner;
+- speculative/draft state can intentionally remain local/replicated;
+- scheduler-visible logical cache identity can be decoupled from physical ownership;
+- transfer scratch must be budgeted explicitly.
 
-However the implementation is guarded by `GGML_METAL_HAS_BF16`; devices without native BF16 support are unchanged. Therefore it gives **no direct M1-Max speed/correctness credit** to Project 51's Apple7 target.
-
-It does reinforce why P51's M1 lane should prefer intentional FP16 protected-island compute rather than assuming BF16 kernel parity.
+No TG/PP credit until Phase 2 provides runtime measurements.
 
 ---
 
-## NEW / SECONDARY — oMLX #3877 MiMo Lightning MTP reinforces speculative-state isolation and rollback
+## NEW / BACKEND-SPECIFIC — vLLM #58422 silent Qwen3.8 hybrid/MTP engine wedge
 
 Source:
-https://github.com/jundot/omlx/pull/3877
+https://github.com/vllm-project/vllm/issues/58422
 
-Although MiMo is not the primary P51 Flash target, this merged work is relevant to speculative-state engineering:
+Created **2026-09-23 18:09:14 UTC**.
 
-- isolates speculative head state with cache copies;
-- retains predictor index;
-- rolls rejected drafts back after sliding-window cache rotation;
-- preserves MTP heads and calibration statistics through oQ conversion.
+Reported configuration:
+- Qwen3.8-27B hybrid GDN MoE;
+- TP1;
+- MTP4;
+- NVFP4 KV;
+- FlashInfer;
+- RTX PRO 6000 Blackwell / SM120.
 
-M3 Ultra / MiMo-V2.6-Flash-RL-oQ4e-mtp reported Lightning-MTP TG changes:
-- 4K: **44.4 -> 49.3 (+11.0%)**;
-- 16K: **41.6 -> 50.0 (+20.2%)**;
-- 32K: **38.5 -> 46.0 (+19.5%)**.
+Failure signature:
+- ~10 simultaneous requests;
+- generation-token counter remains flat >60 s;
+- requests remain "running";
+- GPU utilization reports 100% but power is near idle;
+- `/health` remains 200;
+- no error/traceback;
+- no self-recovery; restart required.
 
-But the author explicitly notes long-context greedy token IDs can differ across cache/batching conditions with MTP enabled, so this is not a clean equivalence proof.
+The same deployment also had separate illegal-memory-access crashes, so this is a backend/runtime instability report rather than evidence against the architecture.
 
 ### P51 consequence
 
-No Flash target credit.
+Operational rule:
+- HTTP/process health is insufficient for a long-running local agent server;
+- add a **progress watchdog** keyed to generated-token/forward counters when requests are active;
+- preserve a controlled restart/reload path that restores validated warm state.
 
-Durable general lesson already consistent with P51:
-- speculative state must be isolated from target state;
-- rejected branches must roll back every mutable cache/index;
-- predictor/draft position is part of cache identity;
-- oQ conversion must preserve MTP tensor identity and calibration.
+No Apple7 performance implication.
+
+---
+
+## NEW / WEAK TRANSFER — llama.cpp #29326: QSA top-k radix path reportedly adds ~20% CUDA PP
+
+Source:
+https://github.com/ggml-org/llama.cpp/issues/29326
+
+Created **2026-09-23 16:55:33 UTC**.
+
+The report says the CUDA Qwen4Exp path was not compiling/dispatching the parallel radix top-k implementation used by the indexer. Enabling radix top-k for sufficiently wide/multi-row shapes reportedly improves Qwen3.8-Flash-Next prompt processing by about **20%**, with gains holding through ~148K context.
+
+Qualification:
+- Windows / SM75;
+- user issue, not a controlled merged PR;
+- no Apple measurement;
+- no detailed A/B table in the issue.
+
+### P51 consequence
+
+This is weak but directionally consistent evidence that **QSA/indexer top-k can still be a meaningful prefill bottleneck**.
+
+Keep top-k/indexer profiling in the cold-PP workstream, but do not transfer 20% to M1 or change the 400-PP target.
 
 ---
 
 ## Community / Hugging Face delta
 
-Explicit searches for fresh post-boundary:
-- DASLab / GSQ-RCO xhigh updates;
-- Flash-Next M1/M2/M3/M5 long-context measurements;
-- new MTP/DFlash2 128K receipts.
+Fresh searches after the hard boundary for:
+- DASLab / GSQ-RCO xhigh evidence;
+- new Flash-Next low-bit quality comparisons;
+- new M1/M2/M3/M5 long-context Flash receipts;
+- new 128K MTP/DFlash measurements.
 
-No qualifying new result in the **13:53:27-16:30:12 UTC** window was found.
+No qualifying post-boundary community/HF result was found. Search results were older threads/releases already covered by Project 51.
 
-Search surfaced older material only, including:
-- Halogen/Strix-Halo Flash measurements;
-- Litwein REAP320/MTPLX artifacts;
-- prior M5/M3/M1 community cards;
-- older SSD-PLE / DGX-Spark experiments.
-
-None is classified as NEW for this pass.
+No new DASLab GitHub commit/PR/issue appeared in-window.
 
 ---
 
 ## Checked with no qualifying fresh target evidence
 
-- **MTPLX:** no new commit/PR/issue in-window.
-- **EXL3:** no new commit/PR/issue in-window.
-- **PonyExl3:** no new commit/PR/issue in-window.
-- **mlx-serve:** no P51-relevant fresh change.
-- **official Qwen3.8 repo:** no new commit/PR/issue in-window.
-- **MiaAI-Lab dual-DGX-Spark Flash:** no new commit/PR/issue in-window.
-- **flashnext-hybrid:** no new commit/PR/issue in-window.
-- **Weschera single-DGX-Spark Flash:** no new commit/PR/issue in-window.
-- **DS4:** no qualifying new performance/correctness receipt.
-- **DASLab / GSQ-RCO:** no new xhigh behavioral receipt.
+- **DASLab GSQ/RCO:** no new commit/PR/issue or xhigh behavioral receipt in-window.
+- **MTPLX:** no new commit/PR/issue.
+- **EXL3:** no new commit/PR/issue.
+- **PonyExl3:** no new commit/PR/issue.
+- **mlx-serve:** no P51-relevant performance change; one UI-streaming issue only.
+- **Splash:** no P51-relevant performance/correctness delta.
+- **official Qwen3.8 repo:** no new commit/PR/issue.
+- **MiaAI-Lab dual-DGX-Spark Flash:** no new delta.
+- **flashnext-hybrid:** no new delta.
+- **Weschera single-DGX-Spark Flash:** no new delta.
+- **DS4:** no new qualifying performance/correctness receipt.
 - no new exact **2x M1 Max/TB4 Flash-Next** TG or cold-PP receipt.
-- no new exact **RTX 5070 Ti** receipt strong enough to move its target.
+- no new exact **RTX 5070 Ti** result strong enough to move its target.
 
 ## Target / confidence impact
 
-Unchanged:
+Numeric targets unchanged:
 
-- Flash-Next xhigh production quant: search **~3.0-3.6 average BPW**.
+- Flash-Next xhigh production quant search: **~3.0-3.6 average BPW**.
 - likely source-like xhigh region: **~3.3-3.6** (engineering hypothesis only).
 - dual-M1 Flash: **40 TG @ ~128K**, **400 cold PP**.
 - planning confidence for >=40 TG: **~70%**.
+- first-principles central TG region: **~39-41**.
+- practical mature-system downside TG: **~30-32**, conditional on at least modest speculation benefit.
+- physical target-only fallback: **~24-27**.
+- cold-PP derived center: **~370-390**, downside **~320-340**.
 - single-M1 27B: **25 TG**.
 - RTX 5070 Ti 27B: **120 TG** mature target.
 
 ## New hard boundary
 
-**2026-09-23 16:30:12 UTC**
+**2026-09-23 19:03:50 UTC**
