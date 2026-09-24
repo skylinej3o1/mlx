@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-23 20:32 ET.
+Last consolidated: 2026-09-23 22:09 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -825,3 +825,15 @@ Highest-value missing measurements:
 - **Merged DFlash cross-architecture evidence — SGLang #40794:** Kimi-K3 DFlash on B300 reports **4.99 average accept length / 57% acceptance** with 95.7% GSM8K. Keep external-draft speculation as a legitimate branch; no Apple/Flash target credit.
 
 **Target effect:** none. No exact dual-M1/TB4 Flash throughput receipt and no new DASLab/GSQ xhigh behavioral result appeared. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and the xhigh heterogeneous search around **3.0-3.6 BPW** with a **~3.3-3.6** source-like frontier hypothesis.
+
+
+### 2026-09-24 02:09 UTC Apple GDN dispatch / semantic checkpoint / merged QSA-MTP update
+
+- **Exact-family Apple GDN fusion — mlx-serve #517:** Flash-Next non-Hadamard decode moves from three dependent GDN dispatches/layer to two, removing **612 ops/forward**. M5-Ultra plain decode improves **~87.5 -> 90.9 TG (~+3.9%)** and 16K decode improves ~78.4 -> ~81.3 TG, with byte-identical greedy output. This directly supports P51's launch/fusion strategy, but it does not touch verify and M5-Ultra economics do not transfer numerically to M1.
+- **Application-directed recurrent checkpoints gain fresh production evidence — vLLM #55697/#55876:** Qwen3.5-35B/L40S in a high-reuse 1-to-N workload reports **5.9 -> 13.8 QPS (2.34x)**, TTFT **482 -> 248 ms**, and prefill work ~11.5K -> 5.36K tokens/batch with accuracy parity. The implementation stack is now on hold pending maintainer architectural approval due complexity. Use this as strong warm-prefix/agent-workload evidence, not cold-PP target credit.
+- **Merged exact-family QSA/MTP path — SGLang #38876 / commit 8b5d77c2688e:** the ROCm packed sparse-QSA decode path for Qwen3.8-Flash-Next is now merged. Its older 8x-MI355X full-enablement data are **936 -> 1603 output TG** with EAGLE/MTP and **3.16 accept length** (~1.71x), plus correct 18K sparse decode under graph replay. This is a fresh merge-status update, not new benchmark evidence; no Apple numeric transfer.
+- **RECOVERED older critical-path lesson — vLLM #58463:** removing ~**1 ms host metadata work/step** from fused MTP proposal leaves ITL essentially unchanged and throughput within noise on 4xGB200, because the host work is not critical-path. P51 must profile before assigning TG credit to CPU metadata deletion; dependent GPU dispatch reduction remains separately valuable on Apple.
+- **oMLX #3883 fix merged:** offline recurrent/GDN sidecars now participate in cache maintenance. Keep recurrent sidecars as first-class lifecycle/accounting state.
+- **WATCH ONLY — vLLM #58484:** DSpark aggregated-serving PP support is being reverted for unspecified cleanup. Insufficient evidence for a structural speculation+PP penalty; track without changing confidence.
+
+**Target effect:** none. No exact dual-M1/TB4 Flash receipt and no new DASLab/GSQ xhigh behavioral result appeared. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and the xhigh heterogeneous search around **3.0-3.6 BPW** with **~3.3-3.6** as the current source-like hypothesis.
