@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-23 23:31 ET.
+Last consolidated: 2026-09-24 00:42 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -851,3 +851,15 @@ Highest-value missing measurements:
 - **Behavioral token-efficiency evidence — ThinkingCap dense-27B (recovered older):** xhigh averages **37.2% fewer thinking tokens** for **86.6 -> 85.8 macro accuracy**, while native MTP remains ~**2.6 accepted tokens/step** (53% vs base 54%). Treat as a separate future behavioral-compression branch, not a canonical source-behavior P51 target.
 
 **Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and the xhigh heterogeneous quant search around **3.0-3.6 BPW** with **~3.3-3.6** as the current source-like hypothesis.
+
+
+### 2026-09-24 04:42 UTC Apple7 headroom / controlled verify-MoE / asymmetric draft-transfer update
+
+- **mlx-serve #519 validation strengthened:** M5-Ultra fused verify-MoE rows now show **+14.3% greedy**, **+14.9% sampled**, and **+10.9% after 32K prompt** in a multi-round served harness. With adaptive depth disabled, acceptance is essentially matched while round time falls **21.1 -> 17.7 ms** (~16%). An M5-Max transfer test gives only 1-5% verify-forward gains and no served win. Dedicated verifier dispatch is real, but policy is hardware-topology specific; qualify Apple7 directly.
+- **mlx-serve #517 fresh commit 716c0cd1a7a7:** extends fused GDN prework+recurrence from S=1 into S=2-8 verification while preserving every rollback snapshot. MTP decode improves **~3.6%** and 16K MTP **~4.0%**; S=3/5/7 verify forwards improve ~1.7-2.3%. This directly attacks the sequential GDN verifier component.
+- **SGLang #41038/#41040:** asymmetric P/D TP DFlash transfer needs source and destination layout/stride identities separately. TP2->TP4 prototype moved **228/256 -> 256/256 completed transfers**, but exact community-commit GPU/token-equivalence validation is pending. Extend the per-region state-topology rule to explicit source/destination geometry.
+- **llama.cpp #28243 fresh exact-family receipt:** Qwen3.8-Flash-Next IQ3_XXS on 2x Arc Pro B70 sees median MTP uplift **+25.5%**, but category range is **+43% file-edit/json to -3.2% reasoning**. Never treat one speculative multiplier as workload-independent; xhigh reasoning must be measured separately.
+- **RECOVERED Splash #131 / Apple7 branch:** native M1 Q4 kernels move fixed xhigh five-prompt effective decode **18.9 -> 39.1 TG**, 8K **12.8 -> 26.8**, 32K **12.5 -> 23.8**, and PP **53 -> 142 @2K / 48 -> 110 @32K**. The register-MMA path reaches **7.3-7.4 TFLOPS** on real projections vs 2.4-3.5 for prior MPP. This strongly establishes untapped Apple7-specific kernel headroom, but 39 TG is short-context DFlash-effective throughput, not target-only or 128K Flash evidence.
+- **mlx-serve #514 null result:** broad narrow-kernel padding changes forward only **-0.4%** and no decode throughput; targeted critical-chain fusions are the productive unit of optimization.
+
+**Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and **3.0-3.6 BPW** experimental search with **~3.3-3.6** source-like hypothesis. The 27B Apple7+DASLab hybrid lane has higher experimental upside than the canonical 25-TG target, but lacks enough quality + filled-context receipts for formal promotion.
