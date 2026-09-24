@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-24 00:42 ET.
+Last consolidated: 2026-09-24 02:15 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -863,3 +863,16 @@ Highest-value missing measurements:
 - **mlx-serve #514 null result:** broad narrow-kernel padding changes forward only **-0.4%** and no decode throughput; targeted critical-chain fusions are the productive unit of optimization.
 
 **Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and **3.0-3.6 BPW** experimental search with **~3.3-3.6** source-like hypothesis. The 27B Apple7+DASLab hybrid lane has higher experimental upside than the canonical 25-TG target, but lacks enough quality + filled-context receipts for formal promotion.
+
+
+### 2026-09-24 06:15 UTC TurboQuant-KV / packed-projection stacking / state-geometry update
+
+- **NEW DS4 #1115 exact-family Metal TurboQuant KV:** Qwen3.8-Flash-Next now has fused **2-8 bit** packed K/V on Metal while keeping the QSA indexer dense and the last trunk attention + MTP block f16. At 1M context, total state drops from **~33.4 GiB f16** to **22.5 GiB Q8 / 19.7 Q6 / 17.0 Q4 / 15.6 Q3 / 14.2 Q2**. 4-bit is the practical packing/read balance; widths 3/5/6/7 can be slower than 8 because fields straddle u32 words. Durable rule: choose KV width jointly with **pack/unpack geometry**, not byte count alone, and keep selector/recurrent/spec-sensitive state protected.
+- **NEW DS4 #1115 renderer/cache identity:** Qwen template Unicode/reasoning/control-token mismatches can shift every downstream token and silently invalidate KV checkpoints. A 167K replay returned to byte-identical rendering; live reuse was **1279/1281**, disk restart **1281/1281**. Exact rendered token stream/template semantics belong in cache identity.
+- **UPDATE oMLX #3797 fresh M5 stack:** packed Q4 projections inspired by Splash + speculative overlap raise Qwen3.8-27B oQ4e Lightning-MTP decode **65.7 -> 71.9 TG at B1 (+9.6%)**, **76.7 -> 108.2 at B2 (+41.1%)**, **99.9 -> 145.1 at B4 (+45.2%)**. This is strong evidence that hardware-specific projection kernels and speculation/batching can stack, though only B1 is relevant to single-stream reasoning.
+- **NEW oMLX depth-controller rule (95ca02f6):** inherited acceptance estimates may seed the next request, but speculative **timing costs must be remeasured per request/context** before choosing depth. Long-context P51 should treat depth-cost tables as local measurements, not persistent constants.
+- **UPDATE SGLang #40204 merge:** dedicated small-M MXFP4 MoE cuts 1-4 token kernel latency **~42-44%**, giving **-12% C1 TPOT** and ~8-11% interactivity gains with real EAGLE MTP. Cross-hardware confirmation that tiny verify matrices deserve their own kernel class.
+- **UPDATE SGLang #40337 merge:** mismatched state sizing/addressing geometry caused exact **2x C4 ring allocation**, wasting ~10.5% of each SWA token and up to multiple GiB/rank. State accounting must use the same page/window/ring geometry as actual address translation.
+- **UPDATE llama.cpp #29340:** quantized Metal FA overflow cases now have a backend memory-limit assertion even without Metal debug validation.
+
+**Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and **3.0-3.6 BPW** search with **~3.3-3.6** source-like hypothesis. This pass strengthens architecture confidence—especially the "protect sensitive state, compress bulk payload, specialize tiny-row kernels, then stack speculation" synthesis—without providing the exact M1/PP2 receipt needed to move the planning numbers.
