@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-24 02:15 ET.
+Last consolidated: 2026-09-24 04:52 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -876,3 +876,14 @@ Highest-value missing measurements:
 - **UPDATE llama.cpp #29340:** quantized Metal FA overflow cases now have a backend memory-limit assertion even without Metal debug validation.
 
 **Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and **3.0-3.6 BPW** search with **~3.3-3.6** source-like hypothesis. This pass strengthens architecture confidence—especially the "protect sensitive state, compress bulk payload, specialize tiny-row kernels, then stack speculation" synthesis—without providing the exact M1/PP2 receipt needed to move the planning numbers.
+
+
+### 2026-09-24 08:52 UTC long-context GDN / expert-order verify / sampler-semantics update
+
+- **NEW oMLX #3890 exact-family-community GDN widening:** on M5 Max 128 GB, a Qwen3.8-Flash-Next-family opt8 checkpoint gains **+5.0% @1K, +5.0% @8K, +6.0% @129.8K and +3.6% @255.6K target-only decode** by admitting canonical community affine GDN recipes to the existing fused B1/T1 route. The speedup costs **+1.50 GiB non-evictable resident concat cache** and materially increases memory-pressure events at 64K. P51 rule: evaluate fusion as **TG per resident byte/headroom**, not TG in isolation; on M1 64 GB a few-percent win may be dominated by what those bytes displace.
+- **NEW oMLX #3797 commit 485ee0fa verifier-locality mechanism:** a Metal verify kernel orders the same 2-8 row (row, expert) pairs by expert so repeated expert tiles execute back-to-back and can reuse cache, supporting affine 4/5/6/8-bit at group 32/64/128. Outputs are bit-exact versus `gather_qmm`. This concretizes the P51 expert-union/reuse thesis, but no benchmark receipt means **zero TG credit yet**.
+- **NEW DS4 #1070 commit e1a9e311 speculative correctness:** Qwen3.8-Flash-Next MTP now applies `ignore_eos` / think-mode stop-token admissibility inside target argmax, draft acceptance and chained-parent generation. P51 verifier certification must inherit the **same admissible-token/stopping policy as target-only sampling**, including EOS suppression, reasoning delimiters and tool termination.
+- **UPDATE DS4 #651 distributed field report:** 2x M4 Max 128 GB over a TB5 TCP bridge sustains **22.7 TG TP** versus roughly **19-20 TG server pipeline** on DeepSeek-V4-Flash; no single-node baseline is supplied. A corrected 2x DGX Spark RDMA server run completed **83/83** mixed requests at 131K context/batch2. This supports direct-link distributed feasibility and highlights per-session state admission, but gives no M1/TB4 scaling credit.
+- **KNOWN fresh merge:** oMLX #3840/#3842 hybrid draft-cache logical-offset/recurrent-boundary fixes merged in-window; their substantive rules were already durable before this boundary.
+
+**Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and **3.0-3.6 BPW** search with **~3.3-3.6** source-like hypothesis. This pass improves verifier/locality and long-context fusion design confidence without supplying the exact M1/PP2 receipt required to move planning numbers.
