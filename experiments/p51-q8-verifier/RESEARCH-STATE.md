@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-24 04:52 ET.
+Last consolidated: 2026-09-24 06:40 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -887,3 +887,14 @@ Highest-value missing measurements:
 - **KNOWN fresh merge:** oMLX #3840/#3842 hybrid draft-cache logical-offset/recurrent-boundary fixes merged in-window; their substantive rules were already durable before this boundary.
 
 **Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and **3.0-3.6 BPW** search with **~3.3-3.6** source-like hypothesis. This pass improves verifier/locality and long-context fusion design confidence without supplying the exact M1/PP2 receipt required to move planning numbers.
+
+
+### 2026-09-24 10:40 UTC Flash verifier-stack / zero-copy KV / restart-identity update
+
+- **UPDATE oMLX #3797 exact Flash-Next branch-level A/B:** on M5 Max 128 GB, Qwen3.8-Flash-Next oQ4e Lightning-MTP rises **92.8 -> 112.0 TG B1 (+20.7%)**, 112.2 -> 116.2 B2, 118.1 -> 124.6 B4; M3 Ultra B1 rises **96.4 -> 104.8 (+8.7%)**. The branch stacks small-M verify, expert-ordered MoE locality, adaptive depth, runtime overlap and related plumbing. This is strong proof that verifier co-design compounds on Flash-Next itself, but **do not assign the +20.7% to any single mechanism** and do not transfer M5/M3 percentages to M1.
+- **NEW oMLX f8f51de verifier zero-copy rule:** ragged verify attention now reads compatible cache backing buffers directly instead of materializing `mx.contiguous` K/V prefix views each cycle. At long context, verifier work must never accidentally include an O(context) KV copy. Profile temporary-copy bytes separately from target weights and actual attention reads.
+- **KNOWN/UPDATE oMLX #3853 merged:** the already-recorded M1 Max 64 GB nearby-GDN receipt (~5.8-6.2% decode gain from fused FP16 B1/T1 prework on Qwen3.5/3.6 35B-A3B) is now on main. Still no numeric transfer to Flash-Next/Qwen4.
+- **NEW DS4 #1115 independent restart-cache failure:** real M5 Max / Flash-Next-Q2 TurboQuant testing finds retention-off restart reuse **0/1033 cached tokens** in one genuine failing harness arm while the rest of the TQ/tool checks largely pass. Any switch that changes reasoning/history rendering or retention semantics belongs in persistent-cache identity or must force cold replay.
+- **NEW DS4 #1119 cross-family SSD-cache warning:** when prefill's active expert set exceeds the SSD expert-cache capacity, simple LRU can cycle to **0% hits**; a freeze-admission-after-first-batch experiment reports ~110 -> ~400 PP tok/s on GLM-5.3-Flash/RTX Pro 6000. If P51 streams experts/tables, admission must be working-set aware rather than blindly LRU.
+
+**Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and **3.0-3.6 BPW** search with **~3.3-3.6** source-like hypothesis. The exact-family verifier-stack evidence materially strengthens architecture confidence, but the missing receipt remains Apple7/M1 S=2-8 verify cost at long context and dual-M1 PP2 overlap.
