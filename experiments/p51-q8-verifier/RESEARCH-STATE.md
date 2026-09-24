@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-24 13:23 ET.
+Last consolidated: 2026-09-24 16:14 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -912,3 +912,16 @@ Highest-value missing measurements:
 - **CORRECTION:** prior DS4 #1115 `0/1033` restart-cache failure is retracted; maintainer says the test was buggy.
 
 **Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and the **3.0-3.6 BPW** search with **~3.3-3.6** source-like xhigh hypothesis. This pass strengthens the case that verifier cost and PLE stalls are attackable, while simultaneously making warm-state restoration and Metal residency/jitter explicit qualification gates.
+
+
+### 2026-09-24 20:14 UTC Flash prefill / prompt-lookup speculation / warm-restart update
+
+- **NEW oMLX #3903 exact Flash-Next prefill:** M5 Max 128 GB / Flash-Next oQ4e-mtp gains **+23.6% @4K, +31.9% @16K, +29.4% @64K** cold prefill (similar with paged cache) by stacking GDN, HC, MoE, QSA, PLE and larger-chunk work. The 8192-token chunk policy costs roughly **+3 GiB peak memory** at 16K/64K. This strongly supports architectural PP headroom but gives no M1 percentage transfer; optimize chunk size against both PP and 64-GB headroom.
+- **NEW mlx-serve #523 history/prompt-lookup speculation:** on M5 Ultra Flash-Next, replacing eligible MTP chains with matched earlier prompt/output continuations gives **185.6 -> 216.5 TG (+16.6%)** across 11 agent-style tasks and **+31-48%** on repeat/edit-file workloads, while non-copy work is ~flat. At four streams benefit falls to ~**1.06x** because lookup fires on few grouped rows. Keep this as a workload-selective third arm beside target-only and MTP, using hardware/model-specific measured cost rather than fixed constants.
+- **UPDATE oMLX #3901 production warm-state validation:** exact tail-boundary MTP history restore moves warm agent telemetry from **2.34-2.47 -> 3.62-3.92 tokens/cycle** and **71-74% -> 97-100% acceptance**. Restored steady-cycle cost is **26.3 ms vs 26.2 ms natural**, so reconstruction is essentially a one-shot request cost. New gap: after restart, SSD-restored target chains with missing memory-only MTP sidecars can remain permanently suffix-primed; persist sidecars or explicitly draft-replay/rebootstrap once.
+- **KNOWN/UPDATE SGLang #40041 merged:** target-verify PLE gate/convolution prep fusion (~2% E2E, unchanged acceptance) is now on main.
+- **NEW cross-family Metal llama.cpp #29377:** sparse-FA index movement into threadgroup memory improves DeepSeek-V4-Flash Metal PP **304 -> 348 tok/s (+14.4%) at 65K** while TG is nearly flat. Profile QSA index/metadata traffic separately in Apple7 PP.
+- **UPDATE Splash #131 reliability:** one M2 Ultra user reports 32K succeeds but a 64K Splash benchmark enters engine recovery/native transport failure. No root cause yet; Apple-family optimization certification must include filled-context soak/recovery, not just speed.
+- **SCREENED DS4 #1120:** M5 shape-specialized microkernels yield only ~1% whole-model benefit despite several larger isolated kernel deltas. Preserve the rule that kernel microbench percentages never add directly to the system TG ledger.
+
+**Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and **3.0-3.6 BPW** search with **~3.3-3.6** source-like hypothesis. The 400-PP mechanism case gets stronger; the 40-TG generic target remains gated by actual Apple7 verifier economics and xhigh acceptance. Prompt lookup is workload-specific upside, not denominator-changing evidence.
