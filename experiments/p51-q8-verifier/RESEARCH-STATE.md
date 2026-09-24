@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-23 22:09 ET.
+Last consolidated: 2026-09-23 23:31 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -837,3 +837,17 @@ Highest-value missing measurements:
 - **WATCH ONLY — vLLM #58484:** DSpark aggregated-serving PP support is being reverted for unspecified cleanup. Insufficient evidence for a structural speculation+PP penalty; track without changing confidence.
 
 **Target effect:** none. No exact dual-M1/TB4 Flash receipt and no new DASLab/GSQ xhigh behavioral result appeared. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and the xhigh heterogeneous search around **3.0-3.6 BPW** with **~3.3-3.6** as the current source-like hypothesis.
+
+
+### 2026-09-24 03:31 UTC Apple verify-MoE / speculative rollback / recovered quant-quality update
+
+- **Fresh exact-family Apple verifier evidence — mlx-serve #519:** routing Flash-Next MTP verify rows through an existing fused MoE rows arm cuts whole verify-forward time **~9-13% at S=3/5/7** on M5 Ultra and reports about **+12% llmprobe MTP decode**, with single-run greedy/sampled cells +16-21%. This is directly aligned with the P51 verifier-cost thesis: tiny verify matrices need dedicated dispatch, not sorted/gather chains. No M1 numeric transfer and no target change.
+- **Target-only vs verify optimization is now empirically separated — mlx-serve #517 follow-up:** the S=1 GDN fusion moves MTP cells only ~2% within spread and leaves 2K prefill unchanged; #519 is where the MTP-side gain lives. Maintain separate target-only and verifier optimization ledgers.
+- **Long-reasoning rollback hazard — vLLM #58454:** fresh discussion plausibly connects speculative kpool ring overwrite to real long GLM-5.3-Flash degeneration reports. The surgical repro shows **106/128 FP8 key bytes wrong** under old sizing and exact equality after enlargement, but production patched A/B remains pending. Add pool-boundary reject/rollback cases to long-xhigh verifier certification.
+- **Concrete PLE lifetime implementation — vLLM #58489 (recovered older):** produce PLE prefetch IDs directly into persistent per-layer buffers; no added copy/kernel. Use this as the preferred stable-sidecar pattern.
+- **Exact-family verify PLE fusion — SGLang #40041 (recovered older):** ~**2% E2E decode** with unchanged acceptance and AIME26 95%. Another small stacked verifier win.
+- **Shared-expert loader integrity — SGLang #40754 merged:** a fused loader silently dropped every shared expert while the server still ran; GSM8K returned to **97.41% vs 97.49% reference** after fixing 1,104 missing mappings. Quant/packing certification must verify protected tensor presence/counts, not just successful load.
+- **Quant-fidelity evidence — Agention AP dense-27B (recovered older):** same-size AP encodes improve BF16 KLD materially at several Q3/Q4 tiers; AP IQ3_S 11.21 GiB measures **0.0568/0.0384/0.0528** KLD across held-out/web/wikitext vs GSQ-RCO 11.29 GiB **0.0594/0.0432/0.0665**. This supports deeper 3.x search and tail-KLD screening but is not behavioral/xhigh certification and is not Flash-Next.
+- **Behavioral token-efficiency evidence — ThinkingCap dense-27B (recovered older):** xhigh averages **37.2% fewer thinking tokens** for **86.6 -> 85.8 macro accuracy**, while native MTP remains ~**2.6 accepted tokens/step** (53% vs base 54%). Treat as a separate future behavioral-compression branch, not a canonical source-behavior P51 target.
+
+**Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and the xhigh heterogeneous quant search around **3.0-3.6 BPW** with **~3.3-3.6** as the current source-like hypothesis.
