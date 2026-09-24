@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-23 16:42 ET.
+Last consolidated: 2026-09-23 20:32 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -811,3 +811,17 @@ Highest-value missing measurements:
 - **M5 wide-query FA tuning — llama.cpp #28439:** fresh tuning reports 882 selected wide-tile cases without a clear loss and 4,956/4,956 tests passing. This reinforces per-device/per-shape Metal tuning for long-context prefill; no M1 target credit.
 
 **Target effect:** none. No new exact dual-M1 Flash receipt and no new DASLab/GSQ xhigh behavioral result appeared. Keep xhigh ~3.0-3.6 search, ~3.3-3.6 source-like frontier hypothesis, **40 TG @ ~128K / 400 cold PP**, and **~70% planning confidence for >=40 TG**.
+
+
+### 2026-09-24 00:32 UTC exact-family MTP validation / per-region draft-state geometry update
+
+- **Independent exact-family Flash validation — DS4 #1070:** a second Strix-Halo/ROCm system independently reproduces Qwen3.8-Flash-Next Q4 determinism, recovery, tool use, official continuation scores and throughput. Independent speed is **580.26 PP @8K**, **20.59 TG ordinary decode**, and **29.35 TG on the MTP coding workload** (~1.43x that target-only rate). This materially strengthens cross-hardware mechanism confidence for disk-backed n-grams + recurrent state + native MTP, but it is not an M1/128K multiplier and receives no target credit.
+- **Draft transfer geometry is per-region — vLLM #58470/#58471:** an MLA target with a GQA DFlash draft cannot share one model-wide TP mapping. Main can either reject the correct geometry or make every decode rank read draft head 0, leaving final target output plausible while acceptance degrades. A separate draft mapping restores NIXL acceptance length **3.221 vs 3.253 local-prefill ground truth** (~1% difference). P51 PP/disaggregated state identity must encode each region's sharding/replication semantics; final text is insufficient to certify draft-state correctness.
+- **Verifier-front sharding is real but not automatically large — SGLang #40820:** fresh real-weight B300 TP8 data shows speculative-front projection sharding from **-0.11% to +3.05%** depending on quant/concurrency. Treat verifier decomposition as a measured A/B problem rather than assigning generic distributed multipliers.
+- **Deleting standalone verify launches remains worthwhile — SGLang #40961:** folding target-verify SWA writes into an existing kernel improves an 8K/1K workload **+3.31% C1, +2.55% C4, +0.68% C16**. Continue prioritizing launch/fusion removal on the P51 verifier path.
+- **Apple dispatch economics are topology identity — mlx-serve #514:** M5 Ultra reports ~**3.1 us** chained-dispatch price and large HC/MoE/GDN fusion payoffs, but persistent cross-grid barriers that are cheap/correct on M5 Max become unsafe or slower on the Ultra. P51 must benchmark Apple7 directly; do not transfer megakernel/barrier assumptions between Apple topologies.
+- **Metal kernel resource certification must include verify width + KV format — llama.cpp #29340:** quantized FlashAttention can exceed 32-KiB threadgroup memory at certain width/head shapes; dequant-to-F16 fallback restores safe occupancy. Promoted P51 kernels must validate real threadgroup-memory use across all verifier widths and cache formats, not only unit numerics.
+- **Recurrent sidecars are first-class storage bytes — oMLX #3883:** a real 27B MTP cache had **19.36 GB of GDN sidecars vs ~9.24 GB standard KV files**, and generic offline cache observability/purge omitted them. P51 cache accounting/eviction/purge/sleep tooling must enumerate every state class explicitly.
+- **Merged DFlash cross-architecture evidence — SGLang #40794:** Kimi-K3 DFlash on B300 reports **4.99 average accept length / 57% acceptance** with 95.7% GSM8K. Keep external-draft speculation as a legitimate branch; no Apple/Flash target credit.
+
+**Target effect:** none. No exact dual-M1/TB4 Flash throughput receipt and no new DASLab/GSQ xhigh behavioral result appeared. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and the xhigh heterogeneous search around **3.0-3.6 BPW** with a **~3.3-3.6** source-like frontier hypothesis.
