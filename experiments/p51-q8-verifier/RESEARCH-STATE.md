@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-24 16:14 ET.
+Last consolidated: 2026-09-24 18:20 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -925,3 +925,15 @@ Highest-value missing measurements:
 - **SCREENED DS4 #1120:** M5 shape-specialized microkernels yield only ~1% whole-model benefit despite several larger isolated kernel deltas. Preserve the rule that kernel microbench percentages never add directly to the system TG ledger.
 
 **Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence for >=40 TG**, and **3.0-3.6 BPW** search with **~3.3-3.6** source-like hypothesis. The 400-PP mechanism case gets stronger; the 40-TG generic target remains gated by actual Apple7 verifier economics and xhigh acceptance. Prompt lookup is workload-specific upside, not denominator-changing evidence.
+
+
+### 2026-09-24 22:20 UTC exact-GDN persistence / speculative-control-plane / M1-Ultra depth update
+
+- **NEW oMLX #3908 exact split-GDN prefix persistence:** Qwen3.8-Flash-Next exact static prefixes now persist the **terminal recurrent/GDN state together with KV** using a dedicated hash domain, rather than incorrectly reusing KV alone. Real oQ5e-mtp smoke test restores **13,526 tokens** and cuts repeated request wall **11.064 -> 3.013 s (-72.8%)**. Exact hybrid prefix publication is a semantic checkpoint, not merely a KV cache entry.
+- **NEW SGLang #41166-#41175 speculative overhead series:** Qwen3.8-Flash-Next NEXTN now has concrete optimization work across graph-input copies, batch snapshots, KV-allocation transfers, relay stores, hybrid state commits, greedy verify/argmax, QSA metadata, Mamba tracking and NEXTN prep. Isolated examples: state commit **10.00 -> 5.63 us**, greedy verification **8.38 -> 4.50 us**, CPU snapshot **17.84 -> 6.23 us**. Combined B200 performance with **simulated** acceptance 3.3 is 242 -> 590 TG and is **not** transferable; real-thinking AIME26 acceptance on the combined stack is only **~2.146 including bonus token**, a useful caution against optimistic acceptance assumptions.
+- **UPDATE mlx-serve #523 hardware-calibrated prompt lookup:** gate now reads live per-chip/model round-cost measurements. Default-sampled 11-task Flash-Next workload remains **~1.17x overall**, copies **~1.33x**, with lookup draft landing **~93.6-94.1%**; individual copy/edit lookup rounds land roughly **95.5-99.3%** of proposed context continuations. Keep as opportunistic third speculation arm, not generic denominator.
+- **UPDATE independent M1 Ultra Splash Apple7 result:** short reasoning-off/code cells reach **43.6-98.3 TG**, selected xhigh math **67 TG**, but ~31.95K depth is only **21.2 TG decode / 161 PP**. This independently reinforces both hidden Apple7 headroom and strong context-depth decay; short TG never substitutes for filled-128K qualification.
+- **UPDATE warm-restart contract:** production #3901 follow-up confirms restored MTP state has natural-path cycle cost, but SSD-restored target chains with missing memory-only draft sidecars can remain suffix-primed forever after restart. Persist draft state or explicitly re-bootstrap once.
+- **KNOWN close-out:** oMLX #3770/#3771 closed; no new planning impact beyond already preserved regression fixes and fused GDN verification.
+
+**Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence**, and **3.0-3.6 BPW** search with **~3.3-3.6 source-like hypothesis**. This pass strongly reinforces that speculative cost includes attackable control/state overhead, while the real-thinking acceptance ~2.146 cross-hardware datapoint argues against raising the ~2.4 P51 acceptance planning assumption without actual Apple7 xhigh measurements.
