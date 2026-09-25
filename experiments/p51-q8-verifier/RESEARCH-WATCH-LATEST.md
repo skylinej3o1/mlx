@@ -1,10 +1,10 @@
-# Project 51 primary-lane research watch — 2026-09-25 15:36 ET
+# Project 51 primary-lane research watch — 2026-09-25 18:17 ET
 
-**Freshness boundary checked:** prior hard boundary **2026-09-25 18:16:37 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-25 19:36:59 UTC**, plus an explicit re-check of M1-related Reddit threads/comments for newly surfaced run data.
+**Freshness boundary checked:** prior hard boundary **2026-09-25 19:36:59 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-25 22:17:26 UTC**, plus a community/Reddit re-check for M1/M2 run data.
 
 ## Decision
 
-**No canonical TG/PP or xhigh-quality target change.**
+**No canonical TG/PP, quant-quality, or planning-confidence change.**
 
 Keep:
 - **40 TG @ genuinely filled ~128K**
@@ -15,72 +15,52 @@ Keep:
 - **~24-27 target-only fallback**
 - **3.0-3.6 BPW search / ~3.3-3.6 source-like xhigh hypothesis**
 
-The important change is evidentiary rather than numeric: a second independent M1 Max configuration now reproduces large Splash-M1 gains, and M1 Ultra comments finally contain real run data. The strict GitHub window also contains a large upstream Splash integration batch, but no exact dual-M1 Flash-Next receipt.
+The main fresh result is directly relevant to verifier policy: on dual-die M5 Ultra, a fused MTP verify path helps grouped verification but can hurt solo decode, and the gain varies sharply by group width. No exact M1/PP2/TB4 Flash receipt appeared.
 
 ## Findings
 
-### RECOVERED SAME-DAY — independent 24-core M1 Max reproduces Splash-M1 gains
+### NEW — mlx-serve #534: fused MTP verify kernels must be gated by verify-group width on dual-die Apple
 
-Reddit: https://www.reddit.com/r/LocalLLM/comments/1wpza1i/a_breakthrough_for_m1_and_m2_macs/
+Source: https://github.com/ddalcu/mlx-serve/pull/534  
+Merge commit: `2a93a011ec1d3ce61372952d3adca198c0cb95fa`, merged **2026-09-25 21:45:17 UTC**.
 
-Independent hardware:
-- 2021 MacBook Pro
-- **M1 Max, 24-core GPU, 64 GB**
-- prebuilt `splash-m1 1.0.2-m1`
-- Qwen3.8-27B Splash package.
+Test setup from the PR:
+- **M5 Ultra 256 GB**
+- macOS 27.0
+- Qwen3.8-Flash-Next mixed-4/8bit
+- MTP enabled, `--mtp-typical 0.2`
+- 400-token code answers, greedy for the grouped sweep
+- lookup on
+- three alternating rounds, median by point.
 
-Reported Qwen3.8-27B results:
-- npanj five-prompt average: stock 4-bit MLX **16.0 TG** vs Splash-M1 **32.8**
-- math: **46.6 TG**
-- short code, reasoning off: **61.3**
-- short prose: **18.3**
-- code explanation @8K: **21.6**
-- code explanation @32K: **17.1**
-- four parallel requests: **62.3 aggregate TG**
-- prefill @8K: **101 PP**.
+Median aggregate-generation effect of the fused verify kernels with the new group-aware gate:
+- **1 stream: unchanged**
+- **2 streams: +4%**
+- **4 streams: +13%**
+- **8 streams: +1%**.
 
-The author says this is about **0.84x** the original 32-core M1 Max results, close to the expected hardware gap. Their reasoning-off quality suite (217 extraction/matching/counting/confabulation items + 50 GSM8K) was essentially tied with the comparison 4-bit MLX quant.
+Earlier ungated A/Bs explain why the gate is needed. A 4-stream run moved roughly **195/194/191 -> 206/210/215 TG**, while one solo sampled run moved roughly **213/211/212 -> 196/196/206**, a **~5-7% regression**. The merged policy therefore enables the nine fused verify kernels on dual-die `applegpu_g17d` only when `group_rows > 1`. Single-die M5 remains enabled. A follow-up opcount check on a solo greedy request found the gated PR and base **byte-identical for every forward/opcount column**, confirming the residual solo timing difference was noise.
 
-**Classification:** RECOVERED SAME-DAY independent exact-generation Apple7 evidence. Reddit exposes only calendar-day timing here, so it is not claimed as strictly post-18:16:37 evidence.
+Greedy decode, 8K prefill, decode-after-32K, and GSM8K/MMLU-Pro quality were reported flat across arms.
 
-**P51 consequence:** substantially reduces one-machine/one-author risk around the M1 Splash result and is useful evidence that Apple7 small-row/multi-request kernels can sustain high aggregate throughput. It does not prove Flash-Next S=2-8 verification or PP2/TB4.
+**Classification:** NEW exact-window stronger-Apple / exact-Flash-family grouped-verifier evidence.
 
-### RECOVERED SAME-DAY — M1 Ultra comments finally contain run data
+**P51 consequence:** verifier dispatch policy must include **chip topology and actual S/row-group width**. Do not assume a fusion that wins at S=4 wins at S=1 or S=8. The observed curve is explicitly non-monotonic. This is very relevant to P51's multi-row PP2 verifier design, but it does not provide a direct Apple7 or TB4 speed multiplier.
 
-Reddit: https://www.reddit.com/r/LocalLLM/comments/1woq7cd/you_can_now_run_qwen3827b_on_a_2021_m1_max_at_39/
+### REDDIT / M1-M2 re-check
 
-An M1 Ultra 64-GB user reports:
-- tiny-context `hi` response around **64 TG**;
-- real image-analysis run: **955 input / 1,207 output**, **13.4 s TTFT**, **36.4 TG**;
-- another run: **955 input / 1,047 output**, **5.8 s TTFT**, **48.4 TG**.
+No new clean **32-core M1 Max** 32K/64K/128K table and no new M2 Splash depth curve was visible by cutoff. The previously recorded 24-core M1 Max replication and M1 Ultra image-analysis runs remain the strongest independent same-day community receipts.
 
-The same commenter says the overall image-analysis task took roughly four times as long as their regular MLX setup despite the high decode TG, which is a useful reminder that TTFT/prefill/vision-path cost can dominate end-to-end agent work.
+A same-day r/oMLX comment adds one lower-value datum: an **M1 Max 64 GB** screenshot around **29 TG** for an 8-bit Qwen3.8-27B MTPLX setup described as FP16-adapted to M1. The searchable comment exposes no context length, PP/TTFT, output length, MTP acceptance/depth or complete recipe, so it is **not planning-grade** and does not modify the Apple7 curve.
 
-Another M1 Max 32-GB user says the fork is faster and more consistent than oMLX and MTPLX and runs cool, but supplies no numeric benchmark. A commenter with a 64-GB 32-core M1 Max says they will report results, but no numbers were visible at cutoff. M2/M2-Ultra commenters were also still asking rather than reporting.
+Broader current search also resurfaced known older exact M1 oMLX depth data (**18.9 TG @1K -> 10.3 @128K** on the stock 4-bit lane) and older M2 receipts. These are pre-boundary and remain background, not NEW evidence.
 
-**Classification:** RECOVERED SAME-DAY community run evidence; exact comment times are unavailable from the public search surface.
+### NON-QUALIFYING strict-window activity
 
-**P51 consequence:** strengthens Apple7 portability/reproducibility and reinforces the split between strong decode and weak prompt/TTFT behavior. No numeric target transfer.
-
-### NEW MERGED INFRASTRUCTURE — Splash upstream integrates several P51-relevant seams
-
-Strict-window upstream Splash merges include:
-- `804bb36b523`: stage <=2048-column, <=64-row RMS norms in threadgroup memory; source comments report **1.3-2.6x** dependent-norm kernel gains on M3 Max/M5 Pro;
-- `df5462049fc`: prepare DFlash2 draft weights directly from the source checkpoint instead of relying only on prepacked package assets; exposes cleaner `--draft-model` experimentation;
-- `514e5844062`: keep model-weight buffers Metal-resident between requests, unwiring only after a long idle period;
-- `bfc3103e79d`: scheduler/KV release/memory-governor hardening and stronger atomic rollback/accounting;
-- `06cafcb1e1c`: publish GGUF-vs-llama.cpp quality/speed comparisons and supported GGUF target rules.
-
-Because the merge timestamps are in-window but some attached benchmark measurements may have been produced earlier, the performance numbers are **not** promoted as strict-window physical evidence. The implementation capabilities themselves are newly merged upstream.
-
-**P51 consequence:** upstream Splash is becoming a better experimental host for independent draft-checkpoint/quant work and for mining few-row Apple kernels. For any custom drafter experiment, record source-checkpoint SHA, prepared-draft format/precision map, and preparation code SHA separately.
-
-### NON-QUALIFYING strict-window work
-
-- vLLM changes were CI coverage only.
-- llama.cpp's in-window change was filesystem/path handling.
-- the M1/M2 Splash fork itself only added an explicit unofficial-fork documentation marker in this strict interval.
-- no qualifying performance update appeared on DS4, oMLX, mlx-serve, MTPLX, APEX/GSQ, ISTA-DASLab, SGLang, or NVIDIA Model-Optimizer.
+- vLLM's in-window commits were frontend/CI/API/ROCm maintenance without a P51-relevant Qwen3.8 inference receipt.
+- Splash upstream's in-window commits were HTTP/chat-chain fixes rather than kernel/runtime throughput changes.
+- SGLang activity was cache/LoRA/frontend infrastructure, with no new relevant Flash/MTP receipt.
+- no qualifying post-boundary performance change appeared on DS4, oMLX, MTPLX, APEX/GSQ, IST-DASLab, llama.cpp, the M1 Splash fork, or NVIDIA Model-Optimizer.
 
 ## Canonical planning state after this pass
 
@@ -96,8 +76,8 @@ Unchanged:
 - single-M1 27B: **25 TG** canonical target.
 - RTX 5070 Ti 27B: **120 TG** mature target.
 
-`RESEARCH-STATE.md` is updated with the independent M1 replication, M1 Ultra comment runs, and upstream Splash integration consequences. `RESEARCH-TARGETS.md` remains unchanged.
+`RESEARCH-STATE.md` is updated with the verify-group-width policy evidence. `RESEARCH-TARGETS.md` remains unchanged.
 
 ## New hard boundary
 
-**2026-09-25 19:36:59 UTC**
+**2026-09-25 22:17:26 UTC**
