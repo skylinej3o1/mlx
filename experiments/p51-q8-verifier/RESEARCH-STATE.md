@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-25 03:46 ET.
+Last consolidated: 2026-09-25 10:59 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -963,3 +963,10 @@ Highest-value missing measurements:
 - **PUBLIC background:** DASLab's dense-27B NVFP4 prefiller reinforces a phase-specific representation idea—very-low-bit resident decode plus higher-quality streamed prefill—but its code repo had no in-window commit and the released path is Blackwell-specific. No Flash target effect.
 
 **Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence**, and the **3.0-3.6 BPW / ~3.3-3.6 source-like** quant search. This pass mostly improves regime accounting: separate S=1 from verify, treat low-bit KV as capacity, and make warm-state ownership authoritative for long-agent admission.
+
+### 2026-09-25 14:59 UTC LiLiCorr / nearer-Apple Flash update
+
+- **NEW serving-path branch — vLLM LiLiCorr (`73a78e6f1f38e280986b81e0f2a9aa5e1ee6fe47`):** vLLM now supports a `LiLiCorrDraftModel` on top of the DFlash backbone. LiLiCorr keeps top-k candidates at each parallel draft position, scores the candidate lattice with one small correlator pass, and then performs a cheap conditional path walk. The underlying NVIDIA paper reports **+9-19% acceptance length over vanilla DFlash**, about **2.8% correlator latency per drafted block**, and best throughput in **70/72** evaluated benchmark/concurrency settings on H100 with Qwen3-4B/8B. vLLM's new integration supports greedy or probabilistic proposal sampling, quantized draft sublayers with protected floating-point correlator islands, and trained block lengths up to `block_size - 1`; however **compatible LiLiCorr checkpoints are not yet published**, and adaptive verification plus alternate block rejection remain explicitly unvalidated end-to-end.
+- **P51 LiLiCorr rule:** track LiLiCorr as an alternative trained-drafter branch for the 27B/CUDA lane and as design evidence for Flash speculative control, but give it **zero Apple or Flash-Next performance credit** until a compatible Qwen3.8 checkpoint exists and the correlator/draft path is ported and measured on the target runtime. If tested, record trained block size, candidate top-k, proposal sampling mode, rejection method, correlator precision islands, acceptance length, draft cost, and target verify cost separately. Do not assume a paper's H100 gain transfers to Apple7 or to hybrid Flash-Next recurrent/QSA state.
+- **RECOVERED OLDER nearer-Apple receipt — oMLX M2 Max 96 GB / Flash-Next oQ4e + Lightning MTP:** a 2026-09-24 public benchmark on **M2 Max 38-core / 96 GB** reports **33.2 TG / 292.5 PP at 64K**, with TG **38.4 @1K, 36.6 @4K, 38.6 @8K, 29.5 @16K, 31.6 @32K, 33.2 @64K** and peak memory **79.8 GB** at 64K. This is materially nearer to M1 than M4/M5 evidence and shows a single pre-M3 Apple generation sustaining low-30s Flash MTP at 64K, but it is still **Apple8 rather than Apple7, 38 GPU cores rather than 32, 96 GB rather than 64 GB, Q4e rather than the P51 custom quant, and only 64K rather than the 128K headline denominator**.
+- **Target effect:** none. The M2 receipt modestly strengthens architectural plausibility but does not close the 128K Apple7/PP2/TB4 gap. Keep dual-M1 Flash at **40 TG @ ~128K / 400 cold PP / ~70% planning confidence**, with the same ~39-41 center, ~30-32 mature downside and ~24-27 target-only fallback.
