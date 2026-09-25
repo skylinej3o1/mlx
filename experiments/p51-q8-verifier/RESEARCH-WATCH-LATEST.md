@@ -1,6 +1,6 @@
-# Project 51 primary-lane research watch — 2026-09-25 14:16 ET
+# Project 51 primary-lane research watch — 2026-09-25 15:36 ET
 
-**Freshness boundary checked:** prior hard boundary **2026-09-25 14:59:30 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-25 18:16:37 UTC**.
+**Freshness boundary checked:** prior hard boundary **2026-09-25 18:16:37 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-25 19:36:59 UTC**, plus an explicit re-check of M1-related Reddit threads/comments for newly surfaced run data.
 
 ## Decision
 
@@ -15,74 +15,72 @@ Keep:
 - **~24-27 target-only fallback**
 - **3.0-3.6 BPW search / ~3.3-3.6 source-like xhigh hypothesis**
 
-No exact dual-M1/TB4 Flash-Next S=2-8 verifier receipt appeared, no direct Apple7 PP2 overlap measurement appeared, and no new precisely timestamped source-vs-quant xhigh behavioral certification appeared.
+The important change is evidentiary rather than numeric: a second independent M1 Max configuration now reproduces large Splash-M1 gains, and M1 Ultra comments finally contain real run data. The strict GitHub window also contains a large upstream Splash integration batch, but no exact dual-M1 Flash-Next receipt.
 
 ## Findings
 
-### NEW — SGLang preserves mixed quantization inside a Qwen3.8 MTP draft
+### RECOVERED SAME-DAY — independent 24-core M1 Max reproduces Splash-M1 gains
 
-Source: https://github.com/sgl-project/sglang/commit/0154f72b48d54e96df7dac69bd7677156c2dc1b6  
-Committed **2026-09-25 17:31:29 UTC**.
+Reddit: https://www.reddit.com/r/LocalLLM/comments/1wpza1i/a_breakthrough_for_m1_and_m2_macs/
 
-The fix is filed under Qwen3.5 MTP infrastructure, but its regression fixture explicitly uses the AMD **Qwen3.8-2.4T-A95B-Quark-MXFP4** checkpoint. That checkpoint is not uniformly quantized inside the draft:
-- MTP routed experts remain **MXFP4**;
-- draft attention projections remain excluded / BF16;
-- shared expert, shared-expert gate and FC remain excluded / BF16.
+Independent hardware:
+- 2021 MacBook Pro
+- **M1 Max, 24-core GPU, 64 GB**
+- prebuilt `splash-m1 1.0.2-m1`
+- Qwen3.8-27B Splash package.
 
-The previous logic saw any `mtp.*` exclusion and disabled quantization for the entire MTP module. That made the loader allocate BF16 routed experts even though the checkpoint contained MXFP4 expert shards. The new logic disables draft quantization only when the routed experts themselves are excluded, while honoring the finer per-layer exclusions for sensitive modules. It also reuses the target model's packed-module mapping so fused `qkv_proj` names correctly inherit q/k/v exclusion policy.
+Reported Qwen3.8-27B results:
+- npanj five-prompt average: stock 4-bit MLX **16.0 TG** vs Splash-M1 **32.8**
+- math: **46.6 TG**
+- short code, reasoning off: **61.3**
+- short prose: **18.3**
+- code explanation @8K: **21.6**
+- code explanation @32K: **17.1**
+- four parallel requests: **62.3 aggregate TG**
+- prefill @8K: **101 PP**.
 
-**Classification:** NEW exact-Qwen3.8-family quant-identity/correctness evidence, cross-hardware.
+The author says this is about **0.84x** the original 32-core M1 Max results, close to the expected hardware gap. Their reasoning-off quality suite (217 extraction/matching/counting/confabulation items + 50 GSM8K) was essentially tied with the comparison 4-bit MLX quant.
 
-**P51 consequence:** this strongly supports treating MTP precision as a **heterogeneous submodule allocation**, not a single MTP bit-width. For our Flash search, the draft expert mass can be tested at aggressive precision while attention/shared/control/head islands remain protected. Every artifact must report that map explicitly; a label like `MTP Q4` is insufficient.
+**Classification:** RECOVERED SAME-DAY independent exact-generation Apple7 evidence. Reddit exposes only calendar-day timing here, so it is not claimed as strictly post-18:16:37 evidence.
 
-There is no Flash-Next/M1 performance result in this commit, so no TG credit.
+**P51 consequence:** substantially reduces one-machine/one-author risk around the M1 Splash result and is useful evidence that Apple7 small-row/multi-request kernels can sustain high aggregate throughput. It does not prove Flash-Next S=2-8 verification or PP2/TB4.
 
-### NEW — vLLM GLM-5.3-Flash: rejected speculative drafts can corrupt a too-short side-state ring
+### RECOVERED SAME-DAY — M1 Ultra comments finally contain run data
 
-Source: https://github.com/vllm-project/vllm/commit/2617fe938355594c48d4512a2ef6b470962aac1a  
-Committed **2026-09-25 16:51:34 UTC**.
+Reddit: https://www.reddit.com/r/LocalLLM/comments/1woq7cd/you_can_now_run_qwen3827b_on_a_2021_m1_max_at_39/
 
-In the K-pool tail path, a speculative token can complete a pool and later be rejected. With only a one-pool tail ring, subsequent drafts overwrite earlier ring entries that are still needed when the rejected completion is redone. The fix expands the ring so it survives the speculative horizon and chooses ring sizes compatible with the main attention block. The added tests explicitly demonstrate the one-ring corruption and the two-ring safe case.
+An M1 Ultra 64-GB user reports:
+- tiny-context `hi` response around **64 TG**;
+- real image-analysis run: **955 input / 1,207 output**, **13.4 s TTFT**, **36.4 TG**;
+- another run: **955 input / 1,047 output**, **5.8 s TTFT**, **48.4 TG**.
 
-A second geometry issue is important: an awkward ring size can force cache matching onto the LCM of tail-ring and attention-block sizes, coarsening prefix reuse. The new sizing chooses a ring that both covers `KPOOL + num_speculative_tokens` and divides the attention block.
+The same commenter says the overall image-analysis task took roughly four times as long as their regular MLX setup despite the high decode TG, which is a useful reminder that TTFT/prefill/vision-path cost can dominate end-to-end agent work.
 
-**Classification:** NEW cross-model speculative-state correctness evidence.
+Another M1 Max 32-GB user says the fork is faster and more consistent than oMLX and MTPLX and runs cool, but supplies no numeric benchmark. A commenter with a 64-GB 32-core M1 Max says they will report results, but no numbers were visible at cutoff. M2/M2-Ultra commenters were also still asking rather than reporting.
 
-**P51 consequence:** stage-local recurrent/GDN/QSA/MTP scratch state needs a retention horizon derived from **rollback span + speculative width**, not merely the normal decode state size. Ring/checkpoint geometry must also compose cleanly with prefix-cache block geometry. This strengthens the existing exact-state-provenance rule.
+**Classification:** RECOVERED SAME-DAY community run evidence; exact comment times are unavailable from the public search surface.
 
-### NEW — vLLM startup allocator fragmentation can silently shrink inferred KV capacity
+**P51 consequence:** strengthens Apple7 portability/reproducibility and reinforces the split between strong decode and weak prompt/TTFT behavior. No numeric target transfer.
 
-Source: https://github.com/vllm-project/vllm/commit/6491f481a7c0fb3aa77bbc6649584b545c65c871  
-Committed **2026-09-25 16:16:27 UTC**.
+### NEW MERGED INFRASTRUCTURE — Splash upstream integrates several P51-relevant seams
 
-During the startup profile run, large workspaces such as MoE buffers can grow in steps, freeing earlier multi-GiB allocations. A later small allocation may be carved out of one of those freed blocks and keep the entire segment pinned beyond `empty_cache()`. The memory profiler then counts that allocator-retained segment as consumed and reduces the KV-cache allocation even though the model did not truly gain equivalent persistent memory.
+Strict-window upstream Splash merges include:
+- `804bb36b523`: stage <=2048-column, <=64-row RMS norms in threadgroup memory; source comments report **1.3-2.6x** dependent-norm kernel gains on M3 Max/M5 Pro;
+- `df5462049fc`: prepare DFlash2 draft weights directly from the source checkpoint instead of relying only on prepacked package assets; exposes cleaner `--draft-model` experimentation;
+- `514e5844062`: keep model-weight buffers Metal-resident between requests, unwiring only after a long idle period;
+- `bfc3103e79d`: scheduler/KV release/memory-governor hardening and stronger atomic rollback/accounting;
+- `06cafcb1e1c`: publish GGUF-vs-llama.cpp quality/speed comparisons and supported GGUF target rules.
 
-vLLM now scopes a native CUDA/ROCm `max_split_size_mb=20` policy around the profile pass and restores the user's allocator settings afterward.
+Because the merge timestamps are in-window but some attached benchmark measurements may have been produced earlier, the performance numbers are **not** promoted as strict-window physical evidence. The implementation capabilities themselves are newly merged upstream.
 
-**Classification:** NEW cross-runtime capacity-certification evidence.
+**P51 consequence:** upstream Splash is becoming a better experimental host for independent draft-checkpoint/quant work and for mining few-row Apple kernels. For any custom drafter experiment, record source-checkpoint SHA, prepared-draft format/precision map, and preparation code SHA separately.
 
-**P51 consequence:** when a context limit unexpectedly regresses, distinguish **steady live bytes, true workspace/transient bytes, memory-guard policy, and allocator-retained fragmentation**. A single startup memory-profile result is not a physical fit proof. This complements the recent oMLX context-capacity/admission warning.
+### NON-QUALIFYING strict-window work
 
-### LOWER PRIORITY / no planning change
-
-- vLLM added an AMD/PyTorch reference test for DeepSeek-V4 MoE routing. Useful CI hardening, but no new DS4 performance receipt.
-- vLLM optimized low-concurrency speculative KDA for Kimi-K3 and added more uniform/ragged speculative-shape correctness coverage. It is adjacent evidence that speculative recurrent kernels should dispatch by actual row geometry, but no transferable Qwen3.8/Apple end-to-end number was attached.
-- remaining in-window vLLM work was unrelated kernel/CI/frontend/runtime maintenance; llama.cpp's only in-window merge was an LFM2-audio preprocessor fix.
-
-## Required-surface / community scan
-
-No qualifying post-boundary performance or quality update was found on:
-- **antirez/ds4**
-- **jundot/omlx**
-- **ddalcu/mlx-serve**
-- **incoai/splash**
-- **paperniuk/splash**
-- **youssofal/MTPLX**
-- **localai-org/apex-quant**
-- **IST-DASLab/GSQ**
-- **NVIDIA/Model-Optimizer**.
-
-Current web/Hugging Face/Reddit search surfaced known recent Apple receipts, including the already-recorded M2-Max result and older M3/M5 oMLX/Splash/MTPLX work, but no precisely timestamped new M1/dual-M1 Flash receipt inside this strict window. Search/crawl freshness was not treated as evidence time.
+- vLLM changes were CI coverage only.
+- llama.cpp's in-window change was filesystem/path handling.
+- the M1/M2 Splash fork itself only added an explicit unofficial-fork documentation marker in this strict interval.
+- no qualifying performance update appeared on DS4, oMLX, mlx-serve, MTPLX, APEX/GSQ, ISTA-DASLab, SGLang, or NVIDIA Model-Optimizer.
 
 ## Canonical planning state after this pass
 
@@ -98,8 +96,8 @@ Unchanged:
 - single-M1 27B: **25 TG** canonical target.
 - RTX 5070 Ti 27B: **120 TG** mature target.
 
-`RESEARCH-STATE.md` is updated with the durable mixed-MTP-quant, speculative-state-lifetime, and allocator-capacity rules. `RESEARCH-TARGETS.md` remains unchanged.
+`RESEARCH-STATE.md` is updated with the independent M1 replication, M1 Ultra comment runs, and upstream Splash integration consequences. `RESEARCH-TARGETS.md` remains unchanged.
 
 ## New hard boundary
 
-**2026-09-25 18:16:37 UTC**
+**2026-09-25 19:36:59 UTC**
