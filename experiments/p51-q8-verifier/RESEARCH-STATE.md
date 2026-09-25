@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-24 18:20 ET.
+Last consolidated: 2026-09-24 20:45 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -937,3 +937,16 @@ Highest-value missing measurements:
 - **KNOWN close-out:** oMLX #3770/#3771 closed; no new planning impact beyond already preserved regression fixes and fused GDN verification.
 
 **Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence**, and **3.0-3.6 BPW** search with **~3.3-3.6 source-like hypothesis**. This pass strongly reinforces that speculative cost includes attackable control/state overhead, while the real-thinking acceptance ~2.146 cross-hardware datapoint argues against raising the ~2.4 P51 acceptance planning assumption without actual Apple7 xhigh measurements.
+
+
+### 2026-09-25 00:45 UTC in-place rollback / KV grouping / FP32-logits update
+
+- **NEW oMLX #3909 dense-Qwen Apple rollback evidence:** text-only Qwen3.8-27B batched MTP was deep-copying the entire shared cache on ragged acceptance. On a 64-GB M-series Mac this drove the MLX pool to **30-40 GB**, caused pressure aborts, and made a ~110-ms step contain only ~38 ms of backbone work. In-place vector rollback cuts pool max to **3.6 GB**, removes pressure aborts and reduces batch-2 step **~110 -> ~62 ms**; shared priming also improves batch-8 **225 -> 192 ms**. P51 verifier rollback must be row-aware/in-place; whole-cache copies are forbidden.
+- **NEW vLLM #58638 hybrid-drafter grouping:** a one-layer DFlash KV bucket can force **46 cache groups**, repeating expensive GDN metadata builders every step. Byte-aware grouping cuts Qwen3.6+DFlash from 46 -> 17 groups and B300 c1 **460 -> 733 TG**; a packed 5-group layout reaches **746 TG** while preserving capacity. Group count is a runtime cost and must be optimized jointly with padding bytes/state geometry.
+- **NEW Splash #141 output-precision evidence:** retaining target/draft logits as FP32 improves 27B teacher-forced top-1 agreement vs llama.cpp from roughly **98.8-98.9% to 99.3-99.4%** on M3/M5, with median KL falling ~3x and essentially no B1/B2 decode cost. Protect runtime **logit storage/selection precision**, not only lm-head weights.
+- **NEW oMLX #3910/#3911 offload telemetry/modeling:** Qwen3.8-Flash-Next-4bit at 50% expert residency measured **87.26% cache hit rate** on one M5 Max request. Proposed speed modeling uses route-trace LRU hit curves + misses/token × expert bytes/bandwidth; prior Qwen3 MoE estimates land close to measured values. If P51 must spill routed experts, use measured route locality and overlap—not residency percentage—as the offload model.
+- **UPDATE SGLang #40223 draft-state restore:** every MTP depth's KV + recurrent/conv/temporal state may have separate ownership and indexing; synthetic end-to-end eviction/restore produced byte/logprob-identical output after restoring all draft pools. Warm-state identity is per draft head/pool, not one generic MTP blob.
+- **LOWER PRIORITY vLLM #58631/#58633:** additional speculative host/padding work removes ~3.5 us/step/rank and ~34 us/step kernel-side respectively; reinforces control-plane optimization but carries no system TG credit.
+- **COMMUNITY background only:** the same-day Strata 12-GB RTX 5070 Flash-Next report gives **65.1 TG / 543 PP at 128K** for its lowest-bit path and **44.8 TG / 414 PP** for IQ3_XXS, but the source lacks a precise publication time relative to this strict watch boundary, so it is not classified NEW.
+
+**Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence**, and the **3.0-3.6 BPW / ~3.3-3.6 source-like** quant search. This pass mainly reduces implementation risk: avoid whole-cache rollback, treat cache-group count as a first-class speculative cost, protect FP32 logits, and measure expert locality before considering offload.
