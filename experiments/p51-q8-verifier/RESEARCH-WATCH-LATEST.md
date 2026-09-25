@@ -1,10 +1,10 @@
-# Project 51 primary-lane research watch — 2026-09-25 06:37 ET
+# Project 51 primary-lane research watch — 2026-09-25 10:59 ET
 
-**Freshness boundary checked:** prior hard boundary **2026-09-25 08:33:40 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-25 10:37:58 UTC**.
+**Freshness boundary checked:** prior hard boundary **2026-09-25 10:37:58 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-25 14:59:30 UTC**.
 
 ## Decision
 
-**No canonical TG/PP, xhigh-quality, architecture, or planning-confidence change.**
+**No canonical TG/PP or xhigh-quality target change.**
 
 Keep:
 - **40 TG @ genuinely filled ~128K**
@@ -15,84 +15,85 @@ Keep:
 - **~24-27 target-only fallback**
 - **3.0-3.6 BPW search / ~3.3-3.6 source-like xhigh hypothesis**
 
-No exact dual-M1/TB4 Flash-Next S=2-8 verifier receipt appeared, no direct Apple7 PP2 overlap measurement appeared, and no new precisely timestamped source-vs-quant xhigh behavioral certification appeared.
-
-Two fresh llama.cpp merges are relevant as enabling infrastructure, but neither is a production-style Project 51 throughput receipt.
+The fresh window adds one meaningful speculative-decoding implementation branch, LiLiCorr, but no exact dual-M1/TB4 Flash-Next receipt, no Apple7 PP2 overlap measurement, and no new source-vs-quant xhigh behavioral certification.
 
 ## Findings
 
-### NEW — llama.cpp #24364: model-driven activation precision becomes part of FP4 quant identity
+### NEW — vLLM merges LiLiCorr speculative drafting
 
-Source: https://github.com/ggml-org/llama.cpp/commit/e9f824d8c0f011662a742c9d15d4aa18a41e32c0
-Committed **2026-09-25 08:36:35 UTC**.
+Source: https://github.com/vllm-project/vllm/commit/73a78e6f1f38e280986b81e0f2a9aa5e1ee6fe47
+Committed **2026-09-25 14:08:28 UTC**.
 
-The merge adds `llama_prec_policy` and per-tensor activation-precision metadata for NVFP4/MXFP4 paths. In particular:
-- converted checkpoints can mark individual NVFP4 tensors as unable to use A4 when their source quantization is `W4A16_NVFP4`;
-- Blackwell native W4A4 is selected only for FP4 weights that are permitted to consume Q4 activations;
-- marked W4A16 tensors route through a higher-precision W4A8-style path instead;
-- `GGML_CUDA_MMQ_PREC=q4|q8|auto` provides an explicit override for experiments.
+vLLM now implements `LiLiCorrDraftModel` on top of the DFlash parallel-draft backbone. LiLiCorr does not autoregressively re-run a correction network for every draft position. Instead it:
+- keeps the top-k candidate tokens from each DFlash position;
+- processes the candidate lattice with one lightweight learned correlator;
+- emits pairwise compatibility factors;
+- then walks the precomputed scores to choose a coherent draft path.
 
-This is primarily **consumer-Blackwell / RTX-5070-Ti-relevant infrastructure**, not Apple evidence. It formalizes a point already important to P51: a nominal weight format such as NVFP4 is not a complete runtime identity when selected layers require higher activation precision.
+The merged runtime supports:
+- trained block sizes such as 16, with `num_speculative_tokens=block_size-1` recommended;
+- shorter draft prefixes from the same checkpoint;
+- greedy or probabilistic proposal sampling;
+- target LM-head reuse or an owned quantized draft head;
+- quantized draft convolution/correlator-support projections while keeping specific LiLiCorr QKV/factor/head tensors in floating-point model dtype.
 
-**Classification:** NEW adjacent 5070-Ti quant/runtime infrastructure.
+Important limitations in the newly merged docs:
+- **compatible LiLiCorr checkpoints are not published yet**;
+- adaptive verification with LiLiCorr is not validated end-to-end;
+- the alternate block rejection method is not LiLiCorr-validated for correctness/performance;
+- draft lengths outside the trained geometry can reduce acceptance unpredictably.
 
-**P51 consequence:** future NVFP4/MXFP4 receipts must record both weight precision and effective activation policy. Do not compare `NVFP4` results while silently mixing W4A4 and W4A8/W4A16-designated layers. For the phase-disaggregated 27B prefiller lane, preserve checkpoint-provided per-layer precision metadata before testing global `q4` overrides.
+Underlying NVIDIA LiLiCorr results are older than this strict window but are relevant provenance:
+- **+9-19% acceptance length** over vanilla DFlash on every reported benchmark;
+- correlator scoring head about **2.8% of per-block latency**;
+- highest throughput in **70 of 72** evaluated settings across benchmarks and concurrency sweeps;
+- H100 / Qwen3-4B and Qwen3-8B study, not Qwen3.8 Flash-Next or Apple.
 
-There is **no end-to-end Qwen3.8 benchmark in this merge**, so it earns no TG/PP credit for either the 5070-Ti or M1 targets.
+Paper/project: https://research.nvidia.com/labs/nemotron/lilicorr/  
+arXiv: https://arxiv.org/abs/2608.20530
 
-### NEW / enabling only — llama.cpp #29095: Metal FWHT now supports widths 1024-8192
+**Classification:** NEW serving/runtime support plus RECOVERED OLDER algorithmic performance evidence.
 
-Source: https://github.com/ggml-org/llama.cpp/commit/e351231c4f4cdd89c88e696c46d0eb718c9e0ab5
-Committed **2026-09-25 09:15:33 UTC**.
+**P51 consequence:** LiLiCorr becomes a legitimate future comparator to MTP/DFlash2/history lookup, especially for the CUDA 27B lane. It also reinforces the broader P51 thesis that raising accepted tokens can be worth a small learned control network if the control network is truly parallel and cheap. But give it **zero numerical credit** toward 40 TG until a Qwen3.8-compatible checkpoint and target-runtime implementation exist. Apple7 also lacks an implementation receipt.
 
-The Metal backend previously covered FWHT widths 64-512 with one row per simdgroup. The new threadgroup kernel extends the operation to **1024, 2048, 4096 and 8192** for both F32 and F16 sources:
-- 256 threads per threadgroup;
-- sub-simdgroup butterflies remain shuffle-based;
-- larger intra-threadgroup butterflies use threadgroup memory;
-- the widest 8192 path allocates **32 KB** of threadgroup memory;
-- device memory-limit checks reject unsupported widths rather than allowing a nil pipeline.
+### RECOVERED OLDER EVIDENCE — M2 Max Flash-Next oQ4e + Lightning MTP reaches 33.2 TG at 64K
 
-Validation reported on **M5 Pro**:
-- `MUL_MAT_HADAMARD`: **26/26**;
-- `MUL_MAT`: **1265/1265**.
+Source: https://omlx.ai/benchmarks/performance/x9lkrbbx  
+Benchmark date **2026-09-24**, therefore older than this pass's hard boundary.
 
-**Classification:** NEW Apple Metal primitive / transfer evidence, not a Flash-Next benchmark.
+Hardware/runtime:
+- **M2 Max, 38 GPU cores, 96 GB**;
+- Qwen3.8-Flash-Next-oQ4e-mtp;
+- oMLX 0.7.0.dev4;
+- macOS 26.6.2;
+- Lightning MTP;
+- code/Python benchmark context.
 
-**P51 consequence:** this removes an upstream Metal capability gap for wide Hadamard-transform quantization schemes and is worth mining if the heterogeneous-quant search adopts transformed FP4/ternary-style weights. It does **not** imply an M1 speedup: the validation hardware is M5 Pro, there is no Qwen3.8 A/B, and Project 51's production Flash path is MLX/PP2 rather than this llama.cpp kernel.
+Depth curve:
+- 1K: **244.7 PP / 38.4 TG**
+- 4K: **309.1 / 36.6**
+- 8K: **318.8 / 38.6**
+- 16K: **309.2 / 29.5**
+- 32K: **302.4 / 31.6**
+- 64K: **292.5 / 33.2**, peak memory **79.8 GB**
 
-Do not add this to the 40-TG numerator unless an Apple7 real-model A/B shows that the transform path both engages and improves end-to-end verifier/decode cost.
+**Classification:** RECOVERED OLDER nearer-Apple transfer evidence.
 
-### LOWER PRIORITY — llama.cpp #29329 splits Metal FA kernels by dtype
+**P51 consequence:** this is more transferable to M1 than M4/M5 receipts and shows a pre-M3 Apple generation sustaining low-30s Flash MTP at meaningful context. It still cannot be mapped directly to the target because it is Apple8, 38 cores, 96 GB, oQ4e and 64K rather than Apple7/32-core/64-GB/custom-quant/128K. It modestly strengthens plausibility but does not warrant a confidence move.
 
-Source: https://github.com/ggml-org/llama.cpp/commit/5a75f14c0f0fd643e3629b48b297cb44a7361f94
-Committed **2026-09-25 09:11:00 UTC**.
+### NON-QUALIFYING in-window work
 
-The Metal flash-attention kernel library is split into per-dtype libraries. This is useful code-size/build organization and can reduce unnecessary specialization loading, but this merge provides no Project 51-relevant end-to-end speed receipt.
+- vLLM also merged model-runner cleanup and a ROCm CI fix; neither changes P51 inference economics.
+- llama.cpp in-window changes were OpenCL/Vulkan/tokenizer work, not Apple/Flash/Blackwell Qwen3.8 performance evidence.
+- no qualifying post-boundary issue/PR/commit appeared on DS4, oMLX, mlx-serve, Splash, the M1 Splash fork, MTPLX, APEX/GSQ, SGLang, or NVIDIA Model-Optimizer.
 
-**Classification:** NEW maintenance/build infrastructure; no planning effect.
+## Community / Hugging Face scan
 
-### NON-QUALIFYING fresh commits
-
-vLLM had three commits inside the strict window, but they were logging configuration, CI sharding, and a type annotation. None changes Qwen3.8 inference economics or correctness.
-
-## Required-surface / community scan
-
-Strict-window issue/PR/commit screening found no qualifying post-boundary performance or correctness update on:
-- **antirez/ds4**
-- **jundot/omlx**
-- **ddalcu/mlx-serve**
-- **incoai/splash**
-- **paperniuk/splash**
-- **youssofal/MTPLX**
-- **localai-org/apex-quant**
-- **IST-DASLab/GSQ**.
-
-Public/Hugging Face/Reddit searches surfaced the already-known M1 Splash report, MTPLX 2.12.0 material, ISTA-DASLab NVFP4 prefiller, Flash-Next GSQ-RCO, and recent stronger-Apple oMLX posts. None exposed a substantive timestamp inside **08:33:40-10:37:58 UTC** that would justify promotion as NEW in this delta.
+Fresh web/community searches did not expose a precisely timestamped post-boundary M1/dual-M1 Flash-Next receipt or new DASLab/ByteShape/MTPLX source-vs-quant xhigh certification. Search surfaces continued to return the already-known M1 Splash work, MTPLX 2.12.0 material, and existing DFlash/GSQ/RCO artifacts; these are not reclassified as new.
 
 ## Canonical planning state after this pass
 
 Unchanged:
-
 - Flash-Next xhigh production quant search: **~3.0-3.6 average BPW**.
 - likely source-like xhigh region: **~3.3-3.6** (engineering hypothesis only).
 - dual-M1 Flash: **40 TG @ ~128K**, **400 cold PP**.
@@ -104,8 +105,8 @@ Unchanged:
 - single-M1 27B: **25 TG** canonical target.
 - RTX 5070 Ti 27B: **120 TG** mature target.
 
-`RESEARCH-STATE.md` and `RESEARCH-TARGETS.md` require no change from this pass. The activation-precision rule is recorded here but does not yet alter a canonical target or deployed configuration.
+`RESEARCH-STATE.md` is updated with the durable LiLiCorr branch and recovered M2 receipt. `RESEARCH-TARGETS.md` remains unchanged.
 
 ## New hard boundary
 
-**2026-09-25 10:37:58 UTC**
+**2026-09-25 14:59:30 UTC**
