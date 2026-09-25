@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-24 20:45 ET.
+Last consolidated: 2026-09-25 03:46 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -950,3 +950,16 @@ Highest-value missing measurements:
 - **COMMUNITY background only:** the same-day Strata 12-GB RTX 5070 Flash-Next report gives **65.1 TG / 543 PP at 128K** for its lowest-bit path and **44.8 TG / 414 PP** for IQ3_XXS, but the source lacks a precise publication time relative to this strict watch boundary, so it is not classified NEW.
 
 **Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence**, and the **3.0-3.6 BPW / ~3.3-3.6 source-like** quant search. This pass mainly reduces implementation risk: avoid whole-cache rollback, treat cache-group count as a first-class speculative cost, protect FP32 logits, and measure expert locality before considering offload.
+
+
+### 2026-09-25 07:46 UTC target-only MoE fusion / M4 prompt-lookup / 4-bit-KV capacity update
+
+- **NEW oMLX #3912 exact Flash target-only MoE fusion:** one-token routed experts collapse from five dependent launches to two, yielding **54.9 -> 58.6 TG (+6.1%) @4K** and **53.7 -> 56.8 (+8.2%) @14.6K** on M5 Max with bit-identical output and no meaningful memory tax. With Lightning MTP on, verify rows keep the multi-row path and throughput does **not** measurably improve. Keep S=1 target-only and S=2-8 verifier ledgers separate; target-only kernel wins do not automatically reduce verifier-equivalent cost.
+- **UPDATE mlx-serve #523 M4 Max transfer:** Flash-Next prompt/history lookup raises copy/edit workloads from roughly **103-110 TG -> 133-146 TG** while new-code/prose cells stay flat. On Qwen3.8-27B 4-bit, copy/edit is roughly **+50%** with ~98% lookup-draft landing and byte-exact copies. This confirms history speculation across M4/M5 Apple systems but remains workload-specific upside, not generic 40-TG credit.
+- **NEW mlx-serve #528 long-agent admission bug:** a 197,945-token Flash-Next request restores **193,961 tokens from SSD** but disk-restored rows are not credited as owned, so admission double-bills the whole prompt, evicts ~9.5 GB of hot cache, then refuses the request. Post-restore ownership/pinning must be authoritative for admission; restored rows are counted exactly once and destructive eviction must wait until final fit is known.
+- **NEW vLLM #57057 exact Flash-Next 4-bit KV:** UltraQuant Q4 KV at 262K matches FP8 GPQA-D within sampling noise and is slightly slower at low concurrency (~-2.7%) but avoids the FP8 eviction wall at high concurrency. Treat low-bit KV primarily as **capacity/headroom**, not automatic B1 speed; saved bytes may be more valuable as protected weight precision or state margin on 64-GB M1.
+- **NEW unresolved oMLX #3917:** M4 Max 64-GB user reports Qwen3.8-27B max-context regression under simultaneous runtime/macOS/quant changes; current logs fail on prefill transient headroom near 98K processed tokens. No root cause and no Flash/M1 transfer. Final P51 context certification must include steady bytes **and prefill transient workspace** under the exact shipping OS/runtime.
+- **KNOWN vLLM #58439:** checkpoint-mapped file-backed PLE still passes 76 tests after the persistent-prefetch-id change; prior file-backed/prefetch conclusion unchanged.
+- **PUBLIC background:** DASLab's dense-27B NVFP4 prefiller reinforces a phase-specific representation idea—very-low-bit resident decode plus higher-quality streamed prefill—but its code repo had no in-window commit and the released path is Blackwell-specific. No Flash target effect.
+
+**Target effect:** none. Keep **40 TG @ ~128K / 400 cold PP**, **~70% planning confidence**, and the **3.0-3.6 BPW / ~3.3-3.6 source-like** quant search. This pass mostly improves regime accounting: separate S=1 from verify, treat low-bit KV as capacity, and make warm-state ownership authoritative for long-agent admission.
