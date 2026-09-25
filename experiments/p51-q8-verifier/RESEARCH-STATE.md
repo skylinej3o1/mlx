@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-25 15:36 ET.
+Last consolidated: 2026-09-25 18:17 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -986,3 +986,10 @@ Highest-value missing measurements:
 - **NEW upstream Splash integration — commits `804bb36b523`, `df5462049fc`, `514e5844062`, `bfc3103e79d`, `06cafcb1e1c`:** upstream merged a batch of runtime work including few-row RMS norms staged in threadgroup memory, preparing DFlash2 drafts directly from their source checkpoints, keeping model weights Metal-resident between requests, stronger scheduler/KV/memory-governor correctness, and explicit GGUF-vs-llama.cpp comparison documentation. The staged norm code reports **1.3-2.6x** kernel-level improvement for dependent <=2048-column, <=64-row norms on M3 Max/M5 Pro; those measurements are stronger-chip transfer only and may predate the merge timestamp.
 - **P51 drafter consequence:** checkpoint-native DFlash2 preparation and `--draft-model` make the upstream runtime a cleaner experimental host for separately quantized/custom drafts. Preserve the source checkpoint identity and prepared-draft quantization map as part of the experiment manifest; do not treat a prepared Q4 draft as the same identity as its BF16 source checkpoint.
 - **Target effect:** none. Keep dual-M1 Flash at **40 TG @ ~128K / 400 cold PP / ~70% >=40 planning confidence**. The new independent M1 data improves confidence in Apple7 kernel portability, but the decisive unknown remains Flash-Next on two M1 Max nodes with deep-context S=2-8 verification and PP2/TB4 overlap.
+
+### 2026-09-25 22:17 UTC verify-group-width / dual-die Apple policy update
+
+- **NEW exact-window Flash-Next verify-group evidence — mlx-serve #534 (`2a93a011ec1d3ce61372952d3adca198c0cb95fa`):** on **M5 Ultra 256 GB / macOS 27 / Flash-Next mixed-4/8bit / MTP typical 0.2**, nine fused MTP verify kernels help only when the dual-die `applegpu_g17d` runs a grouped verify. Median 400-token code runs report **+4% aggregate TG at 2 streams, +13% at 4, +1% at 8, and unchanged at 1**. Earlier ungated runs showed the same kernels can slow solo sampled decode by **5-7%**. The merged policy therefore enables them on g17d only for `group_rows > 1`; single-die M5 keeps them enabled normally. A solo-opcount check confirms the gated path is byte-identical in per-forward operation counts to base.
+- **P51 verifier-policy rule:** kernel selection must be keyed by **GPU family/topology + actual verify-group width**, and possibly model/quant identity; do not promote a fused S>1 path globally from a single-row microbenchmark or a single width. Benchmark S/row groups separately because gains are **non-monotonic** (here 2:+4%, 4:+13%, 8:+1%) and a path that wins grouped verification can regress B1/solo. This is directly relevant to PP2's intended multi-row verifier overlap, but the M5 Ultra concurrency result is still stronger-chip/different-topology transfer evidence rather than an M1 PP2 receipt.
+- **RECOVERED SAME-DAY low-value M1 comment:** an r/oMLX commenter with **M1 Max 64 GB** posts an MTPLX screenshot around **29 TG** for an 8-bit Qwen3.8-27B setup described as FP16-adapted for M1. No filled-context, PP, MTP acceptance/depth, output length or exact runtime recipe is exposed in the searchable comment, so this is not used for planning.
+- **Target effect:** none. Keep dual-M1 Flash at **40 TG @ ~128K / 400 cold PP / ~70% >=40 planning confidence**. #534 strengthens the mechanism case that grouped verify deserves its own optimized policy, but supplies no Apple7/TB4/128K measurement.
