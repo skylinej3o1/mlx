@@ -1,6 +1,6 @@
-# Project 51 primary-lane research watch — 2026-09-26 11:28 ET
+# Project 51 primary-lane research watch — 2026-09-26 13:56 ET
 
-**Freshness boundary checked:** prior hard boundary **2026-09-26 13:10:08 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-26 15:28:27 UTC**, plus an explicit mining pass over the user-supplied r/oMLX long-running-agent thread. Reddit comment timestamps are only relative/hour-level, so those are classified as SAME-DAY CURRENT rather than forced into the strict timestamp window.
+**Freshness boundary checked:** prior hard boundary **2026-09-26 15:28:27 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-26 17:56:46 UTC**, plus Reddit/HF/community freshness checks.
 
 ## Decision
 
@@ -15,113 +15,99 @@ Keep:
 - **~24-27 target-only fallback**
 - **3.0-3.6 BPW search / ~3.3-3.6 source-like xhigh hypothesis**
 
-The strict window adds three exact-Flash-family optimizations that attack QSA bookkeeping, dense verify attention and host-read serialization. The supplied Reddit thread adds something orthogonal and valuable: a credible 14-compaction overnight survival receipt and a counterexample where the runtime survived compaction but the agent semantically regressed.
+This pass is unusually useful despite no target move: oMLX landed a broad speculative-decode patch explicitly covering non-NAX/fp16 Macs, while mlx-serve demonstrated two exact-Flash long-context bottlenecks that were materially larger than their component microbenchmarks suggested.
 
 ## Findings
 
-### NEW — mlx-serve #556 collapses QSA index-key upkeep from ~10 dependent kernels/layer to one
+### NEW — oMLX #3958: speculative decode gets a large non-NAX/fp16 path
 
-Source: https://github.com/ddalcu/mlx-serve/pull/556  
-Merged **2026-09-26 14:02:18 UTC**.
+Source: https://github.com/jundot/omlx/pull/3958  
+Merged **2026-09-26 17:45:44 UTC**.
 
-Flash-Next's 12 QSA layers re-pooled each finished index-key block through approximately:
-`astype -> mean -> astype -> rms_norm -> ropeApplyCosSin` (~10 dependent kernels/layer).
+The patch explicitly targets Qwen3.8 speculative decode on both NAX and non-NAX devices, with fp16 support for older Apple generations.
 
-The new fused kernel reproduces the chain's rounding points exactly because the resulting pooled keys feed top-k block selection. It deliberately declines block ratios >8, where MLX's mean reduction order changes, and M-RoPE image turns.
+**M2 Max 38-core / 96 GB / Qwen3.8-27B oQ4e fp16:**
+- DFlash2: **20.4 -> 29.5 TG short (+45%)**
+- **12.8 -> 23.0 @4K (+80%)**
+- **11.8 -> 16.8 @16K (+42%)**
+- **7.9 -> 18.1 @64K (+129%)**
+- Lightning MTP: **19.4 -> 26.7 short (+38%)**
+- **18.7 -> 23.1 @4K (+24%)**
+- **15.0 -> 26.0 @16K (+73%)**
+- **10.8 -> 14.2 @64K (+31%)**.
 
-M5 Ultra / Flash-Next mixed-4/8bit / S=4 / kv=16K:
-- forward **20.63 -> 20.25 ms**
-- GPU range **18.99-19.20 -> 18.59-18.70 ms**
-- output bit-identical in the covered path.
+**Exact Flash-Next oQ4e Lightning MTP:**
+- M3 Ultra: **105.4 -> 110.6 short; 73.6 -> 81.7 @8K; 69.5 -> 73.3 @16K; 47.6 -> 63.0 @64K (+32%)**
+- M5 Max: **79.3 -> 91.1 short; 64.2 -> 77.9 @8K; 67.2 -> 75.3 @16K; 63.0 -> 66.7 @64K (+6%)**.
 
-A review caught a particularly important implementation trap: the changing block count `NB` was initially a Metal template argument, which would JIT a new pipeline for block counts 1,2,...512 during real sessions. The final version moves block count to a scalar runtime input so decode, verify and prefill share one compiled pipeline.
+Important mechanisms:
+- GQA-shared tensor-op verify attention;
+- small tail cache for MTP-head KV rather than copying the whole head cache;
+- fused single-launch GDN verify with lazy replay on commit;
+- 3-bit lm_head candidate proposal + exact rescore;
+- GPU-specific measured QSA score/top-k/sparse-GQA row thresholds rather than NAX=yes/no dispatch;
+- MTP park/re-entry preserves head history.
 
-**P51 consequence:** QSA index maintenance is part of the verifier budget, not background bookkeeping. Fusions that affect selection state require selection-bit-identity, and per-call dimensions must not become shader-template identities.
+Validation notes explicitly discuss **M1/M2** fp16 softplus rounding differences, but the performance table contains M2 Max 27B and M3/M5 Flash rather than exact M1/M2 Flash. Therefore this is strong **transfer evidence**, not the missing Apple7 Flash receipt.
 
-### NEW — mlx-serve #554 keeps Flash S=4 dense causal verify inside the vector SDPA envelope
+**P51 consequence:** older Apple speculative performance can be dominated by dispatch/precision policy rather than raw silicon. Per-GPU measured thresholds, fp16 activation identity and state-preserving park/re-entry belong in the M1 implementation plan.
 
-Source: https://github.com/ddalcu/mlx-serve/pull/554  
-Merged **2026-09-26 13:57:15 UTC**.
+### NEW — mlx-serve #555: default bf16 KV was missing the fast QSA verify path
 
-Flash-Next has Hq/Hkv = 24/2, **GQA=12**. At S=4, one causal SDPA call gives `4*12=48`, exceeding MLX's vector-SDPA wall (`qL*gqa <= 32`) and falling to an unfused ~8-dispatch path. Splitting into two 2-row groups yields 24 each and stays on the vector kernel.
+Source: https://github.com/ddalcu/mlx-serve/pull/555  
+Merged **2026-09-26 15:49:52 UTC**.
 
-M5 Ultra at kv=1500, QSA off:
-- GPU forward **17.13 -> 16.71 ms** (~0.42 ms)
-- all measured split runs beat all base runs.
+Default bf16 KV at MTP widths S=2..15 previously built masks / ran repeated SDPA or union-gathered blocks instead of using the fused split-K QSA kernel.
 
-The final path is intentionally restricted to the measured **hd=256** envelope and yields to NAX where the fused NAX path is preferred.
+On M5 Ultra / Flash-Next mixed4/8 + MTP:
+- after 32K: median-ish control **~95.1 TG** vs fused dense arm **~106.3**
+- after 64K: **~92.1 -> 103.6 TG**, about **+12%**
+- GSM8K + MMLU-Pro unchanged at **113/130**.
 
-**P51 consequence:** verifier attention policy key should include **head_dim × GQA × S × KV regime × available fused kernel**. A generic S=4 policy is not sufficient.
+The scheduler now bills the key budget actually read by the fused sparse kernel rather than raw KV length. Unaligned dense views are handled safely inside the kernel.
 
-### NEW — mlx-serve #545 overlaps next-draft construction with the outstanding host verdict
+**P51 consequence:** ensure the *default* KV representation—not only experimental KV4/8—hits the optimized verifier path. Memory/admission accounting must follow physical reads, not logical context length.
 
-Source: https://github.com/ddalcu/mlx-serve/pull/545  
-Merged **2026-09-26 13:50:19 UTC**.
+### NEW — mlx-serve #539: PLE cost was mostly the synchronization it induced, not the gather itself
 
-Before: verify dispatch -> host read -> commit -> build next chain.  
-After: verify dispatch -> build the next chain from lazy GPU mismatch/argmax/hidden arrays -> host read -> keep or discard.
+Source: https://github.com/ddalcu/mlx-serve/pull/539  
+Merged **2026-09-26 15:35:11 UTC**.
 
-On M5 Ultra / Flash-Next mixed-4/8bit / greedy MTP:
-- predraft tail **~1.26 -> ~0.53 ms**
-- fixed-prompt greedy decode roughly **184.6-188.1 -> 192.1-192.6 TG**, about **+2.6%**.
+The CPU PLE path required reading draft IDs back to the host between the draft chain and verify dispatch. The new arm no-copy wraps the entire mmapped n-gram table as a Metal-visible buffer and performs hash/EOS/gather/dequant/RNE on the GPU.
 
-The speculative chain is discarded and the MTP head truncated if the host verdict changes the path (budget/EOS/done/spec-off/lookup choice); sampled, grouped and planner-owned paths remain eager.
+Raw-data ladder on M5 Ultra / Flash-Next mixed4/8 + MTP:
+- effective ~104K-token prompt / nominal 131072 rung:
+  - CPU PLE: **3377 PP / 93.06 TG**
+  - GPU PLE: **3432 PP / 107.14 TG**
+  - decode **+15.1%**
+- fixed 8K harness: **3153 -> ~3361 PP (+6.6%)**
+- trace removes roughly **0.29-0.34 ms PLE + 0.19-0.20 ms PLE sync** per round.
 
-**P51 consequence:** the desired verifier-cost reduction is not only GEMM/kernel work. Once GPU work is short enough, host-verdict serialization becomes visible. Prebuild reversible next-round state while the host read is outstanding.
+This corrects an earlier interpretation in P51. The raw gather looked ~1% of an MTP round, but it created a host dependency that had a much larger end-to-end cost as context grew.
 
-## User-supplied Reddit thread: what is actually worth mining
+**P51 consequence:** measure PLE as **compute + dependency/barrier cost**. The result does *not* mean 'resident-map 30 GB on every M1': the table is **29.8 GB** and this M5 Ultra has 256 GB. For dual 64-GB M1s, preserve the SSD-backed capacity advantage while finding a no-mid-round-host-read design (prefetched/hot GPU-visible working set, asynchronous staging, or another equivalent).
 
-Thread: https://www.reddit.com/r/oMLX/comments/1wqkqeu/qwen38_flash_next_with_omlx_pi_for_longrunning/
+### NEW — mlx-serve #568: prefill throughput and interactive decode QoS are separate objectives
 
-### SAME-DAY CURRENT — strongest positive receipt: 14 compactions + overnight autonomous work
+Source: https://github.com/ddalcu/mlx-serve/pull/568  
+Merged **2026-09-26 15:33:19 UTC**.
 
-`corruptbytes` reports:
-- Flash-Next **oQ4e**, direct reply confirms the OP's proposed **Jundot oQ4e-mtp** setup;
-- current/latest oMLX;
-- **262K context**;
-- **n-gram SSD offload**;
-- Pi default compaction settings;
-- `pi-goal-x + pi-blackhole`, plus `pi-autoresearch`/`pi-loop` experimentation;
-- personal record of **14 compactions**;
-- repeated non-stop overnight runs with no reported runtime issue.
+A long new prefill could leave an existing decoding stream only ~3% of wall time between multi-second chunks. A configurable `prefill-decode-share` narrows chunks while decoders are live and explicitly trades newcomer TTFT for incumbent decode responsiveness.
 
-The same commenter says roughly **70 TG**, but the parent asks both speed and whether the machine is an M5 Max and the reply only says 'like 70'; hardware is therefore **not confirmed** and the speed is not attached to an M5 in P51.
+**P51 consequence:** multi-agent certification should report both maximum PP and worst inter-token stall of an already-running agent while another request prefills. A 400-PP system that freezes an incumbent agent for seconds is not equivalent to an interactive 400-PP system.
 
-**Why this matters:** this is not a short-chat benchmark. It is the first surfaced anecdotal end-to-end receipt that Flash-Next + oMLX + external durable-goal/memory tooling can continue through many compaction cycles and unattended hours.
+## Community / Reddit / HF scan
 
-### SAME-DAY CURRENT — negative receipt: process survival can hide semantic failure
+No new independent **32-core M1 Max 64K/128K** result or M2 Flash-Next Splash depth curve surfaced after the prior boundary. Current search continues to return the already-recorded 24-core M1 replication, M1-Splash Part 1/Part 2, the r/oMLX long-running-agent thread and older oMLX M1/M2 discussions.
 
-Another commenter reports:
-- `Jundot/Qwen3.8-Flash-Next-oQ4e`
-- **oMLX 0.7.0-dev4**
-- **MTP on**
-- experimenting at **262K** single-slot;
-- default Pi compaction; manual compaction around **100K**;
-- the previous 2-slot planner/developer configuration repeatedly OOMed;
-- at 100K it survived **3-4 compactions**, but eventually **reverted earlier commits**, deciding prior implementation was bad.
+The user-supplied long-agent thread remains unchanged in its planning-grade takeaways: 14-compaction runtime survival is encouraging, but another user's 3-4-compaction semantic regression requires runtime and semantic continuity to be certified separately.
 
-**P51/harness consequence:** define two separate certification dimensions:
-1. **Runtime continuity** — server stays alive, cache/state restores, no OOM/crash/loop.
-2. **Semantic continuity** — after N compactions, agent still knows the accepted goal, current task, repository HEAD/diff, completed/rejected approaches and does not undo correct prior work.
+## Lower-priority strict-window activity
 
-A multi-compaction test should checkpoint repo state and ask the agent to restate/verify goal, work note, accepted decisions and current diff after every compaction before allowing destructive actions.
-
-### Why pi-blackhole + pi-goal-x are structurally interesting
-
-`pi-blackhole` replaces free-form LLM compaction with a deterministic structural summary and observational memory that survives compactions; `pi-goal-x` persists the objective/tasks/progress on disk across context churn. This is exactly the kind of **out-of-context durable sidecar state** we should prefer for long-horizon agents rather than repeatedly compressing all load-bearing state back into prose.
-
-### Other thread signals
-
-- M4 Max user: oQ5e + oMLX 0.7.0-rc1, roughly **150K** practical context.
-- M5 Ultra 256-GB user: original FP8 weights work for long agentic runs; their main complaint is overthinking rather than runtime instability.
-- M5 Max 128-GB user: oMLX Flash 'barely' around **40 TG** while MTPLX often exceeds 60, but oMLX saves roughly **20-30 GB RAM** from SSD offload. Anecdotal but directionally consistent with the known throughput-vs-residency trade.
-
-## LOWER PRIORITY strict-window activity
-
-- mlx-serve also landed a large Nemotron-H hybrid/recurrent optimization chain. It independently reinforces dtype-narrowing, no-per-layer-host-sync, single-token recurrent fusion and MTP-state rollback rules, but it is not exact Flash and does not move P51 targets.
-- oMLX fixed an M5 packed-projection A8-prefill regression; M5-specific and no new P51 Apple7 receipt.
-- vLLM/llama.cpp/SGLang strict-window changes were CI/frontend/load-time or unrelated to the primary Apple Flash lane.
-- no qualifying new DS4, MTPLX-core, APEX/GSQ, IST-DASLab, Model-Optimizer or M1-Splash performance result appeared inside the strict interval.
+- SGLang reports a 6x MXFP4 MoE decode kernel win on RTX 4090 by pinning Triton `num_warps`; useful CUDA lane evidence, no Apple transfer.
+- vLLM strict-window work was sparse-indexer backend correctness / host-sync cleanup / security and CI.
+- paperniuk/Splash only had funding metadata changes.
+- no qualifying new DS4, MTPLX, APEX/GSQ, IST-DASLab or NVIDIA Model-Optimizer result appeared.
 
 ## Canonical planning state after this pass
 
@@ -137,8 +123,8 @@ Unchanged:
 - single-M1 27B: **25 TG** canonical target.
 - RTX 5070 Ti 27B: **120 TG** mature target.
 
-`RESEARCH-STATE.md` is updated with the exact-family QSA/SDPA/lazy-predraft rules and the long-agent runtime-vs-semantic continuity certification split. `RESEARCH-TARGETS.md` remains unchanged.
+`RESEARCH-STATE.md` is updated with the non-NAX/fp16 speculative-decode evidence, dense-bf16 QSA path rule, corrected PLE synchronization rule and interactive prefill/decode QoS rule. `RESEARCH-TARGETS.md` remains unchanged.
 
 ## New hard boundary
 
-**2026-09-26 15:28:27 UTC**
+**2026-09-26 17:56:46 UTC**
