@@ -1,6 +1,6 @@
 # Project 51 primary-lane research watch — 2026-09-27 09:12 ET
 
-**Strict freshness boundary:** prior hard boundary **2026-09-27 11:03:54 UTC**. This pass covers substantive evidence strictly after that boundary through **2026-09-27 13:12:54 UTC**.
+**Freshness chain:** previous canonical boundary was **2026-09-27 11:03:54 UTC**. A concurrent sub-pass covered through **12:54:04 UTC**; this reconciled pass verifies the full interval through the user cutoff **2026-09-27 13:12:54 UTC**.
 
 ## Decision
 
@@ -13,71 +13,72 @@ Keep:
 - central TG region **~39-41**, mature downside **~30-32**, target-only fallback **~24-27**
 - single-M1 27B: **25 TG canonical target**
 - RTX 5070 Ti dense-27B: **120 TG mature target / 250 cold PP baseline target**
-- 5070 Ti + Strata Flash lane: experimental until exact-hardware TG/PP and AA~40 certification.
+- 5070 Ti + Strata Flash lane: experimental pending exact-hardware TG/PP + AA~40 certification.
 
-## NEW — vLLM removes per-step sparse-attention D2H synchronization
+## NEW — vLLM #58684: eliminate sparse-attention D2H planning sync
 
 Source: https://github.com/vllm-project/vllm/pull/58684  
 Merged **2026-09-27 11:06:23 UTC**, commit `c8d7a7dd13e2b40c013fb6d46be800937e4335fb`.
 
-Problem: `FLASHINFER_MLA_SPARSE_SM90` needed exact per-row KV lengths to build its host-side sparse plan. Under async scheduling/spec decode, the available CPU-side lengths were only optimistic upper bounds, so every metadata build copied GPU `positions` / `seq_lens` back to CPU. With MTP this synchronization happened on every draft step.
+Under async scheduling, FlashInfer sparse MLA was performing a **blocking device-to-host copy on every metadata build** to recover exact per-row sequence/KV lengths. With MTP this happened on every draft step as well.
 
 On GLM-5.3-Flash / H100 / TP8 / fp8 KV / MTP-5:
 - baseline async c=1 TPOT: **11.09 ms**
-- baseline no-async c=1: **7.70 ms**
+- baseline no-async c=1: **7.70 ms**.
 
-So the supposedly asynchronous scheduler was slower because metadata planning forced repeated D2H synchronization.
+So async scheduling was actually slower because sparse-plan construction synchronized with the GPU.
 
-### Fix pattern
+### Fix
 
-1. Build the host sparse plan from the existing CPU **upper bound + 32-token slack**, capped at legal maximum.
-2. On GPU, compute the exact valid count and clamp each work item's `kv_end` before the sparse kernel reads it.
-3. Reuse the same plan on subsequent steps while the growing context still fits inside its slack.
-4. Fall back to the exact/syncing path only when no safe host bound exists.
+1. Build the host plan from the already-available CPU **upper bound + 32 tokens of bounded slack**.
+2. Compute exact valid counts on GPU and clamp each work item's `kv_end` before the sparse kernel consumes it.
+3. Reuse the padded plan across later decode/spec steps while the growing context stays within the certified bound.
+4. Fall back to an exact/syncing path only when no safe host bound exists.
 
-Patched async TPOT:
-- c=1: **6.86 ms** (**-38%**)
-- c=8: **17.36 ms** (**-21%**)
-- c=32: **37.04 ms** (**-18%**).
+Patched async mean TPOT:
+- c=1: **6.86 ms (-38%)**
+- c=8: **17.36 ms (-21%)**
+- c=32: **37.04 ms (-18%)**.
 
-Profiler validation reports no blocking sync left in draft-step metadata build; before, there were **13 blocking syncs per ~5 draft steps, ~79 ms total**. MTP mean acceptance remains ~4.2; GSM8K is effectively unchanged.
+The profiler reports the previous path incurred **13 blocking syncs over roughly five draft steps, ~79 ms total**. MTP mean acceptance remains ~4.2 and GSM8K is unchanged within normal run variation.
 
-### P51 implication
+**Classification:** stronger-chip/different sparse-attention implementation. No numeric M1 credit.
 
-This is a stronger, concrete version of our existing rule that a host read inside a sparse/spec loop is a GPU barrier.
+**P51 design rule:** when exact dynamic sparse/QSA metadata resides on device, prefer:
 
-For Apple7 QSA / speculative verification, investigate the same shape:
+**host conservative geometry + bounded slack -> GPU exact clamp/validation -> plan reuse**
 
-**host conservative geometry + bounded slack -> GPU exact clamp/mask -> plan reuse across several decode/draft steps**
+rather than forcing a per-step D2H read. This should be tested for Apple7 QSA/index planning and speculative row/length metadata.
 
-instead of reading exact QSA lengths/selection metadata back to CPU every step.
+## Strict-window scan
 
-The useful lesson is the control-flow pattern, not the Hopper performance magnitude; no numeric transfer to M1 is allowed.
-
-## Strict-window negative scan
-
-No qualifying new primary-lane performance/correctness receipt appeared in:
+No additional qualifying primary-lane performance or correctness receipt appeared through **13:12:54 UTC** in:
 - oMLX
 - mlx-serve
-- Splash (both repos)
+- Splash / M1 Splash
 - MTPLX
 - Ishizuki
 - Strata
 - DFlash2
 - DS4
 - llama.cpp Apple path
-- ISTA-DASLab/GSQ
-- NVIDIA ModelOpt.
+- ISTA-DASLab / GSQ
+- NVIDIA ModelOpt
+- SGLang primary inference work.
 
-llama.cpp's strict-window commits were unrelated PLaMo/Jinja/CI work. vLLM's other strict-window commit only reorganized speculative-decoding CI.
+vLLM's only other relevant-window commit reorganized speculative-decoding CI. llama.cpp's commits were unrelated PLaMo/Jinja/CI changes.
 
-Community/web searches returned the already-recorded M1 Splash 39-TG post, Strata 5070 128K results, older Mac Flash streaming results, and existing DASLab quality discussions; none is new evidence after the hard boundary.
+## Community watch
+
+Fresh web searches surfaced only already-recorded M1 Splash, Strata 5070, older Mac Flash and DASLab threads.
+
+A same-day comment in the Ishizuki Reddit post says **Splash has been ported into the Ishizuki kernel**. There is **no new Ishizuki commit or benchmark in this strict interval**, so classify this as **WATCH ONLY**: potentially interesting convergence of the Splash and Ishizuki Apple7 work, but zero target credit until code + exact-hardware measurements appear.
 
 ## Canonical planning effect
 
-**None.** The pass strengthens QSA/spec metadata scheduling design but does not change throughput or quality forecasts.
+**None.** This pass strengthens one control-flow pattern: eliminate host synchronization by planning from safe upper bounds and enforcing exactness on device.
 
-`RESEARCH-STATE.md` is updated with the conservative-host-plan + GPU-clamp + plan-reuse rule. `RESEARCH-TARGETS.md` remains unchanged.
+`RESEARCH-STATE.md` is reconciled to one durable vLLM planning entry plus the boundary extension. `RESEARCH-TARGETS.md` remains unchanged.
 
 ## New hard boundary
 
