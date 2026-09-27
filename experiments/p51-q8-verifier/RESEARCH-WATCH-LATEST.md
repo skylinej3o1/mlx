@@ -1,6 +1,6 @@
-# Project 51 primary-lane research watch — 2026-09-27 00:12 ET
+# Project 51 primary-lane research watch — 2026-09-27 06:23 ET
 
-**Freshness boundary checked:** prior hard boundary **2026-09-27 02:24:13 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-27 04:12:29 UTC**, plus newly relevant older evidence for the proposed 5070 Ti prefill -> M1 decode lane.
+**Freshness boundary checked:** prior hard boundary **2026-09-27 04:12:29 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-27 10:23:44 UTC**.
 
 ## Decision
 
@@ -15,122 +15,79 @@ Keep:
 - RTX 5070 Ti 27B: **120 TG mature target / 250 cold PP baseline target**
 - Flash quant search **3.0-3.6 BPW**, source-like hypothesis **~3.3-3.6**.
 
-The useful change is architectural rather than a target move: production Flash traces show long-agent time dominated by repeated prefill when the hot cache silently trims the active session, while SGLang already proves that Qwen3.8 hybrid recurrent/QSA state can be transferred correctly across a prefill/decode boundary.
+This is a systems/correctness pass rather than a new speed pass. It adds durable rules for ownership, physical residency accounting and transfer completion that matter directly to the newly promoted heterogeneous-prefill lane.
 
-## Strict-window findings
+## Findings
 
-### NEW — mlx-serve #575: an undersized prefix cache made real 80K+ agent traffic spend 11x more wall time prefilling than decoding
+### NEW — mlx-serve now accounts live request KV + recurrent state instead of hiding it inside 'working'
 
-Source: https://github.com/ddalcu/mlx-serve/pull/575  
-Merged **2026-09-27 02:58:58 UTC**.
+Source: https://github.com/ddalcu/mlx-serve/commit/4e00f2af7a64fd846d31cfaa90247586cf853ca2  
+Committed **2026-09-27 06:08:53 UTC**.
 
-The old qwen4_exp default was a fixed 2-GB hot cache. With 12 attention layers and the server's actual KV geometry it retained **81,920 tokens**, so an active 100K-160K conversation reused only the first 81,920 and re-prefilled the rest each turn.
+`/props kv_cache_bytes` now includes:
+- hot prefix-cache residency;
+- request-owned live attention KV;
+- recurrent/SSM state including QSA raw-key state;
+- the active slot while it is still mid-prefill.
 
-Real traffic:
-- **12,421 logged requests** total
-- **116 prompts >80K**
-- those 116 spent **1.11 hours in prefill** versus **0.10 hours decoding**
-- logs repeatedly showed reuse such as `81920/111997` and `81920/164228` despite ~127 GB free.
+Restored/shared KV views are deliberately excluded from the live-request bill because the hot-cache donor owns their backing buffers. The memory breakdown takes measured KV first, then fits the weight estimate into what remains; 'working' is left for activations/transients.
 
-Controlled M5 Ultra / Flash-Next mixed4/8 + MTP follow-up, ~98K prompt:
-- fixed 2 GB: **81,920 / 98,338 reused**, turn-2 **TTFT 4.83 s**
-- Auto one-session budget: **98,287 / 98,336 reused**, **TTFT 0.24 s**
-- computed hot-cache budget **7,761 MB**.
+**P51 consequence:** use explicit physical ownership. A canonical accounting table should separate:
+1. model weights;
+2. shared/persistent prefix state;
+3. private live-request KV + recurrent/QSA state;
+4. transient activations/workspaces/allocator reserve.
 
-The budget explicitly includes the retained recurrent/SSM checkpoints that the cache entry will bill.
+Imported or restored shared state must be billed once, not once per consumer.
 
-**P51 consequence:** cache capacity must be expressed as a full active-session state bill, not 'N GB of KV'. For a long-running coding agent, trimming the active conversation a few tens of thousands of tokens below its working depth can dominate the whole runtime even when decode is excellent.
+### NEW — SGLang fixes a sparse-index transfer race by waiting at the read boundary
 
-### NEW — full PLE GPU residency is now opt-in because the first forward can turn the 30-GB mmap into catastrophic memory pressure
+Source: https://github.com/sgl-project/sglang/commit/38d865489af5ce7b1885577aa834b0d34dd99438  
+Committed **2026-09-27 05:04:03 UTC**.
 
-Source: https://github.com/ddalcu/mlx-serve/commit/d500d429989a25d2571f9ef10b1ae81960b4fa32  
-Committed **2026-09-27 03:43:09 UTC**.
+DeepSeek V4.1 HiCache could read low-ratio index-K payload/dequantized rows before the corresponding layer transfer had completed. The fix inserts `wait_layer_transfer(layer_id)` directly in both low-ratio index-K read paths.
 
-The previously measured GPU PLE arm no-copy wraps the **~29.8-GB** n-gram table. Important newly documented behavior: the mapping may be cheap at load, but the **first GPU forward makes the whole table resident**. The static working-set check passed on a 128-GB Mac with roughly **10 GB free**, and a first **13-token prefill took 19-106 seconds** under pressure. The host gather, by contrast, faults in only rows actually read.
+**P51 consequence:** this is directly transferable to CUDA-prefill -> MLX-decode state import. Metadata/handle availability is not proof that bytes are visible. Each imported layer/component needs a completion state/fence before QSA/index/recurrent consumers can read it. Put the wait at the consumer/read API as a fail-safe, even if the scheduler also tracks transfer completion.
 
-The server therefore now leaves PLE GPU gather **off unless `--ple-gpu` is explicitly requested**.
+### NEW — SGLang clarifies shared-prefix ownership: request release unlocks, it does not free
 
-**P51 consequence / correction:** retain #539's lesson that PLE-induced host synchronization can cost double-digit decode at deep context, but do not solve that by resident-mapping ~30 GB on a 64-GB M1. Our desired arm is **SSD/demand-paged capacity + no mid-round host barrier**, probably via bounded hot GPU-visible rows or asynchronous staging.
+Source: https://github.com/sgl-project/sglang/commit/d27efca3536e3fe084fe654a68d494d95af030a9  
+Committed **2026-09-27 05:00:02 UTC**.
 
-### NEW — recurrent prefill can be overwhelmingly launch-bound when the sequential rule is expressed per token
+A prefix matched from the radix tree is tree-owned. On request finish the request now frees only its private suffix and unpins the protected prefix rather than freeing the matched prefix itself.
 
-Source: https://github.com/ddalcu/mlx-serve/pull/574  
-Merged **2026-09-27 02:49:43 UTC**.
+**P51 consequence:** cache/prefix ownership must be independent from request lifetime. This is especially important for mirrored M1<->CUDA state: finishing one decoding request should release its reference/pin while leaving reusable shared conversation state intact. It prevents both double-free and accidental re-prefill.
 
-Different model but useful mechanism: Nemotron-H Mamba2 previously used a fused step only for <=16 rows; a normal prompt chunk fell back to ~12 dispatches/token/layer plus a host eval every 32 steps. The new kernel walks the entire chunk in internal 16-row passes while retaining recurrent state in registers.
+### NEW — llama.cpp RDMA RPC stops burning a CPU core while idle; Apple/TB4 still lacks the equivalent
 
-M5 Max 64 GB, 4K prompt:
-- before: **407 / 435 / 444 PP**
-- after: **3,571 / 3,958 / 3,987 PP**
-- decode stays essentially unchanged.
+Source: https://github.com/ggml-org/llama.cpp/commit/d7fb90e8e2494b2908934d956a3202fd60152ee0  
+Committed **2026-09-27 09:28:32 UTC**.
 
-**Classification:** exact-window stronger-chip / different-recurrence mechanism evidence only.
+The regular RDMA path now spins briefly while active, then arms an RDMA completion channel and sleeps until a completion or peer close. The Apple RDMA/Thunderbolt implementation is explicitly annotated with a TODO for the same behavior.
 
-**P51 consequence:** dedicate an Apple7 experiment to a whole-chunk GDN recurrence kernel before assuming M1 27B/Flash prefill is fundamentally bandwidth-limited. No 9x transfer estimate is permitted; the useful evidence is that recurrent prefill can hide an enormous dispatch/host-control tax.
+**P51 consequence:** not a throughput receipt, but relevant to both dual-M1 TB4 and remote-prefill designs. Use completion/event-driven transport when idle; avoid a permanent polling core and define peer-close invalidation explicitly.
 
-## Newly relevant older evidence — 5070 Ti prefill -> M1 decode
+### KNOWN MERGE — SGLang #41166 small-copy fusion
 
-### RECOVERED OLDER — SGLang #36651 already transfers full Qwen3.8-Flash-Next hybrid state across PD
+SGLang commit `aa7a976807ea71320027713a8b90cf91cc1503c4` merged in this interval. This is the already-recorded Qwen3.8 CUDA graph small-buffer-copy work (~11 us -> ~1.4 us in the prior evidence set). It is classified **KNOWN MERGE**, not new evidence, and receives no additional target credit.
 
-Source: https://github.com/sgl-project/sglang/pull/36651  
-Merged **2026-09-12**.
+## Community / Ishizuki / M1-M2 scan
 
-This is much stronger support for the proposed heterogeneous prefiller than generic KV-disaggregation documentation. Flash-Next explicitly requires and transfers:
-- ordinary full-attention KV
-- **PLE short-convolution state**
-- **PLE n-gram history**
-- **QSA pending raw-key/RoPE ring state**
-- **compressed QSA keys**
-- request/global attention/QSA metadata needed to map state across layouts.
-
-Matching TP4 -> TP4 aggregate vs 1P1D Mooncake PD passed **12/12 matrix cases, 84 requests, 2,730 generated tokens, zero output-token-sequence mismatches**. Heterogeneous TP1->TP4 and TP4->TP1 Mooncake variants also achieved exact output-token parity.
-
-This directly answers the architectural question: **Qwen3.8 hybrid state is transferable across the prefill/decode boundary without recomputing the model.**
-
-### RECOVERED OLDER — SGLang #40501 composes PP prefill + native MTP on Flash-Next
-
-Source: https://github.com/sgl-project/sglang/pull/40501  
-Merged **2026-09-22**.
-
-GB300 Qwen3.8-Flash-Next:
-- reference TP4 aggregate + MTP: **GSM8K 0.980, accept length 3.16**
-- **PD prefill TP2xPP2 + MTP -> decode TP4 + MTP:** **0.980, 3.16**.
-
-The implementation transfers the draft MTP QSA pending keys, RoPE state and compressed keys as well. This demonstrates that prefill-side parallelism and a warm native speculative state can coexist with PD.
-
-**P51 consequence:** the proposed 5070-Ti-prefill/M1-decode experiment is no longer speculative at the model-architecture level. The open research problem is the **canonical CUDA<->MLX state representation and numerical identity**, not whether a hybrid Qwen can be disaggregated.
-
-### Proposed first experiment
-
-Do not start with networking or 96K. First certify:
-
-**32K CUDA prefill -> export canonical state -> MLX import -> compare next logits/tokens against native-MLX prefill.**
-
-Only after parity:
-1. extend 32K -> 96K;
-2. measure export/import bytes and latency;
-3. add bidirectional state mirroring so CUDA receives M1-generated-token state rather than re-prefilling history;
-4. then benchmark end-to-end TTFT against native M1 PP.
-
-State identity must carry a strong model/quant/config fingerprint, token lineage, position/RoPE identity, per-layer KV, recurrent/GDN state, and any warmed draft/MTP state.
-
-## Community / Reddit / Ishizuki freshness check
-
-No new planning-grade independent **32-core M1 Max 64K/96K/128K** result appeared after the prior boundary. Searches continue to surface the already-recorded Splash M1 depth curves and older M1 MLX-vs-llama PP comparisons. Ishizuki had no new commit inside this strict window.
+No new planning-grade independent **32-core M1 Max 64K/96K/128K** measurement appeared after the prior boundary. Current searches continue to return the already-recorded M1 Splash Part 1/Part 2, 24-core replication, MTPLX and oMLX threads. `struffl/ishizuki`, MTPLX, both Splash repos and oMLX had no new qualifying commit in this strict interval.
 
 ## Lower-priority strict-window activity
 
-- vLLM NIXL now tears down a dead peer's state immediately rather than waiting for TTL; useful hygiene for a future remote prefiller but no performance receipt.
-- mlx-serve's remaining commits in the window are app/agent UI and registry changes.
-- SGLang's strict-window changes are unrelated ROCm/router work.
-- no qualifying new DS4, oMLX, Splash/MTPLX, llama.cpp Apple, APEX/GSQ, IST-DASLab or Model-Optimizer performance result appeared.
+- llama.cpp added SYCL wide FWHT and unrelated CUDA/HIP/OpenCL work; no Apple P51 target impact.
+- vLLM changes were CPU attention and DSv4.1 SM100 fusion, not applicable to the primary lane.
+- SGLang added unrelated memory-cache/control-plane and diffusion work.
+- mlx-serve's other current work is UI/telemetry; no new Flash throughput receipt.
 
 ## Canonical planning state after this pass
 
-Unchanged. The new evidence shifts priority toward **prefix/state reuse and heterogeneous prefill**, not a higher TG forecast.
+Unchanged. Priority remains **prefix/state reuse, recurrent-prefill work, and heterogeneous prefill correctness** rather than raising TG forecasts.
 
-`RESEARCH-STATE.md` is updated with the prefix residency rule, corrected PLE residency interpretation, recurrent-prefill mechanism evidence and the 27B heterogeneous P/D experiment lane. `RESEARCH-TARGETS.md` remains unchanged.
+`RESEARCH-STATE.md` is updated with live-state ownership/accounting, transferred-state readiness and shared-prefix lifetime rules. `RESEARCH-TARGETS.md` remains unchanged.
 
 ## New hard boundary
 
-**2026-09-27 04:12:29 UTC**
+**2026-09-27 10:23:44 UTC**
