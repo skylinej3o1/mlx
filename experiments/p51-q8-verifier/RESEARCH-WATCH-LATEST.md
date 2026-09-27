@@ -1,6 +1,6 @@
-# Project 51 primary-lane research watch — 2026-09-26 13:56 ET
+# Project 51 primary-lane research watch — 2026-09-26 22:24 ET
 
-**Freshness boundary checked:** prior hard boundary **2026-09-26 15:28:27 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-26 17:56:46 UTC**, plus Reddit/HF/community freshness checks.
+**Freshness boundary checked:** prior hard boundary **2026-09-26 17:56:46 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-27 02:24:13 UTC**, plus a user-requested full audit of `struffl/ishizuki` at current head `459ee0064df8928f374e95db64e1f440a48aa377`.
 
 ## Decision
 
@@ -15,99 +15,164 @@ Keep:
 - **~24-27 target-only fallback**
 - **3.0-3.6 BPW search / ~3.3-3.6 source-like xhigh hypothesis**
 
-This pass is unusually useful despite no target move: oMLX landed a broad speculative-decode patch explicitly covering non-NAX/fp16 Macs, while mlx-serve demonstrated two exact-Flash long-context bottlenecks that were materially larger than their component microbenchmarks suggested.
+The strict window adds the first exact-M1 Flash-Next receipt combining native Lightning MTP with expert offload, a major QSA allocator-fragmentation fix, and better long-context memory accounting. Ishizuki independently provides strong Apple7 small-row verify evidence, but its published fast numbers are dense-Qwen short-context DFlash rather than a Flash-Next 128K curve.
 
-## Findings
+## Strict-window findings
 
-### NEW — oMLX #3958: speculative decode gets a large non-NAX/fp16 path
+### NEW — oMLX #3935: native Lightning MTP now works with Flash-Next expert offload on M1 Max 64 GB
 
-Source: https://github.com/jundot/omlx/pull/3958  
-Merged **2026-09-26 17:45:44 UTC**.
+Source: `jundot/omlx` PR #3935. Merged **2026-09-26 19:29:07 UTC**.
 
-The patch explicitly targets Qwen3.8 speculative decode on both NAX and non-NAX devices, with fp16 support for older Apple generations.
+Exact measured setup:
+- **M1 Max 64 GB / macOS 26**
+- `Jundot/Qwen3.8-Flash-Next-oQ4e-mtp`
+- PLE on SSD
+- backbone expert offload, **60% experts resident**
+- native MTP head kept resident
+- 500-token coding prompt, temperature 1.0.
 
-**M2 Max 38-core / 96 GB / Qwen3.8-27B oQ4e fp16:**
-- DFlash2: **20.4 -> 29.5 TG short (+45%)**
-- **12.8 -> 23.0 @4K (+80%)**
-- **11.8 -> 16.8 @16K (+42%)**
-- **7.9 -> 18.1 @64K (+129%)**
-- Lightning MTP: **19.4 -> 26.7 short (+38%)**
-- **18.7 -> 23.1 @4K (+24%)**
-- **15.0 -> 26.0 @16K (+73%)**
-- **10.8 -> 14.2 @64K (+31%)**.
+Results:
+- offload / MTP off: **14.3-14.6 TG**
+- offload + adaptive MTP max depth 3: **16.3-16.4 TG** final branch
+- earlier same-change runs: **17.0-17.3 TG**, **1.87 committed tokens/cycle**, **69.5% acceptance**
+- fixed depth 2: **17.0 TG**
+- fixed depth 3: **15.0 TG**.
 
-**Exact Flash-Next oQ4e Lightning MTP:**
-- M3 Ultra: **105.4 -> 110.6 short; 73.6 -> 81.7 @8K; 69.5 -> 73.3 @16K; 47.6 -> 63.0 @64K (+32%)**
-- M5 Max: **79.3 -> 91.1 short; 64.2 -> 77.9 @8K; 67.2 -> 75.3 @16K; 63.0 -> 66.7 @64K (+6%)**.
+The degradation at deeper verify width is physically meaningful: a wider row group routes to more distinct experts, creating more misses/SSD traffic. Independent head-path measurement on M5 Max found keeping the head resident cuts draft-token head cost from ~1.8 ms to ~0.44 ms at 25% expert residency, in exchange for about 1 GB resident memory. A maintainer also reports an M3 Ultra offload setup moving roughly 8 -> 20 TG when MTP head residency is fixed.
 
-Important mechanisms:
-- GQA-shared tensor-op verify attention;
-- small tail cache for MTP-head KV rather than copying the whole head cache;
-- fused single-launch GDN verify with lazy replay on commit;
-- 3-bit lm_head candidate proposal + exact rescore;
-- GPU-specific measured QSA score/top-k/sparse-GQA row thresholds rather than NAX=yes/no dispatch;
-- MTP park/re-entry preserves head history.
+**P51 consequence:** if any transformer experts are streamed, the native draft/MTP head must remain resident. Adaptive verify control should price **distinct experts / bytes fetched per cycle** in addition to accepted tokens and verifier compute. This exact M1 Flash receipt is useful capacity evidence, but the short prompt + offload topology is not the target PP2 lane.
 
-Validation notes explicitly discuss **M1/M2** fp16 softplus rounding differences, but the performance table contains M2 Max 27B and M3/M5 Flash rather than exact M1/M2 Flash. Therefore this is strong **transfer evidence**, not the missing Apple7 Flash receipt.
+### NEW — vLLM #57105: QSA logits workspace fragmentation can consume >13 GB by 166K
 
-**P51 consequence:** older Apple speculative performance can be dominated by dispatch/precision policy rather than raw silicon. Per-GPU measured thresholds, fp16 activation identity and state-preserving park/re-entry belong in the M1 implementation plan.
+Source: `vllm-project/vllm` PR #57105. Merged **2026-09-27 02:11:53 UTC**.
 
-### NEW — mlx-serve #555: default bf16 KV was missing the fast QSA verify path
+Direct QSA-kernel walk on one GB10, Qwen3.8-Flash-Next indexer geometry, 3200-row chunks:
+- stock reserved at 3.2K: **48 MiB / 4 segments**
+- stock at 38.4K: **812 MiB / 15 segments**
+- stock at 83.2K: **3494 MiB / 29 segments**
+- stock at 128K: **8092 MiB / 43 segments**
+- stock at 166.4K: **13,556 MiB / 55 segments**
+- patched: **534 MiB / 3 segments** across the walk.
 
-Source: https://github.com/ddalcu/mlx-serve/pull/555  
-Merged **2026-09-26 15:49:52 UTC**.
+The patch reserves the configured worst-case QSA logits workspace once and reuses it instead of growing a fresh allocation as width changes. The author explicitly did not claim latency or resolve the separate TP2 hang; this is allocator/memory evidence.
 
-Default bf16 KV at MTP widths S=2..15 previously built masks / ran repeated SDPA or union-gathered blocks instead of using the fused split-K QSA kernel.
+**P51 consequence:** preallocate/reuse bounded QSA index score workspaces. Deep-context memory certification must report live tensor bytes, allocator reserved bytes, segment/pool fragmentation and transient prefill/verifier workspace separately.
 
-On M5 Ultra / Flash-Next mixed4/8 + MTP:
-- after 32K: median-ish control **~95.1 TG** vs fused dense arm **~106.3**
-- after 64K: **~92.1 -> 103.6 TG**, about **+12%**
-- GSM8K + MMLU-Pro unchanged at **113/130**.
+### NEW — oMLX #3933: admission must reserve the physical prefill/KV growth path, not historical footprint deltas
 
-The scheduler now bills the key budget actually read by the fused sparse kernel rather than raw KV length. Unaligned dense views are handled safely inside the kernel.
+Source: `jundot/omlx` PR #3933. Merged **2026-09-26 19:22:31 UTC**.
 
-**P51 consequence:** ensure the *default* KV representation—not only experimental KV4/8—hits the optimized verifier path. Memory/admission accounting must follow physical reads, not logical context length.
+Key results on M5 Max 128 GB:
+- Qwen3.8-27B 44-GB context bench: **143,360 -> full 262,144** first-attempt
+- Flash-Next 99-GB resident-ngram / aggressive+speed: **51,200 -> 223,232**
+- Flash-Next aggressive+context: previously model evicted mid-bench -> **262,144**
+- safe load: previously resident n-gram + compression/swap -> **n-gram SSD, no swap, serves**.
 
-### NEW — mlx-serve #539: PLE cost was mostly the synchronization it induced, not the gather itself
+The implementation switches to current graphics/MLX counters, reserves full-prompt KV capacity after the first chunk to avoid repeated concat leaving full old copies in the pool, and makes admission use the same line enforced during prefill.
 
-Source: https://github.com/ddalcu/mlx-serve/pull/539  
-Merged **2026-09-26 15:35:11 UTC**.
+**P51 consequence:** reserve permanent state geometry early enough to avoid repeated full-copy growth, and model four distinct classes: steady resident state, prefill/verify transient workspace, allocator/pool fragmentation, and operating-system/other-app guard margin.
 
-The CPU PLE path required reading draft IDs back to the host between the draft chain and verify dispatch. The new arm no-copy wraps the entire mmapped n-gram table as a Metal-visible buffer and performs hash/EOS/gather/dequant/RNE on the GPU.
+### NEW — oMLX #3934: QSA prefill tiles should widen only while score-sheet memory allows
 
-Raw-data ladder on M5 Ultra / Flash-Next mixed4/8 + MTP:
-- effective ~104K-token prompt / nominal 131072 rung:
-  - CPU PLE: **3377 PP / 93.06 TG**
-  - GPU PLE: **3432 PP / 107.14 TG**
-  - decode **+15.1%**
-- fixed 8K harness: **3153 -> ~3361 PP (+6.6%)**
-- trace removes roughly **0.29-0.34 ms PLE + 0.19-0.20 ms PLE sync** per round.
+Source: `jundot/omlx` PR #3934. Merged **2026-09-26 20:12:45 UTC**.
 
-This corrects an earlier interpretation in P51. The raw gather looked ~1% of an MTP round, but it created a host dependency that had a much larger end-to-end cost as context grew.
+M3 Ultra native sparse-QSA pipeline, wider query tiles:
+- 8K / M6144: **25.437 -> 21.078 ms (-17.1%)**
+- 16K / M8192: **35.322 -> 31.029 (-12.2%)**
+- 24.6K: **-11.2%**
+- 32.8K: **-11.1%**
+- strict-zero-cache 24K prefill recheck: up to **~+2.6-4.0%** vs adjacent/original controls
+- 32K smoke: **+2.9% PP**.
 
-**P51 consequence:** measure PLE as **compute + dependency/barrier cost**. The result does *not* mean 'resident-map 30 GB on every M1': the table is **29.8 GB** and this M5 Ultra has 256 GB. For dual 64-GB M1s, preserve the SSD-backed capacity advantage while finding a no-mid-round-host-read design (prefetched/hot GPU-visible working set, asynchronous staging, or another equivalent).
+The FP32 score sheet remains bounded to 128 MiB through 64K; tiles shrink again above 64K.
 
-### NEW — mlx-serve #568: prefill throughput and interactive decode QoS are separate objectives
+**P51 consequence:** prefill tile/chunk width is a function of KV depth, GPU and explicit score-sheet/workspace budget, not one global width.
 
-Source: https://github.com/ddalcu/mlx-serve/pull/568  
-Merged **2026-09-26 15:33:19 UTC**.
+### NEW — mlx-serve #558: even a mathematically valid GDN fusion can be hardware-negative
 
-A long new prefill could leave an existing decoding stream only ~3% of wall time between multi-second chunks. A configurable `prefill-decode-share` narrows chunks while decoders are live and explicitly trades newcomer TTFT for incumbent decode responsiveness.
+Source: `ddalcu/mlx-serve` PR #558. Merged **2026-09-26 18:56:17 UTC**.
 
-**P51 consequence:** multi-agent certification should report both maximum PP and worst inter-token stall of an already-running agent while another request prefills. A 400-PP system that freezes an incumbent agent for seconds is not equivalent to an interactive 400-PP system.
+Folding recurrence + norm/gate + rollback concat removes 72 dependent/off-path dispatches across 36 layers, yet on M5 Ultra S=4 it buys only **~0.046 ms / 0.3%** (16.64ish -> 16.59ish ms). The winning layout requires 1024 threads/TG; a macOS-26 CI GPU caps this pipeline at **896**, while a portable 512-thread version is **0.14 ms slower** than the original chain.
 
-## Community / Reddit / HF scan
+**P51 consequence:** feature/capability detection cannot stand in for real per-pipeline launch limits. Probe the actual compiled kernel once, cache success/decline by geometry, and keep a clean fallback.
 
-No new independent **32-core M1 Max 64K/128K** result or M2 Flash-Next Splash depth curve surfaced after the prior boundary. Current search continues to return the already-recorded 24-core M1 replication, M1-Splash Part 1/Part 2, the r/oMLX long-running-agent thread and older oMLX M1/M2 discussions.
+## Full audit — `struffl/ishizuki`
 
-The user-supplied long-agent thread remains unchanged in its planning-grade takeaways: 14-compaction runtime survival is encouraging, but another user's 3-4-compaction semantic regression requires runtime and semantic continuity to be certified separately.
+### What the repository actually is
 
-## Lower-priority strict-window activity
+Ishizuki is not a thin wrapper. At the audited head it contains roughly **130 Swift source files, 82 Swift test files and 69 app Swift files**, with its own:
+- affine and GGUF low-bit GPU kernels
+- 2-8-row speculative verify matmuls
+- hybrid GDN + attention implementation
+- QSA selector/indexer
+- quantized KV cache
+- MTP / DFlash / DSpark-style speculation infrastructure
+- persistent in-memory and disk prefix/session caches
+- SSD-streamed MoE experts with bounded resident slots
+- quantization/calibration/pack writing
+- OpenAI/Anthropic-compatible inference server
+- coding-agent shell/workspace layer, containers/cluster sandboxing, and companion-device transport.
 
-- SGLang reports a 6x MXFP4 MoE decode kernel win on RTX 4090 by pinning Triton `num_warps`; useful CUDA lane evidence, no Apple transfer.
-- vLLM strict-window work was sparse-indexer backend correctness / host-sync cleanup / security and CI.
-- paperniuk/Splash only had funding metadata changes.
-- no qualifying new DS4, MTPLX, APEX/GSQ, IST-DASLab or NVIDIA Model-Optimizer result appeared.
+This makes it technically interesting enough to mine at the mechanism level. It is also a rapidly moving solo-style codebase; current head is from Sep 26, and most of the performance implementation changed over just the preceding few days.
+
+### Benchmark credibility
+
+The best M1 Max evidence is valuable but narrower than the README headline can make it look.
+
+On M1 Max, short prompt / 256-output / reasoning-off engine comparisons in `BENCHMARKS.md`:
+- Bonsai 2-bit Ishizuki plain: about **22.2-22.5 TG**
+- Bonsai DFlash: **45.0 / 45.0 / 20.2 TG** across math/code/prose-like prompts
+- GGUF IQ2_XS Ishizuki plain: **~9.7-10.6 TG**, MTP **~10.6-12.5**, DFlash **23.9 / 24.7 / 11.4**
+- EXL3 2.0 BPW DFlash: **28.7 / 35.4 / 15.9**
+- OrcaSAQ2 DFlash: **28.9 / 33.3 / 14.1**.
+
+Detailed Bonsai DFlash receipt: plain ~22 TG -> **44.2 TG** on math/code with ~**5.9 accepted tokens per verify**, while prose falls to **19.5 TG** at ~2.54 tokens/verify. A sampled code run reaches **46.2 TG**. Stock MLX DFlash is slower than plain because its 8-row verify costs 5-6 decode steps.
+
+Kernel-level M1 evidence is stronger than the headline: a representative MLX 8-row forward is reported around **279 ms** versus **134 ms** with Ishizuki VerifyMatmul; custom GGUF 8-row multiplies can cost roughly 0.94-1.83x a 1-row custom matvec rather than 2.5-4.36x.
+
+Limitations:
+- several benchmark cells use **better-of-two**, creating selection bias
+- the 40-45 TG headline is short-context/high-acceptance DFlash, not plain decode
+- desktop/thermal variation is acknowledged
+- no planning-grade full-model **Flash-Next 64K/128K depth curve** is published
+- README support for qwen4_exp is backed by implementation/tests, but not an exact M1 Flash-Next performance table.
+
+**Audit conclusion on performance claims:** use Ishizuki as strong exact-Apple7 evidence that multi-row verify can make speculative decode pay. Do not use 45 TG as an M1 128K Flash floor.
+
+### Mechanisms worth stealing conceptually for Project 51
+
+1. **Decode low-bit weights once across 2-8 verify rows.** This independently validates the core Apple7 verifier thesis.
+2. **Put activation dtype in custom-kernel cache identity.** Ishizuki discovered MLX could reuse the first same-name/same-shape build across fp16/fp32, producing a GPU page fault in one graph or wrong values outside it.
+3. **Warm every kernel shape/dtype at model load.** First speculative round should never pay compilation.
+4. **Changing row width is data, not shader identity.** Missing/dead rows are clamped and writes suppressed instead of building a separate kernel for every S.
+5. **Measure crossover per tensor shape.** On its M1 Max policy the big output head pays from two rows, MLP from three, 6144-wide projections from four, attention K/V only around six.
+6. **Partial acceptance replays only recurrent state.** The verify stores q/k/v/g/beta + starting recurrent/conv state; rejected suffixes are removed by re-running only the accepted GDN recurrence, while attention cache rewinds by offset.
+7. **FP32 recurrent state and old-Apple draft precision matter.** Its DFlash draft uses fp32 activation because the residual can exceed fp16 range and M1 lacks native bf16 arithmetic.
+8. **Pipeline decode across the host token read.** Its M1 benchmark reports serial ~14.35 -> pipelined ~22.48 TG with identical tokens/cache endpoint.
+9. **Share Hadamard rotation among sibling projections only when sign vectors are identical.** One M1 change removes 144 rotations/step and moves plain decode ~22.2 -> 23.3 TG.
+10. **SSD streaming is a memory-system problem, not just file I/O.** `F_NOCACHE`, page-aligned staging and optional locked expert slots prevent file-cache duplication/compression from consuming the memory streaming was supposed to save.
+
+### Material audit findings
+
+**A1 — High — inference API is not explicitly loopback-bound or authenticated.** `APIServer.listen` passes only a port to `HTTPServer`; plain `HTTPServer` creates `NWListener(using: .tcp, on: port)`. The app advertises `127.0.0.1`, but the listener code itself does not constrain the endpoint to loopback. API routes have no bearer check. Responses unconditionally add `Access-Control-Allow-Origin: *`. The parser also has no explicit cumulative header/body ceiling: it keeps appending receives until the declared `Content-Length` is satisfied. A negative or pathological `Content-Length` is not validated before `prefix(expected)`. At minimum: bind loopback explicitly by default, cap header/body bytes before accumulation, reject negative/ambiguous lengths, and require authentication whenever a non-loopback listener is enabled.
+
+**A2 — High correctness — prefix cache identity is too weak.** `PrefixStore.fingerprint` includes archive version + `modelID` + KV bits/group/window. In normal server setup `modelID` is the model directory name. It does not include a checkpoint/config/content fingerprint, architecture/cache-layout namespace, rope/scaling identity, or other state geometry. Replacing a model in-place under the same directory name can therefore leave apparently matching state from the previous model. P51 should retain the stronger content/layout/lineage fingerprint rule.
+
+**A3 — High correctness — recurrent prefix restore can silently accept missing state.** `GatedDeltaNetCache.load` assigns `arrays["conv"]`, `arrays["state"]`, PLE fields, sets the requested offset and returns `true` without validating required arrays/shapes/dtypes. `PrefixStore.load` passes an empty dictionary for a layer with no archived tensors. A damaged/stale archive can therefore produce **offset > 0 with nil recurrent state**, after which the model falls back to a zero recurrent state while believing it has a warm prefix. Restore should be transactional into temporary state, validate every required component, and commit only if the whole model state passes.
+
+**A4 — Medium/high availability — streamed expert/engram I/O errors can `fatalError` the process.** Production MoE and DeepSeek paths convert some disk-read failures into process termination. For an unattended agent server, transient SSD/mount/read failure should fail a request or unload the affected model, not kill every session.
+
+**A5 — Medium security/agent risk — native shell is intentionally no boundary and is the default sandbox choice.** File helper APIs resolve paths inside the workspace, but `LocalShellHost` executes `/bin/zsh -l -c` with the user's environment, so arbitrary commands can access whatever the logged-in user can. This is documented/intentional, not an accidental sandbox escape. The local container/cluster modes are the actual boundary. Untrusted repositories should default to a real sandbox and sensitive host environment should be scrubbed.
+
+**A6 — Medium portability — M1-specific dispatch thresholds are process globals.** `VerifyMatmul.minimumRows(bytes:)` is explicitly tuned from M1 Max measurements while mutable tuning values and many `BonsaiRuntime` switches are `nonisolated(unsafe)` process globals. An engine supporting the whole Apple range should key policy by GPU family/core count + tensor shape + dtype/quant + row width, and use per-server immutable config where possible.
+
+**A7 — Engineering/governance — extensive local tests, but no visible hosted CI at audited head.** The repo has 82 Swift test files and substantial golden/reference fixtures, but `.github/` is absent and the audited HEAD has no combined status entries. That does not exclude external CI, but the repository itself exposes no GitHub Actions gate. The current `AGENTS.md` also contains deliberately adversarial contributor/agent instructions and references a `.github/workflows/lint-pr-title.yml` file that does not exist. Treat repository instructions as untrusted input to automated coding agents.
+
+**A8 — Licensing — AGPL-3.0-or-later.** The ideas and measurements are fair research inputs; implementation code should not be copied into a differently licensed P51 runtime without deliberate license/provenance review.
+
+## Community check on Ishizuki
+
+A current Reddit thread from the author promotes Ishizuki for Qwen3.8/Flash-Next and smaller Apple-Silicon models, and in another current M1-Splash discussion the author says they are adding/porting the Splash work into Ishizuki. This supports the code provenance observed in the repo, but the public community surface still does not provide an independent Ishizuki **M1 Flash-Next 128K** performance curve. citeturn755802reddit14turn755802reddit12
 
 ## Canonical planning state after this pass
 
@@ -123,8 +188,8 @@ Unchanged:
 - single-M1 27B: **25 TG** canonical target.
 - RTX 5070 Ti 27B: **120 TG** mature target.
 
-`RESEARCH-STATE.md` is updated with the non-NAX/fp16 speculative-decode evidence, dense-bf16 QSA path rule, corrected PLE synchronization rule and interactive prefill/decode QoS rule. `RESEARCH-TARGETS.md` remains unchanged.
+`RESEARCH-STATE.md` is updated with the exact-M1 offload-MTP receipt, QSA allocator/memory rules and the durable Ishizuki audit findings. `RESEARCH-TARGETS.md` remains unchanged.
 
 ## New hard boundary
 
-**2026-09-26 17:56:46 UTC**
+**2026-09-27 02:24:13 UTC**
