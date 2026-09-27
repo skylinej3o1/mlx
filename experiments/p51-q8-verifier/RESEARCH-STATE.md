@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-27 08:54 ET.
+Last consolidated: 2026-09-27 09:12 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -1093,3 +1093,10 @@ Highest-value missing measurements:
 - **P51 rule:** when dynamic exact metadata/state is on GPU, prefer **host-side conservative bounds + GPU-side exact clamp/validation** over a per-step device-to-host synchronization. Make bounded slack a runtime scalar/state, reuse the plan across nearby speculative/decode steps, and fail closed if actual state escapes the certified bound. This directly applies to QSA/index planning, speculative row-count/length metadata, and potentially recurrent/prefix-state admission on Apple.
 - **Strict-window scan:** no new qualifying oMLX, mlx-serve, Splash, MTPLX, Ishizuki, Strata, DFlash, DS4, llama.cpp-Apple, DASLab/GSQ, ModelOpt or SGLang primary-lane receipt after the prior boundary. Reddit/community searches surfaced only already-recorded Splash/Strata/Flash threads and no new planning-grade M1/M2 measurement.
 - **Target effect:** none. Keep dual-M1 Flash **40 TG @ ~128K / 400 cold PP / ~70% >=40 confidence**, single-M1 27B **25 TG**, and the existing 5070 Ti secondary-lane plan unchanged.
+
+### 2026-09-27 13:12 UTC sparse-plan host-sync removal update
+
+- **NEW exact-window independent host-sync evidence — vLLM #58684 (`c8d7a7dd13e2b40c013fb6d46be800937e4335fb`):** FlashInfer SM90 sparse-MLA async scheduling was doing a blocking GPU->CPU read of exact sequence lengths on every metadata build, including every MTP draft step. On GLM-5.3-Flash this made async scheduling worse than synchronous scheduling at c=1 (**11.09 vs 7.70 ms TPOT**). The fix plans from a host-side upper bound with +32-token slack, clamps exact `kv_end` on GPU, and reuses the plan while later steps remain within slack. Patched async TPOT is **6.86 ms at c=1, 17.36 ms at c=8, 37.04 ms at c=32**, improvements of **38% / 21% / 18%**; MTP acceptance remains ~4.2 and GSM8K is unchanged within noise.
+- **P51 design rule strengthened:** when exact sparse/QSA metadata lives on device, do not force a D2H read just to build the next plan. Prefer **conservative host geometry + bounded slack + device-side exact clamp/mask**, and cache/reuse the host plan across nearby decode/spec steps. This is a more concrete form of the existing 'host read inside the loop is a barrier' rule and should be evaluated for QSA selection/verify scheduling on Apple7.
+- **STRICT-WINDOW negative result:** no qualifying new oMLX, mlx-serve, Splash, MTPLX, Ishizuki, Strata, DFlash, DS4, llama.cpp-Apple, DASLab/GSQ or ModelOpt performance/correctness receipt landed between **2026-09-27 11:03:54 UTC and 13:12:54 UTC**. Community searches surfaced only already-recorded M1 Splash, Strata 5070, older Mac Flash and DASLab quality discussions.
+- **Target effect:** none. Keep dual-M1 Flash **40 TG @ ~128K / 400 cold PP / ~70% >=40 confidence**, single-M1 27B **25 TG** canonical, and the 5070 Ti Strata lane as an experimental serving lane pending exact-hardware benchmark + AA certification.
