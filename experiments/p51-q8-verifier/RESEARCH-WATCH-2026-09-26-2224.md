@@ -172,7 +172,7 @@ Limitations:
 
 ## Community check on Ishizuki
 
-A current Reddit thread from the author promotes Ishizuki for Qwen3.8/Flash-Next and smaller Apple-Silicon models, and in another current M1-Splash discussion the author says they are adding/porting the Splash work into Ishizuki. This supports the code provenance observed in the repo, but the public community surface still does not provide an independent Ishizuki **M1 Flash-Next 128K** performance curve. citeturn755802reddit14turn755802reddit12
+A current Reddit thread from the author promotes Ishizuki for Qwen3.8/Flash-Next and smaller Apple-Silicon models, and in another current M1-Splash discussion the author says they are adding/porting the Splash work into Ishizuki. This supports the code provenance observed in the repo, but the public community surface still does not provide an independent Ishizuki **M1 Flash-Next 128K** performance curve. Sources: `r/LocalLLaMA 1wr1qlz`, `r/oMLX 1wovgy5`.
 
 ## Canonical planning state after this pass
 
