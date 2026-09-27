@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-27 07:03 ET.
+Last consolidated: 2026-09-27 08:54 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -1085,3 +1085,11 @@ Highest-value missing measurements:
 - **RECOVERED CURRENT — TensorFold Apple-Silicon reference:** TensorFold publicly reports **Qwen3.8-27B 120-124 TG on M5 Max 128 GB with DFlash2**, versus **27 TG without drafts** for the stated workload. This is stronger-chip evidence only; there is no current planning-grade M1 Max TensorFold receipt, so it receives **zero direct M1 target credit**.
 - **TensorFold/DFlash2 mechanism implication:** current DFlash guidance for Apple Silicon says quantized Qwen3.8-27B targets/drafts should use **verify block size <=5** under stock MLX because larger-row quantized matmul becomes inefficient. That aligns with Ishizuki/Splash/oMLX evidence that verifier row width must be tensor/GPU-specific and strengthens the priority of custom Apple7 few-row kernels rather than simply widening speculative blocks.
 - **Planning consequence:** do not raise the canonical dual-M1 Flash 40/400 target or single-M1 27B 25-TG target. Add two concrete secondary lanes: (1) **5070 Ti + Strata + DASLab IQ3_S/IQ3_XXS** for practical Flash-Next serving and AA~40 certification; (2) **M1 27B TensorFold/DFlash2-inspired verifier + lookup-copy + whole-chunk recurrent prefill** for research and agent-effective throughput.
+
+### 2026-09-27 12:54 UTC sync-free upper-bound planning / device-clamp update
+
+- **NEW exact-window — vLLM #58684 (`c8d7a7dd13e2b40c013fb6d46be800937e4335fb`):** sparse-attention metadata planning under async scheduling previously did a **blocking D2H copy every metadata build**, including every MTP draft step, because exact per-row `kv_len` lived on device. The fix plans on CPU from a **sync-free upper bound + 32-token slack**, then clamps each work item's exact `kv_end` on GPU from device-resident sequence/layout state. The padded plan is reused across nearby decode/draft steps until the bound no longer fits.
+- **Measured transfer evidence (H100 / GLM-5.3-Flash / fp8 KV / MTP-5):** async mean TPOT **11.09 -> 6.86 ms at c=1 (-38%)**, **21.87 -> 17.36 ms at c=8 (-21%)**, **45.04 -> 37.04 ms at c=32 (-18%)**. TTFT also improves; MTP mean acceptance stays ~4.2 and GSM8K is unchanged within run noise. This is stronger-chip/different-architecture evidence only, not direct Apple target credit.
+- **P51 rule:** when dynamic exact metadata/state is on GPU, prefer **host-side conservative bounds + GPU-side exact clamp/validation** over a per-step device-to-host synchronization. Make bounded slack a runtime scalar/state, reuse the plan across nearby speculative/decode steps, and fail closed if actual state escapes the certified bound. This directly applies to QSA/index planning, speculative row-count/length metadata, and potentially recurrent/prefix-state admission on Apple.
+- **Strict-window scan:** no new qualifying oMLX, mlx-serve, Splash, MTPLX, Ishizuki, Strata, DFlash, DS4, llama.cpp-Apple, DASLab/GSQ, ModelOpt or SGLang primary-lane receipt after the prior boundary. Reddit/community searches surfaced only already-recorded Splash/Strata/Flash threads and no new planning-grade M1/M2 measurement.
+- **Target effect:** none. Keep dual-M1 Flash **40 TG @ ~128K / 400 cold PP / ~70% >=40 confidence**, single-M1 27B **25 TG**, and the existing 5070 Ti secondary-lane plan unchanged.
