@@ -1,195 +1,339 @@
-# Project 51 primary-lane research watch — 2026-09-27 13:22 ET
+# Project 51 primary-lane research watch — 2026-09-27 14:28 ET
 
-**Freshness boundary:** canonical boundary entering this pass was **2026-09-27 17:04:18 UTC**. Strict-window evidence is limited to material published or materially updated after that time through the user cutoff **2026-09-27 17:22:18 UTC**. Same-day/older items that the immediately preceding watches missed are explicitly labeled **RECOVERED CURRENT** or **RECOVERED OLDER** rather than being reclassified as NEW.
+**Freshness boundary entering this pass:** **2026-09-27 17:22:18 UTC**.  
+**User cutoff:** **2026-09-27 18:28:19 UTC**.
+
+This pass preserves the strict boundary. Same-day material that predates the boundary but was missed in prior watches is labeled **RECOVERED CURRENT** or **SAME-DAY CURRENT**, not NEW.
 
 ## Decision
 
 **No canonical target change.**
 
 Keep:
-- dual-M1 Flash: **40 TG @ genuinely filled ~128K**
-- dual-M1 Flash: **400 realistic cold PP**
-- **~70%** planning confidence for >=40 TG
-- single-M1 dense 27B: **25 TG canonical**
-- Flash quant search: **~3.0–3.6 transformer BPW**, with source-like production preference still around **~3.3–3.6** until AA~40 certification says otherwise
-- 5070 Ti + Strata: first-class experimental Flash serving lane, but still requires exact-hardware and AA~40 certification.
+- dual-M1 Flash-Next: **40 TG sustained at genuinely filled ~128K**
+- dual-M1 Flash-Next: **400 realistic cold PP**
+- planning confidence for >=40 TG: **~70%**
+- single-M1 dense 27B: **25 TG canonical**, **~110 native cold PP target**
+- 5070 Ti + Strata Flash lane: **first-class experimental runtime candidate**, but not production-qualified
 
-The main change is **experiment priority and correctness gating**, not the forecasts.
+This pass materially changes two experiment priorities:
 
-## RECOVERED CURRENT + UPDATE — mlx-serve #594 sharpens the Flash quant sensitivity map
+1. **Apple7 long-context execution must bound individual Metal command duration**, not merely total TTFT/PP.
+2. **Strata on the exact RTX 5070 Ti now has a demonstrated nondeterministic hard-wedge/liveness problem**, so stability testing is a promotion gate, not a nice-to-have.
 
-Source: https://github.com/ddalcu/mlx-serve/issues/594  
-Created **2026-09-27 17:00:32 UTC**, four minutes before the prior watch cutoff; materially updated through **17:11:11 UTC**, so it is recovered rather than called a strict-window NEW item.
+---
 
-On M5 Ultra 256 GB / Flash-Next mixed-4/8, the experiment keeps these tensors at 8-bit:
-- lm_head / embeddings
-- hyper-connections
-- router gate
-- GDN a/b
-- attention k/v
-- indexer
-- PLE
-- MTP head
+## NEW — Splash 1.1 M1 branch: weight residency fixes cache-state admission and clears ~120–130 PP at 30K
 
-It requantizes these to 4-bit in the **mid48** arm:
-- GDN qkv/z/out
-- attention q/o
-- shared expert (~2.88 GB)
+Source: https://github.com/paperniuk/splash/commit/c5f93c964e58d3ba45c4e7e617b2e60ccae99b7c  
+Committer time: **2026-09-27 17:29:34 UTC**.
 
-Measured same-boot forward microbench:
-- S=1 forward: **~11.2% lower GPU ms**
-- S=4 verify: **~4.9% lower GPU ms**
+The M1/M2 Splash 1.1 branch reverts an attempted policy that removed file-backed model weights from the Metal residency set.
 
-Quality/behavior probe:
-- MMLU-Pro 400 questions: mixed run1 **340**, mixed run2 **338**, mid48 **346**, all4 **342**
-- output tokens vs mixed run1: repeated mixed run **+2.9%**, mid48 **+4.7%**, all4 **+12.8%**
-- 8,192-token-cap hits: **3 / 4 / 3 / 7**
-- four-stream decode: mid48 **39.0 t/s/request**, mixed **39.1 / 38.9**, all4 **37.5**
+Observed on **M1 Max 64 GB / Qwen3.8-27B**:
 
-Interpretation:
-- **mid48 is a valuable tensor-sensitivity prior**, not AA~40 certification.
-- The all4 arm is the more important negative: pushing hyper-connections/router/GDN-sensitive paths down too appears to alter length/runaway behavior beyond the repeat-run baseline.
-- This independently supports Project 51's policy of protecting state/routing/indexing/MTP-sensitive tensors while compressing less-sensitive trunk/expert mass first.
-- It also suggests a concrete candidate arm where **GDN qkv/z/out + attention q/o + shared expert** can be tested lower than the protected tier.
-- M5 Ultra evidence receives **zero direct M1 speed credit** and the 400-question MMLU/coding probes are not a substitute for our xhigh/coding/tools/long-context/semantic-continuity suite.
+- without weight residency, host-available memory swings from about **54.0 GB idle -> 37.7 GB while serving**;
+- with the weights resident, it stays around **38.0 -> 36.9 GB**;
+- on 32-GB systems the apparent swing can push the memory governor below its **1-GB headroom margin**, deny a GDN-state snapshot, and make every request report **cached 0**;
+- after reboot + resident weights, the 27B:
+  - prefills **~8K in 61 s**;
+  - prefills **~30K in 243 s**;
+  - keeps cache across a growing chat;
+  - passes the fork's **54/54** task eval.
 
-## RECOVERED CURRENT — oMLX #4012–#4018 is unusually useful mechanism evidence
+The approximate prompt-rate implications are in the **~120–130 PP class**, directly on M1 Max. This is important physical evidence for the P51 single-M1 **~110 PP** planning target, but it does **not** promote a higher target yet because:
+- this is an unreleased 1.1 branch;
+- the Splash package/quant identity is not the frozen P69 identity;
+- 54/54 is a regression/quality smoke test, not AA-class certification.
 
-Sources:
-- https://github.com/jundot/omlx/issues/4012
-- https://github.com/jundot/omlx/issues/4014
-- https://github.com/jundot/omlx/issues/4015
-- https://github.com/jundot/omlx/issues/4016
-- https://github.com/jundot/omlx/issues/4017
-- https://github.com/jundot/omlx/issues/4018
+**P51 rule:** memory-residency policy changes the measurement itself. A live-memory governor must not interpret command-time wiring of file-backed weights as actual new working-set growth and then deny recurrent/cache checkpoints. Record **resident/wired/file-backed/shared** memory separately.
 
-These were created earlier on Sep 27 and missed by the immediately preceding watch. They are **RECOVERED CURRENT**, not strict-window NEW.
+---
 
-M5 Ultra / oQ5e Flash-Next roadmap baseline:
-- 24K prefill: **3,978 PP with MTP on / 4,100 MTP off**
-- decode: **181 TG** on the canonical Lightning-MTP workload
-- realistic coding prompts: **142–169 TG**
-- MTP off: **78 TG**
-- 24K prefill time breakdown: **MoE 39% / GDN 24% / QSA 20% / hyper-connections 11%**
+## RECOVERED CURRENT — Splash M1 bounded-prefill commands prevent macOS watchdog aborts at deep context
 
-The mechanism details matter more than the absolute M5 numbers:
+Source: https://github.com/paperniuk/splash/commit/4083ec6ad33167fe7f0d454b6449ea91f8f2000a  
+Committed earlier the same day (**12:14 UTC**) and missed in the previous consolidation.
 
-1. **#4012 — Metal command-buffer caps.** TensorFold observed that binding ~420 MB expert stacks can terminate command buffers under MLX's default byte cap. An empty kernel binding them was reported at **28 us vs 12 us** after raising the cap. oMLX also sees the same unchanged runtime at **77.5 TG from CLI vs 73.0 TG from the menu-bar launcher**, root cause not yet established. This is direct support for measuring command-buffer boundaries/launcher environment rather than assuming a kernel roofline.
+On M1, one full 2,048-row long-context prefill dispatch can become an extremely long single GPU command:
 
-2. **#4014 — row-exact MTP verification.** On four realistic greedy prompts, oMLX Lightning MTP diverged from MTP-off on **3/4** at near-tie tokens because batched verify arithmetic changes with row count. TensorFold's row-invariant verify path was byte-identical to serial on **4/4** of the same prompts. This is a high-priority P51 verifier rule: performance certification needs **row-count invariance / serial-vs-verify logit tests**, not merely "the full target verified the draft."
+- about **12 s per full command around 8K**
+- about **~1 minute per full command around 170K**
 
-3. **#4015 — byte-exact decode fusions.** Candidate savings include passing routing picks/renormalized weights from gate/up to down rather than recomputing top-10, fusing the PLE lookup currently represented by many small ops, and eliminating hidden gathers/copies. This aligns with our Apple7 dispatch-control thesis.
+macOS aborted such a command with **ImpactingInteractivity** during a long agent session.
 
-4. **#4016 — hyper-connection prefill is ~11% of 24K PP**, represented by ~97 small memory-bound modules per forward. This is a concrete fusion target, not a reason to lower HC precision.
+The fix dynamically halves isolated prefill work to keep an individual command around **<=5 s**, while retaining the existing tighter bound when another request is waiting.
 
-5. **#4017 — MoE + GDN remain the big PP terms.** Routed-expert matmuls are reported around **53 TFLOPS vs ~98 TFLOPS** for a dense Q5 matmul of the same size; simple weight reuse explains only part of the gap. GDN is **~24% of prefill** even with an existing native kernel. Profile before rewriting.
+ABBA on **M1 Max / Qwen3.8-27B**:
 
-6. TensorFold on the same M5 machine is reported as **~36% faster in decode but 8.8x slower in default 24K prefill**, with **~9% higher prose perplexity** for its 4-bit checkpoint. That is exactly why P51 should mine mechanisms, not copy a runtime or transfer M5 headline TG.
+- 8K cold TTFT: **60.8 s vs 60.9 s**
+- 30K cold TTFT: **269.0 s vs 269.1 s**
 
-**P51 consequence:** our M1 PP program should explicitly profile **MoE / GDN / QSA / HC** separately, and the verifier program should add row-invariance + command-buffer accounting. No M1 forecast moves.
+So command splitting is approximately **throughput-neutral** on these measurements. An 8K prefill becomes **17 commands instead of 5**.
 
-## RECOVERED CURRENT — oMLX #4021 confirms speculation policy is workload/sampling dependent
+Most important: a **7-hour agent session reached 229K context without an abort**; the prior build failed at **176K**.
 
-Source: https://github.com/jundot/omlx/issues/4021
+**P51 consequence:** for Apple7 PP, total PP is not a sufficient health metric. Add:
+- max Metal command duration;
+- command-buffer count per chunk;
+- watchdog/ImpactingInteractivity events;
+- GPU reset/wedge detection.
 
-On M5 Ultra / Flash-Next oQ4e, one newer Lightning-MTP path is reported to:
-- hurt **greedy fixed-depth** decode by about **9.2%**
-- hurt default adaptive greedy by about **3%**
-- be near neutral or positive under sampled top-k
-- improve one 2K code prompt by **~9–30%**
+For the dual-M1 Flash PP2 lane, target a command-duration envelope that preserves long-agent liveness without sacrificing aggregate PP. This is independent of the whole-chunk-GDN idea: a whole-chunk recurrent kernel may still need a bounded outer command.
 
-This is stronger evidence for Project 51's existing rule: verifier/draft policy is not a single global depth. Route by **sampling mode + workload + measured acceptance/cost surplus**, and freeze greedy and sampled rulers separately.
+---
 
-## RECOVERED OLDER — DFlash #172 proves recurrent rollback can make "lossless" speculation lossy
+## RECOVERED CURRENT — Apple7 generic GGUF kernels close much of the runtime-format gap
 
-Source: https://github.com/z-lab/dflash/issues/172  
-Opened **2026-09-23**; missed by prior P51 consolidation.
+Source: https://github.com/paperniuk/splash/commit/15abab5b1d2660ef8dc872d5ce57deac14022eaf  
+Committed **2026-09-27 13:36 UTC**, before this strict window.
 
-The Hugging Face DFlash reference loop verifies a block, then calls cache crop on rejection. For hybrid GDN targets, the reported Transformers cache crop trims convolution state but **does not restore the recurrent state mutated by rejected draft rows**. After the first partial acceptance, target logits therefore depend on tokens that were never committed.
+The Splash M1 branch adds simdgroup-MMA GGUF kernels for Apple7/8 because upstream MPP paths were effectively unusable on M1 for these shapes.
 
-Reported evidence:
-- greedy HF generate and DFlash output diverged on identical prompts
-- with a fixed text and alternate rejection patterns, one pattern had **0/384** target-argmax differences while another produced **12–41/384**
-- first divergent margins were **0.6–2.4**, too large to dismiss as ordinary rounding
-- snapshotting/restoring GDN recurrent state and replaying only accepted rows removed the effect
-- a perfect drafter, with no rejected rows, was unaffected
+On **M1 Max 64 GB / unsloth Qwen3.8-27B UD-Q4_K_M**:
 
-Scope: this issue is for the HF reference implementation; it does not establish that SGLang/oMLX/Strata share the bug.
+- **31.6 TG** on the five npanj prompts;
+- Splash's own Q4 package on the same benchmark is about **38 TG**;
+- 8K cold TTFT: **65.9 s** vs **62.8 s** for the Splash package;
+- word-problem smoke suite: **54/54**.
 
-**P51 correctness gate:** for hybrid speculation, rollback means **restore recurrent/conv/temporal state to the committed boundary and replay only accepted rows as required**. A normal attention-KV crop is insufficient. Add adversarial partial-acceptance patterns to the exact-verifier suite.
+**Interpretation:** a substantial fraction of the apparent format/runtime gap on Apple7 was kernel quality, not an immutable GGUF limitation. This is supporting evidence for mining low-bit GGUF/GSQ arithmetic without assuming stock MLX or stock llama.cpp execution cost.
 
-## RECOVERED CURRENT — vLLM #58894 independently shows prefix reuse can poison DFlash acceptance
+No canonical P51 target credit: short-prompt TG and a 54-item smoke test are not our deep-context/AA ruler.
 
-Source: https://github.com/vllm-project/vllm/issues/58894  
-Opened earlier on Sep 27, before this strict boundary.
+---
 
-On Qwen3.8-family hybrid GDN + DFlash2 + prefix caching, vLLM 0.30.0 reports normal variable acceptance until the first positive prefix-cache hit, then **acceptance pins to 0% for the rest of the process** while the drafter continues proposing. A second report on RTX 6000 Ada sees a related failure as an illegal memory access on a long hit; a referenced fix restoring the correct recurrent-state/block-size geometry lets the same hit complete with acceptance remaining **~33–46%**.
+## NEW — Splash 1.1 Apple7 vision kernels
 
-This is not direct P51 performance evidence. It is independent support for a strict cache-state identity gate:
-- recurrent checkpoint position must match token lineage
-- prefix-hit state and speculative/draft state must share authoritative geometry
-- test first-hit transitions, not only cold requests
-- fail closed rather than silently accepting a prefix state whose recurrent boundary is ambiguous
+Source: https://github.com/paperniuk/splash/commit/3050f5c7317fdc797956af3da222eefdc106124f  
+Committed **2026-09-27 18:10:15 UTC**.
 
-## UPDATE — Strata #29 means the CUDA lane needs a long-generation liveness soak
+Apple7/8 gets custom simdgroup-MMA vision GEMM/attention kernels rather than MPP emulation.
 
-Source: https://github.com/Niko1221/Strata/issues/29  
-The issue was updated at **2026-09-27 17:04:30 UTC**, 12 seconds after the prior boundary.
+M1 Max parity fixtures:
+- Qwen3.8-27B relative error **0.0142**, worst cosine **0.9999**
+- Qwen3.6-35B-A3B relative error **0.0293**, worst cosine **0.9972**
+- 64x64 grid / 1,024 vision tokens: **872 ms**
+- 128x128 maximum grid completes deterministically
 
-RTX 4090 + 192 GB RAM / IQ3_S / 262K context:
-- generation starts around **75 TG**
-- decays into the high-50s during a very long output
-- one run hard-stalled at generated token **58,303** with GPU still at 100% and CPU no longer progressing
-- the reporter says a newer v0.1.11 attempt still reproduced a stall, this time much earlier (~7.7K generated tokens)
+This is useful for eventual multimodal completeness, but it has **no current text TG/PP target effect**.
 
-No root cause is established, and this is not the user's 5070 Ti. It gets **zero throughput-target credit**.
+---
 
-But it changes the 5070-Ti acceptance test: a 256-token benchmark is insufficient to call Strata production-ready. Add a **long-generation liveness/soak arm**, tracking forward progress, GPU power/utilization, CPU activity, free VRAM and expert/KV residency over time.
+## NEW — Strata #31: exact RTX 5070 Ti has a reproducible hard-wedge/liveness failure
 
-## STRICT-WINDOW scan after 17:04:18 UTC
+Source: https://github.com/Niko1221/Strata/issues/31  
+Created **2026-09-27 18:27:53 UTC**, only seconds before this pass's cutoff.
 
-- **mlx-serve:** no additional qualifying performance commit after #580/#584; a docs/benchmark-chart commit at **17:22:43 UTC** is after the user cutoff and excluded.
-- **oMLX:** no post-boundary commit; the #4012–#4018 material above is recovered same-day evidence.
-- **Ishizuki:** no new commit or new planning-grade M1 receipt after the boundary. Keep the existing audited M1 verifier mechanisms; do not invent freshness.
-- **TensorFold/DFlash2:** no new M1 Max physical receipt. DFlash's current public guidance still recommends **verify block <=5** for quantized Qwen3.8 under stock MLX; this remains mechanism evidence, not M1 target credit.
-- **Strata:** no post-boundary performance commit; #29 is the relevant liveness update.
-- **DASLab/GSQ-RCO:** no new strict-window quality receipt. Existing 3.0/3.5-BPW evidence stands.
-- **SGLang / llama.cpp / vLLM:** post-boundary commits were unrelated to P51 performance except issue-level state/correctness material already classified above; no new exact M1/5070-Ti receipt.
-- **Reddit "silent bottleneck":** no additional planning-grade receipt beyond the prior watch. The useful part remains the systems hypothesis already promoted: synchronization, launch topology, state materialization and residency can dominate realized speed.
+This is the first high-value failure report in the exact GPU class of the user's secondary rig:
+
+- **RTX 5070 Ti 16 GB (SM120)**
+- Windows
+- Ryzen 9800X3D / 63 GB RAM
+- Strata engine v0.1.9
+- **Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS**
+- max context 262144
+- **Q4_0 KV**
+- 32K resident KV
+- native speculation depth 4
+- expert cache: **5,059 slots / 8.21 GiB**
+- boot free VRAM: **707 MiB**
+- streamed K/V: **1.69 GiB pinned RAM**
+
+Across ~2.5 h of sustained single-request benchmarking, the reporter captured **four hard wedges**.
+
+Common signature:
+- generated-token counter becomes completely static;
+- elapsed time continues;
+- GPU reports **100% utilization at ~69 W**, i.e. low-power/spinning rather than useful compute;
+- CPU stops doing useful work;
+- VRAM remains allocated;
+- process stays alive;
+- client timeout/cancel does not unwind the request;
+- the single server slot remains permanently blocked.
+
+The freeze happened at very different points:
+- **13 generated tokens**
+- **130**
+- **218**
+- **91,058**
+
+One exact replay of the frozen code task succeeded immediately after restart, so the failure is **not deterministic by prompt alone**.
+
+Healthy requests between failures ran around **50–90 TG**, and one long degenerate output was around **105 TG** before wedging, but these are workload observations rather than a controlled 128K performance ruler.
+
+**P51/5070-Ti consequence:** this is now a mandatory blocking promotion gate. Before calling Strata a daily-driver Flash server on the user's card, run a multi-hour soak with:
+- spec on/off;
+- Q8 vs Q4 KV;
+- streamed vs more-resident KV;
+- fixed expert-cache/reserve;
+- progress watchdog;
+- GPU power + utilization;
+- CPU worker state;
+- last completed CUDA event / stream position if exposed;
+- cancellation recovery.
+
+The raw performance thesis remains alive; the **runtime-readiness confidence decreases**.
+
+---
+
+## UPDATE — Strata #29 suggests the wedge is not simply INT8 KV
+
+Source: https://github.com/Niko1221/Strata/issues/29
+
+Before the 18:28:19 cutoff, the 4090 reporter reproduced the same no-progress signature after switching from INT8 KV to **Q4_0 KV**, freezing around token **9,132**.
+
+The maintainer said they believed they knew the reason and intended to patch it, but **no root-cause explanation or landed fix existed by this pass's cutoff**. Therefore:
+- do not count the maintainer statement as a fix;
+- do not blame INT8 alone;
+- #31's Q4_0 reproduction on 5070 Ti independently reinforces that caution.
+
+---
+
+## NEW — SGLang #39726: page-unified KV load-back reaches near-PCIe-copy bandwidth, but overlap quota matters
+
+Source: https://github.com/sgl-project/sglang/pull/39726  
+Merged **2026-09-27 17:45:03 UTC**, commit e581520c67a921feda4433bc4e4d41f3514a9d06.
+
+HiCache can now load page-unified host KV pages back **one layer at a time** directly from pinned host mapping into the device pool.
+
+Key design:
+- no full-page per-layer staging;
+- each thread moves 16 B;
+- reads are coalesced across pinned host memory;
+- per-layer transfer can overlap the model forward;
+- a block-quota cap controls the tradeoff between transfer bandwidth and stealing SMs from forward compute.
+
+B200 / PCIe Gen5 / bf16:
+- quota 2: **~15.4–18.2 GB/s**
+- quota 16: **~39.7–47.8 GB/s**
+- contiguous cudaMemcpyAsync ceiling: **53.8 GB/s**
+
+Correctness:
+- **123 cases** against a PyTorch indexing reference;
+- page write-back -> load-back round trips are bit-identical across 9 configurations.
+
+**P51 transfer lesson:** remote-prefill/import pipelines should expose transfer concurrency as a measured scheduler knob. Maximum copy bandwidth is not necessarily maximum end-to-end throughput if transfer work competes with forward compute. Imported state should become visible **layer-by-layer only after that layer's transfer is complete**.
+
+This is CUDA/B200 transfer evidence, not M1/TB4 numeric credit.
+
+---
+
+## SAME-DAY CURRENT — MoEspresso 3 proves a very-low-memory M1 Flash-Next configuration, but it is behavior-changing
+
+Public sources:
+- Reddit: https://www.reddit.com/r/LocalLLaMA/comments/1wrqql8/
+- model card: https://huggingface.co/steadfastgaze/Qwen3.8-Flash-Next-MoEspressoV3
+- engine docs: https://github.com/steadfastgaze/MoEspresso
+
+Exact Reddit publication time was not exposed, so this is **SAME-DAY CURRENT**, not strict-window NEW.
+
+Reported hardware:
+- **2021 M1 Max, 24-core GPU, 32 GB unified memory**
+- Qwen3.8-Flash-Next
+- about **12–15 TG**
+- ordinary serving context **128K**
+
+Memory/package strategy:
+- all 512 routed experts remain available;
+- most routed projections are **IQ2_K**; first two layers use IQ3_K;
+- dense/non-routed tensors use Q6_K/Q8/BF16 by role;
+- original **~95.37 GiB BF16 PLE/ngram payload stays SSD-backed**;
+- older attention cache body uses **K4/V4**, with sink/recent suffix BF16;
+- this package excludes the MTP sidecar.
+
+Crucially, decode routing is **not source-identical**:
+- the top two original router choices are protected;
+- resident experts receive a factor-two ranking preference for the remaining routes;
+- selected contributions use original router probabilities renormalized over the chosen set;
+- prefill remains unbiased.
+
+The model card's frozen 48-question comparison reports **84.3%** for this bounded local path versus **90.7%** for hosted source Qwen3.8 Flash xhigh under its comparison protocol. This is far too small/narrow to establish AA~40 parity and the routing itself intentionally changes model behavior.
+
+**P51 interpretation:**
+- strong capacity proof for SSD PLE + SSD expert streaming on old Apple silicon;
+- interesting optional low-memory/throughput lane;
+- **zero production AA~40 or 40-TG target credit** because the route set and KV representation are deliberately lossy.
+
+It independently supports our rule: preserve unbiased/source-identical routing in the main lane; use locality-biased routing only as an explicitly separate behavior-changing experiment.
+
+---
+
+## Community watch — Splash quality/stability remains mixed by configuration
+
+A same-day r/oMLX discussion reports:
+- M1 Max users liking the fork;
+- one M2 Ultra user reporting crashes beyond 64K on the older fork path;
+- an M3 Max user reporting three simultaneous agents with >300K cumulative context;
+- several users saying Q4 quality is materially worse than higher-precision oMLX/MLX-Serve variants.
+
+These are anecdotes, not receipts. The new M1 1.1 branch's bounded-prefill and residency fixes are stronger evidence and should supersede generic community impressions when the paths overlap.
+
+---
+
+## Strict-window source scan
+
+From **17:22:18 -> 18:28:19 UTC**:
+
+- **paperniuk/Splash M1 fork:** meaningful new 1.1 branch activity; promoted above.
+- **Strata:** no new commit, but exact-5070-Ti issue #31 is highly material.
+- **SGLang:** page-unified HiCache load-back merged; promoted above.
+- **mlx-serve:** only benchmark/documentation tooling after the boundary; no new runtime TG/PP receipt.
+- **oMLX:** no new commit or issue update in-window on the P51 Qwen lane.
+- **Ishizuki:** no new commit.
+- **MTPLX:** no new commit.
+- **upstream incoai/Splash:** no post-boundary commit.
+- **DFlash:** no new commit.
+- **DS4:** no new commit.
+- **llama.cpp:** no qualifying post-boundary P51 commit.
+- **vLLM:** only unrelated fast-start activity in the commit window.
+- **DASLab/GSQ-RCO:** no new strict-window quality receipt.
+- **TensorFold:** no new planning-grade M1 physical measurement surfaced.
+
+---
 
 ## Project 51 actions promoted by this pass
 
-1. Add a **mid48-style quant arm** to the Flash quant matrix:
-   - high precision: HC, router, GDN a/b, attention k/v, indexer/QSA, PLE, MTP, norms/head/embed
-   - candidate lower tier: GDN qkv/z/out, attention q/o, shared expert
-   - routed expert bank remains the primary compression budget
-   - certify on AA~40 behavioral suite before any promotion.
+1. **Apple7 command-duration gate**
+   - record longest single Metal command;
+   - bound long-context prefill commands to a safe wall-time envelope;
+   - validate that chunking is PP-neutral and state/logit-equivalent.
 
-2. Add **row-count invariance** to verifier certification:
-   - serial S=1 vs S=2–5 verify logits
-   - exact/near-tie token agreement
-   - separate greedy and sampled rulers.
+2. **Apple7 memory-accounting gate**
+   - distinguish file-backed weight residency/wiring from request-owned growth;
+   - ensure memory pressure cannot silently deny recurrent snapshots and collapse cache reuse.
 
-3. Add **hybrid rollback/cache-hit adversaries**:
-   - partial acceptance at recurrent-block boundaries
-   - repeated shared-prefix hits
-   - cold -> first-hit -> later independent request transitions
-   - recurrent-state snapshot/restore parity
-   - multi-request isolation.
+3. **Single-M1 PP reproduction**
+   - reproduce 8K / 30K / 64K PP using the new Splash 1.1 Apple7 branch;
+   - record resolved row/chunk width, max command duration and actual active context;
+   - compare against our 110-PP production ruler.
 
-4. Add **per-component PP timing** on Apple:
-   - MoE / GDN / QSA / hyper-connection / PLE
-   - command-buffer count/bytes and host gaps
-   - whole-chunk GDN experiment remains high priority.
+4. **5070-Ti Strata liveness matrix**
+   - Q8 vs Q4 KV;
+   - spec 0 vs native MTP/spec 4;
+   - 32K streamed KV vs higher-resident arm;
+   - multi-hour random + coding + long-generation soak;
+   - cancellation and server-recovery behavior.
 
-5. Add **Strata long-output soak** on the actual 5070 Ti before declaring it a daily-driver server.
+5. **Transfer scheduler**
+   - treat layer-granular transfer visibility and transfer/forward contention as first-class knobs for CUDA-prefill -> MLX import.
+
+6. **Keep MoEspresso Cache-Prior separate**
+   - potentially useful locality experiment;
+   - never mix its behavior-changing routing numbers into AA~40 certification.
+
+---
 
 ## Canonical planning effect
 
-**Targets unchanged.**
+**Targets remain unchanged.**
 
-The new evidence strengthens the *implementation* case, especially the tensor-sensitivity map and exact recurrent rollback requirements, but does not supply a new physical 2x-M1/TB4 receipt or an exact 5070-Ti measurement that justifies moving forecasts.
+The strongest positive update is that a current M1 Max 64-GB 27B path is now physically in the **~120–130 PP class at 8K–30K**, strengthening the plausibility of the existing **110 PP** single-M1 production target.
+
+The strongest negative update is that **Strata on an exact RTX 5070 Ti 16-GB system can hard-wedge nondeterministically under sustained use**. This does not invalidate its excellent short benchmark performance; it does prevent promotion to a production/default Flash server until the liveness bug is isolated and fixed.
+
+No new exact dual-M1/TB4 Flash-Next throughput receipt appeared, so **40 TG @ ~128K / 400 PP / ~70% >=40 confidence stays put**.
 
 ## New hard boundary
 
-**2026-09-27 17:22:18 UTC**
+**2026-09-27 18:28:19 UTC**
