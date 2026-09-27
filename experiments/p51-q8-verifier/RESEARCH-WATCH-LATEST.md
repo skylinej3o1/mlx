@@ -1,10 +1,12 @@
-# Project 51 primary-lane research watch — 2026-09-27 06:23 ET
+# Project 51 primary-lane research watch — 2026-09-27 07:03 ET
 
-**Freshness boundary checked:** prior hard boundary **2026-09-27 04:12:29 UTC**. This pass covers substantive evidence strictly after that boundary through the user cutoff **2026-09-27 10:23:44 UTC**.
+**Strict freshness boundary:** prior hard boundary **2026-09-27 10:23:44 UTC**. Strict-window scan runs through **2026-09-27 11:03:54 UTC**. No qualifying primary-lane commit landed in that interval; one SGLang diffusion change was unrelated.
+
+This watch also intentionally consolidates **RECOVERED CURRENT / SECONDARY-LANE** evidence from Strata, ISTA-DASLab and TensorFold that became materially relevant in the immediately preceding discussion.
 
 ## Decision
 
-**No canonical TG/PP, quant-quality, or planning-confidence change.**
+**No canonical target change.**
 
 Keep:
 - dual-M1 Flash: **40 TG @ genuinely filled ~128K**
@@ -12,82 +14,134 @@ Keep:
 - **~70%** planning confidence for >=40 TG
 - central TG region **~39-41**, mature downside **~30-32**, target-only fallback **~24-27**
 - single-M1 27B: **25 TG canonical target**
-- RTX 5070 Ti 27B: **120 TG mature target / 250 cold PP baseline target**
-- Flash quant search **3.0-3.6 BPW**, source-like hypothesis **~3.3-3.6**.
+- RTX 5070 Ti dense-27B: **120 TG mature target / 250 cold PP baseline target**
+- Flash production quant search **3.0-3.6 BPW**, source-like xhigh region still a hypothesis pending AA certification.
 
-This is a systems/correctness pass rather than a new speed pass. It adds durable rules for ownership, physical residency accounting and transfer completion that matter directly to the newly promoted heterogeneous-prefill lane.
+## RECOVERED CURRENT — Strata is a serious complete Flash-Next runtime on commodity NVIDIA
 
-## Findings
+Sources:
+- https://github.com/Niko1221/Strata
+- https://github.com/Niko1221/Strata/blob/main/docs/DETAILS.md
+- https://www.reddit.com/r/LocalLLaMA/comments/1wp7zyb/qwen38flashnext_on_12gb_vram_65_tokens_per_second/
 
-### NEW — mlx-serve now accounts live request KV + recurrent state instead of hiding it inside 'working'
+Measured setup: **RTX 5070 12 GB / Ryzen 5 7600 / 64 GB DDR5 / Windows**, one code-agent prompt per length, 256 generated tokens, MTP enabled.
 
-Source: https://github.com/ddalcu/mlx-serve/commit/4e00f2af7a64fd846d31cfaa90247586cf853ca2  
-Committed **2026-09-27 06:08:53 UTC**.
+At **128K context**:
 
-`/props kv_cache_bytes` now includes:
-- hot prefix-cache residency;
-- request-owned live attention KV;
-- recurrent/SSM state including QSA raw-key state;
-- the active slot while it is still mid-prefill.
+| quant | TG | PP |
+|---|---:|---:|
+| Q2_0 | **65.1** | **543** |
+| IQ2_XS | **52.0** | **472** |
+| IQ3_XXS | **44.8** | **414** |
+| IQ3_S | **42.2** | **378** |
 
-Restored/shared KV views are deliberately excluded from the live-request bill because the hot-cache donor owns their backing buffers. The memory breakdown takes measured KV first, then fits the weight estimate into what remains; 'working' is left for activations/transients.
+Short-context output is ~95 / 78 / 66 / 54 TG respectively.
 
-**P51 consequence:** use explicit physical ownership. A canonical accounting table should separate:
-1. model weights;
-2. shared/persistent prefix state;
-3. private live-request KV + recurrent/QSA state;
-4. transient activations/workspaces/allocator reserve.
+Architecture:
+- GPU: attention + DeltaNet mixers + hyper/gated-residual work + routers/shared experts + output head + MTP + hot routed-expert cache.
+- RAM: all **24,576 routed experts**; CPU computes misses concurrently with GPU-resident experts.
+- SSD: **28.8-GB n-gram/PLE table**, sparsely read.
+- speculation: native MTP up to depth 3, typically **2.4-3.2 committed tokens/pass**.
+- prompt lookup: up to 5-token drafts only when measured acceptance/cost says it pays.
 
-Imported or restored shared state must be billed once, not once per consumer.
+### KV streaming is a MoE residency lever
 
-### NEW — SGLang fixes a sparse-index transfer race by waiting at the read boundary
+At >=64K Strata moves the colder portion of KV to system RAM and keeps the attention-hot portion in VRAM. Q2_0 at 262K moves **50.9 -> 62.6 TG** while GPU-resident experts rise **1,589 -> 3,872**.
 
-Source: https://github.com/sgl-project/sglang/commit/38d865489af5ce7b1885577aa834b0d34dd99438  
-Committed **2026-09-27 05:04:03 UTC**.
+Interpretation: on a VRAM-starved MoE system, retaining every KV byte on GPU can be slower than moving cold KV to RAM if the reclaimed VRAM holds materially more hot experts.
 
-DeepSeek V4.1 HiCache could read low-ratio index-K payload/dequantized rows before the corresponding layer transfer had completed. The fix inserts `wait_layer_transfer(layer_id)` directly in both low-ratio index-K read paths.
+### Prompt-copy / agent editing
 
-**P51 consequence:** this is directly transferable to CUDA-prefill -> MLX-decode state import. Metadata/handle availability is not proof that bytes are visible. Each imported layer/component needs a completion state/fence before QSA/index/recurrent consumers can read it. Put the wait at the consumer/read API as a fail-safe, even if the scheduler also tracks transfer completion.
+Strata's current prompt lookup is reported **6-11% faster on code edits**, with other text unchanged. The controller gates lookup on its measured speculative surplus.
 
-### NEW — SGLang clarifies shared-prefix ownership: request release unlocks, it does not free
+**P51 rule:** copy/lookup drafting should be opportunistic and measured, not a permanent decoder mode. Report novel-generation TG separately from edit-effective throughput.
 
-Source: https://github.com/sgl-project/sglang/commit/d27efca3536e3fe084fe654a68d494d95af030a9  
-Committed **2026-09-27 05:00:02 UTC**.
+### Q4 KV is not our AA-quality default
 
-A prefix matched from the radix tree is tree-owned. On request finish the request now frees only its private suffix and unpins the protected prefix rather than freeing the matched prefix itself.
+Strata's optional Hadamard-rotated Q4_0 KV:
+- halves KV memory;
+- about **+4% TG at 128K**;
+- but long-document perplexity worsens **8-12%**; needle tests still pass.
 
-**P51 consequence:** cache/prefix ownership must be independent from request lifetime. This is especially important for mirrored M1<->CUDA state: finishing one decoding request should release its reference/pin while leaving reusable shared conversation state intact. It prevents both double-free and accidental re-prefill.
+For AA~40 work, leave this as a throughput arm. Higher-precision KV remains the default until our long-context reasoning/tool/agent suite certifies otherwise.
 
-### NEW — llama.cpp RDMA RPC stops burning a CPU core while idle; Apple/TB4 still lacks the equivalent
+## RECOVERED CURRENT — ISTA-DASLab quant quality
 
-Source: https://github.com/ggml-org/llama.cpp/commit/d7fb90e8e2494b2908934d956a3202fd60152ee0  
-Committed **2026-09-27 09:28:32 UTC**.
+Sources:
+- https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF
+- https://huggingface.co/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF
 
-The regular RDMA path now spins briefly while active, then arms an RDMA completion channel and sleeps until a completion or peer close. The Apple RDMA/Thunderbolt implementation is explicitly annotated with a TODO for the same behavior.
+### Flash-Next IQ3_XXS
 
-**P51 consequence:** not a throughput receipt, but relevant to both dual-M1 TB4 and remote-prefill designs. Use completion/event-driven transport when idle; avoid a permanent polling core and define peer-close invalidation explicitly.
+Official GSQ-RCO **3.00 transformer BPW** results:
+- task average **92.57 vs BF16 93.12 = 99.4%**
+- AIME25 **100.00 vs 100.00**
+- GPQA-D **91.41 vs 91.92**
+- LiveCodeBench v6 **86.29 vs 87.43**.
 
-### KNOWN MERGE — SGLang #41166 small-copy fusion
+This is good enough to promote **3.0 BPW Flash IQ3_XXS to an AA~40 candidate arm**, but not to certify it.
 
-SGLang commit `aa7a976807ea71320027713a8b90cf91cc1503c4` merged in this interval. This is the already-recorded Qwen3.8 CUDA graph small-buffer-copy work (~11 us -> ~1.4 us in the prior evidence set). It is classified **KNOWN MERGE**, not new evidence, and receives no additional target credit.
+Why not certified: a current Hugging Face community test reports meaningful qualitative degradation in some real workflow / voxel-modeling tasks for the official Flash IQ3_XXS. DASLab replied that the result was unexpected and needs investigation. This is exactly why P51's AA bar requires source-vs-quant xhigh reasoning/coding/tool/long-context/semantic-continuity testing, not only aggregate benchmark parity.
 
-## Community / Ishizuki / M1-M2 scan
+### Dense 27B IQ3_S
 
-No new planning-grade independent **32-core M1 Max 64K/96K/128K** measurement appeared after the prior boundary. Current searches continue to return the already-recorded M1 Splash Part 1/Part 2, 24-core replication, MTPLX and oMLX threads. `struffl/ishizuki`, MTPLX, both Splash repos and oMLX had no new qualifying commit in this strict interval.
+DASLab's **3.50-BPW IQ3_S / 11.8 GB** is the cleaner quality reference:
+- AIME25 **100.00 = BF16**
+- LiveCodeBench v6 **85.71 = BF16**
+- GPQA-D **89.39 vs 89.90**
+- task average **91.70 vs 91.87 = 99.8%**.
 
-## Lower-priority strict-window activity
+DASLab describes this arm as **task-lossless**. This strongly supports keeping the P51 27B source-like-quality center around **~3.4-3.6 BPW**.
 
-- llama.cpp added SYCL wide FWHT and unrelated CUDA/HIP/OpenCL work; no Apple P51 target impact.
-- vLLM changes were CPU attention and DSv4.1 SM100 fusion, not applicable to the primary lane.
-- SGLang added unrelated memory-cache/control-plane and diffusion work.
-- mlx-serve's other current work is UI/telemetry; no new Flash throughput receipt.
+## 5070 Ti practical Flash lane
 
-## Canonical planning state after this pass
+The measured Strata card is a **5070 12 GB**, weaker and smaller than the user's **5070 Ti 16 GB**. More VRAM matters because Strata uses it as expert-cache capacity; its own cross-GPU estimates are explicitly **±20%**.
 
-Unchanged. Priority remains **prefix/state reuse, recurrent-prefill work, and heterogeneous prefill correctness** rather than raising TG forecasts.
+Therefore:
+- promote **5070 Ti + Strata + DASLab IQ3_S/IQ3_XXS** to a first-class experimental serving lane;
+- do **not** replace measured 5070 numbers with projected 5070-Ti numbers in canonical evidence;
+- certify AA~40 first, then benchmark exact 4K/32K/64K/128K TG+PP, VRAM expert count, CPU miss share and RAM headroom on the real rig.
 
-`RESEARCH-STATE.md` is updated with live-state ownership/accounting, transferred-state readiness and shared-prefix lifetime rules. `RESEARCH-TARGETS.md` remains unchanged.
+If IQ3_S or IQ3_XXS clears AA~40 on the user's suite, the 5070 Ti may be a better practical Flash-Next server than the proposed CUDA-prefill -> M1-decode composition; the heterogeneous lane remains valuable for dense 27B and as a systems experiment.
+
+## RECOVERED CURRENT — TensorFold / DFlash2 Apple-Silicon direction
+
+Sources:
+- https://tensorfold.dev/
+- https://github.com/z-lab/dflash
+
+TensorFold currently reports **Qwen3.8-27B 120-124 TG on M5 Max 128 GB with DFlash2**, versus **27 TG without drafts** in the stated workload.
+
+Classification: **stronger-generation Apple evidence only**. No planning-grade M1 Max TensorFold receipt was found, so the result gets **zero direct M1 target credit**.
+
+The mechanism is relevant. Official DFlash guidance for **quantized Qwen3.8-27B on MLX** recommends **block size <=5**, because stock MLX quantized matmul loses efficiency at larger verify width. That independently agrees with Ishizuki/Splash/oMLX/P51 findings: optimal S is tensor-shape/GPU/quant-specific, and simply drafting wider is not a free win.
+
+### M1 27B follow-up priorities
+
+Mine/test conceptually:
+1. tensor-specific S=2-8 crossover policy;
+2. custom Apple7 few-row quantized verify;
+3. DFlash2 / native-MTP mechanism selection by measured surplus;
+4. prompt-copy for edit-heavy agent output;
+5. recurrent-only partial-accept rollback;
+6. whole-chunk GDN prefill;
+7. host-read overlap.
+
+## Strict-window scan
+
+No qualifying Project-51 performance/correctness change appeared after **10:23:44 UTC** through **11:03:54 UTC** in DS4, vLLM, oMLX, mlx-serve, llama.cpp, Splash, MTPLX, SGLang, Ishizuki or Strata. SGLang had one unrelated diffusion commit.
+
+## Canonical planning effect
+
+**Targets unchanged.** What changes is lane priority:
+
+- **Practical Flash serving:** benchmark the user's 5070 Ti with Strata + DASLab IQ3_S/IQ3_XXS.
+- **Flash AA-quality:** IQ3_XXS 3.0 BPW is a candidate, not certified; preserve the 3.3-3.6 source-like planning band until our suite says otherwise.
+- **Dense M1 27B research:** DASLab IQ3_S 3.5 BPW becomes a high-quality reference arm; pursue TensorFold/DFlash2-inspired verifier and copy/recurrent-prefill work.
+- **Heterogeneous CUDA prefill -> M1 decode:** still valid, but may be unnecessary for practical Flash if Strata on the 5070 Ti clears quality and throughput requirements.
+
+`RESEARCH-STATE.md` is updated with these durable conclusions. `RESEARCH-TARGETS.md` remains unchanged.
 
 ## New hard boundary
 
-**2026-09-27 10:23:44 UTC**
+**2026-09-27 11:03:54 UTC**
