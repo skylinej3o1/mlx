@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-28 11:57 ET**
+Latest strategy true-up: **2026-09-28 17:39 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
