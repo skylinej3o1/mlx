@@ -26,6 +26,7 @@ Definitions:
 - For cluster PP, long enough prompts are assumed to permit useful chunk/pipeline overlap.
 - Prefix/session reuse is a separate latency objective and should not be folded into cold PP.
 - **Agent wake/prewarm** is also separate: a lightweight Slack/Telegram/iMessage wake signal may pre-materialize the invariant system/tools/skills/repo prefix and certified recurrent/QSA state before the real task arrives. Measure wake->ready and real-task->TTFT independently; the 400-PP ruler remains genuinely cold.
+- **Resident-agent capacity is not the same as one-shot context fit.** A 128K agent counts as resident only if its complete continuation state can remain retained/resumable for the next turn without a full re-prefill. Budget attention KV, recurrent/GDN state, QSA/indexer state, draft/MTP state and any retained checkpoint/state image separately from the active request. TensorFold's 64-GB 27B result is the cautionary receipt: ~140K one-shot fits, but DFlash2 conversations above roughly 100K could no longer retain their checkpoint and re-prefilled on the next turn.
 - A target can move only when new direct physical evidence or a materially stronger mechanism case
   changes the planning distribution. Mechanism transfer alone should normally change the test plan,
   not silently become a measured rate.
@@ -549,6 +550,14 @@ exact-card 128K receipt exists.
 
 This lane deliberately sacrifices throughput for quant headroom. Do not raise it from IQ3_XXS speed
 receipts without a same-checkpoint physical run.
+
+## Sampling / penalty throughput convention
+
+The TG tables above are **neutral/no-penalty throughput targets** unless a row explicitly says otherwise.
+Strata 0.1.19 fixed speculative penalty history so every verified token now sees the same repetition/presence/frequency
+history as serial decoding. Correct non-neutral penalties reduce throughput by **~1-11%** in Strata's release testing
+because more drafts are rejected. For a production agent configuration that enables penalties, budget this discount
+until an exact RTX 5070 Ti 0.1.19+ ladder exists; do not treat it as a kernel regression.
 
 ## Stability / admission targets
 
