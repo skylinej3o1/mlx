@@ -1,214 +1,227 @@
-# Project 51 primary-lane research watch — 2026-09-28 13:54 ET
+# Project 51 primary-lane research watch — 2026-09-28 16:02 ET
 
-**Freshness boundary entering this pass:** **2026-09-28 15:56:26 UTC**.  
-**User cutoff:** **2026-09-28 17:54:51 UTC**.
+**Freshness boundary entering this pass:** **2026-09-28 17:54:51 UTC**.  
+**User cutoff:** **2026-09-28 20:02:08 UTC**.
 
 ## Decision
 
-**No canonical 40-TG / 400-PP target change.**
-
-Two planning definitions do change:
-1. Strata TG targets are now explicitly neutral/no-penalty unless stated otherwise; 0.1.19-correct penalties cost ~1-11% when enabled.
-2. A long-context agent counts as resident only if its full continuation state can remain resumable without a full re-prefill. One-shot context fit is not sufficient.
-
----
-
-## NEW — Strata 0.1.19 fixes speculative penalty history, not just the earlier double-penalty bug
-
-Release published **2026-09-28 17:13:49 UTC**.
-
-0.1.17 fixed double application/order of penalties, but 0.1.19 found a second defect: in a speculative verify batch, only the first checked token had the request's real penalty history. Later candidates were judged against an unfilled history buffer.
-
-Consequences before 0.1.19:
-- repetition/presence/frequency penalties were mostly ineffective when ~3 tokens/step were accepted;
-- large `penalty_last_n` could crash;
-- benchmark/self-reference checks could miss the semantics error.
-
-0.1.19 gives every checked token the serial-equivalent history. Strata reports **1-11% lower TG on requests with non-neutral penalties** because more draft guesses are correctly rejected. Requests without penalties keep the same answers/speed.
-
-### P51 consequence
-
-- Keep the existing Strata IQ3_XXS/IQ3_S TG ladders as **neutral/no-penalty rulers**.
-- For production agent configurations with presence/repetition penalties, budget a temporary **1-11% decode discount** until an exact 5070-Ti 0.1.19+ ladder exists.
-- Sampler certification must compare speculative vs independently derived serial semantics token-by-token, including history after each accepted draft.
-
----
-
-## NEW — Strata #60 root cause: Windows commit limit, not VRAM or shared-GPU-memory limit
-
-The 16-GB VRAM / 64-GB RAM admission failure is now explained.
-
-On Windows, GPU allocations also consume system commit (RAM + page file). The failing box had a ~64.5-GB commit limit with ~63.7 GB RAM, implying a tiny/off page file. After loading the ~33-GB expert arena, the 9.3-GB expert cache could not be committed even though VRAM was nominally free.
-
-0.1.19 now:
-- retries with a smaller expert cache instead of stopping;
-- prints remaining commit;
-- warns if the page file is under 4 GB.
-
-Recommended host fix: Windows page file **System managed**.
-
-### P51 consequence
-
-The prior 16GB/64GB admission risk is substantially downgraded from unknown fragmentation to a known Windows-commit dependency. Exact-card production setup should include page-file/commit validation before benchmarking.
-
----
-
-## NEW — Strata `--calibrate` makes machine-specific expert/draft tuning first-class
-
-0.1.19 adds `START-HERE.bat --calibrate`, measuring:
-- PCIe share;
-- speculative draft depth;
-- CPU worker count.
-
-It keeps a new setting only if it is >3% faster and stores the result per PC/model. On Strata's RTX 5070 test PC it made the Coder **7.6% faster**.
-
-### P51 consequence
-
-Do not hard-code a universal `pcie_frac`, draft depth or pool-worker count for the user's 5070 Ti. Promotion should include calibration on the exact host. No numeric target credit yet because the published +7.6% is Coder/RTX5070, not the user's exact IQ3 lane.
-
----
-
-## NEW — Strata multi-conversation snapshot audit finds a missing indexer state field
-
-Strata #57's first conversation-cache prototype omitted the indexer's per-sequence spare key, `idx_dead`, from both snapshot payload and fingerprint. Similar opening tokens could mask the omission.
-
-The revised shared-core branch now preserves that state and reconstructs the spare row on rewind. Validation includes:
-- Linux/RTX4090/IQ3_S;
-- 30 returns across **2,026 / 39,985 / 119,987-token** contexts;
-- exact baseline output/state parity;
-- KV streaming;
-- steering/image identity isolation;
-- memory-denial fail-safe;
-- host fault injection + ASan/UBSan.
-
-At **51,133 cached tokens**, A→B→A returned with the full prefix reused and only 22 new tokens processed in **1.237 s**; a checkpoint return processed 7 new tokens in **0.566 s**.
-
-The maintainer asked for a unified PR rebased to 0.1.19; an NVMe spill tier is planned on top of the shared snapshot format.
-
-### P51 consequence
-
-Add to the canonical CUDA→Apple / resident-agent state schema:
-- indexer spare-key / dead-row state (`idx_dead` equivalent);
-- whole-image fingerprinting;
-- explicit invalid-image rejection before writes;
-- fail-closed semantics for transfer failure rather than pretending rollback succeeded.
-
-This is direct evidence that even a state image that already includes KV + recurrent + indexer state can still omit a small but correctness-critical per-sequence field.
-
----
-
-## NEW — TensorFold 0.3.6.2 makes mixed/dynamic MLX quants first-class exact lane inputs
-
-Release published **2026-09-28 16:21:04 UTC**.
-
-For dense Qwen3.8/3.5, TensorFold now reads MLX affine **2/3/4/5/6/8-bit** weights, groups 32/64/128, including per-module mixed precision. M1-M4 use packed row decoders; M5 uses native lane kernels when the checkpoint format is supported and falls back to the packed reader otherwise.
-
-Every draft still verifies through the lane engine; incompatible fused stacks are split rather than silently converted. The checkpoint is not expanded to dense weights.
-
-Physical receipt on **M3 Ultra** for an oQ4-style mixed 27B checkpoint:
-- code: **114-120 TG**;
-- chat: **59-61 TG**;
-- mlx_lm reference: **34-36 TG**.
-
-### P51 consequence
-
-This is strong mechanism evidence for our dynamic-quant thesis: protected 5/6/8-bit tensors plus lower-bit bulk weights can participate in exact multi-row speculative verification without requiring a uniform 4-bit artifact.
-
-**No M1 numeric credit yet.** General mixed-bit row readers can be materially slower than specialized 4-bit routes, so P69B13 should benchmark the actual proposed hot-trunk BPW layout on Apple7 rather than assume the M3 Ultra speed transfers.
-
----
-
-## NEW — TensorFold fixes M1-M4 split-prompt exactness at the 8,192-key boundary
-
-0.3.6 had two M1-M4 cases around 8,192 keys where a prompt split into chunks did not bit-match one stock MLX attention call. 0.3.6.2 reports that split prompts now attend exactly as one-piece prompts at every tested length.
-
-### P51 consequence
-
-Promote 8,192-key short-tail cases into the mandatory Apple7 exactness suite. Chunk boundaries remain part of execution identity even when drafted==serial and resumed==fresh already pass.
-
----
-
-## NEW — one-shot context fit and resumable-agent capacity diverge sharply
-
-TensorFold #71 on physical **M5 Pro 64 GB**, Qwen3.8-27B 4-bit + DFlash2:
-- one-shot fitted context: **140,288 tokens**;
-- largest retained conversation checkpoint: roughly **96-100K tokens / 6.1-6.3 GiB**;
-- at 102K the checkpoint store falls to zero;
-- subsequent turns re-prefill almost everything;
-- 131K and 140K continuations take roughly **574-644 s** instead of sub-second resume.
-
-Without the drafter, a **152K** prompt retained a **9.44-GiB** checkpoint and resumed in **0.59 s**.
-
-### P51 consequence
-
-Project 51 must track two separate capacities:
-1. maximum one-shot context;
-2. **resident/resumable agent context**.
-
-A 128K agent does not count toward the resident-agent target if its next turn must rebuild state. TARGETS now states this explicitly.
-
----
-
-## NEW — cold long prefill can starve concurrent Apple decode
-
-TensorFold #72, physical M5 Pro 64 GB / 27B + DFlash2: four independent ~16.4K prompts submitted together each need ~40 s of prefill. Because each new prefill monopolizes the MLX execution path, previously admitted streams effectively freeze:
-- first stream decode: **1.0 TG**;
-- second: **1.5 TG**;
-- third: **2.8 TG**;
-- fourth, after no later prefill: **22.4 TG**.
-
-Shared-prefix requests with only tiny suffix prefills scale normally.
-
-### P51 consequence
-
-This materially strengthens the heterogeneous architecture:
-- **5070 Ti / CUDA = cold long-prefill engine**;
-- **dual M1 = resident long-context decode/verification engine**.
-
-Until Apple prefill/decode scheduling can interleave at chunk boundaries, admitting a fresh 100K+ prefill onto the same Mac server can destroy latency for resident agents.
-
----
-
-## UPDATE — TensorFold exact SSD conversation spill ships
-
-0.3.6.2 ships `--spill-gib`. Release receipt on M5 Max / 48-GB budget: a 35K-token evicted conversation returned in **0.27 s instead of 75 s**, same reply.
-
-This is a parked-state tier, not a substitute for the user's requirement that active long-context KV stay resident. It remains useful for inactive agents.
-
----
-
-## WATCH — oMLX Flash-Next performance limits
-
-- #4056 concluded the hyper-connection path is latency-bound; its attempted bit-exact kernel reorganization did not produce a promotable win.
-- #4057 shows a prefill transient estimator can over-predict large-chunk memory by **10-25x** after observing tiny chunks and permanently shed ANE banks. This is an admission/control-path warning, not a P51 target mover.
-- #4058 shows a 2-bit Ternary Bonsai model can have *less* usable context than a larger 3-bit model because transient/architecture memory dominates. Weight bytes alone are not a context-capacity ruler.
-
----
-
-## Strict-window scan summary
-
-From **15:56:26 -> 17:54:51 UTC**:
-- **Strata:** 0.1.19 penalty-history fix, Windows commit/page-file diagnosis, `--calibrate`, multi-conversation shared-state audit; promoted.
-- **TensorFold:** 0.3.6.2 mixed-bit exact lane support, M1-M4 chunk exactness fix, resident-window and concurrent-prefill findings; promoted.
-- **oMLX:** HC no-win result + prefill-memory estimator risk; watch.
-- **mlx-serve:** no new strict-window commit; prior Flash trunk mixed-precision result remains known.
-- **Ishizuki / MTPLX / DFlash / Splash:** no strict-window primary-lane performance receipt.
-- **vLLM / SGLang:** no new strict-window Flash-Next result that moves P51 targets; existing multi-component state-transfer hazards remain part of the handoff test plan.
-
----
-
-## Canonical planning effect
-
-**No speed-target changes.**
+**No canonical speed-target change.**
 
 Keep:
 - dual-M1 Flash-Next: **40 TG @ genuinely filled ~128K / 400 cold PP / ~70% >=40**;
 - single-M1 dense27B: **25 TG / ~110 PP**;
 - dense RTX5070Ti CUDA-v2 ladder unchanged;
-- Strata Flash-Next TG ladders unchanged as neutral/no-penalty targets, with a new **1-11% production discount note when penalties are enabled**.
+- Strata Flash-Next target ladders unchanged.
 
-The major change is architectural confidence: current evidence increasingly supports a **fast-CUDA-prefill → state handoff → Apple resident-long-context** topology, and resident-agent capacity must be measured by retained/resumable state, not one-shot context fit.
+One target-definition refinement landed: **prefix reuse is not automatically physical prefix sharing.** A common prefix earns multi-agent memory-capacity credit only when several resident agents actually reference one shared immutable state image while holding independent private suffixes.
+
+---
+
+## NEW — Strata 0.1.20 pins the shared system/tool prefix for new chats
+
+Release published **2026-09-28 17:59:33 UTC**.
+
+PR #62 changes the existing single-branch conversation cache from FIFO to a pinned-root + LRU-leaf policy. The deepest checkpoint shared by the retained conversation chain stays resident while later checkpoints rotate.
+
+Measured IQ3_XXS / RTX4070 example:
+- 16,747-token shared system prompt;
+- old new-chat path: **14,898 ms** prompt read;
+- pinned-root path: **1,176 ms**;
+- repeat: **1,181 ms**;
+- `--prompt-cache 1` fallback: **14,948 ms**.
+
+That is **12.7x lower first-message prompt-read time** in the measured new-chat case. The PR estimates a 30K shared prefix saves roughly 25–30 s at ~1,100 PP. All ten A/B answers were token-identical; decode throughput was unchanged.
+
+Important limitation: Strata still has **one live KV arena / one branch of history at a time**. This is checkpoint reuse, not true simultaneous physical sharing of one prefix across multiple resident agent suffixes.
+
+### P51 consequence
+
+- Promote a **pinned immutable system/tools/repo root** as the first shared-prefix optimization.
+- Do not count its bytes once across N resident agents until Project 51 implements refcounted read-only attention KV + recurrent/GDN + QSA/indexer state with independent suffix ownership/rollback.
+- TARGETS now states this explicitly.
+
+---
+
+## NEW — Strata 0.1.20 makes the default PCIe policy topology-aware
+
+PR #44 measures pinned-host -> device bandwidth once at startup using four 256-MiB DMA reads, then scales the default `pcie_frac` down on links slower than the PCIe4 x16 reference.
+
+Example physical x8 receipt:
+- RTX5060Ti 16 GB / PCIe4 x8;
+- measured H2D: **14.1 GB/s**;
+- default `pcie_frac`: **0.55 -> 0.30**.
+
+x16-class links retain the existing default. Explicit `--pcie-frac` and `--calibrate` still override the automatic guess. No credible E2E speed number was claimed for this PR.
+
+### P51 consequence
+
+Keep PCIe/TB bandwidth as a measured scheduler input. This independently reinforces our rule that expert/state movement policy must derive from actual link throughput, not card identity.
+
+---
+
+## NEW — Strata monitor exposes per-request decode expert-cache hit rate
+
+PR #69 records decode-only expert-cache hits/lookups, excluding prompt-prefill lookups, and surfaces the hit rate in the request monitor.
+
+### P51 consequence
+
+For every Strata 5070-Ti TG receipt, record **decode expert hit rate** alongside TG, acceptance, PCIe bandwidth and cache slots. A speed number without hit-rate provenance is no longer enough to compare expert-residency configurations.
+
+---
+
+## UPDATE — Strata multi-conversation shared core passes first Windows admission tests
+
+#57 update at **19:57:42 UTC**: rebased shared-core work has its Windows physical-memory admission helper passing **23/23 MSVC tests**; a live `GlobalMemoryStatusEx` probe returns usable physical-memory data and impossible allocations are denied.
+
+Full Windows restore/agent acceptance is still pending.
+
+### P51 consequence
+
+Keep the shared snapshot work as a mechanism reference, not a production-ready source yet.
+
+---
+
+## RECOVERED OLDER — direct physical M1 Max 32-GB Flash-Next @128K via MoEspresso 3
+
+MoEspresso 3 was committed **2026-09-24** and surfaced in the community on Sep 27; it was missed by prior watches, so this is **RECOVERED OLDER**, not NEW.
+
+Physical configuration:
+- **2021 M1 Max, 24-core GPU, 32 GB unified memory**;
+- Qwen3.8-Flash-Next, all 512 routed experts retained in package;
+- default served context **131,072**;
+- measured physical grid **12.96–15.85 TG**;
+- release Cache-Prior 2/2 cell **15.46 TG**;
+- planner ceiling 24 GB, 43-token prompt, 32 greedy generated tokens, disk KV disabled.
+
+Memory/quant design:
+- 223/512 routed experts resident per layer on measured 32-GB configuration;
+- most routed projections **IQ2_K**; six early projection groups **IQ3_K**;
+- dense/non-routed tensors use higher Q6/Q8/BF16-class precision by role;
+- the original **102.4-GB BF16 PLE** remains file-backed on SSD and selected rows are read on demand;
+- attention state uses KVarN K4/V4 with exact BF16 sink/recent suffix;
+- no separate MTP sidecar in this package.
+
+Decode uses Cache-Prior 2/2 when bounded: resident experts get a ranking preference while the two strongest original routes are protected. Prefill is unbiased. This can change the selected expert set and therefore model output.
+
+Quality receipt is a reproducible but small 48-question mixed-category suite: local bounded path **84.3%** at medium reasoning vs hosted Qwen3.8 Flash **90.7%** at xhigh under a different provider protocol.
+
+### P51 consequence
+
+This is valuable **physical Apple7 feasibility evidence**:
+- full Flash-Next architecture can serve 128K interactively on a severely memory-constrained M1 Max;
+- dynamic precision + bounded expert residency + file-backed PLE + compressed attention state is practical on 2021 silicon.
+
+But it receives **no AA40/source-like numeric credit** because the routed experts are mostly IQ2_K and Cache-Prior deliberately changes routing. It also receives no direct dual-node scaling credit and does not move the 40-TG target.
+
+---
+
+## NEW — oMLX finds the long-context QSA crossover moved after fused attention rows
+
+Issue #4061 opened **2026-09-28 19:24:11 UTC**, M5 Ultra / Flash-Next oQ5e.
+
+oMLX currently switches text-only decode at 32,768 cached tokens from rank-one masked QSA to gathered QSA arms, based on an older M5 Max crossover.
+
+With newer fused attention rows on M5 Ultra, the **masked path is faster at every tested context from 16K to 128K**:
+- MTP off: **~5–6% faster** at 48K–128K;
+- MTP on: **~3–8% faster** at 48K–96K.
+
+The masked path is also bit-identical to the unfused MLX reference; the gathered path is not. Attention's share of one decode token grows from **19% at 16K to 26% at 64K**.
+
+### P51 consequence
+
+- QSA execution-plan thresholds must be keyed by chip + kernel generation + context + verify width, not inherited globally from another Apple generation.
+- Long-context AA baseline should prefer the bit-exact masked path whenever it is not slower.
+- No M1 numeric credit yet, but this identifies another plausible 128K TG lever for Apple-specific tuning.
+
+---
+
+## NEW — SGLang closes another PD transfer ownership hole
+
+PR #41404 merged **18:19:51 UTC**.
+
+Before the fix, decode-side KV pages were deferred only when decode itself initiated an abort. A prefill fault, transport error or cache-restore failure could immediately release those destination pages while another rank still had a write in flight. The allocator could hand the pages to another request and the late transfer would corrupt the new owner.
+
+The fix:
+- notifies every prefill rank on any deferrable transfer failure;
+- arms drain-ack accounting before the abort notification;
+- retains destination ownership until all settled writers ack drain, or timeout;
+- releases immediately only when metadata was never published and therefore no remote writer can know the destination.
+
+### P51 handoff rule
+
+**Destination state pages remain owned by the transfer transaction until every possible writer has crossed a completion/drain fence. Failure is not permission to free them.**
+
+This applies directly to CUDA->Apple import staging and any future TB4 state mover.
+
+---
+
+## NEW — vLLM resumable-request fix defines the correct continuation frontier under async execution
+
+PR #58259 merged **19:26:57 UTC**.
+
+With async scheduling, `num_computed_tokens` can be an optimistic frontier that includes old-turn dispatches still in flight. Reusing that value when a turn ends lets stale outputs land in the next turn.
+
+The fix resumes from:
+
+**safe_frontier = computed_tokens - output_placeholders**
+
+then marks the remaining in-flight outputs stale and drains/discards them before new-turn output is accepted.
+
+### P51 handoff rule
+
+State export/import and resident-agent continuation must snapshot the **materialized committed frontier**, never the optimistic scheduled frontier. Any old-turn GPU work still in flight must be fenced or explicitly marked stale before ownership advances to the successor turn.
+
+---
+
+## NEW — SGLang replay fix: token metadata belongs to the committed token, not the recomputation
+
+PR #41235 merged **19:02:27 UTC**.
+
+During PD rebootstrap, SGLang can replay a previously emitted boundary token after prefill recomputes the prefix. It already kept the original behavior logprob but incorrectly appended the new prefill worker's sampling-mask row, producing one extra/misaligned mask row.
+
+The fix keeps both the original logprob **and original sampling mask** for the replayed token.
+
+### P51 consequence
+
+Continuation lineage must include token-associated metadata whose semantics came from the original committed decision. Recomputing the same boundary token does not authorize silently replacing its behavior/sampling metadata.
+
+---
+
+## RECOVERED CURRENT — long-context multi-row attention can make speculation slower if the verify path is wrong
+
+vLLM #59054 was opened before this pass boundary (**15:04:50 UTC**) and is therefore **RECOVERED CURRENT**.
+
+On the Triton attention backend, any speculative verify `q_len > 1` was forced onto a low-parallelism 2D varlen kernel. At 67K KV length, measured per-call attention was **~7–20x slower** than a small-q 3D split-KV path; serving with k=2 speculation fell to **16.5 TG** versus **56.1 TG** non-spec, while the proposed 3D verify path recovered **33.7 TG**.
+
+### P51 consequence
+
+Another independent confirmation that **multi-row verification needs its own long-context attention plan**. Never assume the B1 attention kernel is appropriate merely because q_len is small; benchmark verify widths and context jointly.
+
+No Apple/CUDA target credit from these SM80 numbers.
+
+---
+
+## STRICT-WINDOW non-events
+
+- **Ishizuki:** no new commit.
+- **TensorFold:** no new post-0.3.6.2 commit in-window.
+- **mlx-serve:** no new commit in-window.
+- **MTPLX / DFlash:** no new commit in-window.
+- **Splash:** Hermes profile isolation/benchmark-harness maintenance only; no model-performance receipt.
+- **Strata:** no new exact-5070-Ti TG/PP ladder or longer exact-card soak in this window.
+
+---
+
+## Canonical planning effect
+
+**No numeric speed-target changes.**
+
+The strongest change is architectural confidence:
+- shared immutable prefixes are worth pinning immediately;
+- but actual multi-agent memory credit requires physical state sharing, not merely cache reuse;
+- state handoff must use a committed safe frontier and transaction-owned destination pages until every writer drains;
+- direct M1 Max 32-GB evidence further confirms that Flash-Next's 128K execution is physically viable on Apple7 even under severe memory pressure, while remaining too lossy/routing-biased to certify the AA40 production lane.
 
 ## New hard boundary
 
-**2026-09-28 17:54:51 UTC**
+**2026-09-28 20:02:08 UTC**
