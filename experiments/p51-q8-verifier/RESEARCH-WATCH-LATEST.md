@@ -1,212 +1,249 @@
-# Project 51 primary-lane research watch — 2026-09-28 06:51 ET
+# Project 51 primary-lane research watch — 2026-09-28 07:34 ET
 
-**Freshness boundary entering this pass:** **2026-09-28 08:53:55 UTC**.  
-**User cutoff:** **2026-09-28 10:51:31 UTC**.
+**Freshness boundary entering this pass:** **2026-09-28 10:51:31 UTC**.  
+**User cutoff:** **2026-09-28 11:34:46 UTC**.
 
-Strict boundary preserved. Material that existed just before the previous boundary but was missed is labeled **RECOVERED CURRENT**.
+Strict boundary preserved. Older exact-rig evidence recovered during this pass is labeled **RECOVERED CURRENT** rather than NEW.
 
 ## Decision
 
-**No canonical target change.**
+**Canonical dual-M1 targets unchanged. RTX 5070 Ti dense-27B targets are recalibrated.**
 
-Keep:
-- dual-M1 Flash-Next: **40 TG sustained at genuinely filled ~128K**
-- dual-M1 Flash-Next: **400 realistic cold PP**
-- planning confidence for >=40 TG: **~70%**
-- single-M1 dense 27B: **25 TG canonical / ~110 native cold PP**
-- 5070 Ti + Strata: experimental Flash lane; 0.1.14 is a promising liveness fix but still needs exact-card soak validation
+Keep dual-M1 Flash-Next at **40 TG @ genuinely filled ~128K / 400 cold PP / ~70% >=40 confidence**.
+
+For the RTX 5070 Ti dense Qwen3.8-27B lane, the old blanket **120 TG / 250 PP** row is no longer an adequate target identity. The direct CUDA-v2 receipt recovered below makes context a required part of that lane's target:
+- short/<=8K: **120 TG working target**
+- ~16K: **110 TG**
+- ~64K: **95 TG**
+- ~128K: **90 TG**
+- cold PP: **~1,900 PP @ 24–32K**, **~1,500 PP @ ~128K**
 
 ---
 
-## NEW — TensorFold 0.3.6 ships source-identical SSD expert streaming for Flash-Next
+## RECOVERED CURRENT — exact RTX 5070 Ti CUDA-v2 receipt was missed in prior passes and forces a PP true-up
 
-Release commit 85653c77166552722368e0f2466ee8571a8586d9 at **2026-09-28 08:56:58 UTC**; release published 09:23:45 UTC.
+Source: feveromo/recipes-qwen3.8-27b-5070ti, commit f24951565fc1196ba7d1f137cee560dcd8f822c2, committed **2026-09-27 20:16:20 UTC**. It predates this hard window and is therefore RECOVERED CURRENT.
 
-New low-memory modes:
-- `--ple-on-ssd`: PLE/ngram tables stay on SSD; on an emulated 128-GB budget on M3 Ultra, Flash-Next peaks at **85.6 GiB** and decodes at **0.91–1.03x** the 256-GB resident run.
-- `--ssd-experts GIB`: routed experts stream from the checkpoint into a GPU pool. Under an emulated 64-GB budget on M3 Ultra, Flash-Next peaks at **39.5 GiB** and keeps **tokens identical to the resident model**, but decode runs only **0.31–0.39x resident speed**.
+Exact hardware/config:
+- **RTX 5070 Ti 16 GB / GB203 / sm_120**
+- Ryzen 7 9800X3D / 32 GB DDR5-6000
+- llama.cpp build 11191 plus pinned custom CUDA-v2 patch
+- Huihui Qwen3.8-27B abliterated **GSQ-RCO IQ3_S + embedded MTP**
+- target + draft KV **Q4_0**
+- MTP max 3
+- reasoning **xhigh**, normal production sampler also tested
+- context **131,072**
+- one stream, fully GPU-resident target
 
-These measurements are M3 Ultra under emulated memory budgets, **not M1**.
+Measured long-context ladder:
+- short: **130.0–131.6 TG** greedy; **129.5 TG** sampled
+- 15,694 prompt: **104.7 TG / 2,030 PP** greedy; **111.7 TG sampled**
+- 62,494 prompt: **98.0 TG / 1,814 PP** greedy; **96.0 TG sampled**
+- 92,914 prompt: **94.8 TG / 1,696 PP**
+- 128,794 prompt: **91.3 TG / 1,576 PP**, 81.7 s prefill
+
+At 128K the server loaded at 14,804 MiB and peaked at 14,926 MiB; whole-card peak with a light desktop was 15,074 MiB. Four planted values across a 119,457-token prompt were recalled exactly; an append-only follow-up reused 119,645 cached tokens.
+
+### Why v2 is faster
+
+The patch is highly specific, but its mechanisms overlap several P51 themes:
+- 2–4-column quantized matvec decodes each weight block once and reuses it across verify columns;
+- fused reduced-vocabulary MTP head (**16,384 ranked rows + context rows**) eliminates repeated 248K-row draft lm-head scans;
+- fused MTP catch-up collapses several draft graphs into one;
+- Gumbel-coupled sampling preserves the target distribution while increasing draft/target agreement;
+- Q4_0 attention gets a specialized MMA path for small query width;
+- prompt attention uses INT8 QK MMA for large batches;
+- norm/residual/GDN/conv glue is fused;
+- GDN prompt kernels are reported ~3.5x faster locally;
+- launches per short decode cycle fall roughly **2,420 -> 1,090**.
+
+Target-v1 numerical checks are unusually good for a custom path: v2 verify/prefill KLD versus v1 is below v1's own ubatch-size noise, and coupled-sampling tests validate the target distribution. This still does **not** certify the abliterated IQ3_S checkpoint to Project-51 AA~40 quality.
+
+### Target effect
+
+The old exact-rig PP anchors in TARGETS were 191–219 PP. Those were not a production ceiling; they were a stale runtime path. Keeping a 250-PP mature target after direct **1.6K–2.0K PP** production-style receipts would violate the project's target-change rules.
+
+TARGETS is therefore updated this pass to a **context-aware 5070-Ti ladder**, while preserving the old anchors as historical pre-v2 baseline.
+
+---
+
+## NEW — Strata 0.1.14 speed matrix confirms >900 PP at 128K even on the weaker RTX 5070 12 GB
+
+Commit 24c3551848cd426173b5686ba3c40af87a59c4ed at **2026-09-28 11:07:35 UTC**.
+
+Hardware: RTX 5070 12 GB / Ryzen 5 7600 / 64 GB DDR5, engine 0.1.14, 256 generated tokens, MTP/spec4, 8-bit KV above 4K and KV streaming from 64K.
+
+At **128K prompt depth**:
+- Q2_0: **1,208 PP / 67.2 TG**
+- IQ2_XS: **1,071 PP / 59.8 TG**
+- IQ3_XXS: **1,015 PP / 45.8 TG**
+- IQ3_S: **931 PP / 40.5 TG**
+
+At 32K the same rows are about **1,070–1,308 PP**.
+
+Decode comparisons across old/new prompt paths are not clean speed A/Bs because prompt-path rounding can change text and speculative acceptance. A same-machine 4K back-to-back reports 0.1.14 at 88.5 TG versus 0.1.12 at 85.7 TG for Q2_0, so the engine itself is not showing a large decode regression.
 
 ### P51 consequence
 
-This is strong **capacity/fallback evidence** for a 64-GB Apple node:
-- source-identical expert streaming is possible without Cache-Prior-style routing bias;
-- PLE SSD offload can be nearly decode-neutral on a large Mac;
-- full expert streaming is far too costly to count toward the canonical 40-TG lane unless future M1 measurements surprise us.
-
-For dual-M1, prefer partitioning/hot-resident expert strategies that avoid full SSD expert streaming. Keep TensorFold SSD streaming as a fail-safe capacity lane and a correctness reference.
+For the planned 5070-Ti prefill -> M1 decode experiment, CUDA prefill compute is now very unlikely to be the 400-PP bottleneck. The hard problems are **canonical state export, transfer, visibility, recurrent/QSA identity and TB4 overlap**, not raw CUDA prompt throughput.
 
 ---
 
-## NEW — TensorFold 0.3.6 exposes an M1–M4 prompt-boundary exactness caveat
+## RECOVERED CURRENT + NEW — Strata eagerly loads CUDA kernels before VRAM is consumed; 0.1.15 code lands
 
-The 0.3.6 release explicitly states that on **M1 through M4 with MLX 0.32.2**, Qwen3.8-27B prompt attention around **8,192 keys** does not match one stock MLX call bit-for-bit when a prompt chunk splits with a short tail.
+Mechanism commit 660996051e965dd8db71df188cdf6de021b6bbf2 at **10:49:25 UTC** was missed by the previous pass and is RECOVERED CURRENT.
 
-Within one server:
-- drafted replies still equal serial replies;
-- resumed prompts still equal fresh prompts.
+IQ3_XXS at 64K/128K could fail mid-prompt with `out of memory: cudaFuncSetAttribute`: CUDA lazily loaded an MMQ kernel only after the expert cache and prompt buffers had consumed nearly all VRAM.
 
-But replies to prompts longer than one prompt chunk can differ between machines with different memory because adaptive chunk size follows each machine's memory budget.
+Fix:
+- set `CUDA_MODULE_LOADING=EAGER` before the CUDA context is created unless the user already set it;
+- load kernel code before expert-cache sizing;
+- cost ~**30 MB VRAM**, about ~20–23 fewer resident experts on the measured 12-GB card.
+
+Engine-version commit de1916658200b9bca8fdb24d4ce6352017593bc0 landed **11:17:58 UTC** and makes setup require 0.1.15.
+
+Strict-boundary note: the GitHub **v0.1.15 release was published at 11:34:55 UTC, nine seconds after this pass's cutoff**, so the release publication itself is excluded. The code commits are in-window.
+
+### P51 rule
+
+Lazy code/module residency is part of VRAM admission. Preload or reserve kernel/module memory **before** filling an expert/KV cache to the last few MiB.
+
+---
+
+## UPDATE — Strata sampler parity bug: non-greedy penalties are applied twice
+
+Issue #53 was opened 20 seconds before the prior cutoff but edited after it; it is fully in-scope now. Current Strata source at the 0.1.15 code point still shows the reported behavior.
+
+In the sampled path:
+1. candidate selection stores `apply_penalties(logit, history_count, p)` into `sel_logit`;
+2. after top-k/min-p/top-p, `scaled(i)` applies `apply_penalties(sel_logit[i] * inv_t, ...)` **again**.
+
+So repetition/frequency/presence penalties are double-applied for non-greedy sampling when history and non-neutral penalties are active. The greedy path applies them once.
+
+The project's own host parity fixture reproduces the same two-pass semantics, so **implementation-vs-self-reference parity is insufficient**.
+
+Minimal reported example with presence penalty 1.5 and T=0.7 changes a repeated token's probability from about **10.5% single-pass -> 2.55% two-pass**.
 
 ### P51 consequence
 
-Do not use 'drafted == serial' alone as the PP correctness oracle. Our frozen AA/PP harness must:
-- pin the chunk plan when comparing machines/runtimes;
-- test 8K boundary -1 / exact / +1 and short-tail cases on M1;
-- distinguish **self-consistency** from **stock-MLX/source-path identity**.
+Add an independently derived **sampler semantics oracle** to AA/runtime certification:
+- repetition/frequency/presence penalties
+- temperature ordering
+- top-k/top-p/min-p ordering
+- greedy vs sampled
+- target-only vs speculative
+- compare against the chosen canonical sampler, not a host port of the same implementation.
 
-For dual-M1 PP2, both nodes must derive the same chunk/state boundary policy or carry the chosen plan explicitly in the state lineage.
+This bug does **not** affect our neutral-penalty benchmark rows, and it does not by itself imply general model-quality degradation.
 
 ---
 
-## NEW — TensorFold agent parser can drop a valid tool call inside an unclosed think block
+## NEW — vLLM Qwen4Exp HC down+SiLU fusion independently confirms a small-row crossover
 
-Issue #60 opened **2026-09-28 09:09:14 UTC** on M3 Ultra / Qwen3.8-Flash-Next 4-bit MTP.
+PR #58957 merged at **2026-09-28 10:51:38 UTC**, only seven seconds after the prior hard boundary.
 
-Reported behavior:
-- model emits a complete tool-call markup before `</think>`;
-- parser only splits reasoning at a closing think tag;
-- the tool call therefore remains inside `reasoning_content`;
-- API returns empty content, no tool call, finish_reason=stop.
+On GB300, fused BF16 hyper-connection down projection + SiLU wins for decode batches up to 48 tokens:
+- M=1: **5.86 -> 4.16 us (1.41x)**
+- M=16: **10.02 -> 5.66 us (1.77x)**
+- M=48: **9.76 -> 6.94 us (1.41x)**
+- M=64: **9.50 -> 11.14 us (0.85x)** — it loses.
 
-Reporter observed **2 of 128 real agent-trace replays** across 20K–250K prompts / 9 tools.
+Qwen3.8-Flash-Next TP4+MTP3 8K/1K E2E TPOT improves about **2–4% at concurrency 1–16**, nearly flat at c=64.
 
-This is a serving/parser defect, not evidence of model-quality loss.
+This is GB300 CUDA evidence, not Apple or 5070-Ti numeric credit.
 
 ### P51 consequence
 
-Add an **agent protocol gate** to the AA suite:
-- tool call inside closed think
-- tool call inside unclosed think
-- tool call immediately after reasoning budget ends
-- streamed/non-streamed tool parsing
-- malformed-but-complete XML recovery
-
-AA~40 should include end-to-end tool success, not just token-level model quality.
+It independently reinforces the dispatch rule already emerging from Apple: **fusions need a measured row/concurrency cutoff**. Do not assume a kernel that wins at S=2–8 should own prefill or wide batches.
 
 ---
 
-## NEW — Strata 0.1.14 root-causes the residual IQ-model wedge to a host CUDA driver lock
+## UPDATE — vLLM #52244 gives a precise write-side rule for hybrid GDN prefix-cache + MTP
 
-Core change e6265c7195ddc02a708c03d85d8bb317d463bc65 at **09:02:44 UTC**; engine 0.1.14 commit 4d4014cec7060fc4ba329ac3631af23e31fcc6e0 at **09:21:01 UTC**; release published **10:02:48 UTC**.
+Updated in this window.
 
-The 0.1.13 Windows thread dumps finally localized the remaining stall:
-- host thread blocked inside **cudaMemcpyAsync** waiting for an NVIDIA-driver lock;
-- call originated in `Verifier::fetch_dma` inside the verify window;
-- native IQ packs copied missed experts using host `cudaMemcpyAsync` + `cudaLaunchHostFunc` while the GPU waited/spun on flags those copies raise;
-- CPU expert pool was already fully done/parked.
+Observed failure on Qwen3.5 hybrid GDN+attention with MTP: a replay can land **one hash unit before** the prompt tail, while the producer cached recurrent state only at the prompt's own tail boundary. Intersecting attention and GDN cache groups then collapses the usable hit to a previous page or zero.
 
-Q2_0 had always used a GPU copy kernel instead and did not show this stall class in the maintainer's soaks.
+Example before fix with 67-token hash unit / 1,072-token GDN page:
+- 1,072-token prompt -> **0 cached tokens**
+- 2,144 -> **0**
+- 3,000 -> 1,072
 
-### 0.1.14 fix
-
-`--pcie-mode auto` now uses the **GPU copy kernel for every pack**, so no host CUDA call is required inside the verify window. `--pcie-mode dma` remains as the old A/B path.
-
-Measured cost on IQ3_S: **45.3 -> 44.8 TG**, about **1%**.
-
-The maintainer closed #31 based on the dumps and fix. However, by this pass's cutoff there is **no independent exact-RTX-5070-Ti post-0.1.14 clean soak yet**.
-
-### P51 status
-
-Upgrade the diagnosis from 'suspected host/GPU handshake bug' to **specific host DMA/driver-lock mechanism with a landed fix**.
-
-Do **not** remove the production gate yet. Require the exact 5070 Ti to complete:
-- multi-hour IQ3_XXS/IQ3_S soak
-- long degenerate generation / HumanEval-47 style repro
-- Q4 KV, spec4
-- zero watchdogs / zero dumps.
-
-If that passes, the liveness objection can be substantially downgraded. The ~1% decode cost is trivial relative to production stability.
-
----
-
-## RECOVERED CURRENT — oMLX Flash-Next GDN prefix-cache boundary snapshots remain unavailable
-
-Issue #4051 was created **2026-09-28 08:53:45 UTC**, ten seconds before the previous boundary, and was missed there. Its current body was not edited after creation, so it is safe to recover now.
-
-Reported setup: M3 Ultra 256 GB, Jundot Qwen3.8-Flash-Next oQ4e-mtp, oMLX 0.7.0rc1, hot + SSD cache, GDN SSD split.
-
-The reporter sees every multi-turn cache store skipped with:
-`boundary_snapshot_unavailable ... available_boundaries=0`
-
-Although rc1 gives large decode gains over dev2 in the reporter's harness, repeated 27K prefixes still cold-process all 27K tokens after a cold start. Same-session repeated requests improve, but durable/reusable recurrent boundaries are reportedly absent.
+The fix is write-side: make prefill stop at the position a replay can actually land on, publish recurrent state there, and avoid caching prompt-end states that no lookup can reach. Full attention publishes the deepest reachable tail as well.
 
 ### P51 consequence
 
-This independently reinforces our hybrid-cache rule:
-- KV/partial-block reuse is not enough;
-- a reusable GDN session prefix needs a **committed recurrent snapshot at the exact cache boundary**;
-- if no such snapshot exists, fail closed and re-prefill rather than pretending the prefix is reusable.
-
-For CUDA-prefill -> M1 decode, exported state is not complete until the recurrent checkpoint and its boundary lineage exist alongside KV/QSA/indexer state.
+This sharpens our boundary rule: **a state snapshot is useful only if the future lookup protocol can actually land on that exact position**. Export/cache planners should derive checkpoint positions from the consumer's replay/rewind rule, not just from producer chunk ends.
 
 ---
 
-## NEW — SGLang moves hybrid radix-cache state capability from hard-coded architecture names toward state specs
+## UPDATE — vLLM host-file PLE gather makes the Flash-Next disk-backed working set concrete
 
-PR #41165 merged **2026-09-28 09:07:36 UTC**.
+PR #58815 updated in-window.
 
-Predicate-registered linear-attention models can now receive Mamba/radix-cache extra-buffer leaves from the registered model spec instead of requiring a hard-coded architecture-name set.
+For Qwen3.8-Flash-Next's **47.7 GiB FP8 PLE**:
+- measured access is about **17.6 rows/step**;
+- roughly **1.6 MiB working set over 800 steps**;
+- host-file gather deduplicates row ids, `POSIX_FADV_WILLNEED`s coalesced ranges, `preadv`s rows, and copies only the staged rows to device.
 
-No speed/accuracy measurement was involved.
+DGX Spark / local NVMe results:
+- realistic c=1 staging is **0.38–0.39% of ITL**;
+- c=16 staging is ~**7.3–7.6% of ITL**;
+- cold 30K prompt TTFT **17.40 s vs 15.45 s warm**;
+- 817/817 soak requests +177 long-prefix requests completed without error in the earlier mapped-view iteration;
+- current path leaves no persistent worker mapping of the PLE files.
+
+This is not discrete-5070-Ti evidence and not Apple numeric credit.
 
 ### P51 consequence
 
-Our state-export/cache layer should be **capability/spec driven**, not model-name driven. A model advertises which recurrent/extra state participates in cache and transfer; the scheduler consumes that spec. This will age better across Qwen4/Flash successors than architecture allowlists.
+PLE capacity should be designed around the **active row working set**, not the 47.7-GiB logical table size. A bounded staged/file-backed PLE path remains very plausible if host gather is prefetched/deduplicated and does not accidentally force full residency.
 
 ---
 
-## Edge item deferred by the strict cutoff
+## SAME-DAY CURRENT — independent 5070 Ti dense27B report corroborates the recovered v2 receipt, but original provenance is incomplete
 
-Strata issue #53 was opened at **2026-09-28 10:51:11 UTC**, only 20 seconds before this pass's cutoff, but its currently visible body was edited at **10:52:41 UTC**, after the cutoff.
+A Sep-28 community benchmark aggregator reports the same class of patched RTX 5070 Ti / IQ3_S / Q4_0-KV path at **104.7 TG / 2,030 PP** around 15.7K and **91.3 TG / 1,576 PP** at a 128,794-token prompt. The numbers match the feveromo repository receipt above.
 
-It concerns sampler/penalty parity and may be important for quality certification. **Do not import its current claims into STATE yet.** It is first priority for the next scan.
-
-MLX-Serve #605 (Qwen3.8 agent reporting truncated file reads) was also reviewed. It currently has no server log, minimal reproduction, or evidence separating model/tool-output truncation from the serving engine, so it is **not promoted**.
+Because the aggregator does not expose a precise publication timestamp for that row and search did not independently recover a separate original source, classify it as **SAME-DAY CURRENT corroboration**, not a second strict-window receipt.
 
 ---
 
-## Strict-window source scan
+## Strict-window scan summary
 
-From **08:53:55 -> 10:51:31 UTC**:
-- **TensorFold:** 0.3.6 / 0.3.6.1 released; SSD PLE/expert streaming and M1–M4 chunk-boundary caveat promoted.
-- **Strata:** 0.1.14 lands the DMA-driver-lock fix; promoted, exact-5070-Ti validation still pending.
-- **oMLX:** no new commit in-window; recovered #4051 recurrent-cache boundary failure.
-- **SGLang:** predicate/state-spec hybrid radix-cache support promoted as design evidence.
-- **mlx-serve:** no in-window commit; #605 insufficiently isolated, not promoted.
-- **Ishizuki:** no in-window commit.
-- **MTPLX:** no in-window commit.
-- **Splash:** no in-window commit.
-- **DFlash upstream:** no in-window commit.
-- **vLLM:** no P51-primary in-window runtime commit.
-- **llama.cpp:** no P51-primary in-window result.
-- **DASLab / GSQ-RCO:** no new strict-window AA-quality receipt.
-- **community/HF scan:** no new independent M1 or dual-M1 receipt beyond material already tracked.
+From **10:51:31 -> 11:34:46 UTC**:
+- **Strata:** new 0.1.14 speed matrix, 0.1.15 code/version commits, sampler-parity issue; promoted.
+- **vLLM:** Qwen4Exp HC fusion merged; hybrid-GDN prefix-cache PR and host-file PLE PR updated; promoted as mechanism evidence.
+- **oMLX:** #4047 fused MoE updated; useful but non-bit-exact/default-off, retained as watch item rather than canonical state change.
+- **TensorFold:** no new merged M1/Flash performance commit in-window.
+- **mlx-serve:** no new commit or qualifying issue update.
+- **Ishizuki / MTPLX / Splash / upstream DFlash / llama.cpp:** no strict-window primary-lane commit.
+- **DASLab / GSQ-RCO:** no new strict-window AA certification receipt.
 
 ---
 
 ## Project 51 actions promoted by this pass
 
-1. **Strata 0.1.14 exact-card soak becomes the immediate 5070-Ti gate.** Re-run the same failing long-generation workload before doing more performance tuning.
-2. **Freeze chunk-plan identity in AA/PP comparisons.** Add 8K-tail boundary cases and record chunk plan in exported-state fingerprints.
-3. **Add parser/tool-protocol correctness to AA.** Empty-turn/tool-call loss is a runtime quality failure even when model logits are fine.
-4. **Keep TensorFold SSD experts as a source-identical capacity fallback**, not the canonical performance lane.
-5. **Hybrid prefix/export state must include a committed GDN boundary snapshot.** KV/QSA alone is insufficient.
-6. **Model state support should be spec-driven**, not architecture-name allowlists.
+1. **True-up the 5070-Ti target file**: retire 250 PP as a current mature target; use the context ladder in TARGETS.
+2. **Port the CUDA-v2 mechanisms selectively** into the 5070-Ti research lane: multi-column qmv, reduced draft vocabulary, fused catch-up, small-query Q4 attention, prompt GDN kernels. Do not assume each transfers to Apple.
+3. **5070-Ti -> M1 bridge priority rises**: raw CUDA prefill is now comfortably above the cluster's 400-PP objective; focus on canonical state handoff and overlap.
+4. **Pre-reserve code/module VRAM** before expert/KV admission.
+5. **Add independent sampler-semantics tests**; self-reference parity is not enough.
+6. **Cache/export checkpoint positions derive from consumer landing positions**, including MTP/hash rewind.
+7. **PLE staging budget from touched rows**, not full logical table.
 
 ---
 
 ## Canonical planning effect
 
-**No target changes.**
+**Dual-M1 Flash and single-M1 dense targets unchanged. RTX 5070-Ti dense targets changed.**
 
-Strata's 0.1.14 diagnosis materially improves confidence that the exact-5070-Ti liveness problem is fixable at very small throughput cost, but we need the reporter's clean soak before calling it solved.
+Dual-M1 Flash remains **40 TG @ ~128K / 400 cold PP / ~70% >=40 confidence**.
 
-TensorFold 0.3.6 materially improves the memory/capacity fallback story for Flash-Next on 64-GB Macs, but full SSD expert streaming at 0.31–0.39x resident speed is not evidence for the 40-TG dual-M1 lane.
+Single-M1 dense remains **25 TG / ~110 PP**.
 
-Keep **40 TG @ genuinely filled ~128K / 400 cold PP / ~70% >=40 confidence**, and single-M1 dense **25 TG / ~110 PP**.
+RTX 5070 Ti dense27B now uses a context-aware ladder. The old 250-PP row is superseded by direct exact-card evidence around **1.6K–2.0K PP** across 16K–128K, while decode naturally falls from ~130 TG short to ~91 TG at 128K.
 
 ## New hard boundary
 
-**2026-09-28 10:51:31 UTC**
+**2026-09-28 11:34:46 UTC**
