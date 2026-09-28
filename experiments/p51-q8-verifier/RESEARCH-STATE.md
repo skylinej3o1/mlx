@@ -1190,3 +1190,14 @@ Highest-value missing measurements:
 - **UPDATE mlx-serve #604/#606:** compact GDN initial-state + accepted-path replay and up-to-16-row DFlash tree substantially improves M5 Max code TG but is checkpoint/workload dependent and not uniformly better than TensorFold. Runtime replay length replaces per-length template specialization. Supports compact replay architecture; no M1 numeric credit.
 - **WATCH oMLX #4054:** M5 Ultra oQ5e served MoE is ~2.60ms/step R1 and 5.69ms R4 against byte floors ~1.81/4.17ms, leaving ~0.79/1.52ms theoretical gaps. Profile/roadmap only; measure M1 bytes/bandwidth before transfer.
 - **Target effect:** none. Dual-M1 Flash **40 TG@128K /400 PP /~70%**, single-M1 dense **25/110**, RTX5070Ti dense context ladder unchanged.
+
+### 2026-09-28 15:56 UTC exact-5070Ti Strata stability validation + target ladder
+
+- **NEW exact-card post-fix stability receipt:** original RTX5070Ti16GB/Ryzen9800X3D failure box ran Strata 0.1.14 for ~3.5h / three 164-task HE+ sweeps across q4_0 and int8 KV with **zero stalls and zero watchdog trips**; the pre-fix workload had frozen every ~20-45 min. HE+ score reported **153/164 (93.3%)** on both q4_0 and int8. This materially raises liveness confidence.
+- **CORROBORATION:** separate RTX5060Ti16GB/64GB host reports a few sustained hours on 0.1.14 with zero stalls/watchdogs. Its PCIe4 x8 H2D (~13.7GB/s) favors lower pcie_frac than x16, reinforcing PCIe-aware expert-streaming policy.
+- **UPDATE Strata 0.1.18:** no P51 speed change; update/setup polish plus zero-length penalty-window sampler guard.
+- **OPEN admission risk:** issue #60 now has a second similar 16GB/64GB report; no root cause by cutoff. Keep Windows auto expert-cache admission as a separate gate from generation liveness.
+- **TARGETS:** added a dedicated Strata/RTX5070Ti Flash-Next section. IQ3_XXS balanced targets: <=8K **100 TG (~75%)**; 32K **95 TG /1300 PP (~75%/~85%)**; 64K **90/1250 (~80%/~80%)**; 128K **78/1150 (~65%/~75%)**. Stretch 128K **90 TG (~35-40%)**. IQ3_S quality lane: <=8K **85 TG (~65%)**; 32K **78/1200 (~65%/~80%)**; 64K **70/1150 (~60%/~75%)**; 128K **60/1050 (~55%/~70%)**.
+- **Strata stability targets:** 8h zero stalls/watchdogs **~90% planning confidence**; 24h **~75%**; Windows 16GB/64GB auto admission first-try success **~70%** until #60 resolves.
+- **AA planning priors:** IQ3_XXS AA>=38 **~85%**, AA>=40 **~65%**; IQ3_S AA>=40 **~75%**. These are not measured custom-AA scores.
+- **Dual-M1 / single-M1 target effect:** none.
