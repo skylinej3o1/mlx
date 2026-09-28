@@ -33,6 +33,12 @@ Definitions:
   not silently become a measured rate.
 - **Context is part of target identity.** A short/medium-context rate must never silently substitute
   for the ~128K Flash headline target.
+- **CUDA->Apple handoff is a separate qualification target, not cold PP credit.** TensorFold #77 now proves on
+  Qwen3.8-27B that CUDA `conv` / recurrent `rec` / attention `kv` state maps 1:1 into MLX cache tensors after only
+  batch-dimension/layout changes. The Project-51 bridge succeeds only when the imported continuation diverges from a
+  Mac-native prefill **no earlier than the Mac's own allowed chunk-plan control**, needles/agent replay pass, and the
+  producer state is exported at a committed safe frontier. Qualify at **32K first, then 96K/128K**. Fast producer
+  prefill earns no bridge credit if its numerical drift exceeds the consumer's own execution-plan tolerance.
 
 ### 2026-09-23 first-principles floor / center recalibration
 
@@ -583,12 +589,14 @@ These are **planning probabilities for the custom Project-51 AA suite**, not mea
 |---|---|---:|
 | IQ3_XXS | **AA >=38** | **~85%** |
 | IQ3_XXS | **AA >=40** | **~65%** |
-| IQ3_S | **AA >=40** | **~75%** |
+| IQ3_S | **AA >=40** | **~80%** |
 
 Rationale: DASLab's official 3.0-bpw Flash-Next IQ3_XXS task average is ~99.4% of BF16 on its published
 suite, but Project-51 still requires source-vs-quant xhigh reasoning, coding, tools, long-context semantics,
 thinking behavior and speculative-acceptance certification. IQ3_S gets a higher AA>=40 prior because it retains
-more weight precision, not because this custom AA test has already been run.
+more weight precision **and** DASLab now reports **82.0% SWE-bench Verified vs 82.8% BF16 (~99.0% retained)** on the
+unpruned IQ3_S build. That materially strengthens the long-horizon agentic prior, but it is still not a Project-51
+AA measurement and does not certify long-context/state/tool parity by itself.
 
 ## Promotion order
 
