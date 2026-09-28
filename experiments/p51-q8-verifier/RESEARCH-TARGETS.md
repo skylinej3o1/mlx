@@ -2,13 +2,14 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-28 07:34 ET**
+Latest strategy true-up: **2026-09-28 11:57 ET**
 
-This is the canonical planning-target file for the three recurring model families:
+This is the canonical planning-target file for the recurring model/hardware lanes:
 
 1. Qwen3.8-Flash-Next on the planned **2x M1 Max 64 GB / Thunderbolt 4** cluster.
-2. Qwen3.8-27B on **one M1 Max 64 GB**, with the user's **RTX 5070 Ti 16 GB + 64 GB host** kept as a separate hardware lane.
-3. DeepSeek-V4-Flash-0731 / DS4 on the same **2x M1 Max 64 GB / Thunderbolt 4** cluster.
+2. Qwen3.8-27B on **one M1 Max 64 GB**, with the user's **RTX 5070 Ti 16 GB + 64 GB host** kept as a separate dense-CUDA lane.
+3. Qwen3.8-Flash-Next on the user's **RTX 5070 Ti 16 GB + 64 GB Windows host using Strata**.
+4. DeepSeek-V4-Flash-0731 / DS4 on the same **2x M1 Max 64 GB / Thunderbolt 4** cluster.
 
 These probabilities are **engineering planning confidence**, not statistical confidence intervals.
 They answer: *after the currently known high-leverage runtime work is implemented and qualified,
@@ -480,6 +481,112 @@ The new speed ladder becomes a production lane only after:
 5. long-context MTP acceptance, KV quality and tool behavior remain stable through ~128K.
 
 A faster but prompt-fragile or behavior-changing build does not count.
+
+---
+
+# 3b. Qwen3.8-Flash-Next — Strata / RTX 5070 Ti 16 GB + 64 GB host
+
+This is a separate runtime/model lane from the dense Qwen3.8-27B CUDA-v2 section above.
+
+**Planning-confidence definition for this section:** the chance that a mature Strata build on the user's
+exact RTX 5070 Ti 16 GB / 64 GB Windows rig can sustain at least the stated number under the named
+context/quant regime **without reintroducing a known stability defect**. These are engineering planning
+probabilities, not statistical intervals.
+
+The primary production-quality candidates are:
+- **IQ3_XXS** — balanced speed/quality lane; current best candidate for high-throughput agent use;
+- **IQ3_S** — quality-first lane; slower but the preferred lane for source-like AA certification.
+
+The pruned DASLab **Coder** is explicitly excluded from the primary target table because its xhigh SWE-bench
+Verified retention is only ~91.3% of BF16 even though LiveCodeBench retention is ~98.7%. It remains a
+specialized coding/capacity lane.
+
+## 2026-09-28 physical anchors
+
+Current measured Strata 0.1.14 on the weaker RTX 5070 12 GB / R5 7600 / 64 GB host:
+
+| Quant | 32K PP / TG | 64K PP / TG | 128K PP / TG |
+|---|---:|---:|---:|
+| IQ3_XXS | **1,108 / 51.4** | **1,065 / 50.0** | **1,015 / 45.8** |
+| IQ3_S | **1,070 / 48.2** | **1,070 / 48.8** | **931 / 40.5** |
+
+Exact RTX 5070 Ti evidence is less matrix-like but materially stronger on decode:
+- the 16-GB / Ryzen 9800X3D issue-31 box repeatedly showed healthy requests in the **50–90 TG** range;
+- one long degenerate generation sustained roughly **105 TG** before the old stall;
+- same-day code-generation reporting around **64K** is approximately **91 TG** on IQ3_XXS;
+- after the 0.1.14 GPU-copy fix, that exact box completed **three HE+ sweeps / ~3.5 hours**
+  with **zero stalls and zero watchdog trips**, where the old path froze every ~20–45 minutes.
+
+The post-fix stability receipt materially raises confidence in Strata as a real production candidate.
+It does not remove the separate Windows auto-admission/memory-fragmentation watch from issue #60.
+
+## IQ3_XXS — balanced production target
+
+| Active context | Mature TG target | TG planning confidence | Mature cold PP target | PP planning confidence |
+|---|---:|---:|---:|---:|
+| <=8K | **100 TG** | **~75%** | — | — |
+| ~32K | **95 TG** | **~75%** | **1,300 PP** | **~85%** |
+| ~64K | **90 TG** | **~80%** | **1,250 PP** | **~80%** |
+| ~128K | **78 TG** | **~65%** | **1,150 PP** | **~75%** |
+
+Interpretation:
+- 64K has the strongest direct same-card decode support and is therefore the highest-confidence long-context TG row;
+- 128K decode remains partly extrapolated from the exact-card healthy range plus the 12-GB context ladder;
+- PP targets are conservative relative to the 12-GB card because 16 GB should hold more experts resident, but an
+  exact-card Strata PP ladder has not yet been published.
+
+**Stretch, not canonical:** **90 TG @ ~128K** for IQ3_XXS. Planning confidence **~35–40%** until an
+exact-card 128K receipt exists.
+
+## IQ3_S — quality-first target
+
+| Active context | Mature TG target | TG planning confidence | Mature cold PP target | PP planning confidence |
+|---|---:|---:|---:|---:|
+| <=8K | **85 TG** | **~65%** | — | — |
+| ~32K | **78 TG** | **~65%** | **1,200 PP** | **~80%** |
+| ~64K | **70 TG** | **~60%** | **1,150 PP** | **~75%** |
+| ~128K | **60 TG** | **~55%** | **1,050 PP** | **~70%** |
+
+This lane deliberately sacrifices throughput for quant headroom. Do not raise it from IQ3_XXS speed
+receipts without a same-checkpoint physical run.
+
+## Stability / admission targets
+
+| Production gate | Target | Planning confidence now |
+|---|---:|---:|
+| sustained single-slot soak | **8 h, zero stalls/watchdogs** | **~90%** |
+| extended soak | **24 h, zero stalls/watchdogs** | **~75%** |
+| Windows 16-GB/64-GB auto admission | **boots first try, no expert-cache OOM** | **~70%** |
+| error recovery with healthy RAM headroom | **restart <60 s** | **~80%** |
+
+Why the stability confidence moved:
+- exact 5070-Ti 0.1.14: ~3.5 h / three HE+ sweeps, **zero stalls**;
+- another 16-GB Blackwell / 64-GB host reported a few sustained hours with **zero stalls**;
+- the remaining admission issue (#60) is a distinct boot-time cache-sizing/fragmentation problem, not recurrence
+  of the verify-window NVIDIA-driver-lock deadlock.
+
+## Quality-certification targets
+
+These are **planning probabilities for the custom Project-51 AA suite**, not measured AA scores:
+
+| Quant | Quality objective | Planning confidence |
+|---|---|---:|
+| IQ3_XXS | **AA >=38** | **~85%** |
+| IQ3_XXS | **AA >=40** | **~65%** |
+| IQ3_S | **AA >=40** | **~75%** |
+
+Rationale: DASLab's official 3.0-bpw Flash-Next IQ3_XXS task average is ~99.4% of BF16 on its published
+suite, but Project-51 still requires source-vs-quant xhigh reasoning, coding, tools, long-context semantics,
+thinking behavior and speculative-acceptance certification. IQ3_S gets a higher AA>=40 prior because it retains
+more weight precision, not because this custom AA test has already been run.
+
+## Promotion order
+
+1. Reproduce the **0.1.14+ zero-stall soak** on the user's exact box for >=8 h.
+2. Resolve or bound the **16-GB/64-GB Windows admission-margin** issue.
+3. Run a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S.
+4. Run the AA suite with INT8 KV as the default quality baseline; Q4 KV remains a capacity/speed arm.
+5. Only after those pass, optimize toward the 128K stretch numbers.
 
 ---
 
