@@ -1,177 +1,113 @@
-# Project 51 primary-lane research watch — 2026-09-28 09:58 ET
+# Project 51 primary-lane research watch — 2026-09-28 11:56 ET
 
-**Freshness boundary entering this pass:** **2026-09-28 11:34:46 UTC**.  
-**User cutoff:** **2026-09-28 13:58:58 UTC**.
+**Freshness boundary entering this pass:** **2026-09-28 13:58:58 UTC**.  
+**User cutoff:** **2026-09-28 15:56:26 UTC**.
 
 ## Decision
 
-**No canonical target change.**
+**Dual-M1 and single-M1 targets unchanged. A dedicated Strata / RTX 5070 Ti target ladder is added to TARGETS.**
 
-Keep:
-- dual-M1 Flash-Next: **40 TG @ genuinely filled ~128K / 400 cold PP / ~70% >=40 confidence**
-- single-M1 dense27B: **25 TG / ~110 PP**
-- RTX 5070 Ti dense27B: context-aware ladder from the prior pass
-- unpruned/source-like Flash-Next as the AA~40 production-quality baseline
+The new Strata lane is deliberately separate from the dense Qwen3.8-27B CUDA-v2 lane.
 
-## NEW — Strata 0.1.16 supports DASLab's 256-of-512-expert Flash-Next Coder
+## NEW — exact RTX 5070 Ti post-fix liveness validation finally lands
 
-PR #54 merged in-window; v0.1.16 published **2026-09-28 12:44:05 UTC**.
+Strata issue #31 comment at **2026-09-28 14:28:36 UTC** reports validation of the 0.1.14 GPU-copy fix on the original failure box:
+- Windows
+- **RTX 5070 Ti 16 GB**
+- Ryzen 9800X3D
+- 63/64 GB host RAM
+- sustained single-slot HE+ workload
+- three 164-task sweeps
+- roughly **3.5 hours**
+- q4_0 and int8 KV legs
+- **zero stalls**
+- **zero watchdog trips**
 
-The DASLab Coder keeps **256/512 routed experts per layer**, still top-10 active/token. Retained weights are 3.5 bpw; resident transformer shard is 29.6 GB and the PLE/ngram shard may stay off resident memory.
+Before the fix, this workload was freezing roughly every **20–45 minutes**.
 
-DASLab xhigh quality:
-- LiveCodeBench v6: **87.43 BF16 -> 86.28 Coder (98.7% retained)**
-- SWE-bench Verified: **82.80 -> 75.60 (91.3% retained)**
+Reported HE+ score on the same run:
+- q4_0: **153/164 = 93.3%**
+- int8: **153/164 = 93.3%**
 
-Therefore this is **not source-like enough for the AA~40 primary lane**. It is a capability-targeted coding/agent/vision compression lane.
+The reporter says 0.1.14 is at or above prior score bands while removing the stall.
 
-Strata RTX 5070 12 GB / R5 7600 / 64 GB matrix:
-- 1K: **599 PP / 53.3 TG**
-- 4K: **1,152 / 50.6**
-- 32K: **1,298 / 53.3**
-- 64K: **1,350 / 50.8**
-- 128K: **1,266 / 44.0**
-- 262K: **1,034 / 42.8**
+**P51 consequence:** the production gate moves from 'exact-card fix not yet validated' to **'exact-card fix validated for ~3.5 h; require 8 h zero-stall soak for production promotion and 24 h for high-confidence endurance.'**
 
-A separate RTX3090 PR test ran ~3.5 hours to **192K context**, one compaction, zero engine errors, 27–42 TG and 65–85% draft acceptance.
+TARGETS now records:
+- 8 h zero stalls/watchdogs: **~90% planning confidence**
+- 24 h zero stalls/watchdogs: **~75%**
 
-**P51 consequence:** keep Coder as a specialized capacity/coding fallback and expert-pruning research lane. Do not credit its speed/memory savings to the unpruned dual-M1 target.
+## NEW CORROBORATION — second 16-GB Blackwell / 64-GB host also clean on 0.1.14
 
-## NEW — Strata 0.1.17 ships sampler semantics + Claude Code fixes
+Issue #31 comment at **14:52:36 UTC** reports a separate RTX 5060 Ti 16 GB / Ryzen 5700X3D / 64 GB host running a few sustained hours on 0.1.14 with **no stall and no watchdog trip**.
 
-Sampler commit 3e936701c877b57c2ff49040e0a674bd0bd981c7; engine commit 236d5f214a9917b7f3f320fbc09b828d0dae5401; release published **13:40:19 UTC**.
+That box also confirms PCIe-link sensitivity: on PCIe 4.0 x8, measured H2D is ~13.7 GB/s and a lower pcie_frac materially beats the x16-style setting.
 
-Sampling order is now:
-1. penalties once
-2. top_k
-3. top_p
-4. min_p
-5. temperature
+**P51 consequence:** Strata tuning must treat **PCIe bandwidth as an input to expert-streaming policy**, not assume one optimal resident/miss balance across cards.
 
-The prior double-penalty defect is closed; greedy/default-temperature-zero is unchanged.
+## UPDATE — Strata 0.1.18
 
-0.1.17 also fixes:
-- Anthropic `/v1/messages?beta=true` query-string handling
-- mid-conversation system/developer messages that previously crashed the Qwen chat template
+v0.1.18 published **2026-09-28 14:06:44 UTC**.
 
-A reporter verified a real Claude Code edit-and-test task with ~17K–25K prompts and KV reuse.
+No core performance change relevant to P51. It adds clearer update behavior, a setup shortcut, and a guard so a zero-length penalty window does not touch an unsized sampler buffer. The server's normal path was not affected by that sampler guard.
 
-**P51 consequence:** protocol/envelope compatibility belongs in agent-runtime certification.
+## UPDATE — 16-GB / 64-GB Windows admission issue remains open
 
-## NEW RISK WATCH — Strata #60: 16-GB VRAM / 64-GB RAM Windows admission failure
+Strata #60 received another similar-issue report at **15:10:53 UTC**, but no maintainer diagnosis by cutoff.
 
-Opened **2026-09-28 13:51:03 UTC**. Windows 10, 16 GB VRAM + 64 GB RAM, Swift1.5 IQ2_XS, 64K context.
+The original failure still looks like an admission/headroom mismatch: whole-arena registration partly fails, auto cache sizing sees enough nominal free VRAM, then large expert-cache cudaMalloc fails.
 
-Log:
-- 33.02 GiB expert arena loaded
-- whole-arena cudaHostRegister fails; ~29 GiB pins in slices
-- engine reports ~9.96 GiB free VRAM and chooses a 9.28-GiB expert cache
-- cudaMalloc(9.28 GiB) then fails OOM
+This remains a separate production gate from the now-fixed generation deadlock.
 
-No maintainer diagnosis by cutoff.
+## TARGET UPDATE — Strata / RTX 5070 Ti lane
 
-**P51 consequence:** exact 5070-Ti Windows admission tests must reserve fragmentation/driver/module/vision/MTP headroom before auto-sizing expert cache and observe free VRAM before/after host registration.
+TARGETS now has a dedicated section for **Qwen3.8-Flash-Next on Strata / RTX 5070 Ti 16 GB / 64 GB Windows**.
 
-This is separate from the fixed mid-generation DMA/driver-lock stall.
+### IQ3_XXS balanced lane
 
-## UPDATE — no exact-5070-Ti post-fix clean soak yet
+| Context | TG target | TG confidence | Cold PP target | PP confidence |
+|---|---:|---:|---:|---:|
+| <=8K | **100** | **~75%** | — | — |
+| ~32K | **95** | **~75%** | **1,300** | **~85%** |
+| ~64K | **90** | **~80%** | **1,250** | **~80%** |
+| ~128K | **78** | **~65%** | **1,150** | **~75%** |
 
-No new #31/#29 stall-thread receipt appeared in this window. Keep the production liveness gate.
+Stretch: **90 TG @128K**, ~35–40% confidence until direct exact-card 128K receipt.
 
-## NEW — SGLang virtual->physical recurrent checkpoint corruption fix
+### IQ3_S quality-first lane
 
-Commit da3eb6db32a1d2de6e8bb0d4b3984a33c1d3f7ef merged **12:19:19 UTC**.
+| Context | TG target | TG confidence | Cold PP target | PP confidence |
+|---|---:|---:|---:|---:|
+| <=8K | **85** | **~65%** | — | — |
+| ~32K | **78** | **~65%** | **1,200** | **~80%** |
+| ~64K | **70** | **~60%** | **1,150** | **~75%** |
+| ~128K | **60** | **~55%** | **1,050** | **~70%** |
 
-Unified-memory Inkling wrote virtual `mamba_track_indices` as physical slots. Cold recompute was correct, but prefix hits restored stale/foreign conv state:
-- max |Δlogprob| **0.086 / 0.120**
-- greedy first-token flips
+### Quality priors for custom AA certification
 
-Translating track ids through the virtual->physical mapping restores bit-exact tested hits.
+These are planning probabilities, not measured AA scores:
+- IQ3_XXS **AA>=38: ~85%**
+- IQ3_XXS **AA>=40: ~65%**
+- IQ3_S **AA>=40: ~75%**
 
-**P51 rule:** state lineage includes logical->physical slot mapping; never write virtual ids directly into physical recurrent storage.
-
-## NEW — llama.cpp Metal graph packing must remain shape-stable for zero-row branches
-
-Commit d77dd0806dc26fc418273ef99f88da11239ca41b at **13:36:38 UTC**.
-
-Zero-element tensors were excluded from fusion matching, so no-output decode graphs packed differently from the reserved graph and triggered allocator re-reserve. They now preserve structural packing and dispatch zero threadgroups.
-
-The same commit broadens recurrent-state rollback/split-replay testing across generated model architectures.
-
-**P51 consequence:** include S=0/no-output and partial-accept branches in Apple graph-allocation/state tests.
-
-## UPDATE — vLLM PLE metadata: mostly a concurrency win
-
-Commit 20b52e9f5b5793d56586b91df9b93cbe30a24040 merged **12:46:22 UTC**.
-
-Metadata-builder microbench: **~32–48% less wall time**.
-
-Qwen3.8 Flash TP4+MTP3 E2E:
-- c=1 output **244.3 -> 240.6 TG (-1.5%)**
-- c=8 **490.0 -> 514.3 TG (+5.0%)**
-- c=8 TPOT ~-4.7%, TTFT ~-4.5%
-
-**P51 consequence:** metadata/control optimization is mainly a B2-B4/multi-agent lane unless B1 wall-clock proves otherwise.
-
-## NEW EXPERIMENTAL — TensorFold exact conversation checkpoints spilled to SSD
-
-PR #68 opened **12:41:59 UTC**, not merged by cutoff.
-
-M5 Ultra / Qwen3.8-27B 4-bit + DFlash2:
-- evicted 35,583-token conversation restored in **2.3 s**
-- cold fresh server: **26.2 s**
-- 35,396 cached tokens reused
-- output SHA byte-identical
-- 2.2–2.4 GiB spill in **0.18–0.19 s**, read-back ~0.24 s
-
-**P51 consequence:** strong mechanism for multi-agent exact SSD cache tier; no M1 SSD timing transfer.
-
-## UPDATE — MLX-Serve DFlash tree approaches TensorFold on M5 Max, not uniformly
-
-PR #604 updated through cutoff; #606 adds follow-ups.
-
-Experimental path: compact GDN initial-state replay, up to 16 verify rows, native uint4 NAX kernels, earlier GPU submission.
-
-M5 Max examples:
-- Vontra 4-bit code T=1: control **132.8**, candidate **181.4**, TensorFold **201.1 TG**
-- ddalcu 4-bit code T=1: candidate **~202–212**, TensorFold **~200–201**
-
-Chat/checkpoint results are less consistent. #606 makes replay length a runtime input rather than a per-length template specialization.
-
-**P51 consequence:** compact initial-state + accepted-path replay is viable; S up to 16 remains workload/checkpoint/hardware dependent. No M1 numeric credit.
-
-## WATCH — oMLX quantifies remaining Flash MoE bandwidth headroom
-
-Issue #4054, M5 Ultra/oQ5e:
-- R=1: **54.2 us/layer = 2.60 ms/step**, ~1.81 ms byte floor
-- R=4: **118.6 us/layer = 5.69 ms/step**, ~4.17 ms byte floor
-
-Potential gap ~0.79 ms/step R1 and ~1.52 ms/R4 verify window if fully closed. Roadmap/profile only.
-
-**P51 consequence:** MoE remains a plausible lossless optimization target after verifier correctness; measure M1 bytes/read and achieved bandwidth before transfer.
-
-## SAME-DAY CURRENT — exact 5070 Ti Strata code-generation corroboration
-
-A same-day Reddit update in the existing Strata thread reports **~91 TG on RTX 5070 Ti at 64K while generating code** with IQ3_XXS. Exact comment timestamp is unavailable, so this is corroboration, not strict-window evidence. It does not change the liveness gate.
+INT8 KV remains the quality baseline. Q4 KV remains an optional capacity/speed lane.
 
 ## Strict-window scan summary
 
-From **11:34:46 -> 13:58:58 UTC**:
-- **Strata:** Coder support/release, 0.1.17 sampler+Claude-Code fixes, 16GB/64GB Windows admission issue; promoted.
-- **SGLang:** recurrent-slot translation corruption fix; promoted.
-- **llama.cpp:** Metal zero-element graph-packing + broader rollback tests; promoted.
-- **vLLM:** PLE metadata optimization; promoted with B1-vs-concurrency caveat.
-- **TensorFold:** exact disk-spill checkpoint PR; experimental promotion.
-- **mlx-serve:** DFlash tree comparison/followups; mechanism promotion.
-- **oMLX:** MoE bandwidth roadmap; watch.
-- **Ishizuki / MTPLX / Splash / upstream DFlash:** no strict-window primary-lane commit.
+From **13:58:58 -> 15:56:26 UTC**:
+- **Strata:** exact-card 0.1.14 clean-soak receipt promoted; second 16-GB-card corroboration; 0.1.18 release; #60 admission risk persists.
+- **Splash:** server/test/memory-plan maintenance only; no new M1 performance receipt.
+- **vLLM:** no P51-primary Qwen3.8 result in-window.
+- **llama.cpp:** no new P51-primary Apple/CUDA result in-window.
+- **TensorFold / mlx-serve / oMLX / Ishizuki / MTPLX / DFlash:** no new merged physical M1 receipt in-window.
 
 ## Canonical planning effect
 
-**No target changes.**
-
-Coder fails the source-like agentic quality bar strongly enough to remain secondary. Strata's liveness fix still lacks exact-card clean soak validation. Apple findings refine graph/state/cache engineering but do not provide a new physical dual-M1/TB4 Flash-Next receipt.
+- dual-M1 Flash: **unchanged 40 TG @ ~128K / 400 cold PP / ~70% >=40**
+- single-M1 dense: **unchanged 25 TG / ~110 PP**
+- dense 5070-Ti CUDA-v2 ladder: unchanged
+- **new Strata-specific Flash-Next target ladder added**
 
 ## New hard boundary
 
-**2026-09-28 13:58:58 UTC**
+**2026-09-28 15:56:26 UTC**
