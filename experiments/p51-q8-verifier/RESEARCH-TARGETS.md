@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-23 15:03 ET**
+Latest strategy true-up: **2026-09-28 07:34 ET**
 
 This is the canonical planning-target file for the three recurring model families:
 
@@ -167,7 +167,7 @@ exact M1-Max/TB4 evidence.
 |---|---:|---:|---:|---:|
 | **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s @ ~128K active context** | **~70% planning confidence for >=40** | **400 tok/s** | **~70%** |
 | **Qwen3.8-27B — M1 Max 64** | **25 tok/s** | **~65%** | **110 tok/s native/exact-runtime** | **~60%** |
-| **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 tok/s** | **~60-65%** | **250 tok/s** | **~55-60%** |
+| **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 <=8K / 110 ~16K / 95 ~64K / 90 ~128K tok/s** | **~75-90% by context; direct same-GPU-class v2 ladder** | **1,900 @24-32K / 1,500 @~128K tok/s** | **~80-85%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
 Interpretation: these are the numbers to optimize toward in planning and experiment selection. They
@@ -390,53 +390,96 @@ Source anchor: Blaizzy/mlx-vlm #1943, M1 Max 64 GB, Qwen3.8-27B-4bit, 2,048-toke
 
 # 3. Qwen3.8-27B — RTX 5070 Ti 16 GB + host RAM
 
-This is the user's practical speed lane. The target model must remain fully resident; a nominally
-higher-quality quant that spills is not a valid performance candidate.
+This is the user's practical speed lane. **Context is now part of this target's identity.** A single
+context-free TG or PP number is no longer an adequate ruler for this card.
 
-## TG
+The production candidate must remain fully resident on the 16-GB GPU. A nominally higher-quality
+quant that spills is not a valid performance candidate. Quality certification remains separate from
+runtime throughput: the strongest current physical receipt uses an abliterated GSQ-RCO IQ3_S build,
+so its speed transfers much more cleanly than its behavioral quality.
 
-| Mature mixed coding/agent TG | Confidence |
-|---|---:|
-| >=100 tok/s | ~95% |
-| >=110 tok/s | ~85-90% |
-| **>=120 tok/s** | **~60-65%** |
-| >=130 tok/s | ~35% |
-| >=140 tok/s | ~15% |
+## 2026-09-28 target true-up — same GPU class, current CUDA-v2 path
 
-**Working target: 120 tok/s mixed agent TG.**
+A missed 2026-09-27 physical receipt on an **RTX 5070 Ti 16 GB / GB203 / sm_120** invalidates the old
+blanket **120 TG / 250 PP** planning row.
 
-Direct exact-rig anchors already include:
+The measured system was a Ryzen 7 9800X3D / 32 GB DDR5-6000 host rather than the user's exact host,
+but the target model was fully GPU-resident and the GPU/VRAM identity is exact. It ran Qwen3.8-27B
+GSQ-RCO IQ3_S + embedded MTP, Q4_0 target/draft KV, batch 512 / ubatch 256, MTP depth <=3 and a pinned
+llama.cpp CUDA-v2 patch. The production sampler and xhigh-capable serving configuration were exercised.
 
-- Q3_K_XL + native MTP around **113.27 tok/s** at 32K in an earlier server sweep;
-- **116.89 tok/s** at 24K / q8 KV / MTP depth 4;
-- ~97.2 tok/s mean across a later cache-busted 8K four-workload A/B;
-- individual code/HTML lanes around 110-122 tok/s and tool-shaped outputs above 120 tok/s;
-- larger IQ4_XS configurations spill badly and therefore do not define the speed target.
+Direct measured ladder:
 
-The ~120 center target assumes modest gains from current Blackwell small-N verify work and adaptive
-MTP policy, not a transfer of RTX PRO 6000 absolute rates.
+| Active prompt/context regime | Decode TG | Cold PP | Notes |
+|---|---:|---:|---|
+| short | **130.0-131.6** greedy / **129.5** sampled | — | 256-token short fixture |
+| ~15.7K | **104.7** greedy / **111.7** sampled | **2,030** | production sampler also measured |
+| ~62.5K | **98.0** greedy / **96.0** sampled | **1,814** | 512 generated tokens |
+| ~92.9K | **94.8** | **1,696** | 512 generated tokens |
+| ~128.8K | **91.3** | **1,576** | 128,794-token prompt; 81.7 s prefill |
 
-## Cold PP — 24K-32K server-class ruler
+At ~128K, llama-server peaked at about **14.93 GiB** and the whole card at about **15.07 GiB** with a
+light desktop. A 119K ledger-recall test returned all four planted values exactly; an append-only
+follow-up reused about 119.6K cached tokens.
 
-| Mature cold PP | Confidence |
-|---|---:|
-| >=200 tok/s | ~95% |
-| >=225 tok/s | ~80% |
-| **>=250 tok/s** | **~55-60%** |
-| >=300 tok/s | ~25% |
-| >=350 tok/s | ~10% |
+This is not an upstream llama.cpp baseline. The pinned patch rewrites a large part of the Blackwell
+hot path: multi-column quantized matvec, reduced-vocabulary MTP drafting, fused draft catch-up,
+distribution-exact coupled sampling, small-query Q4 attention, INT8 prompt QK, fused decode glue and
+faster prompt GDN/MMQ kernels. The numerical checks are strong for runtime correctness, but they do
+**not** certify the checkpoint to the Project-51 AA~40 quality requirement.
 
-**Working target: 250 tok/s cold PP at agent-sized context.**
+### Working TG ladder
 
-Direct rig anchors:
+| Context | Mature TG target | Planning confidence |
+|---|---:|---:|
+| <=8K | **120 tok/s** | **~90%** |
+| ~16K | **110 tok/s** | **~80%** |
+| ~64K | **95 tok/s** | **~80-85%** |
+| ~96K | **92 tok/s** | **~80-85%** |
+| ~128K | **90 tok/s** | **~75-80%** |
 
-- 24K, q8 KV, native MTP depth 4: **219.1 tok/s PP / 116.89 tok/s TG**;
-- 32K, q8 KV, native MTP depth 4: **191.0 tok/s PP / 113.27 tok/s TG**;
-- plain fully-resident Q3_K_XL `llama-bench pp512` can exceed 1,900 tok/s, proving the short-batch
-  matrix path is not the production PP ruler; realistic server context is the relevant target.
+These targets deliberately sit slightly below the corresponding physical receipts to leave room for
+workload/acceptance variance and for a source-like production quant. **120 TG remains the short-context
+working target; it is no longer a context-free mixed-agent target.**
 
-Promotion gate: first pass the Blackwell prompt-shape/ubatch stability matrix (ubatch 256/512,
-neutral + code/tool prompts, MTP off/on). A faster but prompt-fragile build does not count.
+## Cold PP ladder
+
+The old **250 PP at 24K-32K** target is retired. It described an older server/runtime path whose direct
+anchors were only 191-219 PP; it is not a hardware ceiling.
+
+| Context | Mature cold PP target | Planning confidence | Current physical anchor |
+|---|---:|---:|---:|
+| ~24K-32K | **1,900 tok/s** | **~80%** | bracketed by 2,030 @15.7K and 1,814 @62.5K |
+| ~64K | **1,750 tok/s** | **~80-85%** | 1,814 @62.5K |
+| ~96K | **1,650 tok/s** | **~80-85%** | 1,696 @92.9K |
+| ~128K | **1,500 tok/s** | **~80-85%** | 1,576 @128.8K |
+
+The ~24K-32K target is an interpolation between adjacent physical receipts, not a claim that an exact
+32K run measured 1,900 PP. The ~64K/~96K/~128K rows each have a nearby direct prompt measurement.
+
+### Historical pre-v2 anchors retained
+
+The older exact-card/server path measured:
+
+- 24K, q8 KV, native MTP depth 4: **219.1 PP / 116.89 TG**;
+- 32K, q8 KV, native MTP depth 4: **191.0 PP / 113.27 TG**;
+- Q3_K_XL + native MTP around **113.27 TG** at 32K;
+- a cache-busted 8K four-workload A/B around **97.2 TG mean**.
+
+Those rows remain useful as evidence of how much the runtime path changed; they no longer define the
+mature PP distribution.
+
+### Promotion gates
+
+The new speed ladder becomes a production lane only after:
+
+1. the same patch or equivalent mechanisms reproduce on the user's 5070 Ti host;
+2. neutral + code/tool + long-agent prompts pass the prompt-shape/ubatch stability matrix;
+3. sampled and greedy semantics pass an independently derived sampler oracle;
+4. the chosen source-like quant passes AA~40 reasoning/coding/tool/long-context gates;
+5. long-context MTP acceptance, KV quality and tool behavior remain stable through ~128K.
+
+A faster but prompt-fragile or behavior-changing build does not count.
 
 ---
 
@@ -503,8 +546,9 @@ Mandatory qualification before accepting a DS4 PP/TG number:
 
 For pure interactive speed on the hardware already owned:
 
-1. **RTX 5070 Ti + Qwen3.8-27B** — already closest to its mature target and most likely to exceed
-   120 tok/s on favorable code/tool traffic.
+1. **RTX 5070 Ti + Qwen3.8-27B** — now has a direct same-GPU-class long-context CUDA-v2 ladder:
+   roughly 130 TG short, ~91 TG at 128K and 1.6K-2.0K cold PP across 16K-128K. The remaining work is
+   source-like quant/AA qualification and reproduction on the user's host, not proving the raw GPU ceiling.
 2. **Dual-M1 Flash-Next** — highest upside among the Apple cluster lanes, but also the largest direct
    measurement gap; **40 TG @ ~128K / 400 PP** is the center system goal, not yet a physical receipt.
 3. **Single-M1 Qwen3.8-27B** — useful exact/kernel optimization laboratory; ~25 TG is the realistic
