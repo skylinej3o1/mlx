@@ -1,227 +1,182 @@
-# Project 51 primary-lane research watch — 2026-09-28 16:02 ET
+# Project 51 primary-lane research watch — 2026-09-28 17:39 ET
 
-**Freshness boundary entering this pass:** **2026-09-28 17:54:51 UTC**.  
-**User cutoff:** **2026-09-28 20:02:08 UTC**.
+**Freshness boundary entering this pass:** **2026-09-28 20:02:08 UTC**.  
+**User cutoff:** **2026-09-28 21:39:35 UTC**.
 
 ## Decision
 
-**No canonical speed-target change.**
+**No 40-TG / 400-PP speed-target change.**
 
-Keep:
-- dual-M1 Flash-Next: **40 TG @ genuinely filled ~128K / 400 cold PP / ~70% >=40**;
-- single-M1 dense27B: **25 TG / ~110 PP**;
-- dense RTX5070Ti CUDA-v2 ladder unchanged;
-- Strata Flash-Next target ladders unchanged.
-
-One target-definition refinement landed: **prefix reuse is not automatically physical prefix sharing.** A common prefix earns multi-agent memory-capacity credit only when several resident agents actually reference one shared immutable state image while holding independent private suffixes.
+Two non-speed planning updates:
+- the CUDA->Apple handoff is now a formal qualification target, because TensorFold #77 demonstrates a real CUDA-state -> MLX-cache continuation path;
+- the Strata IQ3_S **AA>=40 planning prior rises ~75% -> ~80%** after DASLab reports **82.0 SWE-bench Verified vs 82.8 BF16 (~99.0% retained)** on the unpruned IQ3_S build. This is still not a measured Project-51 AA score.
 
 ---
 
-## NEW — Strata 0.1.20 pins the shared system/tool prefix for new chats
+## NEW — TensorFold #77 directly validates CUDA prompt-state -> MLX continuation
 
-Release published **2026-09-28 17:59:33 UTC**.
+Issue opened **2026-09-28 21:32:47 UTC**. This is the closest external experiment yet to the Project-51 heterogeneous-prefill design.
 
-PR #62 changes the existing single-branch conversation cache from FIFO to a pinned-root + LRU-leaf policy. The deepest checkpoint shared by the retained conversation chain stays resident while later checkpoints rotate.
+Setup:
+- Qwen3.8-27B 4-bit, identical checkpoint bytes on both machines;
+- CUDA producer: DGX Spark / GB10, TensorFold 0.3.6.2;
+- MLX consumer: M3 Ultra;
+- producer state serialized to safetensors; consumer loaded it directly into the MLX Qwen3.5-family cache.
 
-Measured IQ3_XXS / RTX4070 example:
-- 16,747-token shared system prompt;
-- old new-chat path: **14,898 ms** prompt read;
-- pinned-root path: **1,176 ms**;
-- repeat: **1,181 ms**;
-- `--prompt-cache 1` fallback: **14,948 ms**.
+State mapping is structurally 1:1:
+- CUDA `conv[i] (k-1, conv_dim)` -> MLX `ArraysCache[0]` after adding batch dim;
+- CUDA recurrent `rec[i] (Hv,Dv,Dk)` -> MLX `ArraysCache[1]` after adding batch dim;
+- CUDA attention `kv[i] (T,kv_heads,head_dim)` -> MLX KV cache after batch dim + T/head transpose.
 
-That is **12.7x lower first-message prompt-read time** in the measured new-chat case. The PR estimates a 30K shared prefix saves roughly 25–30 s at ~1,100 PP. All ten A/B answers were token-identical; decode throughput was unchanged.
+Measured state size: roughly **64 KiB per prompt token + ~150 MiB fixed**; about **1.9 GiB at 28K**. The issue estimates ~2 s over 10GbE, but transfer was not actually measured over that link, so no transport-latency credit.
 
-Important limitation: Strata still has **one live KV arena / one branch of history at a time**. This is checkpoint reuse, not true simultaneous physical sharing of one prefix across multiple resident agent suffixes.
+### 28,227-token prompt / 64-token greedy continuation
+
+| Producer prefill | PP | Tokens equal to Mac-native prefill | Min cosine K/V | Min cosine recurrent |
+|---|---:|---:|---:|---:|
+| CUDA fast prefill / FP8 inputs | **1,593** | **40/64** | **0.850** | **0.949** |
+| CUDA fast prefill OFF / BF16 inputs | **469** | **55/64** | **0.964** | **0.997** |
+| Mac native chunk-plan control | **400** | **33/64** vs another Mac chunk plan | **0.968** | **0.997** |
+
+At **8,925 tokens**, the FP8 CUDA-import continuation matched the Mac's native prefill on all 64 tokens.
+
+Layerwise diagnosis: FP8 K/V drift compounds with depth and prompt position; late-layer K/V is the main problem. BF16 producer state is roughly inside the Mac's own chunk-plan variability envelope.
 
 ### P51 consequence
 
-- Promote a **pinned immutable system/tools/repo root** as the first shared-prefix optimization.
-- Do not count its bytes once across N resident agents until Project 51 implements refcounted read-only attention KV + recurrent/GDN + QSA/indexer state with independent suffix ownership/rollback.
-- TARGETS now states this explicitly.
+This materially de-risks the bridge architecture:
+- **transport/layout is not the hard problem**;
+- the hard problem is a **handoff-safe producer precision/execution plan** that retains CUDA's PP advantage without drifting beyond the Mac consumer's own allowed numerical envelope.
+
+TARGETS now defines qualification:
+1. 32K first;
+2. then 96K / 128K;
+3. imported continuation must diverge no earlier than the Mac-native chunk-plan control;
+4. needles + agent replay must pass;
+5. export only from a committed safe frontier;
+6. producer fast-path PP earns no bridge credit if its state drift exceeds consumer tolerance.
+
+For Flash-Next the state schema is more complex than dense27B: P51 still needs QSA/indexer/PLE/MTP-specific state on top of this proven conv/recurrent/KV pattern.
 
 ---
 
-## NEW — Strata 0.1.20 makes the default PCIe policy topology-aware
+## NEW — MLX-Serve #614: approximate prompt-lookup acceptance can make coding agents loop
 
-PR #44 measures pinned-host -> device bandwidth once at startup using four 256-MiB DMA reads, then scales the default `pcie_frac` down on links slower than the PCIe4 x16 reference.
+Merged **2026-09-28 21:32:03 UTC**.
 
-Example physical x8 receipt:
-- RTX5060Ti 16 GB / PCIe4 x8;
-- measured H2D: **14.1 GB/s**;
-- default `pcie_frac`: **0.55 -> 0.30**.
+Under `--mtp-typical`, prompt-lookup drafts reused the typical-acceptance rule designed for MTP distributions. But a lookup draft is a **point mass copied from context**. A merely plausible copied token could therefore become deterministic: at entropy H=2 and threshold 0.2, target probability ~3% already clears the typical floor.
 
-x16-class links retain the existing default. Explicit `--pcie-frac` and `--calibrate` still override the automatic guess. No credible E2E speed number was claimed for this PR.
+Observed agent regression:
+- pre-lookup baseline: **0/4** loop stops;
+- v26.9.6-derived builds: **11/19** agent runs loop-stopped in prior observations.
+
+Controlled 12-sample arms:
+- lookup + typical: **2/12 loop-stops**, worst distinct-8 = 0.653;
+- lookup off + typical: 0/12;
+- lookup + exact: 0/12;
+- lookup off + exact: 0/12;
+- lookup + typical with this fix: **0/12**, worst distinct-8 = 0.947.
+
+Copy-heavy rewrite performance was essentially unchanged by exact lookup acceptance: sampled **240.2 -> 239.1 TG**, with ~85-87% lookup landed.
 
 ### P51 consequence
 
-Keep PCIe/TB bandwidth as a measured scheduler input. This independently reinforces our rule that expert/state movement policy must derive from actual link throughput, not card identity.
+**Acceptance semantics are draft-source-specific.** MTP, prompt lookup/copy, n-gram, tree and other proposal sources must each use an acceptance rule mathematically valid for that proposal distribution. A single 'typical' shortcut cannot be globally reused.
+
+Add agent-loop / n-gram-diversity checks to verifier certification, not just drafted==serial under greedy.
 
 ---
 
-## NEW — Strata monitor exposes per-request decode expert-cache hit rate
+## NEW — vLLM #58784: never verify speculative slots that were never proposed
 
-PR #69 records decode-only expert-cache hits/lookups, excluding prompt-prefill lookups, and surfaces the hit rate in the request monitor.
+Merged **2026-09-28 20:07:16 UTC**.
+
+On a P/D resume, placeholder draft slots were left as zeros in MRV2 and then verified as real token-0 proposals. With probabilistic/block verification, all placeholders could be accepted.
+
+Physical failure mode: **71/80** MT-Bench responses through the affected 1P1D path began with at least eight NUL tokens. After the fix: **0/80**; greedy outputs remained 80/80 identical.
 
 ### P51 consequence
 
-For every Strata 5070-Ti TG receipt, record **decode expert hit rate** alongside TG, acceptance, PCIe bandwidth and cache slots. A speed number without hit-rate provenance is no longer enough to compare expert-residency configurations.
+Every verify row needs an explicit validity/proposal mask. Unproposed/padded rows must be impossible to accept, even if their backing tensor contains a syntactically valid token id.
 
 ---
 
-## UPDATE — Strata multi-conversation shared core passes first Windows admission tests
+## NEW — vLLM #57107: dynamic acceptance-estimator shapes can trigger runtime compilation stalls
 
-#57 update at **19:57:42 UTC**: rebased shared-core work has its Windows physical-memory admission helper passing **23/23 MSVC tests**; a live `GlobalMemoryStatusEx` probe returns usable physical-memory data and impossible allocations are denied.
+Merged **2026-09-28 20:46:27 UTC**.
 
-Full Windows restore/agent acceptance is still pending.
+Triton scalar specialization created many compiled variants as `num_reqs` / `num_tokens` crossed values such as 1 and multiples of 16. Disabling those specializations collapsed:
+- accumulate kernel **14 variants -> 1**;
+- local-max/sumexp **3 -> 1**;
+- predict **3 -> 1**.
 
 ### P51 consequence
 
-Keep the shared snapshot work as a mechanism reference, not a production-ready source yet.
+For Apple verifier kernels, shape specialization should be intentional and bounded. Verify-width/concurrency routing may select from a small frozen kernel family, but incidental scalar values must not create compile/cache churn during serving.
 
 ---
 
-## RECOVERED OLDER — direct physical M1 Max 32-GB Flash-Next @128K via MoEspresso 3
+## NEW — TensorFold #76 M1 agent-loop triage points away from a proven runtime defect
 
-MoEspresso 3 was committed **2026-09-24** and surfaced in the community on Sep 27; it was missed by prior watches, so this is **RECOVERED OLDER**, not NEW.
+Physical M1 Max 64GB / Qwen3.8-27B + DFlash2 / TensorFold 0.3.6.2 no-thinking agent repeatedly wrote near-identical successful reproduction tests rather than making the code fix. A short MTPLX run showed a similar repeated-search pattern, so TensorFold was not isolated as cause.
 
-Physical configuration:
-- **2021 M1 Max, 24-core GPU, 32 GB unified memory**;
-- Qwen3.8-Flash-Next, all 512 routed experts retained in package;
-- default served context **131,072**;
-- measured physical grid **12.96–15.85 TG**;
-- release Cache-Prior 2/2 cell **15.46 TG**;
-- planner ceiling 24 GB, 43-token prompt, 32 greedy generated tokens, disk KV disabled.
-
-Memory/quant design:
-- 223/512 routed experts resident per layer on measured 32-GB configuration;
-- most routed projections **IQ2_K**; six early projection groups **IQ3_K**;
-- dense/non-routed tensors use higher Q6/Q8/BF16-class precision by role;
-- the original **102.4-GB BF16 PLE** remains file-backed on SSD and selected rows are read on demand;
-- attention state uses KVarN K4/V4 with exact BF16 sink/recent suffix;
-- no separate MTP sidecar in this package.
-
-Decode uses Cache-Prior 2/2 when bounded: resident experts get a ranking preference while the two strongest original routes are protected. Prefill is unbiased. This can change the selected expert set and therefore model output.
-
-Quality receipt is a reproducible but small 48-question mixed-category suite: local bounded path **84.3%** at medium reasoning vs hosted Qwen3.8 Flash **90.7%** at xhigh under a different provider protocol.
+Same-window bounded follow-up changed only `--no-thinking` -> `--thinking` (plus unavoidable CI overlap):
+- agent moved from reproduction to controller edit;
+- added regression tests;
+- finished in **13 model turns**;
+- **4/4 independent verifier checks passed**, reward 1.0;
+- no server errors, swap growth or memory-pressure failure.
 
 ### P51 consequence
 
-This is valuable **physical Apple7 feasibility evidence**:
-- full Flash-Next architecture can serve 128K interactively on a severely memory-constrained M1 Max;
-- dynamic precision + bounded expert residency + file-backed PLE + compressed attention state is practical on 2021 silicon.
-
-But it receives **no AA40/source-like numeric credit** because the routed experts are mostly IQ2_K and Cache-Prior deliberately changes routing. It also receives no direct dual-node scaling credit and does not move the 40-TG target.
+Keep this as an **agent-policy/configuration watch**, not a TensorFold defect. AA-agent certification should test thinking/no-thinking and recommended sampling separately; a no-progress guard belongs in the orchestrator even when the runtime is correct.
 
 ---
 
-## NEW — oMLX finds the long-context QSA crossover moved after fused attention rows
+## NEW — Strata #90 is an agent context-budget integration issue, not evidence of context corruption
 
-Issue #4061 opened **2026-09-28 19:24:11 UTC**, M5 Ultra / Flash-Next oQ5e.
+RTX3090 / Strata0.1.20 / IQ3_XXS / Hermes reports **50-60 TG**, then gets:
+`prompt 70,527 + max_tokens 65,536 > context 131,072`.
 
-oMLX currently switches text-only decode at 32,768 cached tokens from rank-one masked QSA to gathered QSA arms, based on an older M5 Max crossover.
-
-With newer fused attention rows on M5 Ultra, the **masked path is faster at every tested context from 16K to 128K**:
-- MTP off: **~5–6% faster** at 48K–128K;
-- MTP on: **~3–8% faster** at 48K–96K.
-
-The masked path is also bit-identical to the unfused MLX reference; the gathered path is not. Attention's share of one decode token grows from **19% at 16K to 26% at 64K**.
+The arithmetic is valid: Strata reserves the requested output allowance and explicitly does not truncate. The client/session needs a smaller dynamic output cap or earlier compaction.
 
 ### P51 consequence
 
-- QSA execution-plan thresholds must be keyed by chip + kernel generation + context + verify width, not inherited globally from another Apple generation.
-- Long-context AA baseline should prefer the bit-exact masked path whenever it is not slower.
-- No M1 numeric credit yet, but this identifies another plausible 128K TG lever for Apple-specific tuning.
+Agent orchestration must budget **prompt + reserved output <= resident context window**. The runtime should expose remaining-context headroom so the client can set a realistic per-turn output cap instead of reserving a fixed 64K late in a long session.
+
+No performance-target credit from the 50-60-TG anecdote because hardware/config/context details are insufficient for a controlled receipt.
 
 ---
 
-## NEW — SGLang closes another PD transfer ownership hole
+## RECOVERED CURRENT — DASLab IQ3_S SWE-bench Verified is near-BF16
 
-PR #41404 merged **18:19:51 UTC**.
+DASLab reports the unpruned Flash-Next GSQ-RCO IQ3_S at **82.0% SWE-bench Verified vs 82.8% BF16**, ~99.0% retained. Their model card also reports IQ3_S AIME25 100.0, GPQA-D 92.93 and LCBv6 86.86, task average 93.26 vs BF16 93.12.
 
-Before the fix, decode-side KV pages were deferred only when decode itself initiated an abort. A prefill fault, transport error or cache-restore failure could immediately release those destination pages while another rank still had a write in flight. The allocator could hand the pages to another request and the late transfer would corrupt the new owner.
-
-The fix:
-- notifies every prefill rank on any deferrable transfer failure;
-- arms drain-ack accounting before the abort notification;
-- retains destination ownership until all settled writers ack drain, or timeout;
-- releases immediately only when metadata was never published and therefore no remote writer can know the destination.
-
-### P51 handoff rule
-
-**Destination state pages remain owned by the transfer transaction until every possible writer has crossed a completion/drain fence. Failure is not permission to free them.**
-
-This applies directly to CUDA->Apple import staging and any future TB4 state mover.
-
----
-
-## NEW — vLLM resumable-request fix defines the correct continuation frontier under async execution
-
-PR #58259 merged **19:26:57 UTC**.
-
-With async scheduling, `num_computed_tokens` can be an optimistic frontier that includes old-turn dispatches still in flight. Reusing that value when a turn ends lets stale outputs land in the next turn.
-
-The fix resumes from:
-
-**safe_frontier = computed_tokens - output_placeholders**
-
-then marks the remaining in-flight outputs stale and drains/discards them before new-turn output is accepted.
-
-### P51 handoff rule
-
-State export/import and resident-agent continuation must snapshot the **materialized committed frontier**, never the optimistic scheduled frontier. Any old-turn GPU work still in flight must be fenced or explicitly marked stale before ownership advances to the successor turn.
-
----
-
-## NEW — SGLang replay fix: token metadata belongs to the committed token, not the recomputation
-
-PR #41235 merged **19:02:27 UTC**.
-
-During PD rebootstrap, SGLang can replay a previously emitted boundary token after prefill recomputes the prefix. It already kept the original behavior logprob but incorrectly appended the new prefill worker's sampling-mask row, producing one extra/misaligned mask row.
-
-The fix keeps both the original logprob **and original sampling mask** for the replayed token.
+This result predates the strict boundary and is therefore **RECOVERED CURRENT**, not NEW.
 
 ### P51 consequence
 
-Continuation lineage must include token-associated metadata whose semantics came from the original committed decision. Recomputing the same boundary token does not authorize silently replacing its behavior/sampling metadata.
+Raise only the **IQ3_S AA>=40 planning prior ~75% -> ~80%**. Do not call it AA-certified: custom P51 still needs xhigh tools, long-context semantics, state continuity, thinking behavior and speculative-acceptance checks.
 
----
-
-## RECOVERED CURRENT — long-context multi-row attention can make speculation slower if the verify path is wrong
-
-vLLM #59054 was opened before this pass boundary (**15:04:50 UTC**) and is therefore **RECOVERED CURRENT**.
-
-On the Triton attention backend, any speculative verify `q_len > 1` was forced onto a low-parallelism 2D varlen kernel. At 67K KV length, measured per-call attention was **~7–20x slower** than a small-q 3D split-KV path; serving with k=2 speculation fell to **16.5 TG** versus **56.1 TG** non-spec, while the proposed 3D verify path recovered **33.7 TG**.
-
-### P51 consequence
-
-Another independent confirmation that **multi-row verification needs its own long-context attention plan**. Never assume the B1 attention kernel is appropriate merely because q_len is small; benchmark verify widths and context jointly.
-
-No Apple/CUDA target credit from these SM80 numbers.
+IQ3_XXS quality priors remain unchanged.
 
 ---
 
 ## STRICT-WINDOW non-events
 
-- **Ishizuki:** no new commit.
-- **TensorFold:** no new post-0.3.6.2 commit in-window.
-- **mlx-serve:** no new commit in-window.
-- **MTPLX / DFlash:** no new commit in-window.
-- **Splash:** Hermes profile isolation/benchmark-harness maintenance only; no model-performance receipt.
-- **Strata:** no new exact-5070-Ti TG/PP ladder or longer exact-card soak in this window.
+- **Strata:** no 0.1.21 release, no new exact-5070Ti TG/PP ladder, no longer exact-card soak.
+- **TensorFold:** no new commit after 0.3.6.2; #77 is proposal/measurement, not merged support.
+- **oMLX:** no new issue/commit opened in-window.
+- **Ishizuki / MTPLX / DFlash / Splash / llama.cpp:** no primary-lane performance commit in-window.
 
 ---
 
 ## Canonical planning effect
 
-**No numeric speed-target changes.**
+**40/400 unchanged.**
 
-The strongest change is architectural confidence:
-- shared immutable prefixes are worth pinning immediately;
-- but actual multi-agent memory credit requires physical state sharing, not merely cache reuse;
-- state handoff must use a committed safe frontier and transaction-owned destination pages until every writer drains;
-- direct M1 Max 32-GB evidence further confirms that Flash-Next's 128K execution is physically viable on Apple7 even under severe memory pressure, while remaining too lossy/routing-biased to certify the AA40 production lane.
+The bridge is now substantially less speculative: a Qwen3.8 hybrid CUDA state has been physically imported into MLX and continued successfully. Project 51's remaining bridge uncertainty is concentrated in **producer numerical fidelity, Flash-specific state completeness, committed-frontier ownership, transfer time, and 96K/128K validation** rather than basic tensor-layout compatibility.
 
 ## New hard boundary
 
-**2026-09-28 20:02:08 UTC**
+**2026-09-28 21:39:35 UTC**
