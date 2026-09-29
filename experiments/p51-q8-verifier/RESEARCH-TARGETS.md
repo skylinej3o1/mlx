@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-29 08:58 ET**
+Latest strategy true-up: **2026-09-29 11:03 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -718,11 +718,13 @@ a final same-quant long-context matrix.
 | <=8K | **100 TG** | **~75%** | — | — |
 | ~32K | **95 TG** | **~75%** | **1,500 PP** | **~90%** |
 | ~64K | **90 TG** | **~80%** | **1,400 PP** | **~90%** |
-| ~128K | **78 TG** | **~65%** | **1,300 PP** | **~85%** |
+| ~128K | **78 TG** | **~85%** | **1,300 PP** | **~85%** |
 
 Interpretation:
-- 64K has the strongest direct same-card decode support and is therefore the highest-confidence long-context TG row;
-- 128K decode remains partly extrapolated from the exact-card healthy range plus the 12-GB context ladder;
+- 64K has the strongest repeated same-card decode support;
+- 128K now has a direct **RTX 5070 Ti / IQ3_XXS / Strata 0.1.24 physical anchor at 79.7 TG**, so the 78-TG center is
+  no longer primarily an extrapolation. Confidence rises to ~85%, but the center stays conservative because the
+  receipt is one machine/workload and speculative acceptance is text/language dependent;
 - PP targets are conservative relative to the 12-GB card because 16 GB should hold more experts resident, but an
   exact-card Strata PP ladder has not yet been published.
 
@@ -748,6 +750,21 @@ Strata 0.1.19 fixed speculative penalty history so every verified token now sees
 history as serial decoding. Correct non-neutral penalties reduce throughput by **~1-11%** in Strata's release testing
 because more drafts are rejected. For a production agent configuration that enables penalties, budget this discount
 until an exact RTX 5070 Ti 0.1.19+ ladder exists; do not treat it as a kernel regression.
+
+### Draft-vocabulary / candidate-space gate
+
+A speculative lane is not qualified merely because its draft head loads and verifies correctly. Strata issue #137
+shows that a compact draft vocabulary can silently exclude the output language: the bundled 40,525-token subset had
+only **27 CJK-bearing tokens**, and Chinese-output decode rose **76.8 -> 87.7 TG (+14%)** when the full native head
+was used.
+
+Production qualification therefore requires:
+- candidate-space coverage for the expected languages and structured/code token domains;
+- acceptance broken down by language/domain, not only aggregate acceptance;
+- a full-head or fail-open fallback when the subset cannot represent the target distribution;
+- verifier-width tuning only **after** candidate coverage is known healthy.
+
+Do not diagnose low acceptance as an S/kernel/model-quality problem until draft-vocabulary coverage is ruled out.
 
 ## Stability / admission targets
 
@@ -785,9 +802,11 @@ AA measurement and does not certify long-context/state/tool parity by itself.
 
 1. Reproduce the **0.1.14+ zero-stall soak** on the user's exact box for >=8 h.
 2. Resolve or bound the **16-GB/64-GB Windows admission-margin** issue.
-3. Run a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S.
-4. Run the AA suite with INT8 KV as the default quality baseline; Q4 KV remains a capacity/speed arm.
-5. Only after those pass, optimize toward the 128K stretch numbers.
+3. Complete a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S. The
+   **79.7-TG IQ3_XXS @128K** report is now a direct anchor, but not a full controlled ladder.
+4. Validate draft-vocabulary/language coverage and record acceptance by workload before tuning verifier width.
+5. Run the AA suite with INT8 KV as the default quality baseline; Q4 KV remains a capacity/speed arm.
+6. Only after those pass, optimize toward the 128K stretch numbers.
 
 ---
 
