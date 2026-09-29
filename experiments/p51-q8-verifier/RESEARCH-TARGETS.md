@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-29 17:50 ET**
+Latest strategy true-up: **2026-09-29 19:52 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -870,30 +870,53 @@ First-order fit estimate versus Strata's ~8.25-bpv INT8+scale representation:
 - **K6/V4:** ~5.45 bpv -> roughly **~2.4 GB @262K**; preferred first custom target;
 - **K4/V4:** ~4.25 bpv -> roughly **~1.9 GB @262K**; aggressive quality arm.
 
-These are **format-level estimates**, not measured Flash-Next memory receipts.
+These are **format-level Strata estimates**, not measured K6/V4 Flash receipts. For geometry context, a separate
+llama.cpp Flash-Next implementation physically measures **q8_0 3.19 GiB / q4_0 1.69 GiB / TBQ3 1.15 GiB @256K**,
+which brackets the same order of magnitude and confirms that only 12 full-attention layers dominate KV storage.
 
-### Implementation caveat — current TurboQuant does not solve Flash-Next KV today
+### Implementation status — proven in Flash llama.cpp research, still missing in Strata
 
-TurboQuant-MLX supports Qwen3.8-Flash-Next **weights**, but its `--kv-bits` path intentionally does **nothing**
-for Flash-Next. Flash's `_AttnCache` is a KVCache subclass that also carries sparse-QSA indexer keys; an earlier
-generic replacement dropped that state and silently changed attention behavior. The runtime now refuses to replace
-the subclass.
+**Correction:** compressed Qwen3.8-Flash-Next KV is not hypothetical. Two public llama.cpp research trees have
+implemented TurboQuant/TBQ-style KV for `qwen4exp` while retaining the hybrid sparse-attention model path.
 
-Therefore the P51 262K lane requires a new cache/state integration:
+Strongest physical capacity anchor:
+- Qwen3.8-Flash-Next **UD-IQ3_XXS**;
+- RTX **A5000 16 GB** / 128-GB host;
+- `-c 262144`;
+- only **12/48** layers hold full-attention KV;
+- q8_0 KV **3.19 GiB**, q4_0 **1.69 GiB**, TBQ3 **1.15 GiB** at 256K;
+- TBQ3 leaves **51 MoE-cache slots** versus 29 for q8_0 and reports ~**14.5 GiB** peak GPU use.
+
+This means the **16-GB VRAM side of IQ3-class Flash @ native context is physically demonstrated** with compressed KV.
+It does **not** prove a 64-GB host fit because that run had 128 GB system RAM.
+
+A second independent Flash fork measures Turbo3 K+V at essentially the same decode speed as q8_0 and about **341 MiB
+less GPU memory** in a 131K-class setup; a later short quality check reports roughly **+2.56% PPL vs q8_0**.
+
+What is still missing:
+- **Strata** does not yet expose a compressed+streamed TurboQuant Flash KV path;
+- **TurboQuant-MLX** intentionally skips Flash's `_AttnCache` because replacing it generically drops QSA indexer state;
+- no public implementation yet matches P51's proposed **K6/V4 + Strata streaming + exact QSA/indexer preservation**
+  on the user's Windows 5070 Ti box.
+
+P51 implementation should therefore **port/mine proven qwen4exp TBQ plumbing**, not invent the concept from zero:
 1. preserve QSA/indexer state separately and exactly;
 2. compress only the actual full-attention K/V payload;
 3. keep host KV compressed at rest;
 4. gather only needed/resident cells;
 5. dequantize into bounded register/shared scratch in the attention path;
-6. never materialize a second full 262K fp16 cache.
+6. never materialize a second full 262K fp16 cache;
+7. own Hadamard/rotation exactly once — existing Flash TBQ work found double-rotation to be a real integration hazard.
 
 ### Quality priors for the 262K lane
 
 Planning priors, not measured P51 results:
-- **physical fit, conditional on a correct compressed-streaming implementation:** ~**75-80%**;
+- **physical fit, conditional on a correct Strata compressed-streaming implementation:** ~**85%**;
+- **GPU/VRAM feasibility:** high confidence now that IQ3_XXS + 262K-class Flash + compressed KV has run on another
+  **16-GB NVIDIA GPU**;
 - **K6/V4 source-like long-horizon quality:** ~**60-70%** until Flash-specific 128K/262K evidence exists;
-- **end-to-end production readiness today:** lower than fit probability because neither Strata nor TurboQuant-MLX
-  currently ships the required Flash/QSA compressed-streaming path.
+- **end-to-end production readiness today:** lower than fit probability because the required path is not yet in Strata
+  and the 64-GB host margin remains the unresolved part.
 
 Broader TurboQuant evidence argues for caution:
 - production-oriented 2026 evaluations prefer 4-bit/no-QJL modes over 3-bit at very long context;
@@ -941,8 +964,8 @@ AA measurement and does not certify long-context/state/tool parity by itself.
 5. Require width-invariant native-expert arithmetic for source-equivalence / AA / MTP certification.
 6. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the currently implemented
    capacity control.
-7. Build/qualify the Flash-aware compressed-KV lane in this order: **K8/V4 control -> K6/V4 -> K4/V4**, preserving
-   QSA/indexer/recurrent/MTP state exactly.
+7. Port/mine the existing qwen4exp TBQ cache integration, then qualify the Strata Flash-aware lane in this order:
+   **K8/V4 control -> K6/V4 -> K4/V4**, preserving QSA/indexer/recurrent/MTP state exactly and proving rotation ownership.
 8. Qualify **IQ3_XXS + genuine 262K** on the exact 5070 Ti / 64-GB host: cold fit, peak physical RAM, compressed-host-KV
    bytes, 32K resident-window bytes, PP/TG, needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
 9. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
