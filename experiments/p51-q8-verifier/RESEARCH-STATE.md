@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-29 08:58 ET.
+Last consolidated: 2026-09-29 11:03 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -119,6 +119,20 @@ Future passes should seek status/performance updates rather than rediscover thes
 - stage-local recurrent state under PP; avoid chatty TB4 collectives
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
+
+### 2026-09-29 15:03 UTC exact-5070Ti / MTP-vocab / agent-eval update
+
+- **NEW exact-GPU-class Strata 0.1.24 IQ3_XXS receipt — RTX 5070 Ti 16 GB:** issue #137 reports a physical RTX 5070 Ti (PCIe 5 x16) + Ryzen 7 7700 + 96 GB DDR5-5200, engine 0.1.24, IQ3_XXS, INT8 KV, max context 131,072. Against the author's tuned llama.cpp fork on the same box/model class, Strata is reported at **79.7 TG @128K** versus **81.3 TG** for the fork. This directly closes much of the previous 128K extrapolation gap for the P51 5070-Ti lane. Keep the mature IQ3_XXS 128K center at **78 TG** but raise confidence; one domain-specific physical report is not enough to move the center or the 90-TG stretch.
+- **NEW MTP draft-vocabulary failure mode — same receipt:** Strata's bundled `draft_vocab.bin` contains **40,525 token ids but only 27 tokens containing a CJK character**, while the full tokenizer vocabulary contains **55,328** CJK-bearing tokens. Chinese-output draft acceptance collapses because the MTP head cannot propose most valid target tokens. Removing the subset vocabulary and using the full native head changes three fixed Chinese/mixed prompts from **76.8 average TG -> 87.7 TG (+14%)**; draft counts rise sharply, with no reported VRAM penalty. P51 rule: **draft candidate-space coverage is part of speculative identity**. Qualification must include output-language/domain coverage and a full-head/fail-open fallback; low acceptance is not automatically a model or verifier-kernel problem.
+- **Speculation width interaction from the same exact 5070-Ti box:** with the broken subset head, spec2 ~= spec4 (**76.2 vs 76.8 TG**); with the full head, spec4 is modestly better (**87.7 vs 85.8 TG**). This is a reminder that optimizing verifier width before fixing draft candidate coverage can produce false conclusions about S/acceptance efficiency.
+- **Expert-path bottleneck negative result:** the same author locally tried top-8 routed experts instead of top-10 for decode and measured **76.7 vs 76.8 TG** in Strata, despite a +10-18% gain in their llama.cpp fork. P51 interpretation: routed-expert count is runtime-sensitive; do not assume expert-byte reduction maps to decode TG when CPU/GPU handoff, verification or sparse-attention work is dominant.
+- **NEW real-agent cache failure evidence — Strata #143:** an OpenClaw + IQ3_S / 262K workload repeatedly re-prefills **150K-168K** prompts (~100+ s each) instead of hitting a long conversation checkpoint. The user suspects early serialization drift and asks for first-mismatch diagnostics. This does not refute #57's snapshot correctness; it proves that exact-prefix caches need observability. P51 cache/root telemetry should expose **candidate checkpoint id, matched token count, first mismatch position/reason, identity-field mismatch and reuse decision** so client rendering drift is distinguishable from state-cache failure.
+- **NEW mlx-serve real coding-agent eval harness — `99cfc748`:** larger runtime/quant changes are now tested by having Pi build a real TypeScript/Vite artifact, compiling/rendering it, and grading checkable visual claims over multiple frames. The maintainers explicitly note that packs/samplers/speculation/templates can leave tok/s and MMLU flat while causing loops, early exits or worse artifacts. Minimum recommendation is **>=5 runs/arm**, with build success, turns/source-lines/end-state plus claim-level judge results. P51 AA certification should retain paired source-vs-quant micro/benchmark tests but add at least one **artifact-producing agent task with repeated runs** for changes to quant allocation, sampler, speculative acceptance, template or KV precision.
+- **Agent-eval harness caught a methodology bug:** its first version hardcoded a 262K Pi context / 32K output cap, causing 32K/64K servers to return 400s that looked like agent early exits. It now derives context/reserve from the server launch config. P51 rule: agent evaluation must bind the client's compaction/output budget to the server's actual context contract; otherwise runtime-capacity errors contaminate quality labels.
+- **RECOVERED CURRENT — M2 Max 96-GB Flash-Next REAP-288 Q4:** a same-day community report measures about **25 TG** for Flash-Next REAP-288 Q4 on M2 Max 96 GB and ~21 TG for dense 27B Q4. Useful Apple-family transfer evidence that Flash can outrun dense 27B under a suitably pruned/quantized artifact, but no filled-128K denominator or M1 result; do not move the dual-M1 target.
+- **No strict-window M1-Max ~27-TG fork publication** and no new DASLab Flash IQ3_S source-paired 32K/64K/128K/262K quality result found.
+
+**Target effect:** keep Strata IQ3_XXS **78 TG @128K** but raise its planning confidence from ~65% to **~85%** because the exact GPU class now physically measures 79.7 TG there. Add multilingual/domain draft-vocabulary coverage to the speculative-production gates. All other TG/PP centers and AA priors remain unchanged.
 
 ### 2026-09-29 12:57 UTC full Strata PP ladder / parked-state / verifier-semantics update
 
