@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-28 22:19 ET**
+Latest strategy true-up: **2026-09-29 06:01 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -316,6 +316,64 @@ an unchunked reference even when final sampled text happens to agree.
 
 ---
 
+# 1a. Swift 1.5 Flash-Next — alternate effective-task-throughput lane
+
+Swift 1.5 Flash-Next is now a **first-class alternate checkpoint for the main dual-M1 Flash lane**.
+It does **not** change the physical 40-TG / 400-PP targets because the architecture and per-token runtime
+are essentially the same. Its value proposition is a large reduction in reasoning-token demand at xhigh.
+
+Paired BF16 xhigh evidence at 262K context:
+- GPQA-D: **89.80 -> 89.60**, mean thinking tokens **17,683 -> 7,823 (-55.8%)**;
+- MMLU-Pro: **87.75 -> 87.20**, mean thinking tokens **-57.0%**;
+- AIME 2026: **98.67 -> 96.67**, mean thinking tokens **-31.3%**;
+- HMMT: **98.00 -> 97.33**, mean thinking tokens **-35.1%**;
+- LiveCodeBench v6: **88.40 -> 90.39**, mean thinking tokens **-44.8%**;
+- Terminal-Bench 2.1: **67.64 -> 69.66**, but mean total generated tokens **+11.9%**.
+
+The important conclusion is **not** “Swift is always 1.8x faster.” Token savings are workload-dependent,
+and Terminal-Bench is a counterexample on mean output length. For Project 51, report Swift beside base Flash
+with:
+- physical TG / PP;
+- solved-task wall time;
+- generated reasoning/output tokens;
+- tokens per solve;
+- tool-call / trajectory length;
+- AA/tool/long-context pass/fail;
+- MTP acceptance and rollback behavior.
+
+Independent xhigh Aider evidence is directionally strong: one paired community run reports base Flash at
+**90.7% retry pass, 17,646 tokens/case, 1,542 s/case** and Swift Flash at **86.9%, 6,991 tokens/case,
+608 s/case**. In paired n=107, 99 cases agree, 2 are Swift gains and 6 losses (McNemar p~0.29). Treat
+that as task-efficiency evidence, not equivalence certification.
+
+Strata also provides a useful same-runtime speed check: at 4K / IQ2_XS it reports roughly **465 PP /
+78.7 TG for Swift** versus **467 / 78.3 for base**, supporting the assumption that most of Swift's wall-time
+advantage comes from fewer generated tokens rather than a materially faster forward pass.
+
+### Swift-Flash promotion gate
+
+Base Flash remains the canonical quality/control checkpoint until Swift passes the full P51 suite at xhigh:
+1. source-vs-Swift hard reasoning/coding/tool trajectories;
+2. filled 128K+ semantic continuity and recurrent/QSA stability;
+3. repeated agent trajectories and long-horizon recovery from mistakes;
+4. MTP acceptance / rollback / thinking-parser behavior;
+5. compact-quant certification on the actual deployment artifact.
+
+The current Swift-specific GSQ-RCO compact releases are:
+- IQ3_XXS: **75.97 GB**;
+- IQ2_XS: **68.15 GB**;
+- Q2_0: **66.55 GB**.
+
+Their published Swift-specific KLD refinement is predominantly 512-token and explicitly does not establish
+long-context quality. Therefore **do not inherit the base Flash IQ3_XXS/IQ3_S AA priors automatically**.
+The chosen Swift compact quant needs its own AA and 128K+ qualification.
+
+For planning only, when a paired workload preserves quality and reduces generated tokens by fraction `r`,
+the useful-work rate can be expressed as **physical TG / (1-r)**. Keep this derived task metric out of
+physical TG tables.
+
+---
+
 # 1b. Persistent canonical agent-root image — cross-runtime target
 
 This is a **TTFT/state-reuse target, not a cold-PP target**. The first production artifact should be
@@ -617,6 +675,20 @@ Exact RTX 5070 Ti evidence is less matrix-like but materially stronger on decode
 The post-fix stability receipt materially raises confidence in Strata as a real production candidate.
 It does not remove the separate Windows auto-admission/memory-fragmentation watch from issue #60.
 
+### 2026-09-29 Strata 0.1.22 prompt-path update
+
+The weaker **RTX 5070 12 GB** calibration box now physically clears the IQ3_S 32K PP target during the
+0.1.22 prompt work:
+
+- IQ3_S 32K: **1,143 -> 1,213 PP** from the asynchronous expert-stream issuer;
+- Q2_0 32K: **1,386 -> 1,646 PP** with the tensor-core QSA prompt-attention path;
+- Q2_0 128K: **1,144 -> 1,596 PP** on the combined branch, with KV staging only **1.331 s of 81.3 s**.
+
+The Q2_0 rows prove substantial headroom in the common prompt path, but they are not substituted for IQ3
+measurements. The direct IQ3_S 32K receipt is enough to raise confidence in **>=1,200 PP @32K** on the
+user's stronger 5070 Ti; it is not enough to raise the 64K/128K IQ3_S centers or any IQ3_XXS center without
+a final same-quant long-context matrix.
+
 ## IQ3_XXS — balanced production target
 
 | Active context | Mature TG target | TG planning confidence | Mature cold PP target | PP planning confidence |
@@ -640,7 +712,7 @@ exact-card 128K receipt exists.
 | Active context | Mature TG target | TG planning confidence | Mature cold PP target | PP planning confidence |
 |---|---:|---:|---:|---:|
 | <=8K | **85 TG** | **~65%** | — | — |
-| ~32K | **78 TG** | **~65%** | **1,200 PP** | **~80%** |
+| ~32K | **78 TG** | **~65%** | **1,200 PP** | **~90%** |
 | ~64K | **70 TG** | **~60%** | **1,150 PP** | **~75%** |
 | ~128K | **60 TG** | **~55%** | **1,050 PP** | **~70%** |
 
