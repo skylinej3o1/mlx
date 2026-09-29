@@ -1,321 +1,233 @@
-# Project 51 primary-lane research watch — 2026-09-29 16:40 ET
+# Project 51 primary-lane research watch — 2026-09-29 17:50 ET
 
-**Freshness boundary entering this pass:** **2026-09-29 19:09:40 UTC**.  
-**User cutoff:** **2026-09-29 20:40:47 UTC**.
+**Freshness boundary entering this pass:** **2026-09-29 20:40:47 UTC**.  
+**User cutoff:** **2026-09-29 21:50:01 UTC**.
 
 ## Decision
 
-**Durable STATE + TARGETS update.**
+**Durable STATE + TARGETS update; no existing TG/PP center changes.**
 
-The full Strata 0.1.26 prompt matrix justifies another conservative cold-PP true-up:
+The main planning change is architectural:
 
-| Quant | 32K PP | 64K PP | 128K PP |
-|---|---:|---:|---:|
-| IQ3_XXS measured on RTX 5070 12 GB | **1,745** | **1,609** | **1,602** |
-| **P51 5070-Ti target** | **1,650** | **1,550** | **1,500** |
-| IQ3_S measured on RTX 5070 12 GB | **1,624** | **1,640** | **1,443** |
-| **P51 5070-Ti target** | **1,550** | **1,550** | **1,350** |
+> **Primary maximum-context target: Qwen3.8-Flash-Next GSQ-RCO IQ3_XXS (3.00 transformer bpw) at genuine 262,144 context on the RTX 5070 Ti 16 GB + 64 GB host, using a Flash/QSA-aware compressed-streaming KV implementation.**
 
-No TG center or AA prior changes.
+Do not drop the weights to IQ2_XS merely because stock Strata currently caps IQ3_XXS to 128K on <90-GB hosts.
 
-A new mandatory correctness gate is also added:
-- **native CPU expert arithmetic must be width-invariant before plain-vs-MTP/source-equivalence certification.**
+The first custom KV candidate becomes **TurboQuant-style K6/V4**, with K8/V4 as the implemented control and K4/V4 as the aggressive arm.
 
 ## Strict-window findings
 
-### NEW — Strata publishes the full 0.1.26 speed matrix
+### NEW — vLLM preserves prompt-end recurrent checkpoint under sparse retention
 
 Source:
-https://github.com/Niko1221/Strata/commit/4c68013ea5fc413199584932b23fc654daf2bb5c  
-Timestamp: **2026-09-29 20:09:44 UTC**.
+https://github.com/vllm-project/vllm/commit/d882bddbeab6b4a0d5861dfcb171bf61ce2109d6  
+Timestamp: **2026-09-29 21:00:16 UTC**.
 
-Hardware / fixture:
-- RTX 5070 **12 GB**, PCIe 5 x16;
-- Ryzen 5 7600;
-- 64 GB DDR5-5200;
-- Windows 10;
-- ready-made 0.1.26;
-- same code-agent prompts as the 0.1.22 matrix;
-- MTP spec4, greedy;
-- INT8 KV above 4K;
-- KV streaming from 64K;
-- one shot / 256 generated tokens per cell.
+Sparse Mamba checkpoint retention could treat the final partial prompt block as a transient boundary and evict it when retention_interval=0.
 
-Prompt throughput:
-
-| Quant | 32K | 64K | 128K |
-|---|---:|---:|---:|
-| Q2_0 | 2,171 | 2,126 | 2,107 |
-| IQ2_XS | 2,092 | 1,754 | 1,752 |
-| **IQ3_XXS** | **1,745** | **1,609** | **1,602** |
-| **IQ3_S** | **1,624** | **1,640** | **1,443** |
-| Coder | 2,177 | 2,236 | 2,208 |
-
-Versus 0.1.22, Strata documents **8-28% faster prompt processing at 32K-128K**.
-
-The gains combine:
-- 0.1.24 tensor-core QSA selection;
-- 0.1.25 mapped grouping tables + fused norms/hyperconnection work;
-- 0.1.26 batched draft-layer prompt execution.
-
-This is strong enough to move P51 PP centers because the same weaker 12-GB GPU now clears the previous 5070-Ti centers by material margins.
-
-### RECOVERED CURRENT — Strata engine 0.1.26 release
-
-Source:
-https://github.com/Niko1221/Strata/commit/f97ebb7a9238f2c5333cf5fff005cfff5286c04e  
-Timestamp: **2026-09-29 18:01:05 UTC**, before this pass's strict boundary.
-
-0.1.26 adds the MTP draft layer's batched prompt pass.
-
-It should have been visible in the previous sweep, so it is classified **RECOVERED CURRENT**, not NEW. The target-moving evidence is the strict-window matrix publication above.
-
-### PP target true-up
-
-Previous IQ3_XXS:
-- 32K 1,500
-- 64K 1,400
-- 128K 1,300
-
-New:
-- **32K 1,650 / ~90%**
-- **64K 1,550 / ~90%**
-- **128K 1,500 / ~90%**
-
-Previous IQ3_S:
-- 32K 1,450
-- 64K 1,250
-- 128K 1,200
-
-New:
-- **32K 1,550 / ~90%**
-- **64K 1,550 / ~90%**
-- **128K 1,350 / ~85%**
-
-The centers remain below the single measured cells instead of copying them directly.
-
-### Decode rows do NOT move TG targets
-
-The same 12-GB matrix gives:
-
-| Quant | 32K TG | 64K TG | 128K TG |
-|---|---:|---:|---:|
-| IQ3_XXS | 58.5 | 57.2 | 49.0 |
-| IQ3_S | 48.3 | 46.3 | 45.5 |
-
-These are useful physical receipts for the weaker card but do not supersede the exact RTX 5070 Ti evidence.
-
-P51 retains:
-- IQ3_XXS 128K mature center **78 TG / ~85%**;
-- all other TG centers unchanged.
-
-### UPDATE — Strata confirms verifier-width-dependent target arithmetic
-
-Issue:
-https://github.com/Niko1221/Strata/issues/152
-
-The issue itself was opened before this pass's boundary, but the maintainer confirmation is a strict-window update.
-
-Current native i-quant CPU expert dispatch:
-- singleton expert groups: ggml `vec_dot`;
-- groups with `nt >= 2`: custom AVX kernels.
-
-Those implementations have slightly different FP32 reductions. Because expert group size changes with speculative/verifier width, **the target model's arithmetic can change when S changes**.
-
-Reporter reproduction:
-- same fixed weights + activations;
-- width-1 calls versus width-2/4 grouped calls;
-- **9,566 differing output cells**;
-- forcing ggml `vec_dot` at every width makes width 1/2/4 bitwise equal;
-- with the width-invariant path, a fixed **21,999-token** greedy prompt gives the same 150 target token IDs between plain and MTP;
-- MTP accepts 93/130 proposals.
-
-Maintainer confirmation:
-- the width-dependent AVX dispatch is real;
-- temporary width-invariant mode:
-  `STRATA_NO_IQ512=1 STRATA_NO_IQ256=1 STRATA_NO_IQ4NL=1`;
-- upstream intends one arithmetic path for all widths plus a width 1/2/4 gate.
-
-P51 consequence:
-- **target arithmetic may not depend on verifier width**;
-- all AA/source-equivalence/MTP-certification runs must use the fixed/upstream-width-invariant path;
-- default fast-path TG remains a legitimate throughput measurement but not an exact-serial quality certificate.
-
-This is highly relevant to P69B13's existing rule that logical S cannot silently select a different arithmetic implementation.
-
-### NEW — Strata low-RAM mode
-
-Source:
-https://github.com/Niko1221/Strata/commit/ac8b251b8120296dd013e4106a797461eab6a4c6  
-Timestamp: **2026-09-29 19:23:21 UTC**.
-
-Normal Strata:
-- copies the model's expert corpus into pinned system RAM;
-- GPU keeps the most-used experts resident.
-
-Low-RAM mode:
-- mmap's the pack's `experts.bin`;
-- OS file cache retains/reclaims the cold expert pages;
-- selected automatically when expert corpus + ~10 GB OS headroom does not fit;
-- explicit `--low-ram on|off`.
-
-Published Coder example:
-- committed memory roughly **36 -> 13 GB**;
-- same answers;
-- big GPUs that retain most experts can stay near normal speed;
-- smaller GPUs can become much slower because cold experts arrive from SSD.
-
-P51 interpretation for the user's 64-GB host:
-- valuable **fit/admission fallback**, particularly for tight IQ3_S;
-- not the canonical benchmark mode;
-- always label low-RAM results separately because they can become SSD/expert-I/O limited.
-
-### UPDATE — Windows shared-GPU / commit accounting clarification
-
-Strata issue #141 was closed during the strict window.
-
-Maintainer explanation:
-- Task Manager "shared GPU memory" can be the same pinned system RAM holding experts, counted again;
-- Windows also charges GPU VRAM against process/system commit;
-- pagefile reservation therefore does not by itself mean real paging.
+The fix explicitly recognizes the reusable prompt-end checkpoint and keeps it. A follower extending a 240-token prompt resumes from the 224-token checkpoint.
 
 P51 rule:
-- admission should use actual physical availability + observed page activity/working-set behavior;
-- do not sum RAM + shared-GPU + commit values as if they are three independent resident allocations.
+- intermediate checkpoints may be sparsely retained;
+- the **canonical materialized prompt-end frontier must be pinned independently**;
+- do not let generic sparse-retention policy evict the exact state required for the next append-only turn.
 
-### NEW — vLLM Mooncake coalesces packed hybrid/MLA KV transfer regions
+### NEW — SGLang reuses one DFlash auxiliary-output buffer across decode graph sizes
 
 Source:
-https://github.com/vllm-project/vllm/commit/faacc13565312d29e9596d182fc808b452a4508e  
-Timestamp: **2026-09-29 20:29:04 UTC**.
+https://github.com/sgl-project/sglang/commit/84523d67851171fa20f7c68d3d6dc6cbf20c4423  
+Timestamp: **2026-09-29 21:24:51 UTC**.
 
-The connector now models transfer regions with:
-- layer name/index;
-- KV group;
-- shared packed-group identity;
-- block length / payload length;
-- row offset.
+DFlash target models capture auxiliary hidden states for the draft. Previously different decode CUDA-graph sizes could retain their own packed output buffers.
 
-It then coalesces adjacent compatible packed slices into larger copy operations.
-
-Important semantics:
-- physical contiguity alone is not enough;
-- heterogeneous PP can transfer only the layer span shared by producer and consumer;
-- same-PP incompatible layouts fail closed;
-- hetero PP with no common layers can be an empty-success case;
-- row bounds and packed-group identities constrain coalescing.
-
-P51 CUDA->Apple/persistent-state consequence:
-- first align **semantic state regions**;
-- only then coalesce physically contiguous copies;
-- transfer identity should include component/layer/group/row-offset/block-stride;
-- pipeline partition differences may omit genuinely non-shared state, but never reinterpret a packed row.
-
-This is cross-runtime transfer-contract evidence, not a CUDA->MLX physical bridge receipt.
-
-### UPDATE — StrataGP audit confirms future optimization candidates
-
-Issue:
-https://github.com/Niko1221/Strata/issues/149
-
-The maintainer responded in this window that future PRs should start with:
-- sampler top-k;
-- grouped Q2_0 kernel;
-- IQ-grid decode;
-- each rebased on 0.1.26;
-- each default path byte-identical with parity tests and long-prompt / multi-GPU gates.
-
-No P51 target changes until those PRs land and measure.
-
-### SAME-DAY CURRENT — RTX 3090 / dual-3090 benchmark proposal
-
-Issue:
-https://github.com/Niko1221/Strata/issues/165  
-Created: **2026-09-29 20:37:14 UTC**.
-
-Proposed hardware:
-- 2x RTX 3090 24 GB;
-- EPYC 7453 VM;
-- 165 GiB visible RAM;
-- Strata 0.1.26;
-- initial IQ3_XXS / 131K.
-
-No benchmark data yet. Watch only.
-
-### SAME-DAY CURRENT — M5 Max task-time warning
-
-A current community report describes Qwen3.8-Flash-Next on M5 Max / MTPLX decoding around **30-40 TG** but taking dramatically longer than a hosted model on a simple coding task because the local model repeatedly reasons in circles.
+The new path:
+- preallocates one decode-graph-owned auxiliary buffer;
+- every graph size aliases its row slice;
+- the draft consumes the target hidden state in the same step;
+- the next target forward may then overwrite the buffer.
 
 P51 interpretation:
-- another reason to keep **solved-task seconds / generated thinking tokens / agent trajectory quality** separate from physical TG;
-- no Apple hardware calibration movement because the report lacks a controlled runtime/context/quality A/B.
+- cycle-scoped target->draft auxiliary state can be **single-owner scratch** when its lifetime is formally bounded;
+- do not multiply resident memory by verifier/graph variants unnecessarily;
+- useful for long-context multi-agent capacity accounting, no direct target-hardware TG receipt.
 
-### No new exact M1-Max receipt
+### NEW — mlx-serve NAX canary/cache-lifetime hardening
 
-Search again found:
-- published MoEspresso exact 2021 M1 Max result around **12-15 TG**;
-- M5-class reports/forks above that;
-- no newly public exact-M1-Max fork/settings/context denominator for the claimed ~27 TG comment.
+Source:
+https://github.com/ddalcu/mlx-serve/commit/ff7f359bd024687fe93640bac7ae16832a237640  
+Timestamp: **2026-09-29 20:55:24 UTC**.
 
-Dual-M1 40-TG probability stays unchanged.
+Two P51-relevant fixes:
+1. per-shape Metal kernel configs were cached even though output shapes contain row count, so unique prompt sizes could grow the cache indefinitely;
+2. a parity canary could consume an error latch raised by an earlier operation in the same forward.
+
+Now:
+- configs are constructed/freed per call where shape-dependent;
+- canaries remember whether an error was already pending and drop only a latch they themselves raised.
+
+P51 rule:
+- correctness canaries must not hide unrelated forward failures;
+- runtime shape caches need explicit bounded lifetime/admission rather than silently growing with prompt diversity.
+
+### Low priority / no target effect
+
+- llama.cpp GGUF overflow/bounds fixes in-window are general parser safety.
+- vLLM sampler-warmup and frontend tool-grammar fixes do not affect the current P51 physical target.
+- no Strata engine commit landed inside the strict window.
+
+## RECOVERED CURRENT — TurboQuant-MLX Flash-Next audit
+
+Repository:
+https://github.com/manjunathshiva/turboquant-mlx
+
+This is older than the strict window, but the previous P51 passes had not audited its Qwen3.8-Flash-Next KV behavior.
+
+### Critical correction: TurboQuant KV is currently a no-op for Flash-Next
+
+TurboQuant-MLX supports Qwen3.8-Flash-Next **weights**, including a published mixed TQ Flash build, but its generic KV conversion intentionally skips Flash's `_AttnCache`.
+
+Reason:
+- `_AttnCache` subclasses MLX `KVCache`;
+- it also owns the QSA sparse-indexer cache;
+- an earlier generic TurboQuant replacement discarded that extra state;
+- decode then silently lost the proper sparse-selection behavior.
+
+The project fixed this by converting only exact base `KVCache` objects and leaving subclasses unchanged.
+
+The README explicitly states:
+
+**`--kv-bits` has no effect on Qwen3.8-Flash-Next.**
+
+P51 consequence:
+- there is **no off-the-shelf TurboQuant Flash KV path today**;
+- the P51 262K plan requires a Flash-aware cache implementation which compresses ordinary attention K/V while preserving QSA/indexer state exactly.
+
+### TurboQuant supports 6-bit codebooks
+
+The current MLX codebook implementation supports **1 through 8 bits**, computing Lloyd-Max tables for 5-8 bits on first use.
+
+So K6/V4 is mechanically representable.
+
+However the generic bit packer stores:
+- floor(32 / bits) values per uint32;
+- at 6 bits, that means **5 values / uint32 = 6.4 physical bits/value**, with two unused bits.
+
+With group size 64:
+- FP16 scale overhead ~= **0.25 bpv** per K or V lane;
+- K6 ~= **6.65 bpv**;
+- V4 ~= **4.25 bpv**;
+- equal K/V K6/V4 ~= **5.45 effective storage bpv**.
+
+This corrects the earlier idealized 5.0-bpv assumption.
+
+### Revised memory estimate for the 262K target
+
+Strata's own current admission arithmetic:
+- IQ3_XXS normal RAM target: **60 GB**;
+- expert arena: **42.9 GB**;
+- INT8 streamed KV: ~**13.7 KB/token**;
+- 262K INT8 KV: ~**3.6 GB**;
+- setup effectively wants another ~1 GB of margin.
+
+Simple stock total ~= **64.6 GB**.
+
+First-order compressed-KV estimates, assuming comparable K/V geometry:
+
+| KV candidate | Approx effective storage | Approx 262K host KV | Interpretation |
+|---|---:|---:|---|
+| Strata INT8 | ~8.25 bpv | **~3.6 GB** | quality baseline |
+| TQ K6/V6 | ~6.65 bpv | **~2.9 GB** | likely too little extra margin |
+| **TQ K6/V4** | **~5.45 bpv** | **~2.4 GB** | preferred first custom target |
+| TQ K4/V4 | ~4.25 bpv | **~1.9 GB** | aggressive quality arm |
+
+These are format-level planning estimates, not measured Flash memory traces.
+
+K6/V4 therefore plausibly recovers roughly **~1.2 GB** versus Strata INT8. That gets the simple arithmetic below 64 GB, but still leaves little OS/runtime margin; P51 should combine it with bounded snapshot/checkpoint buffers, no expanded duplicate KV, and optionally mmap only the cold expert tail.
+
+### Existing TurboQuant evidence argues for conservative precision
+
+Current broader evidence is mixed:
+
+- TurboQuant's original paper reports strong low-bit long-context results.
+- Independent 2026 evaluations are more conservative and generally prefer **4-bit no-QJL/norm-corrected** modes over 3-bit at >=128K.
+- Some reported 3-bit variants lose **15-25 points** on reasoning/code benchmarks at long context.
+- A separate 8-model engineering reproduction finds architecture-specific sweet spots including **K6/V4**, **K6/V3**, and Qwen-family cases needing **K8/V4**.
+
+Therefore:
+- K6/V4 is a **research candidate**, not a source-equivalent assumption;
+- K8/V4 stays the safer precision control;
+- K4/V4 is the capacity stress arm;
+- QSA/indexer/recurrent/MTP state stays protected.
+
+### TurboQuant-MLX Flash weight result is not KV evidence
+
+The same project has a Qwen3.8-Flash-Next mixed-weight TQ build around **52.0 GiB** fully resident on a 64-GB Mac and an n-gram offload mode that reduces active memory **52.01 -> 34.13 GiB** while preserving its logits in the reported check.
+
+Useful conclusions:
+- Flash has substantial removable/streamable memory outside the core active MoE path;
+- aggressive memory engineering can preserve behavior.
+
+Not allowed conclusion:
+- this does **not** prove TurboQuant-compressed Flash KV, because Flash KV quantization is explicitly disabled there.
+
+## 262K P51 target contract
+
+The target now means all of the following simultaneously:
+
+- GSQ-RCO IQ3_XXS **3.00 transformer bpw**;
+- native **262,144** context;
+- RTX 5070 Ti 16 GB;
+- 64 GB host RAM;
+- full host K/V stored compressed;
+- no persistent full-fp16/fp32 expanded duplicate;
+- initial ~32K resident GPU KV window;
+- QSA/indexer state including spare/dead-row identity exact;
+- GDN/recurrent state exact;
+- MTP/draft state exact;
+- checkpoint/root/frontier identity exact;
+- long-context cache remains append-resumable.
+
+Preferred experimental order:
+1. INT8 @128K source-quality control;
+2. K8/V4 control;
+3. **K6/V4 custom Flash-aware path**;
+4. K4/V4 capacity stress;
+5. only then lower precision.
+
+Planning priors:
+- physical fit conditional on a correct implementation: **~75-80%**;
+- K6/V4 source-like long-horizon quality: **~60-70%** prior;
+- production readiness today: lower, because the required Flash/QSA compressed-streaming path does not yet exist.
 
 ## Strict-window negative scan
 
-From **2026-09-29 19:09:40 -> 20:40:47 UTC**:
+From **2026-09-29 20:40:47 -> 21:50:01 UTC**:
 
-- **TensorFold:** no post-0.4.0 strict-window commit.
-- **oMLX:** no strict-window Flash/27B commit.
-- **mlx-serve:** no strict-window commit after the already-promoted multi-slot/QSA/MoE work.
+- **Strata:** no new engine commit; new Swift setup issues are packaging/startup bugs, not physical target evidence.
+- **TensorFold:** no new commit after 0.4.0.
+- **oMLX:** no strict-window commit.
 - **Ishizuki:** no commit.
-- **MoEspresso:** no commit.
-- **DASLab official Flash IQ3_S:** no new source-paired 32K/64K/128K/262K semantic result found.
-- **Exact dual M1 Max / TB4:** no new sustained filled-128K receipt.
-- **Exact user's Windows 5070 Ti:** no frozen 0.1.26 IQ3 full PP ladder or >=8h soak on that exact machine yet.
-- **Strata NVMe/shared conversation state:** no new strict-window merged production result beyond the work already tracked.
+- **MoEspresso:** no commit/public M1-Max ~27-TG fork.
+- **DASLab:** no new official source-paired Flash IQ3_S 128K/262K semantic-quality result found.
+- **Exact user's 5070 Ti:** no 262K IQ3_XXS physical run yet.
+- **TurboQuant-MLX:** no strict-window commit; findings above are RECOVERED CURRENT.
 
 ## Durable target changes
 
-### IQ3_XXS cold PP
+### Added
 
-New:
-- **32K 1,650 PP / ~90%**
-- **64K 1,550 PP / ~90%**
-- **128K 1,500 PP / ~90%**
+**IQ3_XXS 3.00 bpw + genuine 262K + compressed Flash-aware KV** becomes the preferred maximum-context target on the user's 5070 Ti / 64-GB host.
 
-### IQ3_S cold PP
+### No numeric TG/PP change
 
-New:
-- **32K 1,550 PP / ~90%**
-- **64K 1,550 PP / ~90%**
-- **128K 1,350 PP / ~85%**
+Existing speed centers stay:
+- Strata IQ3_XXS 128K: **78 TG / ~85%**;
+- IQ3_XXS PP: **1,650 / 1,550 / 1,500** at 32K / 64K / 128K;
+- IQ3_S PP: **1,550 / 1,550 / 1,350**;
+- dual-M1 Flash: **40 TG @ genuine ~128K / 400 PP / ~70% >=40 TG**.
 
-### Mandatory exactness gate
-
-Before AA/source-equivalence/speculative certification:
-- native expert arithmetic must be invariant to S/verifier grouping;
-- use the conservative disable flags until upstream provides a qualified width-invariant fast path.
-
-### Low-RAM fallback
-
-For tight 64-GB-host configurations:
-- low-RAM mmap experts may be used to achieve safe fit;
-- do not mix its TG/PP into canonical tables unless explicitly labeled.
-
-## Canonical planning state after this pass
-
-- Dual-M1 Flash-Next: **40 TG @ genuine ~128K / 400 cold PP / ~70% >=40 TG**.
-- Single-M1 dense27B: **25 TG / ~110 PP**.
-- Strata IQ3_XXS ~128K: **78 TG / ~85% confidence**.
-- Strata IQ3_XXS PP: **1,650 / 1,550 / 1,500**.
-- Strata IQ3_S PP: **1,550 / 1,550 / 1,350**.
-- Remaining Strata TG rows unchanged.
-- IQ3_XXS AA>=38: **~85%**.
-- IQ3_XXS AA>=40: **~65%**.
-- IQ3_S AA>=40: **~80%**.
-- INT8 K/V baseline -> K8V4 capacity candidate -> full Q4 aggressive arm.
-- Swift lanes remain effective-task-throughput lanes.
-- B2-B4 aggregate Apple ladder unchanged.
+No 262K IQ3_XXS TG/PP center is assigned until a physical run exists.
 
 ## New hard boundary
 
-**2026-09-29 20:40:47 UTC**
+**2026-09-29 21:50:01 UTC**
