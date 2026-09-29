@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-29 11:03 ET**
+Latest strategy true-up: **2026-09-29 15:09 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -51,6 +51,12 @@ Starting point:
 If the current xhigh quant hypothesis succeeds:
 - a source-like **~3.4-3.6 average transformer BPW** artifact that maps efficiently to Apple7 is estimated at roughly **~25-27 target-only TG @ ~128K**;
 - this estimate assumes only part of target-forward time scales with routed-expert bytes, so it does **not** convert the BPW reduction linearly into TG.
+
+**Implementation feasibility update (TensorFold 0.4.0):** pre-M5 Metal now serves Flash-Next checkpoints with
+per-module MLX affine **2/3/4/5/6/8-bit mixed formats**, and 5/6/8-bit rows use row-exact matrix-unit kernels rather
+than forcing a slow generic path. This materially lowers implementation risk for P51's protected high-precision
+islands, but it is not an exact M1-Max/dual-M1 throughput receipt and therefore does **not** raise the 40-TG
+probability by itself.
 
 Required uplift to hit 40:
 - 25 TG needs **1.60x** effective speculative/distributed acceleration;
@@ -760,9 +766,16 @@ was used.
 
 Production qualification therefore requires:
 - candidate-space coverage for the expected languages and structured/code token domains;
+- coverage measured over **actual target-output token occurrences/kinds**, not prompt language alone;
 - acceptance broken down by language/domain, not only aggregate acceptance;
-- a full-head or fail-open fallback when the subset cannot represent the target distribution;
+- **domain-aware compact expansion first**, preserving the resident expert cache where possible;
+- a full-head or fail-open fallback when the compact subset still cannot represent the target distribution;
 - verifier-width tuning only **after** candidate coverage is known healthy.
+
+A second RTX 5070 Ti reproduction is the reason for preferring expansion over the full head: expanding the shipped
+40,525-id subset to **106,285 ids** for CJK raised English->Chinese translation from **68.1 -> 99.0 TG** while
+keeping the expert-cache slot count unchanged; the full 322.1-MiB head was slightly slower and displaced 76 expert
+slots.
 
 Do not diagnose low acceptance as an S/kernel/model-quality problem until draft-vocabulary coverage is ruled out.
 
@@ -780,6 +793,21 @@ Why the stability confidence moved:
 - another 16-GB Blackwell / 64-GB host reported a few sustained hours with **zero stalls**;
 - the remaining admission issue (#60) is a distinct boot-time cache-sizing/fragmentation problem, not recurrence
   of the verify-window NVIDIA-driver-lock deadlock.
+
+## Long-context KV precision lanes
+
+**INT8 K/V remains the quality baseline.**
+
+For the capacity/speed arm, **K8V4 is now the preferred first experiment before whole-cache Q4**:
+- K stays INT8, preserving the attention-score path;
+- V uses Hadamard-rotated Q4_0;
+- Strata reports **816 B/cell vs 1,056 B/cell for INT8 (~23% less KV)**;
+- on RTX 3090 / Coder at ~198K, the published arm reports **99 TG vs 85 TG INT8**, the same needle result, and
+  **2-5% slower prefill**.
+
+This is **not** a quality-default promotion. It still needs P51 long-horizon semantic/agent validation, does not
+currently support Strata KV streaming, and the speed gain may come mainly from freeing VRAM for experts. Full Q4
+K/V remains a lower-precision extreme/capacity arm, not the preferred production candidate.
 
 ## Quality-certification targets
 
@@ -805,7 +833,8 @@ AA measurement and does not certify long-context/state/tool parity by itself.
 3. Complete a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S. The
    **79.7-TG IQ3_XXS @128K** report is now a direct anchor, but not a full controlled ladder.
 4. Validate draft-vocabulary/language coverage and record acceptance by workload before tuning verifier width.
-5. Run the AA suite with INT8 KV as the default quality baseline; Q4 KV remains a capacity/speed arm.
+5. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the preferred capacity/speed arm
+   before whole-cache Q4.
 6. Only after those pass, optimize toward the 128K stretch numbers.
 
 ---
