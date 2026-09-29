@@ -1,197 +1,244 @@
-# Project 51 primary-lane research watch — 2026-09-28 22:19 ET
+# Project 51 primary-lane research watch — 2026-09-29 02:21 ET
 
-**Freshness boundary entering this pass:** **2026-09-29 01:03:02 UTC**.  
-**User cutoff:** **2026-09-29 02:19:04 UTC**.
+**Freshness boundary entering this pass:** **2026-09-29 02:19:04 UTC**.  
+**User cutoff:** **2026-09-29 06:21:54 UTC**.
 
 ## Decision
 
-**Durable architecture/target update, but no physical TG/PP-center change.**
+**Durable STATE update; no TARGETS change.**
 
-This pass promotes:
-1. a **persistent canonical agent-root image** as an explicit production target separate from cold PP;
-2. **Swift 1.5 Qwen3.8-27B** as a first-class alternate checkpoint lane measured by effective solved-task throughput, not physical TG.
+This pass materially strengthens:
+- Flash-Next mixed-precision protected-island allocation;
+- heterogeneous stage-local layer parallelism;
+- Swift 1.5 effective solved-task throughput;
+- long-context/concurrent Flash capability;
+- phase-specific collective and speculative-metadata reuse rules.
 
-Physical targets remain unchanged:
-- dual-M1 Flash-Next: **40 TG sustained @ genuinely filled ~128K / 400 cold PP / ~70% >=40 TG**;
-- single-M1 dense27B: **25 TG / ~110 PP**;
-- RTX 5070 Ti dense CUDA-v2 ladder unchanged;
-- Strata Flash-Next ladders unchanged;
-- IQ3_S AA>=40 planning prior unchanged at **~80%**.
+It does **not** provide a reproducible new exact 2x-M1-Max/TB4 Flash receipt, an exact-user-5070Ti Strata ladder, or direct source-paired Flash IQ3_S long-context quality evidence. Canonical physical TG/PP targets remain unchanged.
 
 ## Strict-window findings
 
-### NEW — MLX-Serve DFlash2 selector codebook guard
+### NEW — deferred vLLM delayed-mHC seam fusion
 
-Source: https://github.com/ddalcu/mlx-serve/commit/cb24806ff9a043eb0401422ab75c436c39d375d7  
-Timestamp: **2026-09-29 02:07:33 UTC**.
+Source: https://github.com/vllm-project/vllm/commit/0af34418e99b972029b53130c9a9665b4e692536  
+Timestamp: **2026-09-29 02:19:10 UTC**.
 
-DFlash2's predecessor/successor selector codebooks are consumed through dense gathers. A generic quantizer can pack them into a shape the selector cannot use, turning every draft into failure. The loader now rejects such packs immediately.
-
-P51 rule:
-- keep tiny selector/codebook/control tables dense BF16/F16 unless a quantized-gather path is explicitly qualified;
-- fail at load rather than diagnosing zero acceptance later as draft/model quality.
-
-### NEW — oMLX exact fused decode/verify stack
-
-Source: https://github.com/jundot/omlx/commit/4626613b07e77b74e20b8fdaef550ddbc8c497de  
-Timestamp: **2026-09-29 02:12:26 UTC**.
-
-The GLM-5.3 stack fuses long dependent decode/verify op chains while replaying reference arithmetic and maintaining bitwise/fallback checks. In the preceding measured stage of this combined stack on M5 Ultra, greedy decode moved from **38.9 / 38.7 / 32.7 -> 51.7 / 51.2 / 49.0 TG** at pp200/1024/4096. The work also found several attractive custom kernels slower in-model than the reference and keeps them default-off.
+This landed six seconds after the prior cutoff and therefore belongs to this pass. On ROCm/gfx950 DSv4.1, vLLM routes a delayed hyperconnection seam through a fused post/pre/RMSNorm AITER path with explicit numerical tests across token counts and seam variants.
 
 P51 interpretation:
-- strong cross-model evidence for exact dependent-chain fusion + per-family fallback;
-- reinforces that microkernel wins are subordinate to in-model occupancy/scheduling;
-- M5/GLM percentages do **not** transfer numerically to M1/Qwen.
+- another independent example that HC/recurrent seam fusion can remove dependent operations while preserving a bounded numerical contract;
+- cross-model/hardware only, no numerical transfer to Apple7.
 
-### NEW — SGLang Rust radix TreeCore becomes default with hybrid-state backup semantics
+### NEW — mlx-serve Flash-Next `mid48` protected-island A/B
 
-Source: https://github.com/sgl-project/sglang/commit/77091cea68d0701d6cc71edfb45f2815c4f8d791  
-Timestamp: **2026-09-29 02:18:57 UTC**.
+Source: https://github.com/ddalcu/mlx-serve/commit/65b9c2e0be4ca3ccbdbb5b186d6e5992681c4a14  
+Timestamp: **2026-09-29 03:18:26 UTC**.
 
-SGLang switched the unified radix cache's default tree core to Rust where supported and added/ported hybrid-state mechanisms including Mamba/SWA internal-state backup-before-eviction, SWA relocation-aware backup indices, rotation-base support and configured eviction policies.
+M5 Ultra / 256 GB / `--mtp --mtp-typical 0.2`.
 
-P51 rule:
-- a persistent/shared hybrid root may not tombstone/free internal state until backup is safely materialized;
-- allocator compaction/relocation can invalidate physical indices even when logical prefix identity remains valid;
-- persistent-root metadata needs logical identity plus refreshable physical placement.
+The repack keeps 8-bit only on:
+- lm_head / embeddings;
+- hyper-connections;
+- router gate;
+- GDN in_proj_a / in_proj_b;
+- attention k/v;
+- indexer;
+- PLE;
+- MTP head.
 
-### Outside cutoff
+It moves other non-expert q/o/GDN-body/shared-expert projections from 8 -> 4 bit. Pack size **75.30 -> 73.86 GB**.
 
-vLLM commit `0af34418` landed at **02:19:10 UTC**, six seconds after this pass's cutoff. It is intentionally deferred to the next pass.
+Measured:
+- S=1 forward **-11.2%**;
+- S=4 verify forward **-4.9%**;
+- MMLU-Pro-400: **346** vs 340 / 338 control repeats;
+- 4-stream decode: **39.0 TG/request** vs 39.1 / 38.9 controls — effectively no E2E gain.
 
-## RECOVERED CURRENT / USER-SUPPLIED — Pi persistent root reuse
+Reason for missing E2E gain: joined verify kernels accept 8-bit weights only, so mid48's new 4-bit projections fall back to per-request verification. A 4-bit verifyQMM probe gained ~4.8% at four streams but was not bit-exact and was not promoted.
 
-Source: https://www.reddit.com/r/LocalLLaMA/comments/1wrz901/who_wants_to_try_a_pi_trick_for_27b_to_reuse/
+Critical all-4-bit control:
+- S=1 forward **-14.7%**;
+- **12.8% more output tokens**;
+- 7 answers hit the 8,192-token cap.
 
-The Pi extension uses llama.cpp slot persistence with:
-- `--slot-save-path`;
-- `--ctx-checkpoints 32`;
-- `--checkpoint-min-step 4096`;
-- a deterministic chat template;
-- persistent client-side prefix-cache identity.
+P51 consequence:
+- protect HC/router/recurrent-control/indexer/PLE/MTP islands;
+- quant allocation and verifier-kernel support are one optimization problem;
+- do not interpret short-benchmark parity as unchanged reasoning-token behavior.
 
-The goal is to reuse the stable system/tools/extensions root across different Pi sessions and server restarts.
-
-This is useful evidence for **persistent forkable root images**, not physical shared-prefix state.
-
-## RECOVERED OLDER — patched llama.cpp proves hybrid slot restore can be real
-
-Sources:
-- https://github.com/ggml-org/llama.cpp/issues/27813
-- https://github.com/ggml-org/llama.cpp/issues/25913
-- https://github.com/ggml-org/llama.cpp/issues/28619
-
-On Qwen3.8-Flash-Next:
-- cold 5,892-token prompt: **~19.06 s**;
-- stock save/restore: **~19.24 s**, because restored recurrent checkpoints were absent;
-- patched restore: **~153 ms restore + 4 tokens / ~508 ms next request**.
-
-A separate open issue shows live speculative/draft `ctx_dft` can still be omitted from slot persistence. Therefore a valid P51 root image must include the complete target + recurrent + checkpoint + MTP/draft state, not merely target KV.
-
-## KNOWN CORROBORATION — TensorFold disk spill
-
-TensorFold 0.3.6.2-era evidence:
-- 35,583-token Qwen3.8-27B conversation;
-- snapshot **2.2-2.4 GiB**;
-- spill **~0.18-0.19 s**;
-- reload **~0.24 s**;
-- resumed answer **~2.3 s vs 26.2 s cold**, byte-identical.
-
-This strongly corroborates that same-runtime full-state persistence is production-useful.
-
-## RECOVERED CURRENT — NInfer complete session persistence
-
-Source: https://github.com/tensorninja/ninfer-4090
-
-NInfer persists a complete resident Qwen3.8-27B session:
-- paged target and MTP KV;
-- GDN linear-attention state;
-- MTP tail hidden;
-- checkpoint/long-anchor state;
-- prefix/session identity.
-
-A documented 6.9K session is ~416 MiB, saves in ~0.24 s and restores in ~0.12 s. This is same-runtime persistence; DFlash persistence is not yet supported.
-
-## RECOVERED CURRENT — Swift 1.5 alternate 27B lane
-
-Source: https://huggingface.co/ukisai/Swift-1.5-Qwen3.8-27b
-
-Swift 1.5 keeps Qwen3.8-27B's architecture lineage but post-trains for less pathological overthinking. Published xhigh BF16 results show workload-dependent **mean-token reductions roughly 16-54%**, not a universal 58.5%. LiveCodeBench rises while mean tokens fall ~24.5%; Terminal-Bench rises while token use falls ~16%.
-
-Project-51 consequence:
-- add an **effective task-throughput** metric: solved-task wall time, reasoning/output tokens and tool trajectory length;
-- keep physical TG/PP untouched;
-- retain base Qwen3.8-27B as control until Swift passes the full xhigh AA/tool/long-context suite.
-
-Swift-specific GSQ-RCO IQ3_S+MTP (~12.12 GB) is an attractive capacity artifact but remains uncertified for P51 long-context/agent behavior.
-
-## RECOVERED OLDER — InferredThoughts SSD-streamed full Flash-Next
+### NEW — Strata 0.1.21 heterogeneous layer split
 
 Sources:
-- https://github.com/compiledthoughts/Inferred-Thoughts
-- https://www.reddit.com/r/LocalLLaMA/comments/1wrxap8/qwen38flashnext_177b_nvfp4119gib_ssd_streaming_at/
+- https://github.com/Niko1221/Strata/commit/f1b1d961537fd66d37fee68a60015701375b7b5a
+- https://github.com/Niko1221/Strata/blob/main/docs/MULTI_GPU.md
+- https://github.com/Niko1221/Strata/blob/main/bench/results/2026-09-29-layer-split/README.md
 
-Qwen3.8-Flash-Next 176.9B runs on an RTX 5060 Ti 16 GB + 32 GB host by keeping ~20 GiB model data resident and streaming cold experts/ngram rows from NVMe.
+Release timestamp: **2026-09-29 04:14:43 UTC**.
 
-Repo depth curve:
-- ~0.2K: **10.40 TG**;
-- ~6K: **8.35 TG**;
-- ~29K real Cline session: **6.88 TG**;
-- cold PP around **49.2**.
+Physical rig:
+- Ryzen 9 9950X3D / 62 GB / Windows 11;
+- RTX 5080 16 GB x16;
+- RTX 3090 24 GB on x4 Gen4 (~6 GB/s);
+- Coder GSQ-RCO IQ1_M, 32K, int8 KV, spec4.
 
-P51 conclusion:
-- dynamic expert residency, layer-ahead prefetch and SSD-byte accounting are useful mechanisms;
-- the 9-10 TG headline is short-context and is not evidence for filled-128K speed.
+Best 5080+3090 K=26:
+- **2,039 PP @16K**
+- **2,357 PP @28K**
+- **83.8 TG story**
+- **109.7 TG code**
 
-## RECOVERED OLDER — rotated 3-bit dense-27B quality/capacity evidence
+0.1.20 5080-alone control:
+- 2,045 / 2,005 PP;
+- 83.2 / 88.2 TG.
+
+The split pipeline therefore improves the 28K prompt substantially and keeps story decode level while improving code decode. A slower third 2080 Ti makes decode worse.
+
+Correctness:
+- one-GPU branch vs 0.1.20: **10/10 byte-identical**;
+- same-GPU split hand-off: **10/10 byte-identical**;
+- cross-GPU expert execution can round differently;
+- all tested needles found and multi-stage conversation checkpoint reuse works.
+
+P51 consequence:
+- stage-local expert/state residency plus one handoff per verify window can work over weak links;
+- once hot-expert residency saturates, **per-stage compute balance dominates**;
+- a slow stage should not be added merely for capacity.
+
+No transfer of the 18-20% prompt gain to M1/TB4.
+
+### NEW — oMLX MiMo long-context attention stack (cross-model)
 
 Sources:
-- https://www.reddit.com/r/Qwen_AI/comments/1wru8fq/qwen38_27b_in_3bit_keeps_math_code_and_61k/
-- https://eliovp.com/blog/paiton-qwen38-w3a4-radeon-ai-pro-r9700
+- https://github.com/jundot/omlx/commit/3cd1c0ca62000328d7eca7663f67216ac525519f
+- https://github.com/jundot/omlx/commit/07d88dbd4c3c000843f741d82314eb53b637bcac
 
-On one R9700, a ~3.1-bpw Hadamard-rotated INT3 Qwen3.8-27B:
-- preserves 61,440-token needle retrieval at **100% vs 100%** against MXFP4;
-- GSM8K/HumanEval deltas are within the reported paired uncertainty;
-- MMLU-Pro subset falls **~2.86 points**, statistically significant;
-- the lower weight footprint can be traded for more KV/concurrency.
+Timestamps: **05:33:42 / 05:34:29 UTC**.
+
+M5 Ultra / MiMo-V2.6-Flash:
+- prefill chunk widening plus fused attention raises long-prompt PP;
+- split-key long-context decode attention changes E2E decode:
+  - 8K **108.6 -> 111.7 TG**
+  - 64K **73.9 -> 88.4 TG**
+  - 256K **40.2 -> 69.0 TG**
 
 P51 interpretation:
-- keep rotation/protected-island experiments below 4 bpw in the search space;
-- long-context retrieval parity is not intelligence/source-like certification.
+- reinforces the existing rule that long-context attention/verify rows need a dedicated plan;
+- cross-model/M5 evidence only.
 
-## Durable target changes
+### NEW — vLLM fused multi-step draft metadata reuse
 
-### Persistent canonical agent-root target
+Source: https://github.com/vllm-project/vllm/commit/35d6fb3187d0a5a70c43ee5b0c3e923a7cb96226  
+Timestamp: **2026-09-29 06:06:47 UTC**.
 
-Dense 27B first:
-- **20K-40K** invariant system/tools root;
-- survives runtime restart;
-- same-runtime restore-to-ready **<5 s initial gate / <2 s stretch**;
-- complete target + recurrent + checkpoint + MTP/draft state;
-- exact identity mismatch -> hard miss/re-prefill;
-- 32K CUDA->Apple portable-state qualification next, then 96K/128K;
-- physical shared-root/COW remains a separate later target.
+FlashInfer TRTLLM-gen fused draft steps reuse the step-1 decode metadata while sequence lengths advance in place and block tables stay fixed.
 
-At ~110 native M1 PP, cold construction of a 20K root is ~182 s and 40K is ~364 s, which explains why eliminating repeated cold root-prefill matters more than modest PP tuning for agent startup.
+P51 rule:
+- speculative metadata can remain persistent inside a verify cycle where its invariants are explicit;
+- do not mechanically rebuild unchanged decode/block metadata every draft step.
 
-### Swift effective-task-throughput lane
+No direct target-hardware speed receipt.
 
-Do not change physical 25-TG / 110-PP targets. Report:
-- physical TG/PP;
-- solved-task wall time;
-- generated reasoning/output tokens;
-- tool-call trajectory length;
-- source-vs-Swift AA/tool/long-context pass/fail.
+### NEW — SGLang phase-specific PCIe-IPC all-reduce
+
+Source: https://github.com/sgl-project/sglang/commit/c7be3e935b5034006cd6ae7977b41e2459b4126c  
+Timestamp: **2026-09-29 06:08:44 UTC**.
+
+On one switch-free 8x sm120 PCIe host, hidden 6144 bf16, FlashInfer PCIe-IPC beats NCCL dramatically for small/decode reductions. In TP8 at 8K:
+
+| transport/workspace | TTFT | TPOT | output TG |
+|---|---:|---:|---:|
+| NCCL only | 1910 ms | 21.14 ms | 35.02 |
+| PCIe-IPC, prefill-sized | 3176 ms | 13.64 ms | 38.43 |
+| PCIe-IPC, decode-sized | **1849 ms** | **13.62 ms** | **48.05** |
+
+At 128K/C4, prefill-sized workspace regressed TPOT by ~45%; limiting the optimized workspace to decode-sized rows removed that regression.
+
+P51 rule:
+- communication kernel/workspace selection is **phase + row-shape specific**;
+- never size a decode collective path from the largest prefill geometry just because it can run it.
+
+### OUTSIDE CUTOFF — vLLM Rust-frontend commit
+
+vLLM `e05095c9` landed at **2026-09-29 06:23:54 UTC**, two minutes after the user cutoff. It is intentionally deferred to the next pass.
+
+## SAME-DAY CURRENT — exact-chip M1 Max ~27-TG lead
+
+Source: https://www.reddit.com/r/LocalLLaMA/comments/1wrqql8/qwen38flashnext_125b_at_1215_toks_on_a_2021_32gb/
+
+A user in the MoEspresso thread reports progressing from ~7.5 TG to ~14 TG and then to **~27 TG on an M1 Max 32-core**, saying the final step required a kernel rewrite and effectively became a fork.
+
+This is potentially very important because the chip class is exact, but it is **not yet a reproducible receipt**:
+- fork not published;
+- context depth unspecified;
+- MTP/speculation settings unspecified;
+- no acceptance/PP/command/config identity;
+- no repeatable benchmark denominator.
+
+P51 consequence: high-priority follow-up only. Do not move single-M1 Flash or dual-M1 40-TG confidence yet.
+
+## SAME-DAY CURRENT — 4x R9700 high-concurrency Flash receipt
+
+Source: https://www.reddit.com/r/LocalLLaMA/comments/1wsxgbo/first_few_days_of_qwen38flashnext_on_4x_r9700_its/
+
+The current deployment reports:
+- **150+ TG** single stream;
+- **~100 TG each** with 3-5 concurrent streams;
+- **10K+ PP**;
+- ~7.8 GB total KV allocation, said to support roughly four 262,144-token sessions;
+- ~31.5/32 GB used on each GPU.
+
+Model: tcclaviger Qwen3.8-Flash-Next MXFP4/FP8 with PLE/ngram offload.
+
+P51 interpretation:
+- strong evidence for Flash-Next's aggregate multi-agent ceiling and relatively cheap sparse long-context state;
+- not numerically transferable to M1/TB4 or one 5070 Ti.
+
+## RECOVERED CURRENT — Swift 1.5 + HyperQwen ~630-task task-seconds result
+
+Source: https://www.reddit.com/r/LocalLLaMA/comments/1wsqjku/swift_15_hyperqwen_37_less_task_completion_time/
+
+Single RTX 3090 / HyperQwen comparison:
+
+| model | avg task time | avg output tokens/task | decode TG |
+|---|---:|---:|---:|
+| base Qwen fast quant | **108.1 s** | **8,985** | **112.1** |
+| Swift 1.0 | **66.2 s** | **5,245** | 105.9 |
+| Swift 1.5 INT8-head | **72.2 s** | **5,751** | 104.0 |
+| Swift 1.5 INT4-head | ~**68.2 s** | ~**5,669** | ~100+ |
+
+The comparison is roughly 630 tasks. Swift is physically slower per generated token but completes the workload materially faster because it generates far fewer tokens.
+
+P51 consequence:
+- materially strengthens the already-promoted **effective solved-task throughput** lane;
+- do not relabel task-seconds as TG;
+- base Qwen remains the quality/control checkpoint.
 
 ## Strict-window negative scan
 
 - **TensorFold:** no post-boundary commit after 0.3.6.2.
-- **Strata:** no post-boundary commit/release after 0.1.20; no exact 5070-Ti ladder/longer soak.
 - **Ishizuki:** no post-boundary commit.
-- **llama.cpp:** no P51-relevant commit in-window.
-- **M1 / M1 Max Flash-Next:** no new physical strict-window receipt.
-- **DASLab:** no new official Flash-Next IQ3_S 32K/64K/128K/262K source-paired quality result found.
+- **llama.cpp:** no P51-target runtime change before cutoff; the 06:18:58 Muse schema fix is unrelated.
+- **DASLab:** no newer official Flash-Next IQ3_S source-paired 32K/64K/128K/262K quality result found.
+- **Exact dual M1 Max / TB4:** no new reproducible Flash-Next physical receipt.
+- **Exact user's RTX 5070 Ti / Strata:** no new single-card 32K/64K/128K ladder or 8h/24h soak receipt.
+- **MoEspresso 27-TG M1 lead:** promising but not promotable until the fork/settings/benchmark identity are public.
+
+## Canonical planning state
+
+Unchanged:
+- Dual-M1 Flash-Next: **40 TG sustained @ genuine ~128K / 400 cold PP / ~70% >=40 TG**.
+- Single-M1 dense27B: **25 TG / ~110 PP**.
+- Persistent root-image target unchanged.
+- RTX 5070 Ti dense CUDA-v2 and Strata ladders unchanged.
+- IQ3_XXS AA>=38: **~85%**.
+- IQ3_XXS AA>=40: **~65%**.
+- IQ3_S AA>=40: **~80%**.
+- Swift remains a separate effective-task-throughput lane, not a physical TG target.
+
+## Files intentionally not changed
+
+- `RESEARCH-TARGETS.md`: no planning probability or physical target moved.
 
 ## New hard boundary
 
-**2026-09-29 02:19:04 UTC**
+**2026-09-29 06:21:54 UTC**
