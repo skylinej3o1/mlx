@@ -1,310 +1,371 @@
-# Project 51 primary-lane research watch — 2026-09-29 06:01 ET
+# Project 51 primary-lane research watch — 2026-09-29 08:58 ET
 
-**Freshness boundary entering this pass:** **2026-09-29 06:21:54 UTC**.  
-**User cutoff:** **2026-09-29 10:01:02 UTC**.
+**Freshness boundary entering this pass:** **2026-09-29 10:01:02 UTC**.  
+**User cutoff:** **2026-09-29 12:57:59 UTC**.
 
 ## Decision
 
 **Durable STATE + TARGETS update.**
 
-This pass makes two planning changes:
-1. add **Swift 1.5 Flash-Next** as a first-class alternate checkpoint lane measured by effective solved-task throughput, not physical TG;
-2. keep the Strata IQ3_S ~32K cold-PP target at **1,200 PP** but raise its planning confidence **~80% -> ~90%** after a direct weaker-card RTX 5070 12-GB receipt clears that level.
+The main target change is now justified by a complete physical matrix rather than extrapolation:
 
-Canonical physical targets otherwise remain unchanged:
-- dual-M1 Flash-Next: **40 TG sustained @ genuine ~128K / 400 cold PP / ~70% >=40 TG**;
-- single-M1 dense27B: **25 TG / ~110 PP**;
-- RTX 5070 Ti dense CUDA-v2 TG/PP ladder unchanged;
-- Strata IQ3_XXS and long-context IQ3_S centers unchanged;
-- IQ3_S AA>=40 planning prior unchanged at **~80%**.
+### Strata cold-PP true-up
+
+On the weaker RTX 5070 12 GB, engine 0.1.22 physically measures:
+
+| Quant | 32K PP | 64K PP | 128K PP |
+|---|---:|---:|---:|
+| IQ3_XXS | **1,555** | **1,449** | **1,386** |
+| IQ3_S | **1,499** | **1,285** | **1,245** |
+
+The P51 RTX 5070 Ti planning centers therefore move conservatively to:
+
+| Quant | 32K PP target | 64K PP target | 128K PP target |
+|---|---:|---:|---:|
+| IQ3_XXS | **1,500** | **1,400** | **1,300** |
+| IQ3_S | **1,450** | **1,250** | **1,200** |
+
+Physical TG targets, AA priors and dual-M1 Flash targets do **not** move.
 
 ## Strict-window findings
 
-### NEW — Strata 0.1.22 prompt path materially raises PP
-
-Release:
-https://github.com/Niko1221/Strata/commit/6a772da1bd667e71a295a8288b149034c417ad11  
-Timestamp: **2026-09-29 09:04:51 UTC**.
-
-Key measured constituent changes on the RTX 5070 12-GB calibration class:
-
-#### IQ3_S 32K — asynchronous expert issuer
+### NEW — full Strata 0.1.22 prompt matrix
 
 Source:
-https://github.com/Niko1221/Strata/commit/cf68b004c25f3ec60997d780422ce92e0e959f23  
-Timestamp: **06:41:08 UTC**.
+https://github.com/Niko1221/Strata/commit/cd97dafa303f8842df8d72ec1464f1158d9cd77d  
+Timestamp: **2026-09-29 11:38:54 UTC**.
 
-- IQ3_S 32K prompt: **1,143 -> 1,213 PP**.
-- Unpinned-expert copy wait falls **15.2% -> 7.5%**.
-- 20K residual dumps / continuations remain byte-identical to 0.1.21.
-- The commit reports roughly **+16% prompt TG** for IQ3_S / IQ3_XXS in the broader Phase-C path.
+Hardware / settings:
+- RTX 5070 12 GB, PCIe 5 x16;
+- Ryzen 5 7600;
+- 64 GB DDR5-5200;
+- Windows 10;
+- MTP spec4;
+- greedy;
+- INT8 KV above 4K;
+- KV streaming from 64K;
+- one code-agent prompt per cell.
 
-This is the decisive target-calibration receipt: a weaker RTX 5070 12 GB physically clears the P51 user's RTX 5070 Ti **1,200-PP @32K IQ3_S** target.
+Measured prompt matrix:
 
-#### Q2_0 32K — tensor-core QSA prompt attention
+| Quant | 32K | 64K | 128K |
+|---|---:|---:|---:|
+| Q2_0 | 1,844 | 1,836 | 1,682 |
+| IQ2_XS | 1,799 | 1,611 | 1,495 |
+| IQ3_XXS | **1,555** | **1,449** | **1,386** |
+| IQ3_S | **1,499** | **1,285** | **1,245** |
+| Coder | 1,871 | 1,938 | 1,779 |
+
+The IQ3 rows are the target-moving evidence. They physically clear the previous P51 PP centers on a weaker 12-GB 5070.
+
+The same matrix's decode rows are not used to move P51 TG targets because:
+- the user's 5070 Ti has materially more VRAM;
+- existing exact-user decode receipts are stronger;
+- each cell is one generated continuation and MTP acceptance varies with text.
+
+### NEW — Strata 0.1.24 QSA-selection prompt acceleration
+
+Sources:
+- https://github.com/Niko1221/Strata/commit/731899f6a1ae5c69704fa920eb2819a3b47d2784
+- https://github.com/Niko1221/Strata/commit/3ce2523c2823687de5372be3af58534f56cbf286
+
+Timestamps: **11:40:49 / 11:53:04 UTC**.
+
+RTX 5070 / Q2_0:
+- 32K prompt: **1,742 -> 1,797 PP**;
+- 128K prompt: **1,608 -> 1,843 PP (+14.6%)**;
+- QSA-select portion at 128K: **14.6 -> 4.2 s**;
+- TTFT at 128K: **82.7 -> 72.3 s**.
+
+Mechanism:
+- block scores as tensor-core GEMM using 3x-TF32;
+- per-query top-k keys held/read once in registers;
+- register top-k returns the exact same selected ids;
+- block-score arithmetic is **not bitwise** to the old path.
+
+Quality gates:
+- 8K/16K/32K needles × five depths: **15/15** both;
+- 16K continuation: **32/32 identical**;
+- 32K top-1 same, **KL ~0.03**.
+
+P51 interpretation:
+- exact selection IDs are not sufficient for exact model equivalence if score arithmetic changes;
+- keep this as an approximate prompt-only path with trajectory/quality certification separate from exact verifier work;
+- do **not** add 0.1.24's extra Q2 gain to the new IQ3 PP targets until a same-quant matrix lands.
+
+### NEW — oMLX greedy MTP verifier must reproduce sampler numerics
 
 Source:
-https://github.com/Niko1221/Strata/commit/dce4598fdf79779e2437b4071195001fe5524705  
-Timestamp: **07:48:42 UTC**.
+https://github.com/jundot/omlx/commit/263752597a0e1b51264ac51280d12635b192abb4  
+Timestamp: **2026-09-29 10:29:40 UTC**.
 
-- QSA prompt-attention time: **5,216 -> 1,318 ms**.
-- 32K prompt: **1,386 -> 1,646 PP (+18.8%)**.
-- Synthetic parity against FP64: relative error **~3.2e-6** versus **~2.5e-6** for the old FP32 kernel.
-- Needles 8K / 16K / 32K × five depths: **15/15** under both paths.
+Serial MLX greedy decode samples from:
+`logits - logsumexp(logits)`
+in the logits dtype, then argmaxes the rounded log-probabilities.
 
-The path uses FP16 MMA with FP32 accumulation and is intentionally **not bitwise**. The model can amplify tiny summation-order changes even when the kernel error remains FP32-level.
+Lightning MTP verify instead used raw-logit argmax.
+
+For nearby bf16 logits, subtracting logsumexp can round two values to the same log-probability; the serial sampler then chooses the lower token id while raw-logit argmax chooses the higher original logit.
+
+oMLX now uses the serial log-probability path for greedy verify.
+
+P51 exact-verifier rule:
+- exactness means **same numerical sampler pipeline**, not merely the same unnormalized logits;
+- P69B13 fixtures must include near-ties where bf16 normalization changes the argmax tie.
+
+### NEW — oMLX quantized kernel-choice exactness
+
+Same commit.
+
+MLX 0.32.2's one-row qmv_fast K alignment depends on weight bits:
+- **512** at 4/5 bit;
+- **256** at 6/8 bit.
+
+A verifier that used K%512 for every width could execute a different arithmetic kernel from the serial one-row path.
+
+This mismatch is latent for the currently served Qwen3.8-Flash-Next shapes, but directly matters to P51's heterogeneous mixed-bit search.
 
 P51 rule:
-- this is a prompt-only approximate/numerical lane;
-- it does not alter exact verifier certification;
-- require full-state/logit/trajectory gates before using an approximate prompt kernel as a source-equivalent production path.
+- quant format alone is not enough for row-exact identity;
+- **serial kernel-choice predicate** is part of verifier identity.
 
-#### Q2_0 128K — combined branch
+### NEW — oMLX late-join state handoff eliminates 111K replay
 
 Source:
-https://github.com/Niko1221/Strata/commit/e0fb57d00dbe6277a47d19d5b99a6af3510b7445  
-Timestamp: **08:33:39 UTC**.
+https://github.com/jundot/omlx/commit/65515c3c9c3b6d884b3a4cb828ae6e4c86e84e3c  
+Timestamp: **2026-09-29 10:09:26 UTC**.
 
-- 0.1.21: **1,144 PP**.
-- combined branch: **1,596 PP (+39.5%)**.
-- TTFT: **115.7 -> 83.4 s**.
-- KV staging: **1.331 s of 81.3 s (~1.6%)**.
+A shared Lightning batch could finish one row, leave a singleton state, then have a pending request join. The old reconciliation path rebuilt the singleton by replaying its entire history.
 
-This shows substantial common prompt-path headroom at long context, but it is Q2_0. Do not substitute it numerically for IQ3_S or IQ3_XXS.
+Observed production failure:
+- survivor history: **~111K tokens**;
+- replay: **~2 minutes**;
+- joining request TTFT: **122 s**;
+- process memory: **88 -> 116 GB**;
+- PLE page cache was evicted.
 
-#### Other exact prompt-path work
+The surviving row is already at a drained MTP frontier. oMLX now hands that state off with at most one forward instead of replaying it.
 
-- GDN recurrence split over independent value columns:
-  https://github.com/Niko1221/Strata/commit/66f4341e6c50c5436037e4a1bc47f5ff9fb2cd47
-  - Q2_0 32K GDN **5,118 -> 4,264 ms**;
-  - prompt **1,258 -> 1,308 PP**;
-  - 4K/20K continuation byte-identical.
+P51 rule:
+- at a drained/materialized committed frontier, **handoff live state**;
+- do not reconstruct known-good state from token history unless no direct handoff exists.
 
-- Prompt MTP grouping removes host synchronization per draft group:
-  https://github.com/Niko1221/Strata/commit/f0bbe978ec4fab037dda7cb7288ff8fcd604025b
-  - draft-layer share **1,091 -> 905 ms** on Q2_0 32K.
-
-- Lent expert-cache refill batches copies and waits once:
-  https://github.com/Niko1221/Strata/commit/581765a7c2abb6c2e70cabf9f8035117413d694a
-  - 1,782 slots on RTX 5070: **162 -> 96 ms**;
-  - 4K/32K outputs identical.
-
-### NEW — Strata decode-regression scare does not reproduce
+### UPDATE — Strata shared multi-conversation snapshot core
 
 Issue:
-https://github.com/Niko1221/Strata/issues/119
+https://github.com/Niko1221/Strata/issues/57
 
-A user reported 0.1.13 roughly 50% faster than 0.1.21. The maintainer ran both released engines on the same RTX 5070 / Q2_0 / same config:
+The RAM shared-core branch now includes:
+- QSA KV + host/streaming maps;
+- indexer state including the **per-sequence spare key `idx_dead`**;
+- GDN / PLE state;
+- MTP state;
+- checkpoints;
+- exact token/image/steering identity;
+- used-page sizing;
+- Linux + Windows physical-memory admission;
+- whole-image validation before writes where possible;
+- explicit fatal/fail-closed handling for mid-transfer failure.
 
-- 0.1.13: **73.1 / 76.2 TG**
-- 0.1.21: **73.8 / 74.3 TG**
+Important audit correction:
+the original snapshot omitted `idx_dead`, and the original fingerprint omitted it. Fixtures with the same opening tokens could mask the problem. A distinct-spare-key regression is now present.
 
-The engine-level regression was not reproduced. First-request expert-cache adaptation and text-dependent speculative acceptance can move observed TG substantially.
+This is unusually good corroboration for P51's state contract: latent/indexer spare rows are real continuation state even when normal happy-path fixtures do not expose them.
 
-P51 interpretation:
-- 0.1.22 is prompt-side progress, not a reason to reset the existing decode targets.
+### UPDATE — physical ~120K parked-conversation soak
 
-### NEW — llama.cpp Metal FWHT optimization
+Same shared-core work; Linux / RTX 4090 / IQ3_S.
 
-Source:
-https://github.com/ggml-org/llama.cpp/commit/18bbc46b4697e8623e6f0a8d22e789d387b91617  
-Timestamp: **2026-09-29 07:29:51 UTC**.
+Passed:
+- **30 returns**;
+- contexts ~2,026 / 39,985 / **119,987 tokens**;
+- streamed KV;
+- expected known-answer outputs;
+- exact baseline output/state parity;
+- stable retained payload per context.
 
-The 512-wide FWHT now uses the 256-thread threadgroup kernel rather than the one-simdgroup path.
-
-P51 interpretation:
-- useful implementation support for Hadamard/rotated low-bit quantization;
-- no Qwen end-to-end physical receipt is published, so this does not move Apple TG targets.
-
-### NEW — vLLM recurrent/KDA prefill checkpoints
-
-Source:
-https://github.com/vllm-project/vllm/commit/3e2a7e74a556623ddee3a327299d7bf04055501e  
-Timestamp: **2026-09-29 09:14:30 UTC**.
-
-GLM-5.3 FlashKDA now exports both convolution and recurrent state at aligned prefill checkpoint boundaries. Tests restore those states and verify that suffix execution reproduces uninterrupted prefill, including cases with speculative rows.
-
-P51 rule strengthened:
-- a reusable hybrid prefix requires a materialized recurrent checkpoint at a valid aligned boundary;
-- KV alone is insufficient;
-- speculative rows must not corrupt the non-spec checkpoint ordering/state identity.
-
-This is cross-model/hardware correctness evidence only.
-
-### NEW / low-priority — vLLM fast-start weight cache gains PP support
-
-Source:
-https://github.com/vllm-project/vllm/commit/af5b4857e1353c01fd6bf41bc3cb9f84dc82dd89  
-Timestamp: **2026-09-29 09:37:43 UTC**.
-
-The weight-cache daemon now keys and places cached weight shards by DP × PP × TP rank rather than rejecting pipeline parallelism.
-
-P51 interpretation:
-- corroborates the general rule that persistent/cached artifacts in PP must include **stage identity** in their cache key;
-- startup/weight-cache feature only; no inference target movement.
-
-## RECOVERED CURRENT — Swift 1.5 Flash-Next
-
-Primary source:
-https://huggingface.co/ukisai/Swift-1.5-Qwen3.8-Flash-Next-GGUF
-
-The official comparison uses:
-- BF16;
-- **xhigh** thinking;
-- 262,144 context for the seeded benchmark suite;
-- MTP disabled;
-- temperature 1 / top-p .95 / top-k 20;
-- five seeds for seeded benchmarks.
-
-Paired base Flash -> Swift 1.5 Flash:
-
-| Benchmark | Base | Swift | Mean thinking/output-token effect |
-|---|---:|---:|---:|
-| GPQA-D | **89.80** | 89.60 | **-55.8% thinking** |
-| MMLU-Pro | **87.75** | 87.20 | **-57.0% thinking** |
-| C-Eval | 93.27 | **93.60** | **-44.1% thinking** |
-| IFBench | **73.20** | 70.13 | **-46.9% thinking** |
-| AIME 2026 | **98.67** | 96.67 | **-31.3% thinking** |
-| HMMT | **98.00** | 97.33 | **-35.1% thinking** |
-| ERQA | **70.80** | 69.30 | **-55.7% thinking** |
-| LiveCodeBench v6 | 88.40 | **90.39** | **-44.8% thinking** |
-| Terminal-Bench 2.1 | 67.64 | **69.66** | **+11.9% mean total output** |
-
-Important:
-- xhigh is the strongest relative Swift setting; lower reasoning levels lose materially more GPQA quality;
-- the token reduction is strongly workload-dependent;
-- Terminal-Bench is an explicit counterexample to any claim that Swift always emits fewer total tokens.
-
-P51 consequence:
-- Swift Flash becomes a **first-class alternate main-Flash checkpoint**;
-- physical dual-M1 TG / PP numbers do not change;
-- base Flash remains the quality/control checkpoint until Swift passes the full P51 xhigh AA/tool/128K+/MTP suite.
-
-### Independent xhigh agentic corroboration — Aider
-
-Source:
-https://www.reddit.com/r/LocalLLaMA/comments/1wsvr71/qwen38_flashnext_vs_swift_15_flashnext_aider/
-
-Reported paired run:
-- base Flash: **90.7% retry pass**, **17,646 tokens/case**, **1,542 s/case**;
-- Swift Flash: **86.9% retry pass**, **6,991 tokens/case**, **608 s/case**;
-- paired n=107: 99 agreements, 2 Swift gains, 6 losses; McNemar exact p approximately 0.29.
+At 51,133 cached tokens:
+- A -> B -> A: full prefix reused, 22 new tokens processed in **1.237 s**;
+- checkpoint return: seven new tokens in **0.566 s**.
 
 Interpretation:
-- strong evidence for useful task-seconds reduction;
-- not proof of exact quality equivalence;
-- score task wall-time / tokens-per-solve separately from physical TG.
+- direct proof that ~120K full hybrid conversation state can be repeatedly parked/restored in host RAM;
+- same-runtime RTX evidence, **not** Apple restore timing;
+- does not yet prove restart persistence.
 
-### Same-runtime physical check
+### UPDATE — Strata NVMe tier converging onto one snapshot format
 
-Strata's Swift documentation reports at 4K / IQ2_XS roughly:
-- Swift: **465 PP / 78.7 TG**
-- base: **467 PP / 78.3 TG**
+PR:
+https://github.com/Niko1221/Strata/pull/52
 
-Thus Swift's main throughput advantage is fewer generated reasoning tokens, not a materially faster per-token architecture.
+The existing simple NVMe implementation already demonstrated:
+- whole-session snapshots;
+- exact state validation;
+- restart promotion;
+- a test where only 13 new tokens were processed in ~350 ms after restart;
+- round-robin long (~110K) conversations.
 
-### Compact Swift Flash GSQ-RCO packs
-
-Current Swift-specific compact releases:
-- IQ3_XXS: **75.97 GB**
-- IQ2_XS: **68.15 GB**
-- Q2_0 experimental: **66.55 GB**
-
-Their Swift-specific quant refinement/KLD work is predominantly at **512 tokens** and explicitly does not establish long-context parity. Standard Swift GGUFs publish longer-context distribution measurements, but that is not a substitute for certification of the compact GSQ-RCO artifacts.
-
-P51 gate:
-- do not inherit the base Flash low-bit AA priors automatically;
-- certify the actual Swift deployment quant at xhigh, 128K+, tools, recurrent/QSA state stability, MTP acceptance and repeated-agent trajectories.
-
-## RECOVERED CURRENT — newer-Apple public Flash fork, not M1
-
-A separate public Mac report uses an **M5 Pro 64 GB**, not M1 Max. It reports approximately:
-- **367 PP @4K**
-- **27.6 TG** with depth-3 MTP
-- **18-18.6 TG** target-only
-- **~20.6 TG** at ~29K real-chat context
-- gathered sparse attention roughly +19% @62K and +50% @130K
-- Metal MoE fusion roughly +5-9%
-
-P51 interpretation:
-- useful mechanism evidence for sparse attention / MTP / Metal fusion;
-- does **not** upgrade the previous exact-chip M1-Max ~27-TG anecdote into a receipt;
-- no M1 target movement.
-
-## SAME-DAY CURRENT — exact M1-Max ~27-TG lead remains unpublished
-
-The previous MoEspresso-thread claim of **~27 TG on M1 Max 32-core** still has no public fork/config/context/acceptance denominator in this strict window.
+The author now has the simple NVMe cache working against the #57 shared snapshot API and is developing a **delta-based cache** to avoid rewriting entire snapshots every turn and to reduce duplicate storage for forks.
 
 P51 treatment:
-- retain as high-priority follow-up only;
-- do not move single-M1 or dual-M1 Flash confidence.
+- unified RAM + NVMe snapshot format is the correct architectural direction;
+- delta persistence remains work-in-progress until bounded staging, atomic durability, identity and corruption/failure tests are published.
 
-## Outside cutoff
+### NEW — SGLang snapshot bootstrap transaction pattern
 
-Strata issue #57 received an update at **2026-09-29 10:01:06 UTC**, four seconds after this pass's cutoff. Any new content in that update belongs to the next pass.
+Sources:
+- https://github.com/sgl-project/sglang/commit/7bcfcf5aa0e511058fb1fe021c9b17ad99d993c4
+- https://github.com/sgl-project/sglang/commit/8b3a4cad8be68a23f480b4c4ee07189150931d86
+- https://github.com/sgl-project/sglang/commit/8d1643b21ea43ab86d9575302075fd1b951ab313
+- https://github.com/sgl-project/sglang/commit/4a4e1ce0140cacc52e2903bc8403ad762f6c68c7
+
+Timestamps: **10:56:32 -> 12:07:37 UTC**.
+
+A booting router/rank:
+1. subscribes to live events before snapshot fetch;
+2. buffers incoming batches while pending;
+3. fetches a sibling snapshot;
+4. vets it before it may touch the tree;
+5. applies the snapshot through the single writer;
+6. proves sequence/watermark continuity;
+7. releases held deltas after the splice.
+
+P51 consequence:
+this is very strong cross-runtime support for the CUDA->Apple/full-state handoff transaction:
+- begin receiving deltas before snapshot;
+- validate whole image before mutation;
+- mutate through one state owner;
+- prove frontier continuity;
+- then expose/release subsequent work.
+
+### SAME-DAY CURRENT — M3 Ultra full-262K Flash report
+
+Source:
+https://www.reddit.com/r/MacStudio/comments/1wt6w03/qwen38_flash_next_q4_at_full_262k_context_on_a/
+
+Self-reported 96-GB M3 Ultra / Q4 Flash-Next:
+- full 262K context;
+- **55-60 TG decode**;
+- **~667 cold PP**;
+- cached turns reportedly **0.3-0.8 s**;
+- ~90% GPU memory allocation and little room for normal desktop use.
+
+P51 interpretation:
+- useful stronger-Apple long-context transfer evidence;
+- not exact M1 Max/TB4 evidence and does not move the 40-TG probability ladder.
+
+## RECOVERED CURRENT — TensorFold 0.3.6.3
+
+Release:
+https://github.com/ashhart/TensorFold/commit/191188075bca56a7c71074a79375eb4c1cb22e1c  
+Timestamp: **2026-09-29 04:51:55 UTC** — before this pass's strict window, so not NEW.
+
+### Flash-Next NVFP4 CUDA
+
+Published NVFP4 Flash checkpoints now:
+- run as published on one CUDA GPU;
+- drafted output equals serial output;
+- resumed prompts equal fresh prompts;
+- **84/84 concurrent streams equal their solo runs**.
+
+On one DGX Spark, TensorFold reports Flash NVFP4 decode **1.13-1.52x vLLM** on the same checkpoint.
+
+Limits:
+- NVFP4 is currently one-rank only;
+- two-rank NVFP4 refused;
+- PLE-on-SSD refused;
+- images refused until qualified.
+
+P51 interpretation:
+- strong exact-concurrency / ModelOpt-NVFP4 mechanism evidence;
+- not an exact user's-5070Ti performance ladder.
+
+### Decode-share during long prefills
+
+On M3 Ultra, three incoming ~17K prompts previously stalled a running reply for up to **164 s**. Chunked interleaving with decode-share cuts the longest pause to **7 s**, while a request served alone is unchanged.
+
+P51 consequence:
+- agent UX needs a **latency-fairness / max-pause metric** in addition to cold PP and aggregate throughput;
+- long prefill should not monopolize the engine when an interactive decode is active.
+
+### Warm long conversations
+
+Under an emulated 64-GB budget on M3 Ultra:
+- one 27B conversation grows to **143K tokens**;
+- resumed turns remain **38-46 s**;
+- 0.3.6.2 had fallen back to full re-prefill beyond ~100K.
+
+The fix:
+- does not evict existing good checkpoints until a new checkpoint is known to fit;
+- no longer retains an unnecessary copied stored prefix;
+- reduces DFlash2 prompt taps from **114 KB/token -> 64 KB/token**.
+
+This further reinforces P51's rule:
+**allocated context != resident/resumable context**.
+
+### M1-M4 prompt kernels
+
+TensorFold 0.3.6.3 also adds M1-M4-specific Flash prompt work:
+- one-expert-per-GPU-tile MoE scheduling;
+- batched QSA block-score matmul;
+- GQA scoring/tuned top-512 selection;
+- same-bit behavior.
+
+Reported M3 Ultra gains are only a few percent. Useful implementation evidence, not a new exact M1 Max E2E receipt.
+
+## Low-priority strict-window findings
+
+- llama.cpp `8019dc56`: collect all graph input tensors before PP graph copying so switching request shapes/modalities does not spuriously change scheduler graph composition and force bad re-reservation.
+- oMLX `5ea8cfc1`: fixes causal masking in a decode fallback path.
+- vLLM strict MiMo tool-calling/frontend changes are not material to current P51 performance targets.
 
 ## Strict-window negative scan
 
-- **TensorFold:** no post-boundary commit after 0.3.6.2.
+- **Exact M1 Max Flash-Next:** no newly published reproducible ~27-TG fork/settings/context receipt.
+- **Exact dual M1 Max / TB4 Flash:** no new physical sustained 128K receipt.
+- **DASLab Flash IQ3_S long-context source-paired quality:** no new official 32K/64K/128K/262K paired result found.
+- **mlx-serve:** no post-boundary Flash commit.
 - **Ishizuki:** no post-boundary commit.
-- **oMLX:** no P51-relevant Qwen3.8 Flash/27B performance change in-window.
-- **mlx-serve:** no post-boundary commit after the already-promoted mid48 work.
-- **Exact 2x M1 Max / TB4 Flash:** no new reproducible physical receipt.
-- **Exact user's RTX 5070 Ti / Strata:** no final 32K/64K/128K 0.1.22 IQ3_XXS/IQ3_S matrix and no new 8h/24h soak receipt.
-- **DASLab:** no newer official Flash IQ3_S source-paired 32K/64K/128K/262K quality result found.
-- **Exact M1-Max ~27-TG lead:** still unpublished.
+- **Exact user's RTX 5070 Ti Strata:** no direct 0.1.22/0.1.24 matrix yet; targets are raised from a weaker-card lower-bound receipt.
+- **Strata TG ladder:** no target-moving exact-user decode matrix in this pass.
 
 ## Durable target changes
 
-### Swift 1.5 Flash effective-task-throughput lane
+### Strata IQ3_XXS cold PP
 
-Added to `RESEARCH-TARGETS.md` as a separate alternate Flash checkpoint lane.
+Previous:
+- 32K **1,300**
+- 64K **1,250**
+- 128K **1,150**
 
-Do not change:
-- physical **40 TG @ genuine ~128K** target;
-- physical **400 cold PP** target;
-- base-Flash AA control.
+New:
+- 32K **1,500 PP / ~90%**
+- 64K **1,400 PP / ~90%**
+- 128K **1,300 PP / ~85%**
 
-Track Swift with:
-- physical TG / PP;
-- solved-task wall time;
-- output/reasoning tokens;
-- tokens per solve;
-- tool trajectory length;
-- long-context/tool/AA quality;
-- MTP acceptance/rollback.
+### Strata IQ3_S cold PP
 
-### Strata IQ3_S ~32K PP confidence
+Previous:
+- 32K **1,200**
+- 64K **1,150**
+- 128K **1,050**
 
-Target stays:
-- **1,200 PP @ ~32K**
+New:
+- 32K **1,450 PP / ~90%**
+- 64K **1,250 PP / ~85%**
+- 128K **1,200 PP / ~85%**
 
-Planning confidence:
-- **~80% -> ~90%**
-
-Reason:
-- direct **1,213 PP** IQ3_S 32K receipt on the weaker RTX 5070 12 GB.
-
-No change to:
-- IQ3_S 64K / 128K PP centers or confidences;
-- IQ3_XXS PP ladder;
-- any Strata TG target;
-- AA priors.
-
-## Canonical planning state after this pass
+### Not changed
 
 - Dual-M1 Flash-Next: **40 TG sustained @ genuine ~128K / 400 cold PP / ~70% >=40 TG**.
 - Single-M1 dense27B: **25 TG / ~110 PP**.
-- Persistent root-image target unchanged.
-- Swift dense27B lane retained.
-- **Swift Flash lane added.**
-- RTX 5070 Ti dense CUDA-v2 ladder unchanged.
-- Strata IQ3_S 32K: **1,200 PP / ~90% confidence**.
-- Strata remaining IQ3 PP/TG rows unchanged.
+- Strata IQ3 TG targets unchanged.
 - IQ3_XXS AA>=38: **~85%**.
 - IQ3_XXS AA>=40: **~65%**.
 - IQ3_S AA>=40: **~80%**.
+- Swift Flash and dense Swift remain effective-task-throughput lanes, not physical TG multipliers.
+- Persistent Apple root restore-latency target unchanged.
 
 ## New hard boundary
 
-**2026-09-29 10:01:02 UTC**
+**2026-09-29 12:57:59 UTC**
