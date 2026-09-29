@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-29 16:40 ET**
+Latest strategy true-up: **2026-09-29 17:50 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -835,16 +835,84 @@ Why the stability confidence moved:
 
 **INT8 K/V remains the quality baseline.**
 
-For the capacity/speed arm, **K8V4 is now the preferred first experiment before whole-cache Q4**:
+### Maximum-context target — IQ3_XXS 3.00 bpw + native 262K on 64-GB host
+
+This is now an explicit Project-51 target for the RTX 5070 Ti lane:
+
+- **weights:** DASLab GSQ-RCO **IQ3_XXS, 3.00 transformer bpw**;
+- **context:** genuine/native **262,144**, not allocation-only;
+- **GPU:** RTX 5070 Ti 16 GB;
+- **host:** 64 GB RAM;
+- **KV:** Flash/QSA-aware compressed + streamed full-attention KV;
+- **protected state:** QSA/indexer keys and spare/dead row, GDN/recurrent state, MTP/draft state, checkpoint/frontier
+  identity stay lossless/high precision.
+
+Why this is plausible rather than a wish:
+- Strata models IQ3_XXS at **60 GB normal RAM / 42.9 GB expert arena**;
+- streamed INT8 KV is ~**13.7 KB/token**, about **3.6 GB @262K**;
+- its admission check also wants ~1 GB of margin, putting the simple stock total at roughly **64.6 GB**;
+- therefore the current 128K cap on <90-GB hosts is conservative policy around a near-cliff configuration, not evidence
+  that the model+state fundamentally needs 90 GB.
+
+### TurboQuant-style candidate ladder
+
+The first custom candidate is **K6/V4**, not symmetric Q6.
+
+The currently audited generic TurboQuant-MLX storage format has:
+- 6-bit indices packed **5 per uint32** -> **6.4 physical bpv** before scales;
+- one FP16 scale per 64 values -> ~**0.25 bpv** scale overhead;
+- K6 therefore ~**6.65 bpv**;
+- V4 ~**4.25 bpv**;
+- equal-sized K/V -> **~5.45 bpv average storage**.
+
+First-order fit estimate versus Strata's ~8.25-bpv INT8+scale representation:
+- **K6/V6:** ~6.65 bpv -> roughly **~2.9 GB @262K**; probably too conservative to create comfortable host margin;
+- **K6/V4:** ~5.45 bpv -> roughly **~2.4 GB @262K**; preferred first custom target;
+- **K4/V4:** ~4.25 bpv -> roughly **~1.9 GB @262K**; aggressive quality arm.
+
+These are **format-level estimates**, not measured Flash-Next memory receipts.
+
+### Implementation caveat — current TurboQuant does not solve Flash-Next KV today
+
+TurboQuant-MLX supports Qwen3.8-Flash-Next **weights**, but its `--kv-bits` path intentionally does **nothing**
+for Flash-Next. Flash's `_AttnCache` is a KVCache subclass that also carries sparse-QSA indexer keys; an earlier
+generic replacement dropped that state and silently changed attention behavior. The runtime now refuses to replace
+the subclass.
+
+Therefore the P51 262K lane requires a new cache/state integration:
+1. preserve QSA/indexer state separately and exactly;
+2. compress only the actual full-attention K/V payload;
+3. keep host KV compressed at rest;
+4. gather only needed/resident cells;
+5. dequantize into bounded register/shared scratch in the attention path;
+6. never materialize a second full 262K fp16 cache.
+
+### Quality priors for the 262K lane
+
+Planning priors, not measured P51 results:
+- **physical fit, conditional on a correct compressed-streaming implementation:** ~**75-80%**;
+- **K6/V4 source-like long-horizon quality:** ~**60-70%** until Flash-specific 128K/262K evidence exists;
+- **end-to-end production readiness today:** lower than fit probability because neither Strata nor TurboQuant-MLX
+  currently ships the required Flash/QSA compressed-streaming path.
+
+Broader TurboQuant evidence argues for caution:
+- production-oriented 2026 evaluations prefer 4-bit/no-QJL modes over 3-bit at very long context;
+- architecture-specific sweeps find K sensitivity varies materially, with examples ranging from K6/V4 to K8/V4;
+- therefore **do not assume K6/V4 passes AA40** simply because the memory arithmetic works.
+
+### Existing implemented controls
+
+**INT8 K/V** remains the source-quality control.
+
+**K8V4** remains the best currently implemented Strata capacity control before whole-cache Q4:
 - K stays INT8, preserving the attention-score path;
 - V uses Hadamard-rotated Q4_0;
 - Strata reports **816 B/cell vs 1,056 B/cell for INT8 (~23% less KV)**;
 - on RTX 3090 / Coder at ~198K, the published arm reports **99 TG vs 85 TG INT8**, the same needle result, and
   **2-5% slower prefill**.
 
-This is **not** a quality-default promotion. It still needs P51 long-horizon semantic/agent validation, does not
-currently support Strata KV streaming, and the speed gain may come mainly from freeing VRAM for experts. Full Q4
-K/V remains a lower-precision extreme/capacity arm, not the preferred production candidate.
+K8V4 is not the final 262K solution because it currently **does not support Strata KV streaming**. Full Q4 K/V
+remains a lower-precision extreme/capacity arm.
 
 ## Quality-certification targets
 
@@ -871,9 +939,14 @@ AA measurement and does not certify long-context/state/tool parity by itself.
    **79.7-TG IQ3_XXS @128K** report is now a direct anchor, but not a full controlled ladder.
 4. Validate draft-vocabulary/language coverage and record acceptance by workload before tuning verifier width.
 5. Require width-invariant native-expert arithmetic for source-equivalence / AA / MTP certification.
-6. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the preferred capacity/speed arm
-   before whole-cache Q4.
-7. Only after those pass, optimize toward the 128K stretch numbers.
+6. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the currently implemented
+   capacity control.
+7. Build/qualify the Flash-aware compressed-KV lane in this order: **K8/V4 control -> K6/V4 -> K4/V4**, preserving
+   QSA/indexer/recurrent/MTP state exactly.
+8. Qualify **IQ3_XXS + genuine 262K** on the exact 5070 Ti / 64-GB host: cold fit, peak physical RAM, compressed-host-KV
+   bytes, 32K resident-window bytes, PP/TG, needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
+9. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
+   stock Strata's current setup script caps IQ3_XXS at 128K.
 
 ---
 
