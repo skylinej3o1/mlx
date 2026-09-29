@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-29 02:21 ET.
+Last consolidated: 2026-09-29 06:01 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -119,6 +119,22 @@ Future passes should seek status/performance updates rather than rediscover thes
 - stage-local recurrent state under PP; avoid chatty TB4 collectives
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
+
+### 2026-09-29 10:01 UTC Strata-0.1.22 / Swift-Flash / checkpoint update
+
+- **NEW Strata 0.1.22 prompt path (strict window):** the 12-GB RTX 5070 path now has several measured prompt-side gains. Exact intermediate receipts include IQ3_S 32K **1143 -> 1213 PP** from the asynchronous expert issuer, Q2_0 32K **1386 -> 1646 PP** from tensor-core QSA attention, and a Q2_0 128K prompt **1144 -> 1596 PP (+39.5%)** on the combined branch. The 128K run's KV staging was only **1.331 s of 81.3 s (~1.6%)**, so further gains there are not primarily a KV-copy problem. This physically clears the current P51 **IQ3_S 32K >=1200 PP** target on a weaker 12-GB 5070, raising confidence in that target; it does **not** yet justify raising the 64K/128K IQ3_S or IQ3_XXS PP centers without a final same-quant matrix.
+- **Prompt attention precision tradeoff is explicit:** Strata's new QSA prompt-attention kernel uses FP16 tensor-core MMA with FP32 accumulation and measures **3.2e-6 relative error vs FP64** (old FP32 kernel 2.5e-6). On Q2_0 32K it reduces attention 5216 -> 1318 ms and prompt 1386 -> 1646 PP. It is intentionally not bitwise; the model amplifies summation-order differences even when kernel error remains tiny. P51 rule: prompt-only approximate/fp32-level paths require full-state/logit/trajectory gates and must stay separate from exact verifier certification.
+- **Strata decode regression scare resolved:** a same-box release A/B on RTX 5070 Q2_0 measured 0.1.13 at 73.1/76.2 TG and 0.1.21 at 73.8/74.3 TG. The reported ~50% user regression was not reproduced. This supports treating 0.1.22 as prompt-side progress rather than a decode-target reset.
+- **RECOVERED CURRENT — Swift 1.5 Flash-Next becomes a first-class alternate Flash checkpoint:** UkisAI's BF16 xhigh comparison at 262K shows GPQA-D **89.80 -> 89.60** while mean thinking tokens fall **17,683 -> 7,823 (-55.8%)**; LiveCodeBench v6 **88.40 -> 90.39** with **-44.8%** mean thinking tokens; AIME mean tokens **-31.3%**, HMMT **-35.1%**, MMLU-Pro **-57.0%**. Terminal-Bench 2.1 improves **67.64 -> 69.66** but mean total output tokens rise **11.9%**, so the efficiency gain is workload-dependent and not universal.
+- **Independent agentic corroboration — Swift Flash Aider:** one paired community run at xhigh reports base Flash **90.7% retry pass, 17,646 tokens/case, 1542 s/case** versus Swift Flash **86.9%, 6,991 tokens/case, 608 s/case**; paired n=107 gives 99 agreements, 2 Swift gains, 6 losses, McNemar p~0.29. Treat this as strong task-seconds evidence, not proof of exact equivalence. It supports an alternate production lane where solved-task wall time and tokens/solve are primary metrics.
+- **Swift Flash physical speed per token appears unchanged in Strata:** on the same engine/quant family, Strata documents 4K IQ2_XS at **465 PP / 78.7 TG** for Swift versus **467 / 78.3** for base. This makes Swift's task-time advantage mostly a token-demand effect rather than a faster architecture.
+- **Swift Flash compact quant caveat:** current Swift-specific GSQ-RCO releases are IQ3_XXS **75.97 GB**, IQ2_XS **68.15 GB**, Q2_0 **66.55 GB**. Their published refinement/KLD work is mostly 512-token; it explicitly does **not** establish long-context capability parity. Standard GGUFs do publish 32K KLD, but that does not certify the compact GSQ-RCO long-context lane. P51 must separately certify the chosen Swift compact quant at xhigh, 128K+, tools, MTP acceptance and repeated-agent trajectories.
+- **NEW vLLM recurrent prefill-checkpoint corroboration — `3e2a7e74`:** GLM-5.3 FlashKDA now exports both convolution and recurrent checkpoint state at aligned prefill offsets, and tests resumed suffixes against uninterrupted prefill with and without speculative rows. This independently reinforces the P51 full-state root rule: recurrent checkpoint state must be materialized at a valid prefix boundary, not reconstructed from KV alone.
+- **NEW llama.cpp Metal FWHT optimization — `18bbc46b`:** 512-wide FWHT moved from the one-simdgroup path to the 256-thread threadgroup kernel. No end-to-end Qwen receipt is published, so this is only implementation support for the rotated/Hadamard low-bit search lane, not a target-moving result.
+- **RECOVERED newer-Apple Flash fork, not M1 evidence:** a public M5 Pro 64-GB llama.cpp fork reports ~367 PP @4K, **27.6 TG** with depth-3 MTP, **18-18.6 TG** target-only, and **20.6 TG at ~29K real-chat context**. Gathered sparse attention is reported +19% at 62K and +50% at 130K, Metal MoE fusion +5-9%. Useful mechanism evidence, but it is **M5 Pro**, not the previously discussed M1-Max anecdote, so it does not move Apple7 calibration.
+- **No reproducible M1-Max 27-TG fork landed in-window.** The prior exact-chip report remains a lead only.
+
+**Target effect:** add a **Swift-Flash effective-task-throughput lane** parallel to base Flash; physical 40-TG/400-PP dual-M1 targets remain unchanged. Raise only the **Strata IQ3_S ~32K PP >=1200 planning confidence** based on the direct weaker-card receipt; long-context Strata PP centers and all TG centers stay unchanged.
 
 ### 2026-09-29 06:21 UTC protected-islands / heterogeneous-PP / task-throughput update
 
