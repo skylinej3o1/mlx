@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-29 15:09 ET**
+Latest strategy true-up: **2026-09-29 16:40 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -687,6 +687,22 @@ Exact RTX 5070 Ti evidence is less matrix-like but materially stronger on decode
 The post-fix stability receipt materially raises confidence in Strata as a real production candidate.
 It does not remove the separate Windows auto-admission/memory-fragmentation watch from issue #60.
 
+### 2026-09-29 Strata 0.1.26 PP matrix true-up
+
+The same weaker **RTX 5070 12 GB / Ryzen 5 7600 / 64 GB Windows** calibration box, using the same code-agent
+prompts and setup defaults, now measures:
+
+- IQ3_XXS: **1,745 / 1,609 / 1,602 PP** at 32K / 64K / 128K;
+- IQ3_S: **1,624 / 1,640 / 1,443 PP** at 32K / 64K / 128K.
+
+These are one-shot cells, so the mature centers stay below the measured values rather than chasing each sample. The
+5070-Ti planning centers are raised to:
+- IQ3_XXS: **1,650 / 1,550 / 1,500 PP**;
+- IQ3_S: **1,550 / 1,550 / 1,350 PP**.
+
+The gain combines 0.1.24 QSA selection, 0.1.25 prompt fusions/grouping changes and 0.1.26 batched draft-layer prefill.
+Do **not** move TG centers from the same 12-GB table; the exact 5070-Ti decode receipts remain the stronger TG anchors.
+
 ### 2026-09-29 full Strata 0.1.22 PP matrix true-up
 
 The complete 0.1.22 prompt matrix on the weaker **RTX 5070 12 GB / Ryzen 5 7600 / 64 GB** now gives:
@@ -722,9 +738,9 @@ a final same-quant long-context matrix.
 | Active context | Mature TG target | TG planning confidence | Mature cold PP target | PP planning confidence |
 |---|---:|---:|---:|---:|
 | <=8K | **100 TG** | **~75%** | — | — |
-| ~32K | **95 TG** | **~75%** | **1,500 PP** | **~90%** |
-| ~64K | **90 TG** | **~80%** | **1,400 PP** | **~90%** |
-| ~128K | **78 TG** | **~85%** | **1,300 PP** | **~85%** |
+| ~32K | **95 TG** | **~75%** | **1,650 PP** | **~90%** |
+| ~64K | **90 TG** | **~80%** | **1,550 PP** | **~90%** |
+| ~128K | **78 TG** | **~85%** | **1,500 PP** | **~90%** |
 
 Interpretation:
 - 64K has the strongest repeated same-card decode support;
@@ -742,9 +758,9 @@ exact-card 128K receipt exists.
 | Active context | Mature TG target | TG planning confidence | Mature cold PP target | PP planning confidence |
 |---|---:|---:|---:|---:|
 | <=8K | **85 TG** | **~65%** | — | — |
-| ~32K | **78 TG** | **~65%** | **1,450 PP** | **~90%** |
-| ~64K | **70 TG** | **~60%** | **1,250 PP** | **~85%** |
-| ~128K | **60 TG** | **~55%** | **1,200 PP** | **~85%** |
+| ~32K | **78 TG** | **~65%** | **1,550 PP** | **~90%** |
+| ~64K | **70 TG** | **~60%** | **1,550 PP** | **~90%** |
+| ~128K | **60 TG** | **~55%** | **1,350 PP** | **~85%** |
 
 This lane deliberately sacrifices throughput for quant headroom. Do not raise it from IQ3_XXS speed
 receipts without a same-checkpoint physical run.
@@ -779,6 +795,18 @@ slots.
 
 Do not diagnose low acceptance as an S/kernel/model-quality problem until draft-vocabulary coverage is ruled out.
 
+### Verifier-width / native-expert exactness gate
+
+Current Strata native i-quant CPU experts can choose different reduction arithmetic at width 1 versus width >=2
+(issue #152), so changing speculative width can change the target model's FP32 expert result. Until upstream fixes
+and gates this, **AA/source-equivalence/MTP-certification runs must use a width-invariant expert path**.
+
+Temporary conservative mode documented by the maintainer:
+`STRATA_NO_IQ512=1 STRATA_NO_IQ256=1 STRATA_NO_IQ4NL=1`.
+
+Throughput runs on the default fast path remain useful physical measurements, but do not count them as proof of
+plain-vs-MTP target arithmetic equivalence.
+
 ## Stability / admission targets
 
 | Production gate | Target | Planning confidence now |
@@ -787,6 +815,15 @@ Do not diagnose low acceptance as an S/kernel/model-quality problem until draft-
 | extended soak | **24 h, zero stalls/watchdogs** | **~75%** |
 | Windows 16-GB/64-GB auto admission | **boots first try, no expert-cache OOM** | **~70%** |
 | error recovery with healthy RAM headroom | **restart <60 s** | **~80%** |
+
+### 64-GB-host low-RAM fallback
+
+Strata 0.1.26 can mmap the expert file instead of pinning the entire expert corpus in committed RAM. This is a
+**fit/admission fallback**, especially for tight IQ3_S + Windows headroom on a 64-GB host, not the canonical
+performance configuration. A published Coder example drops committed memory from roughly **36 -> 13 GB** with the
+same answers; small GPUs can become much slower because more experts arrive from SSD.
+
+Do not mix low-RAM-mode measurements into the main TG/PP tables unless the row is explicitly labeled.
 
 Why the stability confidence moved:
 - exact 5070-Ti 0.1.14: ~3.5 h / three HE+ sweeps, **zero stalls**;
@@ -833,9 +870,10 @@ AA measurement and does not certify long-context/state/tool parity by itself.
 3. Complete a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S. The
    **79.7-TG IQ3_XXS @128K** report is now a direct anchor, but not a full controlled ladder.
 4. Validate draft-vocabulary/language coverage and record acceptance by workload before tuning verifier width.
-5. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the preferred capacity/speed arm
+5. Require width-invariant native-expert arithmetic for source-equivalence / AA / MTP certification.
+6. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the preferred capacity/speed arm
    before whole-cache Q4.
-6. Only after those pass, optimize toward the 128K stretch numbers.
+7. Only after those pass, optimize toward the 128K stretch numbers.
 
 ---
 
