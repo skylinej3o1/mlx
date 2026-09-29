@@ -316,11 +316,100 @@ an unchunked reference even when final sampled text happens to agree.
 
 ---
 
+# 1b. Persistent canonical agent-root image — cross-runtime target
+
+This is a **TTFT/state-reuse target, not a cold-PP target**. The first production artifact should be
+dense Qwen3.8-27B because its stable Pi/Hermes system+tools prefix is large enough to matter and the
+complete hybrid state is already well understood. Flash-Next follows after the denser state contract is
+proven.
+
+## Initial root-image target
+
+| Gate | Initial target | Stretch |
+|---|---:|---:|
+| invariant root depth | **20K-40K tokens** | **64K+** |
+| survives server/runtime restart | **required** | — |
+| restore-to-ready on same runtime | **<5 s** | **<2 s** |
+| suffix work after restore | **only new/private suffix** | — |
+| target + speculative state | **complete and compatible** | — |
+| mismatch behavior | **hard miss / re-prefill** | — |
+
+Why this is worth a separate target: at the single-M1 native working PP target of ~110 tok/s, cold
+materialization of a 20K invariant root costs roughly **182 s** and 40K costs roughly **364 s**. A valid
+persistent root turns that repeated cost into state I/O plus a tiny landing suffix. Do not report that
+as a higher PP number; report **root restore latency**, **restored tokens**, **replayed tokens** and
+**real-task -> first-token latency** separately.
+
+### Evidence and qualification contract
+
+- patched llama.cpp on Qwen3.8-Flash-Next: 5,892-token cold prompt ~19.1 s; patched hybrid
+  checkpoint restore ~153 ms and next request only 4 tokens / ~508 ms;
+- TensorFold Qwen3.8-27B: 35,583-token conversation spills 2.2-2.4 GiB in ~0.18-0.19 s,
+  reloads in ~0.24 s and answers in ~2.3 s versus 26.2 s cold, byte-identical;
+- NInfer Qwen3.8-27B: a 6.9K complete session is ~416 MiB, saves in ~0.24 s and restores in
+  ~0.12 s, including paged target+MTP KV, GDN state, MTP tail hidden, checkpoints and prefix identity.
+
+These are **same-runtime persistence** results. They do not prove CUDA->MLX portability.
+
+A root is valid only when all identity components match: model/weights, quant, tokenizer, chat template,
+system/tools/extensions, reasoning/preserve-thinking behavior, KV/recurrent geometry, speculative
+configuration, state-schema version and committed frontier. Target KV without recurrent/checkpoint/draft
+state does not count.
+
+### Promotion sequence
+
+1. same-runtime M1 dense-27B root at **20K-40K**, exact continuation and restart survival;
+2. include MTP/draft state and verify acceptance/trajectory parity after restore;
+3. qualify **32K CUDA -> Apple** canonical-state export/import;
+4. extend the portable image to **96K/128K**;
+5. only then implement/credit **one physical immutable shared root + COW/private suffixes**.
+
+A forkable persistent image normally creates a private materialized copy for each agent. It saves compute
+and TTFT but **must not be counted as shared resident-agent memory capacity** until the runtime actually
+implements refcounted/read-only shared attention+recurrent/QSA root state.
+
+---
+
 # 2. Qwen3.8-27B — M1 Max 64 GB
 
 The certified P69 exact-verifier campaign remains separate. P69B12 stays frozen/promoted and
 P69B13 remains next from existing profiling only. The targets below are production-runtime planning
 numbers and do not alter P69 certification.
+
+## Swift 1.5 alternate-checkpoint lane — effective task throughput
+
+Swift 1.5 Qwen3.8-27B is now a **first-class alternate checkpoint candidate**, but it does not change
+the physical 25-TG / 110-PP hardware targets. Its value proposition is fewer reasoning/output tokens
+for a solved task.
+
+Published xhigh BF16 comparisons report workload-dependent **mean-token reductions of roughly 16-54%**
+with broadly similar aggregate quality, including higher LiveCodeBench with ~24.5% fewer mean tokens
+and higher Terminal-Bench with ~16% fewer. Treat the headline 58.5% figure as a workload/median result,
+not a universal multiplier.
+
+For planning only, if a task preserves quality while reducing generated tokens by fraction `r`, define:
+
+**effective base-Qwen work rate = physical TG / (1-r)**
+
+Examples at a 25-TG physical engine:
+- 24.5% fewer tokens -> **~33 TG-equivalent** task work;
+- 40% fewer -> **~42 TG-equivalent**;
+- 50% fewer -> **~50 TG-equivalent**.
+
+These are **not physical throughput claims** and must never appear in TG benchmark tables.
+
+Promotion requires paired base-vs-Swift xhigh runs on the P51 AA suite with:
+- solved-task wall time;
+- generated reasoning/output tokens;
+- tool-call count / trajectory length;
+- long-context semantic continuity;
+- MTP/DFlash acceptance and rollback behavior;
+- repeated agent trajectories.
+
+Base Qwen3.8-27B remains the control until Swift meets the same production AA/tool/long-context floor.
+Swift-specific GSQ-RCO **IQ3_S+MTP (~12.12 GB)** is the preferred first low-bit capacity artifact, but
+its existing short-context distribution tests are only an allocation prior; it still needs full P51
+certification.
 
 ## TG
 
@@ -668,6 +757,10 @@ Mandatory qualification before accepting a DS4 PP/TG number:
 ---
 
 # Current priority order implied by the targets
+
+Cross-cutting systems priority: **persistent canonical agent-root images** now sit ahead of incremental
+cold-PP tuning for invariant system/tool prefixes. They do not change the hardware ranking below because
+restore latency and cold PP are separate metrics.
 
 For pure interactive speed on the hardware already owned:
 
