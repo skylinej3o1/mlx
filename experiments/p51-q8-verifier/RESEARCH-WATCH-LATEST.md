@@ -1,319 +1,321 @@
-# Project 51 primary-lane research watch — 2026-09-29 15:09 ET
+# Project 51 primary-lane research watch — 2026-09-29 16:40 ET
 
-**Freshness boundary entering this pass:** **2026-09-29 15:03:35 UTC**.  
-**User cutoff:** **2026-09-29 19:09:40 UTC**.
+**Freshness boundary entering this pass:** **2026-09-29 19:09:40 UTC**.  
+**User cutoff:** **2026-09-29 20:40:47 UTC**.
 
 ## Decision
 
-**Durable STATE + TARGETS update; no numeric TG/PP/AA-center change.**
+**Durable STATE + TARGETS update.**
 
-This pass changes the production plan in three ways:
-1. TensorFold 0.4.0 demonstrates that **pre-M5 Apple can actually serve row-exact per-module mixed 2-8-bit Flash checkpoints**, materially reducing implementation risk for the P51 protected-island quant design.
-2. Strata's new **K8V4** mode becomes the preferred long-context capacity experiment before whole-cache Q4; INT8 remains the quality baseline.
-3. The multilingual MTP fix is refined from "use the full head" to **domain-aware compact draft-vocabulary expansion first, full-head fail-open second**.
+The full Strata 0.1.26 prompt matrix justifies another conservative cold-PP true-up:
 
-Canonical physical targets remain:
-- dual-M1 Flash-Next: **40 TG sustained @ genuine ~128K / 400 cold PP / ~70% >=40 TG**;
-- single-M1 dense27B: **25 TG / ~110 PP**;
-- Strata IQ3_XXS ~128K: **78 TG / ~85%**;
-- Strata PP ladders unchanged;
-- AA priors unchanged.
+| Quant | 32K PP | 64K PP | 128K PP |
+|---|---:|---:|---:|
+| IQ3_XXS measured on RTX 5070 12 GB | **1,745** | **1,609** | **1,602** |
+| **P51 5070-Ti target** | **1,650** | **1,550** | **1,500** |
+| IQ3_S measured on RTX 5070 12 GB | **1,624** | **1,640** | **1,443** |
+| **P51 5070-Ti target** | **1,550** | **1,550** | **1,350** |
+
+No TG center or AA prior changes.
+
+A new mandatory correctness gate is also added:
+- **native CPU expert arithmetic must be width-invariant before plain-vs-MTP/source-equivalence certification.**
 
 ## Strict-window findings
 
-### NEW — TensorFold 0.4.0: pre-M5 mixed-bit execution is real
+### NEW — Strata publishes the full 0.1.26 speed matrix
 
 Source:
-https://github.com/ashhart/TensorFold/commit/7a00336b2f6d1a1a3e0ba49d1ef5b4b82e927759  
-Timestamp: **2026-09-29 17:03:00 UTC**.
+https://github.com/Niko1221/Strata/commit/4c68013ea5fc413199584932b23fc654daf2bb5c  
+Timestamp: **2026-09-29 20:09:44 UTC**.
 
-TensorFold 0.4.0 adds on M1-M4:
-- Flash-Next MLX affine **2/3/4/5/6/8-bit** support;
-- per-module mixed checkpoint support;
-- row-exact 5/6/8-bit kernels on the matrix units;
-- existing 4-bit group-32 kernels retained for those modules;
-- each module executes in its checkpoint's own format.
+Hardware / fixture:
+- RTX 5070 **12 GB**, PCIe 5 x16;
+- Ryzen 5 7600;
+- 64 GB DDR5-5200;
+- Windows 10;
+- ready-made 0.1.26;
+- same code-agent prompts as the 0.1.22 matrix;
+- MTP spec4, greedy;
+- INT8 KV above 4K;
+- KV streaming from 64K;
+- one shot / 256 generated tokens per cell.
 
-This is directly relevant to P51's proposed ~3.3-3.6 average-bpw artifact with protected high-precision islands.
+Prompt throughput:
 
-Dense Qwen3.8-27B / M3 Ultra supporting measurements:
-- oQ4e 8-row verify: **40.8 -> 31.9 ms**;
-- new oQ-width kernels are reportedly within **1-5% of 4-bit** at every tested width;
-- DFlash2 sampled code: **+14%**;
-- chat: **+5-7%**;
-- greedy code: level.
+| Quant | 32K | 64K | 128K |
+|---|---:|---:|---:|
+| Q2_0 | 2,171 | 2,126 | 2,107 |
+| IQ2_XS | 2,092 | 1,754 | 1,752 |
+| **IQ3_XXS** | **1,745** | **1,609** | **1,602** |
+| **IQ3_S** | **1,624** | **1,640** | **1,443** |
+| Coder | 2,177 | 2,236 | 2,208 |
 
-The runtime's drafted replies remain equal to its own serial reference. The 5/6-bit arithmetic path changes from older TensorFold releases, so cross-release token identity is not claimed.
+Versus 0.1.22, Strata documents **8-28% faster prompt processing at 32K-128K**.
 
-P51 interpretation:
-- a mixed-bit P51 artifact no longer requires assuming that protected 5/6/8-bit islands must fall onto a catastrophically slow generic Metal path;
-- still cross-chip evidence: no transfer of M3-Ultra percentages to M1 Max;
-- no 40-TG probability move without an exact M1/dual-M1 physical run.
+The gains combine:
+- 0.1.24 tensor-core QSA selection;
+- 0.1.25 mapped grouping tables + fused norms/hyperconnection work;
+- 0.1.26 batched draft-layer prompt execution.
 
-### NEW — TensorFold 0.4.0 Flash-specific M1-M4 work
+This is strong enough to move P51 PP centers because the same weaker 12-GB GPU now clears the previous 5070-Ti centers by material margins.
 
-Same release.
-
-Reported on M3 Ultra:
-- Flash-Next drafted and serial execution **2-7% faster**;
-- attention gate folded into merge;
-- PLE + router fusion;
-- chained drafts queued as built;
-- multi-row 4-bit dots remove an integer-to-float conversion while preserving result bits.
-
-Useful Apple7 mining evidence only.
-
-### NEW — TensorFold stream admission becomes incremental
-
-On a 64-GB Mac, dense 27B now serves **16 streams at 32K contexts**, compared with 4-9 in 0.3.x.
-
-Mechanism:
-- a stream reserves memory as it grows rather than its entire maximum reply;
-- shared-round workspace is charged to the streams actually sharing it;
-- when memory gets tight, retained prompts are evicted first, newest streams wait next, then a request fails explicitly.
-
-P51 rule strengthened:
-- multi-agent resident capacity should be priced from **current/incremental state + shared workspace**, not N × worst-case reply reservation;
-- this is dense-27B capacity evidence, not Flash B2-B4 TG evidence.
-
-### NEW — Strata 0.1.25 prompt fusions
-
-Release:
-https://github.com/Niko1221/Strata/commit/a4d791ea4467b3856dcf443fb4d6b88ebd0447a6  
-Timestamp: **2026-09-29 17:12:10 UTC**.
-
-Relevant exact prompt changes:
-
-F-1:
-https://github.com/Niko1221/Strata/commit/882bb6de757c492718d7f86b1b0a1e64536782d9
-- removes an FP32 copy of hyper-connection normalized rows;
-- next mixing kernel recomputes the required values in the same arithmetic order;
-- reported **+1.1% @32K / +1.7% @128K**.
-
-F-2:
-https://github.com/Niko1221/Strata/commit/b04684515f6b886e11bd8dbb50a70dd584675e2a
-- fuses a half's hyper-connection write with the next half's normalization;
-- bit-identical;
-- F-1 + F-2 together: **+4.0% @32K / +3.3% @128K** on the tested prompt path.
-
-P51 interpretation:
-- real common-path PP headroom;
-- do not move IQ3 PP targets until a same-quant 0.1.25 matrix is published.
-
-### NEW — Strata K8V4 hybrid KV
+### RECOVERED CURRENT — Strata engine 0.1.26 release
 
 Source:
-https://github.com/Niko1221/Strata/commit/2aa8f72c96431a8ea608ee7ed801d746d4ca498f  
-Timestamp: **2026-09-29 16:09:42 UTC**.
+https://github.com/Niko1221/Strata/commit/f97ebb7a9238f2c5333cf5fff005cfff5286c04e  
+Timestamp: **2026-09-29 18:01:05 UTC**, before this pass's strict boundary.
 
-Design:
-- **K = INT8**, unrotated;
-- **V = Hadamard-rotated Q4_0**;
-- attention scores retain the INT8 K path;
-- footprint **816 B/cell vs 1,056 B/cell for INT8**, ~23% less.
+0.1.26 adds the MTP draft layer's batched prompt pass.
 
-Measured RTX 3090 / Coder IQ1_M:
-- around 118.75K: decode **82-97 TG** versus INT8 **75 TG** (acceptance varies);
-- prefill around **1,130-1,170 PP**, essentially unchanged there;
-- 26-needle seed identical to INT8;
-- KV at 131K: **1.39 GB vs 1.80 GB** INT8;
-- at max-context 204,800: **1,024 PP**, **82-91 TG**, 25/26 needles at ~197.9K.
+It should have been visible in the previous sweep, so it is classified **RECOVERED CURRENT**, not NEW. The target-moving evidence is the strict-window matrix publication above.
 
-Strata docs summarize at ~198K:
-- output **99 TG vs 85 TG INT8**;
-- same needle result;
-- prompts **2-5% slower**.
+### PP target true-up
 
-Limitations:
-- no KV streaming support under K8V4;
-- no source-paired semantic/agent/AA certification;
-- decode uplift may be from freed VRAM/expert residency rather than cheaper attention itself.
+Previous IQ3_XXS:
+- 32K 1,500
+- 64K 1,400
+- 128K 1,300
 
-P51 target-plan consequence:
-- **INT8 K/V stays the quality baseline**;
-- **K8V4 becomes the preferred capacity/speed experiment**;
-- whole-cache Q4 becomes the more aggressive lower-precision arm.
+New:
+- **32K 1,650 / ~90%**
+- **64K 1,550 / ~90%**
+- **128K 1,500 / ~90%**
 
-### NEW — MLX-Serve multi-slot QSA launch
+Previous IQ3_S:
+- 32K 1,450
+- 64K 1,250
+- 128K 1,200
+
+New:
+- **32K 1,550 / ~90%**
+- **64K 1,550 / ~90%**
+- **128K 1,350 / ~85%**
+
+The centers remain below the single measured cells instead of copying them directly.
+
+### Decode rows do NOT move TG targets
+
+The same 12-GB matrix gives:
+
+| Quant | 32K TG | 64K TG | 128K TG |
+|---|---:|---:|---:|
+| IQ3_XXS | 58.5 | 57.2 | 49.0 |
+| IQ3_S | 48.3 | 46.3 | 45.5 |
+
+These are useful physical receipts for the weaker card but do not supersede the exact RTX 5070 Ti evidence.
+
+P51 retains:
+- IQ3_XXS 128K mature center **78 TG / ~85%**;
+- all other TG centers unchanged.
+
+### UPDATE — Strata confirms verifier-width-dependent target arithmetic
+
+Issue:
+https://github.com/Niko1221/Strata/issues/152
+
+The issue itself was opened before this pass's boundary, but the maintainer confirmation is a strict-window update.
+
+Current native i-quant CPU expert dispatch:
+- singleton expert groups: ggml `vec_dot`;
+- groups with `nt >= 2`: custom AVX kernels.
+
+Those implementations have slightly different FP32 reductions. Because expert group size changes with speculative/verifier width, **the target model's arithmetic can change when S changes**.
+
+Reporter reproduction:
+- same fixed weights + activations;
+- width-1 calls versus width-2/4 grouped calls;
+- **9,566 differing output cells**;
+- forcing ggml `vec_dot` at every width makes width 1/2/4 bitwise equal;
+- with the width-invariant path, a fixed **21,999-token** greedy prompt gives the same 150 target token IDs between plain and MTP;
+- MTP accepts 93/130 proposals.
+
+Maintainer confirmation:
+- the width-dependent AVX dispatch is real;
+- temporary width-invariant mode:
+  `STRATA_NO_IQ512=1 STRATA_NO_IQ256=1 STRATA_NO_IQ4NL=1`;
+- upstream intends one arithmetic path for all widths plus a width 1/2/4 gate.
+
+P51 consequence:
+- **target arithmetic may not depend on verifier width**;
+- all AA/source-equivalence/MTP-certification runs must use the fixed/upstream-width-invariant path;
+- default fast-path TG remains a legitimate throughput measurement but not an exact-serial quality certificate.
+
+This is highly relevant to P69B13's existing rule that logical S cannot silently select a different arithmetic implementation.
+
+### NEW — Strata low-RAM mode
 
 Source:
-https://github.com/ddalcu/mlx-serve/commit/442668946bfd26708312859bfdcc4932f6f9558b  
-Timestamp: **2026-09-29 18:28:10 UTC**.
+https://github.com/Niko1221/Strata/commit/ac8b251b8120296dd013e4106a797461eab6a4c6  
+Timestamp: **2026-09-29 19:23:21 UTC**.
 
-One sparse-QSA split + merge launch now serves **2-4 quantized S=1 decode slots**:
-- one slot per grid-z lane;
-- each slot retains its own KV length/capacity and block list;
-- output is bit-identical to separate per-slot launches.
+Normal Strata:
+- copies the model's expert corpus into pinned system RAM;
+- GPU keeps the most-used experts resident.
 
-This is directly relevant to the P51 B2-B4 Apple aggregate lane.
+Low-RAM mode:
+- mmap's the pack's `experts.bin`;
+- OS file cache retains/reclaims the cold expert pages;
+- selected automatically when expert corpus + ~10 GB OS headroom does not fit;
+- explicit `--low-ram on|off`.
 
-No end-to-end 2/4-stream throughput result accompanies the commit, so:
-- promote the mechanism;
-- **do not move the B2-B4 aggregate confidence ladder** yet.
+Published Coder example:
+- committed memory roughly **36 -> 13 GB**;
+- same answers;
+- big GPUs that retain most experts can stay near normal speed;
+- smaller GPUs can become much slower because cold experts arrive from SSD.
 
-### NEW — MLX-Serve QSA and MoE Flash prefill mining
+P51 interpretation for the user's 64-GB host:
+- valuable **fit/admission fallback**, particularly for tight IQ3_S;
+- not the canonical benchmark mode;
+- always label low-RAM results separately because they can become SSD/expert-I/O limited.
 
-QSA:
-https://github.com/ddalcu/mlx-serve/commit/bfe518f77e4db2872c5f0987157cdf158ad62367  
-Timestamp: **17:40:14 UTC**.
+### UPDATE — Windows shared-GPU / commit accounting clarification
 
-M5 Ultra / mid48:
-- occupancy-tuned tensor-unit QSA;
-- first sparse chunk uses gathered attention immediately;
-- per-stage examples:
-  - first chunk **634 -> 120 ms**;
-  - 16K **503 -> 193 ms**;
-  - 32K **544 -> 158 ms**;
-  - 64K **574 -> 165 ms**;
-- commit reports **+22.6% Flash-Next prefill**.
+Strata issue #141 was closed during the strict window.
 
-MoE:
-https://github.com/ddalcu/mlx-serve/commit/9a5c98126fb8054a630bea93fd789e7bbe3cf22d  
-Timestamp: **18:11:37 UTC**.
-
-Ports oMLX's segmented sorted gather, removes repeated hidden-row expansion and fuses gate/up + SwiGLU. Commit reports **+10.5% Flash-Next prefill**, with first-use canary/fallback and bit-identical supported shapes.
-
-P51 interpretation:
-- strong sources for the 400-PP Apple mining plan;
-- M5 Ultra numbers do not transfer numerically to M1.
-
-### NEW — allocator cache is part of residency accounting
-
-Source:
-https://github.com/ddalcu/mlx-serve/commit/f5acdade2cdf42424eb4af03e43f750c810c4bb2  
-Timestamp: **18:16:43 UTC**.
-
-A make-room eviction freed a model into MLX's allocator cache but did not return the pages to the OS before the next model's physical-memory preflight. The new path clears the allocator cache first.
+Maintainer explanation:
+- Task Manager "shared GPU memory" can be the same pinned system RAM holding experts, counted again;
+- Windows also charges GPU VRAM against process/system commit;
+- pagefile reservation therefore does not by itself mean real paging.
 
 P51 rule:
-- "evicted" / registry-free state is not the same as physically available memory;
-- resident-agent admission should track runtime allocator cache and OS physical/reclaimable memory separately.
+- admission should use actual physical availability + observed page activity/working-set behavior;
+- do not sum RAM + shared-GPU + commit values as if they are three independent resident allocations.
 
-### NEW — llama.cpp stops speculative acceptance at EOG
+### NEW — vLLM Mooncake coalesces packed hybrid/MLA KV transfer regions
 
 Source:
-https://github.com/ggml-org/llama.cpp/commit/d280808f5d82fcc3142b53f94ea5f594250cd765  
-Timestamp: **16:25:41 UTC**.
+https://github.com/vllm-project/vllm/commit/faacc13565312d29e9596d182fc808b452a4508e  
+Timestamp: **2026-09-29 20:29:04 UTC**.
 
-Draft acceptance now stops at EOG instead of accepting speculative tokens beyond the serial stop boundary.
+The connector now models transfer regions with:
+- layer name/index;
+- KV group;
+- shared packed-group identity;
+- block length / payload length;
+- row offset.
 
-P51 rule:
-- EOG/stop behavior is part of exact speculative semantics;
-- no accepted proposal may advance beyond the target sampler's terminal frontier.
+It then coalesces adjacent compatible packed slices into larger copy operations.
 
-## UPDATE / SAME-DAY CURRENT — domain-aware compact MTP vocabulary
+Important semantics:
+- physical contiguity alone is not enough;
+- heterogeneous PP can transfer only the layer span shared by producer and consumer;
+- same-PP incompatible layouts fail closed;
+- hetero PP with no common layers can be an empty-success case;
+- row bounds and packed-group identities constrain coalescing.
 
-Strata issue #137 now contains a second Windows RTX 5070 Ti reproduction.
+P51 CUDA->Apple/persistent-state consequence:
+- first align **semantic state regions**;
+- only then coalesce physically contiguous copies;
+- transfer identity should include component/layer/group/row-offset/block-stride;
+- pipeline partition differences may omit genuinely non-shared state, but never reinterpret a packed row.
 
-The expanded subset:
-- shipped: **40,525 ids**, 52.6 MiB;
-- CJK-expanded: **106,285 ids**, 137.9 MiB;
-- full head: 322.1 MiB.
+This is cross-runtime transfer-contract evidence, not a CUDA->MLX physical bridge receipt.
 
-Expert-cache slots:
-- shipped: **5,627**;
-- CJK-expanded: **5,627**;
-- full head: **5,551**.
+### UPDATE — StrataGP audit confirms future optimization candidates
 
-Real English-novel -> Chinese translation:
-- shipped: **68.1 TG**, 34-36% acceptance, 108.9 s;
-- expanded: **99.0 TG**, 70-77%, 78.5 s;
-- full head: **96.4 TG**, 70-77%, 80.2 s.
+Issue:
+https://github.com/Niko1221/Strata/issues/149
 
-The compact expanded head is therefore the best measured trade on this box.
+The maintainer responded in this window that future PRs should start with:
+- sampler top-k;
+- grouped Q2_0 kernel;
+- IQ-grid decode;
+- each rebased on 0.1.26;
+- each default path byte-identical with parity tests and long-prompt / multi-GPU gates.
 
-P51 production order:
-1. audit candidate coverage against expected **output** domains;
-2. expand the compact subset for missing token classes;
-3. retain full-head/fail-open as a fallback;
-4. only then tune S.
+No P51 target changes until those PRs land and measure.
 
-## UPDATE / SAME-DAY CURRENT — Strata NVMe delta cache
+### SAME-DAY CURRENT — RTX 3090 / dual-3090 benchmark proposal
 
-PR #52 has moved from whole-file rewrite to an incremental/delta KV format on the #57 shared core.
+Issue:
+https://github.com/Niko1221/Strata/issues/165  
+Created: **2026-09-29 20:37:14 UTC**.
 
-Improvement:
-- a continuing turn appends new KV chunks instead of rewriting a ~2-GB image;
-- one cited 6,872-token continuation appended ~26 chunks.
+Proposed hardware:
+- 2x RTX 3090 24 GB;
+- EPYC 7453 VM;
+- 165 GiB visible RAM;
+- Strata 0.1.26;
+- initial IQ3_XXS / 131K.
 
-Remaining gaps:
-- ~**113 MB mutable State** still written synchronously every turn;
-- restore stages the complete assembled image in RAM, ~**2.3 GB for 142K** in the cited run;
-- write policy is still every DONE, not RAM-eviction-driven;
-- the new delta manifest binds weights fingerprint + KV quant;
-- the old long-session v3 fallback remains **weight-blind / geometry-only**.
+No benchmark data yet. Watch only.
 
-P51 rule:
-- no legacy/fallback state representation may weaken identity validation;
-- same-geometry/different-weights state must hard-miss;
-- delta/NVMe promotion is not qualified until fallback identity, bounded/streaming staging and durability are closed.
+### SAME-DAY CURRENT — M5 Max task-time warning
 
-## SAME-DAY CURRENT — Splash dense-27B quality warning
-
-A current community discussion around very high Splash 27B Mac throughput includes a user reporting that their Splash-tuned and Swift+Splash variants miss debugging/code issues found by base Qwen3.8-27B.
-
-This is anecdotal and pack-specific, not a formal quality result.
+A current community report describes Qwen3.8-Flash-Next on M5 Max / MTPLX decoding around **30-40 TG** but taking dramatically longer than a hosted model on a simple coding task because the local model repeatedly reasons in circles.
 
 P51 interpretation:
-- reinforces existing policy: a speed-tuned dense-27B artifact is not promoted from TG alone;
-- use base-vs-candidate agent/code tasks and artifact-producing evals.
+- another reason to keep **solved-task seconds / generated thinking tokens / agent trajectory quality** separate from physical TG;
+- no Apple hardware calibration movement because the report lacks a controlled runtime/context/quality A/B.
+
+### No new exact M1-Max receipt
+
+Search again found:
+- published MoEspresso exact 2021 M1 Max result around **12-15 TG**;
+- M5-class reports/forks above that;
+- no newly public exact-M1-Max fork/settings/context denominator for the claimed ~27 TG comment.
+
+Dual-M1 40-TG probability stays unchanged.
 
 ## Strict-window negative scan
 
-From **2026-09-29 15:03:35 -> 19:09:40 UTC**:
+From **2026-09-29 19:09:40 -> 20:40:47 UTC**:
 
-- **Exact M1 Max Flash-Next:** the ~27-TG comment still has no public fork/settings/context denominator. Current search still resolves to the published MoEspresso 12-15-TG M1-Max result and the separate M5-Pro ~27.6-TG fork.
-- **Exact dual M1 Max / TB4:** no new sustained genuine-128K receipt.
-- **DASLab Flash IQ3_S:** SWE-bench 82.0 vs 82.8 remains the newest official long-horizon result; no new source-paired 32K/64K/128K/262K semantic-quality result found.
-- **oMLX:** no strict-window commit after the earlier verifier fixes.
+- **TensorFold:** no post-0.4.0 strict-window commit.
+- **oMLX:** no strict-window Flash/27B commit.
+- **mlx-serve:** no strict-window commit after the already-promoted multi-slot/QSA/MoE work.
 - **Ishizuki:** no commit.
-- **MoEspresso:** no strict-window commit.
-- **Strata IQ3 0.1.25 matrix:** no same-quant 32K/64K/128K replacement for the 0.1.22 matrix yet.
-- **User's exact 5070 Ti Windows host:** no new frozen full ladder/8h+ soak receipt in-window.
+- **MoEspresso:** no commit.
+- **DASLab official Flash IQ3_S:** no new source-paired 32K/64K/128K/262K semantic result found.
+- **Exact dual M1 Max / TB4:** no new sustained filled-128K receipt.
+- **Exact user's Windows 5070 Ti:** no frozen 0.1.26 IQ3 full PP ladder or >=8h soak on that exact machine yet.
+- **Strata NVMe/shared conversation state:** no new strict-window merged production result beyond the work already tracked.
 
-## Durable target-plan changes
+## Durable target changes
 
-No numeric center/probability change.
+### IQ3_XXS cold PP
 
-### Apple mixed-bit feasibility
+New:
+- **32K 1,650 PP / ~90%**
+- **64K 1,550 PP / ~90%**
+- **128K 1,500 PP / ~90%**
 
-TensorFold 0.4.0 is now explicit supporting evidence that:
-- per-module mixed 2-8-bit Flash checkpoints can load on pre-M5 Metal;
-- 5/6/8-bit protected tensors need not automatically fall onto a much slower generic path;
-- row-exact verification can coexist with those widths.
+### IQ3_S cold PP
 
-Still require exact M1/P69 qualification before counting performance.
+New:
+- **32K 1,550 PP / ~90%**
+- **64K 1,550 PP / ~90%**
+- **128K 1,350 PP / ~85%**
 
-### KV capacity arm
+### Mandatory exactness gate
 
-Order is now:
-1. **INT8 K/V** — quality baseline.
-2. **K8V4** — preferred capacity/speed candidate.
-3. whole-cache Q4 — aggressive low-precision capacity arm.
+Before AA/source-equivalence/speculative certification:
+- native expert arithmetic must be invariant to S/verifier grouping;
+- use the conservative disable flags until upstream provides a qualified width-invariant fast path.
 
-K8V4 needs long-horizon semantic/agent certification before production promotion.
+### Low-RAM fallback
 
-### Draft candidate-space strategy
-
-Order is now:
-1. compact subset audited on output-domain coverage;
-2. domain-aware compact expansion;
-3. full-head/fail-open fallback;
-4. verifier-width tuning.
+For tight 64-GB-host configurations:
+- low-RAM mmap experts may be used to achieve safe fit;
+- do not mix its TG/PP into canonical tables unless explicitly labeled.
 
 ## Canonical planning state after this pass
 
-Unchanged numerically:
-- dual-M1 Flash-Next: **40 TG @ genuine ~128K / 400 cold PP / ~70% >=40 TG**;
-- single-M1 dense27B: **25 TG / ~110 PP**;
-- Strata IQ3_XXS ~128K: **78 TG / ~85% confidence**;
-- Strata IQ3_XXS PP: **1,500 / 1,400 / 1,300**;
-- Strata IQ3_S PP: **1,450 / 1,250 / 1,200**;
-- IQ3_XXS AA>=38: **~85%**;
-- IQ3_XXS AA>=40: **~65%**;
-- IQ3_S AA>=40: **~80%**;
-- B2-B4 aggregate ladder unchanged pending an end-to-end receipt.
+- Dual-M1 Flash-Next: **40 TG @ genuine ~128K / 400 cold PP / ~70% >=40 TG**.
+- Single-M1 dense27B: **25 TG / ~110 PP**.
+- Strata IQ3_XXS ~128K: **78 TG / ~85% confidence**.
+- Strata IQ3_XXS PP: **1,650 / 1,550 / 1,500**.
+- Strata IQ3_S PP: **1,550 / 1,550 / 1,350**.
+- Remaining Strata TG rows unchanged.
+- IQ3_XXS AA>=38: **~85%**.
+- IQ3_XXS AA>=40: **~65%**.
+- IQ3_S AA>=40: **~80%**.
+- INT8 K/V baseline -> K8V4 capacity candidate -> full Q4 aggressive arm.
+- Swift lanes remain effective-task-throughput lanes.
+- B2-B4 aggregate Apple ladder unchanged.
 
 ## New hard boundary
 
-**2026-09-29 19:09:40 UTC**
+**2026-09-29 20:40:47 UTC**
