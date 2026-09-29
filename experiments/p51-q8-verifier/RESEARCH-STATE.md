@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-29 15:09 ET.
+Last consolidated: 2026-09-29 16:40 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -119,6 +119,22 @@ Future passes should seek status/performance updates rather than rediscover thes
 - stage-local recurrent state under PP; avoid chatty TB4 collectives
 - continuous-batching QSA/cache state must be explicitly ragged-row safe
 - MTP economics must be qualified separately for greedy and real sampling settings
+
+### 2026-09-29 20:40 UTC Strata-0.1.26 PP / width-invariance / transfer-region update
+
+- **NEW strict-window Strata 0.1.26 full prompt matrix:** on the same weaker RTX 5070 12 GB / Ryzen 5 7600 / 64-GB Windows calibration box and the same code-agent prompts, IQ3_XXS now measures **1,745 / 1,609 / 1,602 PP** at 32K / 64K / 128K and IQ3_S **1,624 / 1,640 / 1,443 PP**. Versus 0.1.22, the documented prompt gains at 32K-128K are **8-28%** depending on quant/context. These receipts materially clear the existing P51 5070-Ti PP centers and justify another conservative PP true-up.
+- **0.1.26 mechanism attribution:** the new matrix combines 0.1.24 tensor-core QSA selection, 0.1.25 mapped grouping tables/fused norms and 0.1.26's batched MTP draft-layer prompt pass. The 0.1.26 engine release commit itself landed at **18:01:05 UTC**, before this pass's strict boundary; classify it **RECOVERED CURRENT**, while the full speed-table publication at **20:09:44 UTC** is NEW for this pass.
+- **Output TG is not promoted from the 12-GB matrix:** IQ3_XXS is only **58.5 / 57.2 / 49.0 TG** at 32K / 64K / 128K and IQ3_S **48.3 / 46.3 / 45.5 TG** on this weaker card. The exact-GPU-class RTX 5070 Ti 128K IQ3_XXS receipt at 79.7 TG remains the stronger P51 decode anchor. The new matrix is a **PP target mover only**.
+- **UPDATE — verifier width changes native CPU expert arithmetic in current Strata:** issue #152 demonstrates that singleton native i-quant expert groups use ggml `vec_dot` while groups with `nt>=2` use custom AVX paths whose FP32 reduction order differs. Replaying fixed rows produced **9,566 differing cells** between singleton and grouped execution; forcing ggml `vec_dot` at widths 1/2/4 restores bitwise equality, and a fixed 21,999-token greedy prompt then matches plain/MTP target tokens. The maintainer confirmed the bug in this strict window. Temporary width-invariant mode: **`STRATA_NO_IQ512=1 STRATA_NO_IQ256=1 STRATA_NO_IQ4NL=1`** at some CPU-speed cost.
+- **P51 exactness consequence:** target-model arithmetic may not depend on speculative/verifier width. All source-equivalence/AA/MTP acceptance certification must use a width-invariant expert path or a fixed upstream engine. Published default-path TG remains a valid physical speed receipt, but it is **not an exact-serial quality certificate** while this bug is present.
+- **NEW Strata low-RAM operational lane:** 0.1.26 can mmap `experts.bin` instead of pinning the whole expert corpus in committed RAM when experts + OS headroom do not fit. On the Coder example, committed memory falls roughly **36 -> 13 GB** with the same answers. Large GPUs can remain near normal speed; smaller GPUs fetch more experts from SSD and can slow substantially. For the user's 64-GB host, this is an **admission/stability fallback** for tight IQ3_S configurations, not the canonical performance baseline.
+- **Windows memory-accounting clarification:** a same-day Strata maintainer response confirms Task Manager "shared GPU memory" can be the same pinned expert RAM counted again, while Windows also charges VRAM against commit/pagefile accounting. P51 Windows admission should key on **actual physical availability/page activity**, not naïvely sum Task Manager RAM + shared GPU + commit as independent resident bytes.
+- **NEW vLLM Mooncake packed hybrid/MLA transfer work — `faacc135`:** transfer metadata now carries layer identity, KV-group/shared-group identity and row offsets for packed hybrid cache views; contiguous compatible slices are coalesced into fewer transfer regions, while heterogeneous-PP peers copy only their shared layer span. Mismatched same-PP layouts fail closed; hetero PP with no common layers is an empty success. P51 handoff rule strengthened: coalescing is an optimization **after** semantic region alignment — never infer transfer identity from physical contiguity alone.
+- **Transfer-region contract refinement:** packed/hybrid state transfer keys should include component/layer/group/row-offset identity and block stride. Coalesce only adjacent regions that remain inside the same packed row/group semantics; a producer/consumer PP mismatch may legally omit non-shared layers but must never silently reinterpret row layout.
+- **SAME-DAY CURRENT:** Strata has a new planned RTX 3090 / dual-3090 0.1.26 benchmark contribution, but no measurements yet; no target effect.
+- **No new public exact-M1-Max ~27-TG fork/settings/context receipt** and no new official DASLab Flash IQ3_S source-paired long-context semantic-quality result in this pass.
+
+**Target effect:** raise Strata cold-PP centers only. Proposed mature centers become IQ3_XXS **1,650 / 1,550 / 1,500 PP** at 32K / 64K / 128K, and IQ3_S **1,550 / 1,550 / 1,350 PP**. Keep every TG center, AA prior and dual-M1 headline unchanged. Add width-invariant native-expert arithmetic as a mandatory AA/speculation certification gate.
 
 ### 2026-09-29 19:09 UTC TensorFold-0.4 / Strata-0.1.25 / mixed-bit-state update
 
