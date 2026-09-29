@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-29 06:01 ET**
+Latest strategy true-up: **2026-09-29 08:58 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -409,6 +409,12 @@ as a higher PP number; report **root restore latency**, **restored tokens**, **r
 
 These are **same-runtime persistence** results. They do not prove CUDA->MLX portability.
 
+Additional Tier-1 RAM evidence now exists on Strata IQ3_S: a shared-core snapshot implementation passed **30
+A->B->A returns across ~2K / 40K / 120K contexts**, including streamed KV, exact expected answers/state and stable
+retained payload. At 51,133 cached tokens, a return after another conversation takes **1.237 s** and a checkpoint
+return **0.566 s**. This materially raises confidence in the *correctness/feasibility* of parked full hybrid state,
+but it does not change the Apple restore-latency target because the timing is from RTX 4090 / host RAM, not M1.
+
 A root is valid only when all identity components match: model/weights, quant, tokenizer, chat template,
 system/tools/extensions, reasoning/preserve-thinking behavior, KV/recurrent geometry, speculative
 configuration, state-schema version and committed frontier. Target KV without recurrent/checkpoint/draft
@@ -675,6 +681,22 @@ Exact RTX 5070 Ti evidence is less matrix-like but materially stronger on decode
 The post-fix stability receipt materially raises confidence in Strata as a real production candidate.
 It does not remove the separate Windows auto-admission/memory-fragmentation watch from issue #60.
 
+### 2026-09-29 full Strata 0.1.22 PP matrix true-up
+
+The complete 0.1.22 prompt matrix on the weaker **RTX 5070 12 GB / Ryzen 5 7600 / 64 GB** now gives:
+- IQ3_XXS: **1,555 / 1,449 / 1,386 PP** at 32K / 64K / 128K;
+- IQ3_S: **1,499 / 1,285 / 1,245 PP** at 32K / 64K / 128K.
+
+Because every measured row clears the previous P51 5070-Ti center on weaker GPU hardware, the mature PP
+targets are raised conservatively to:
+- IQ3_XXS: **1,500 / 1,400 / 1,300 PP**;
+- IQ3_S: **1,450 / 1,250 / 1,200 PP**.
+
+These are still planning centers, not exact-user receipts. CPU/expert-residency differences can matter, and the
+published matrix is one code-agent prompt per cell. Strata 0.1.24 subsequently improves the common long-prompt
+QSA-selection path further (Q2_0 128K **1,608 -> 1,843 PP**), but no same-quant 0.1.24 IQ3 matrix exists yet, so
+that extra gain is **not** baked into the raised IQ3 targets.
+
 ### 2026-09-29 Strata 0.1.22 prompt-path update
 
 The weaker **RTX 5070 12 GB** calibration box now physically clears the IQ3_S 32K PP target during the
@@ -694,9 +716,9 @@ a final same-quant long-context matrix.
 | Active context | Mature TG target | TG planning confidence | Mature cold PP target | PP planning confidence |
 |---|---:|---:|---:|---:|
 | <=8K | **100 TG** | **~75%** | — | — |
-| ~32K | **95 TG** | **~75%** | **1,300 PP** | **~85%** |
-| ~64K | **90 TG** | **~80%** | **1,250 PP** | **~80%** |
-| ~128K | **78 TG** | **~65%** | **1,150 PP** | **~75%** |
+| ~32K | **95 TG** | **~75%** | **1,500 PP** | **~90%** |
+| ~64K | **90 TG** | **~80%** | **1,400 PP** | **~90%** |
+| ~128K | **78 TG** | **~65%** | **1,300 PP** | **~85%** |
 
 Interpretation:
 - 64K has the strongest direct same-card decode support and is therefore the highest-confidence long-context TG row;
@@ -712,9 +734,9 @@ exact-card 128K receipt exists.
 | Active context | Mature TG target | TG planning confidence | Mature cold PP target | PP planning confidence |
 |---|---:|---:|---:|---:|
 | <=8K | **85 TG** | **~65%** | — | — |
-| ~32K | **78 TG** | **~65%** | **1,200 PP** | **~90%** |
-| ~64K | **70 TG** | **~60%** | **1,150 PP** | **~75%** |
-| ~128K | **60 TG** | **~55%** | **1,050 PP** | **~70%** |
+| ~32K | **78 TG** | **~65%** | **1,450 PP** | **~90%** |
+| ~64K | **70 TG** | **~60%** | **1,250 PP** | **~85%** |
+| ~128K | **60 TG** | **~55%** | **1,200 PP** | **~85%** |
 
 This lane deliberately sacrifices throughput for quant headroom. Do not raise it from IQ3_XXS speed
 receipts without a same-checkpoint physical run.
