@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-30 04:40 ET**
+Latest strategy true-up: **2026-09-30 06:55 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -702,8 +702,10 @@ Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti P
 Strata issue #200 finally provides a genuine near-native-context measurement on the target GPU class:
 - RTX **5070 Ti 16 GB**, IQ3_XXS native pack, streamed INT8 KV, 32K resident window, MTP spec4;
 - **257,466 tokens read from zero in 96.5 s = 2,668 PP** at a configured 262,144 context;
-- issue #199 on the same GPU/model path measures two ~60K cold prompts at **2,993 / 3,000 PP** with a safe
-  1,058-MiB VRAM reserve.
+- issue #199 on the same GPU/model path measures two ~60K cold prompts at **2,993 / 3,000 PP** with a
+  1,058-MiB manual reserve on 0.1.27. That reserve was the workaround for 0.1.27's draft-head accounting bug;
+  **0.1.28+ reserves the draft head before expert-cache sizing**, so the configured reserve remains free without
+  carrying the 1,058-MiB workaround forward blindly.
 
 The old 1.5K-class 5070-Ti PP centers are therefore retired. New production-planning centers, with a deliberate
 Windows/64-GB-host haircut versus the Linux/93-GB physical receipts:
@@ -813,6 +815,13 @@ slots.
 
 Do not diagnose low acceptance as an S/kernel/model-quality problem until draft-vocabulary coverage is ruled out.
 
+### Fused-GDN served-arithmetic exactness gate
+
+oMLX PR #4122 demonstrates on an M1 Max that the fused speculative GDN norm can differ by one BF16/FP16 ULP from
+the served graph when the float32 exponential implementation differs. For Apple AA/source-equivalence/MTP
+certification, require the fused verifier's norm path to match the served arithmetic; close float32 agreement alone
+is insufficient.
+
 ### Verifier-width / native-expert exactness gate
 
 Current Strata native i-quant CPU experts can choose different reduction arithmetic at width 1 versus width >=2
@@ -826,6 +835,12 @@ Throughput runs on the default fast path remain useful physical measurements, bu
 plain-vs-MTP target arithmetic equivalence.
 
 ## Stability / admission targets
+
+**Qualified Strata baseline: 0.1.28+ for new production tests.** 0.1.28 fixes the 0.1.27 draft-head VRAM-accounting
+regression, stale cancellation state and tool-call delimiter truncation. Keep the multilingual/CJK draft for
+quality certification; treat the English/code-only draft as an explicit performance arm. On RTX 50/sm_120, use a
+qualified CUDA 13.x build; issue #224's CUDA-12.8 batched-PLE fault stays outside that lane until reproduced on
+13.x.
 
 | Production gate | Target | Planning confidence now |
 |---|---:|---:|
@@ -984,6 +999,12 @@ Broader TurboQuant evidence argues for caution:
 K8V4 is not the final 262K solution because it currently **does not support Strata KV streaming**. Full Q4 K/V
 remains a lower-precision extreme/capacity arm.
 
+### M1-M4 compressed-KV hardware boundary
+
+oMLX PR #3582 explicitly treats Affine4/Affine8 as an M5-oriented path. On M1-M4 its portable path is a
+correctness/capacity fallback and TurboQuant remains the recommended compressed format. Project 51 therefore keeps
+TurboQuant-style KV as the dual-M1 priority; M5 Affine 100K/200K capacity receipts do not transfer numerically.
+
 ## Quality-certification targets
 
 These are **planning probabilities for the custom Project-51 AA suite**, not measured AA scores:
@@ -1003,7 +1024,7 @@ AA measurement and does not certify long-context/state/tool parity by itself.
 
 ## Promotion order
 
-1. Reproduce the **0.1.14+ zero-stall soak** on the user's exact box for >=8 h.
+1. Reproduce the **0.1.28+ zero-stall soak** on the user's exact box for >=8 h, including repeated cold long-prompt starts and cancellation/retry cycles.
 2. Resolve or bound the **16-GB/64-GB Windows admission-margin** issue.
 3. Complete a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S. The
    **79.7-TG IQ3_XXS @128K** report is now a direct anchor, but not a full controlled ladder.
@@ -1017,9 +1038,11 @@ AA measurement and does not certify long-context/state/tool parity by itself.
    block/page positions and checkpoint frontier exact.
 9. For every S>1/MTP sparse path, plan **one union working set across all verify rows before mutation/eviction**.
    Independent per-row residency is a correctness failure even if each row is individually valid.
-10. The exact 5070-Ti/native-context execution gate is now passed on a 93-GB host. Finish the **64-GB-host**
-    qualification: cold boot/load peak, steady physical RAM, staging overlap, compressed-host-KV bytes, 32K resident
-    window, repeated 257K cold prefills, and clean recovery under memory pressure.
+10. The exact 5070-Ti/native-context execution gate is now passed on a 93-GB host. Issue #224 additionally
+    proves a **62-GB Linux host** can load IQ3_XXS and execute an 11,105-token prompt at a 65K configuration when its
+    CUDA-12.8 batched-PLE path is disabled; that is partial admission evidence, not a 262K receipt. Finish the
+    **64-GB-host** qualification: cold boot/load peak, steady physical RAM, staging overlap, compressed-host-KV bytes,
+    32K resident window, repeated 257K cold prefills, and clean recovery under memory pressure on CUDA 13.x.
 11. Run the 262K semantic gate separately: needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
     The 29K->257K retrieval decline in issue #200 proves that “it fits” is not the same as “it retains semantics.”
 12. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
