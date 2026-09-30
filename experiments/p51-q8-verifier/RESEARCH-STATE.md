@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-30 04:40 ET.
+Last consolidated: 2026-09-30 06:55 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,54 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-09-30 06:55 ET consolidation delta — Strata 0.1.28 and arithmetic-exact verifier gates
+
+### Strata production baseline is now 0.1.28+
+
+Strata 0.1.28 fixes the 0.1.27 draft-head VRAM-accounting regression: the expert cache now subtracts the MTP
+draft head before sizing itself, so the configured reserve remains free instead of being consumed later. The old
+1,058-1,100 MiB manual reserve is retained as a **0.1.27 diagnostic/control**, not the normal post-0.1.28 setup.
+
+0.1.28 also clears stale cancellation/error state between requests, protects /status with the API key, refuses
+explicit empty keys, fixes tool-call truncation when argument values contain literal closing-tag text, persists
+installed-model host/API-key options, and reports the engine's actual final error on exit.
+
+For multilingual/source-quality qualification, keep the default CJK-capable draft. The English/code-only draft is
+an explicit capacity/performance arm: it saves about 110 MiB and is reported 1-2% faster on English, but
+Chinese/Japanese/Korean receive almost no useful drafts.
+
+### The 64-GB-host question has a new partial receipt, not a 262K proof
+
+Strata issue #224 runs the native IQ3_XXS pack on an exact RTX 5070 Ti with a **62-GB Linux host**, INT8 KV and a
+32K resident window. The self-built CUDA-12.8 engine faults in batched PLE on long prompts, but disabling the
+batched PLE path completes an **11,105-token** prompt. This proves the near-target host class can at least load and
+execute IQ3_XXS, but it is **not** a filled-262K receipt and does not move the ~90% conditional 262K/64-GB fit prior.
+
+CUDA 12.8 remains outside the qualified RTX-50 lane. Reproduce #224 on CUDA 13.x before treating it as a current
+general Strata defect.
+
+### First-request/prompt stability is still an open qualification gate
+
+Issue #217 was closed with 0.1.28 because its original report had exhausted VRAM and a stale stage label. A later
+strict-window report still reproduces a driver-spin stall on **0.1.27** with more than 1.1 GiB free. Because that
+later arm has not been rerun on 0.1.28, keep repeated cold-long-prompt starts and cancellation/retry cycles inside
+the exact-box soak.
+
+### Apple verifier exactness now includes GDN activation arithmetic
+
+oMLX PR #4122 reproduces on **M1 Max 64 GB** that a fused speculative GDN norm can differ from the served SiLU graph
+by one ULP at FP16/BF16 output solely because of a different float32 exponential implementation. A real checkpoint
+matched 1,950 decode norm checks after selecting the served-equivalent expression.
+
+Project-51 source-equivalence/MTP certification therefore requires **served-vs-fused GDN arithmetic parity**, not
+only close float32 values or matching short text.
+
+oMLX PR #3582 also makes the hardware boundary explicit: Affine4/Affine8 KV is aimed at M5; on M1-M4 the portable
+path is a correctness fallback and TurboQuant remains the recommended compressed-KV route. Do not transfer M5
+Affine capacity results into the dual-M1 plan.
+
 
 ## Certified exact 27B verifier state — external research cannot modify this
 
