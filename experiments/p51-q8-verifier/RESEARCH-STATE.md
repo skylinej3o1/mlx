@@ -24,6 +24,131 @@ The protocol exists because older project anchors were previously rediscovered a
 out of the formal watch-note chain.
 
 
+## 2026-09-30 19:19 ET consolidation delta — TensorFold 0.6.0, deep-QSA prefill, artifact-kind validation
+
+### TensorFold 0.6.0 lands as a meaningful experimental-runtime baseline
+
+TensorFold 0.6.0 (commit `c4646171139ee8a3c38103eaa1699dad226ec12b`, release published 21:31:05 UTC)
+adds several mechanisms relevant to Project 51, but does not replace oMLX 0.7.0 as the stable Apple comparison baseline.
+
+Relevant release evidence:
+- CUDA now includes RTX 40 / sm_89; on one RTX 4090 the 27B runs a 40,182-token DFlash2 window with drafted replies
+  equal to serial, fresh/resume equivalence, 2.4-2.6k tok/s prompt fill from 2K-32K, and 64-86 tok/s decode.
+- Under `--parallel`, Flash-Next prompts can fill inside live decode rounds rather than globally stopping replies;
+  a DGX Spark report gives 2.8-3.1x lower first-token delay, while an M3 Ultra queueing example drops median short-job
+  TTFT from 113 s to 9.9 s.
+- More engines retain/resume prompt state; an 18.7K Flash-Next resend is reported 8.3 s -> 0.08 s with a fresh run's reply.
+- CUDA prompt arithmetic defaults to bf16 rather than FP8; on the 27B the release reports KL 0.0031 vs an fp32
+  reference for bf16 prompt rows, versus 0.0624 for FP8.
+- On pre-M5 Macs, one-stream copy windows widen and concurrent Flash-Next rounds use matrix units. An M3 Ultra edit
+  is reported 190 -> 233 tok/s. This is mechanism evidence only, not an M1 numerical transfer.
+- Flash-Next CUDA NVFP4 is reported 4.9-7.1% faster decode and 15-16% faster 2K-16K prompt fill, bit-identical.
+
+0.6.0 therefore strengthens the implementation path around concurrency, resumed state and pre-M5 matrix usage.
+It does **not** move the dual-M1 40-TG/400-PP target because there is still no exact dual-M1-Max, filled-128K receipt.
+
+### Deep-context pre-M5 QSA prefill needs its own certification gate
+
+mlx-serve issue #658 gives a same-box M3 Ultra comparison at depth:
+- cold 59.7K prefill: mlx-serve ~1,190 tok/s, oMLX ~1,230;
+- 60K -> 99K suffix prefill: mlx-serve ~570 tok/s, oMLX ~1,190;
+- decode at 99K remains similar, ~56-67 vs ~64 tok/s.
+
+The reporter attributes the collapse to mlx-serve's non-NAX pre-M5 path retaining an 8,192-key gather floor / older
+QSA kernel beyond the sparse transition, while oMLX 0.7.0 carries sparse prefill gather and wider native QSA tiles
+across Macs. The exact root cause is not yet maintainer-confirmed, so transfer the **test shape**, not the diagnosis.
+
+Project-51 Apple PP qualification must include both:
+1. genuinely cold long prefill; and
+2. **deep suffix prefill after a retained 60K+ prefix**, e.g. 60K -> 96K/100K.
+
+A runtime that meets the cold PP target but collapses after entering the sparse-QSA regime does not pass the Apple
+prefill gate. This is especially relevant to a custom M1 implementation, where M5/NAX-specific fast paths cannot be assumed.
+
+### TensorFold's refused-checkpoint bug is confirmed to persist in 0.6.0
+
+The TensorFold maintainer confirmed issue #155 still applies to 0.6.0: if `allow_checkpoint` refuses a boundary
+capture, it is silently skipped and the normal spill path never sees it. The requested upstream fix has three
+important properties:
+- log one refusal reason per request;
+- hand spill writes to a bounded asynchronous writer instead of blocking the engine/decode thread;
+- test that a refused boundary capture spills and the next turn resumes from disk with the same token SHA as fresh prefill.
+
+Project-51's resident-agent gate therefore remains strict: capture refusal is a first-class persistence event, not
+an eviction detail.
+
+### RTX 4090 gives a strong consumer 24-GB Strata throughput/cache receipt, not a long-context ruler
+
+Strata issue #307/#308 reports native Windows / RTX 4090 24 GB / i9-13900K / 64-GB DDR5 with a 128K-configured
+Flash-Next setup:
+- IQ2_XS: 106.1 tok/s whole request, ~115 peak, 95.5% expert-cache hit;
+- IQ3_XXS: **98.1 tok/s whole request**, ~120 peak, 91.9% expert-cache hit;
+- IQ3_XXS generated 11,485 tokens in 118 s on the reported close-reading task.
+
+This is useful evidence that a 24-GB card can keep enough of IQ3_XXS hot to sustain ~100 tok/s-class real requests.
+The actual prompt depth is not stated, so **128K configured context must not be read as 128K filled context**. No
+5070-Ti TG target moves.
+
+### Pruning buys extreme hardware cost at selective capability loss
+
+Follow-up to Strata issue #298 adds preliminary quality:
+- pruned Q2 Flash-Next on RTX 2060 8 GB: HumanEval **92.7%** over 164 problems at ~28.9 tok/s;
+- GPQA-Diamond: **25% on only 20 questions** at ~30.9 tok/s;
+- the reporter's Qwen3.6-35B-A3B control scores 35% on the same tiny GPQA subset.
+
+The sample is too small for a stable GPQA estimate, but it demonstrates the expected trade: expert pruning can
+preserve a narrow capability (coding) while damaging another (hard reasoning). Do not use the pruned-Q2 result as
+evidence for unpruned DASLab IQ3_XXS quality.
+
+### New Strata artifact-kind bug does not hit the official DASLab IQ3_XXS artifact, but becomes a loader-certification test
+
+Strata issue #303 reports an Unsloth UD-IQ3_XXS artifact whose `blk.1.ple_conv1d.weight` is F32 while the runtime
+passes its raw bits to an F16 convolution kernel, producing coherent-looking execution infrastructure but garbage
+model output. Synthetic F16 parity fixtures all pass, illustrating that kernel parity alone cannot validate file-format
+interpretation.
+
+The official ISTA-DASLab Flash-Next GSQ-RCO allocation for IQ3_XXS explicitly lists
+`blk.1.ple_conv1d.weight: F16` (commit `fb6d866`), so this exact F32/raw-F16 defect **does not apply to our canonical
+DASLab IQ3_XXS checkpoint**. The same is true in the published IQ2_XS/Q2_0 allocations.
+
+Even so, Project-51 source-equivalence certification should record and assert the actual GGUF tensor kind/byte count
+for critical PLE/GDN/QSA tensors before runtime execution. A green synthetic parity suite is not enough.
+
+### Linux layer-split pinning evidence reinforces platform-specific host-memory policy
+
+Strata issue #306, on an older 0.1.24 2x V100 / 62-GB Linux configuration, reports an unconditional 8-GiB host-pin
+cap (introduced for WDDM) reducing 28K prefill from 932 tok/s single-card to 378 tok/s in the split; removing the cap
+on Linux and allowing full arena pinning yields 976 tok/s and 35.2 tok/s no-MTP decode. The same report also finds
+prompt-borrow sizing inconsistencies.
+
+This is old-release / manually patched / different-hardware evidence, so it does not become a Project-51 speed
+number. It reinforces the existing rule: host-registration policy must be OS/topology-specific and Linux memlock
+limits must be measured rather than inheriting Windows/WDDM caps.
+
+### oMLX batch-realignment short-stop signal remains unresolved
+
+oMLX issue #4036 receives stronger corpus evidence on 0.7.0rc1-era M1 Max agent traffic: 1,038 generation-row
+realignment warnings and 7 of 10 <=10-token long-prompt completions occurring within 5 s of a realign. However, a
+40-iteration targeted stress loop produced 203 realigns and zero short stops, and a real agent request with the same
+cached-prefix/small-suffix shape also completed normally. Realignment is therefore correlated but not demonstrated
+causal.
+
+For Project-51 Apple agent testing, retain a simple invariant: suspiciously short `finish_reason=stop` completions on
+large prompts must be preserved with scheduler/cache traces and raw model text; do not silently score them as model
+behavior until runtime truncation is excluded.
+
+### Strict-window negative / DASLab state
+
+The official DASLab Flash-Next GSQ-RCO commit history still tops at `ed59f92`; no new checkpoint, allocation,
+source-paired long-context result or benchmark landed in this strict window. The official IQ3_XXS PLE dtype check
+above is **RECOVERED CURRENT** evidence from the existing `fb6d866` allocation, not a new DASLab release.
+
+No Project-51-relevant strict-window update was found in TurboQuant-MLX, MoEspresso or Ishizuki. MLX core itself had
+no relevant new Flash-Next change in the window.
+
+**Canonical numerical targets remain unchanged.**
+
+
 ## 2026-09-30 16:42 ET consolidation delta — Strata 0.1.30, exactness mode, state-retention gates
 
 ### Strata production baseline advances to 0.1.30+

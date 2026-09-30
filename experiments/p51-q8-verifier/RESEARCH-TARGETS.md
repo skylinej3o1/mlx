@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-30 16:42 ET**
+Latest strategy true-up: **2026-09-30 19:19 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -26,7 +26,7 @@ Definitions:
 - For cluster PP, long enough prompts are assumed to permit useful chunk/pipeline overlap.
 - Prefix/session reuse is a separate latency objective and should not be folded into cold PP.
 - **Agent wake/prewarm** is also separate: a lightweight Slack/Telegram/iMessage wake signal may pre-materialize the invariant system/tools/skills/repo prefix and certified recurrent/QSA state before the real task arrives. Measure wake->ready and real-task->TTFT independently; the 400-PP ruler remains genuinely cold.
-- **Resident-agent capacity is not the same as one-shot context fit.** A 128K agent counts as resident only if its complete continuation state can remain retained/resumable for the next turn without a full re-prefill. Budget attention KV, recurrent/GDN state, QSA/indexer state, draft/MTP state and any retained checkpoint/state image separately from the active request. TensorFold's 64-GB 27B result is the cautionary receipt: ~140K one-shot fits, but DFlash2 conversations above roughly 100K could no longer retain their checkpoint and re-prefilled on the next turn. TensorFold #155 adds a stricter gate: **checkpoint-capture refusal under memory pressure must spill durably or fail/report loudly**; silently dropping a refused boundary checkpoint and cold-prefilling the next turn does not count as retained state.
+- **Resident-agent capacity is not the same as one-shot context fit.** A 128K agent counts as resident only if its complete continuation state can remain retained/resumable for the next turn without a full re-prefill. Budget attention KV, recurrent/GDN state, QSA/indexer state, draft/MTP state and any retained checkpoint/state image separately from the active request. TensorFold's 64-GB 27B result is the cautionary receipt: ~140K one-shot fits, but DFlash2 conversations above roughly 100K could no longer retain their checkpoint and re-prefilled on the next turn. TensorFold #155 adds a stricter gate: **checkpoint-capture refusal under memory pressure must spill durably or fail/report loudly**; silently dropping a refused boundary checkpoint and cold-prefilling the next turn does not count as retained state. The maintainer confirms this still applies to 0.6.0 and asks that spill use a bounded asynchronous writer plus a resume-vs-fresh token-SHA test, so Project 51 should require the same properties.
 - **Prefix reuse is not automatically physical prefix sharing.** A pinned system-prefix checkpoint (for example Strata 0.1.20) can eliminate repeated prefill for new chats while still using one live branch/arena at a time. Project 51 may count a common 30-60K prefix only once across several simultaneously resident agents **only after** the runtime implements refcounted/read-only shared attention+recurrent/QSA state and proves independent private-suffix continuation/rollback. Logical cache hits alone do not earn multi-agent memory-capacity credit.
 - A target can move only when new direct physical evidence or a materially stronger mechanism case
   changes the planning distribution. Mechanism transfer alone should normally change the test plan,
@@ -835,6 +835,14 @@ round the same regardless of the speculative verify window; `native_expert_parit
 Throughput runs on the default faster width-dependent path remain useful physical measurements, but do not count
 them as proof of plain-vs-MTP target arithmetic equivalence.
 
+### Runtime tensor-kind / file-interpretation gate
+
+Before source-equivalence certification, record and assert the actual GGUF tensor kind and byte count for critical
+PLE/GDN/QSA tensors against the runtime kernel's expected representation. Strata #303 shows why: an artifact with an
+F32 `ple_conv1d.weight` can be raw-cast into an F16 kernel and produce garbage while synthetic F16 parity tests stay
+green. The canonical ISTA-DASLab IQ3_XXS allocation explicitly stores `blk.1.ple_conv1d.weight` as F16, so that exact
+bug does **not** affect the target artifact; the gate protects future checkpoints/conversions.
+
 ## Stability / admission targets
 
 **Qualified Strata baseline: 0.1.30+ for new production tests.** 0.1.30 keeps fixed-cache output
@@ -1019,10 +1027,15 @@ remains a lower-precision extreme/capacity arm.
 single-request Lightning-MTP verify, the served-equivalent fused GDN norm, rebuilt memory admission, and an M1-Max
 native decode-attention correctness fix. It does not provide a new exact dual-M1-Max filled-128K TG/PP receipt.
 
-TensorFold PR #149 makes one pre-M5 Flash-Next bottleneck concrete: mixed 5/6/8-bit dense projections can miss the
-matrix-unit path and execute row-by-row. Add an exact-M1-Max A/B for the mixed-width matrix backend at S=1 and MTP
-verify widths, requiring serial/verify arithmetic equivalence before any speed credit. M3-Ultra ranges from that PR
-are mechanism evidence only and do not move the M1 targets.
+TensorFold PR #149 and the 0.6.0 release make two pre-M5 Flash-Next bottlenecks concrete: mixed 5/6/8-bit dense
+projections can miss the matrix-unit path, and deep sparse-QSA prefill can regress badly if the non-NAX path keeps an
+old gather floor/kernel. Add exact-M1-Max A/Bs for the mixed-width matrix backend at S=1 and MTP verify widths,
+requiring serial/verify arithmetic equivalence before any speed credit.
+
+Also qualify Apple prefill in **two regimes**: a genuinely cold long prompt and a deep suffix after a retained
+60K+ prefix (target shape: ~60K -> 96K/100K). mlx-serve #658 on M3 Ultra measures ~1,190 tok/s cold at 60K but only
+~570 tok/s on the 60K->99K suffix while oMLX 0.7.0 remains ~1,190 tok/s on the same box. Treat the diagnosis and M3
+numbers as mechanism evidence only; the M1 target does not move.
 
 ### M1-M4 compressed-KV hardware boundary
 
@@ -1070,7 +1083,7 @@ AA measurement and does not certify long-context/state/tool parity by itself.
     32K resident window, repeated 257K cold prefills, and clean recovery under memory pressure on CUDA 13.x.
 11. Run the 262K semantic gate separately: needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
     The 29K->257K retrieval decline in issue #200 proves that “it fits” is not the same as “it retains semantics.”
-12. On the Apple lane, A/B TensorFold-style mixed-width dense matrix routing on the exact M1 Max at S=1 and verify widths; require bit/arithmetic equivalence to the chosen serial reference before counting throughput.
+12. On the Apple lane, A/B TensorFold-style mixed-width dense matrix routing on the exact M1 Max at S=1 and verify widths, and measure prefill both cold and as a ~60K->96K/100K retained-prefix suffix; require bit/arithmetic equivalence and no deep-QSA prefill collapse before counting throughput.
 13. For long-context MTP changes, separately certify verify-attention reduction order and accepted recurrent-state commit/pairing; vLLM #59448 and SGLang #40001 show that speed/acceptance alone can hide trajectory or accuracy changes.
 14. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
     stock Strata's current setup script caps IQ3_XXS at 128K.
