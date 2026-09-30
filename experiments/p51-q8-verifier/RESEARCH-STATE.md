@@ -24,6 +24,105 @@ The protocol exists because older project anchors were previously rediscovered a
 out of the formal watch-note chain.
 
 
+## 2026-09-30 16:42 ET consolidation delta — Strata 0.1.30, exactness mode, state-retention gates
+
+### Strata production baseline advances to 0.1.30+
+
+Strata 0.1.30 (commit `30ec18ec7094550fcc594fd948220d511d80464e`, release published 17:50:57 UTC)
+supersedes 0.1.29 for new Project-51 runs. It keeps fixed-cache output byte-identical to 0.1.29 on the four release
+quants while adding several mechanisms directly relevant to the project:
+
+- short 1K-4K prompt streaming uses 1,024-token chunks and is reported +17-28% on the maintainer's RTX 5070;
+- layer-split cards keep only their own session state and borrow only their own prompt-cache tail;
+- low-RAM mode gains a resident variant that copies the non-GPU expert complement into ordinary RAM;
+- bounded multi-conversation caching can park several conversations in RAM and avoid full prompt rereads;
+- AMD RDNA4 support lands, and the gfx1100 HIP verify failure reported against 0.1.29 is confirmed fixed on 0.1.30;
+- most importantly for certification, `STRATA_IQ_MT_MIN=1` makes native i-quant CPU expert arithmetic width-invariant
+  so target outputs no longer depend on the speculative verify width.
+
+The width-invariant mode costs roughly 1-3% decode on IQ3_S/AVX-512 in the maintainer's test; IQ3_XXS was reported
+around +3% and other arms were within noise. For Project-51 AA/source-equivalence/MTP certification this mode now
+replaces the older broad `STRATA_NO_IQ512/256/IQ4NL` workaround as the preferred exactness control.
+
+The 1K-4K prompt gains do **not** move the 32K/64K/128K/262K cold-PP centers. They are a short-prompt optimization,
+not a new long-context ruler.
+
+### Stability gate remains open; the failure taxonomy is now more precise
+
+Issue #251 was closed after the maintainer clarified that its 13.2K hang was in the **batched prompt path**, not the
+verify window: the logged verify-window position belonged to the previous request. That prompt path changed in
+0.1.30, but the reporter has not yet provided a 0.1.30 retest. Keep repeated cold long-prompt starts in the soak.
+
+Issue #266's abort/immediate-retry race is confirmed: the old request releases the queue lock before its `finally`
+cleans shared status, allowing it to clear the next request. The maintainer says 0.1.31 will give each request an id
+and ownership-scoped cleanup. Until a released build is verified, rapid abort -> immediate retry remains mandatory.
+
+Issue #267 adds a Windows safety consequence to verify-window stalls: on one RTX 4080 SUPER / 0.1.24 run, the watchdog
+killed the process while GPU kernels were still spinning on host-mapped flags and the device remained lost until a
+physical power cycle. The maintainer says 0.1.31 will bound the final wait and release all flags before watchdog exit.
+Do not treat watchdog recovery as safe until that behavior is reproduced on a released build.
+
+Issue #243's Windows pin-budget failure is also assigned a 0.1.31 fix: cap sliced host registration below the shared
+GPU-memory budget and honor `STRATA_ARENA_PIN_GIB`. This remains pending, not a 0.1.30 qualification result.
+
+### AMD HIP gets a useful 0.1.30 recovery receipt
+
+Strata #273 reproduces a 0.1.29 gfx1100 RX 7900 XTX failure in the first verify launch, then confirms the same box and
+Coder IQ1_M pack serve successfully on 0.1.30. With a 64K window and INT8 streaming KV, the reporter measured:
+- prefill from 98 tok/s at 467 tokens to 856 tok/s at a 49K prompt;
+- decode 17.7 tok/s at 467, 46.0 at 6.7K, 60.5 at 26.8K, and 35.4 at 49K;
+- 93.3-97.1% expert-cache hit with 17.42 GiB of experts resident in 24-GB VRAM;
+- OpenAI and Anthropic endpoints plus a tool-call smoke test working through 49,005 prompt tokens.
+
+This strengthens the AMD runtime case but does not numerically transfer to RDNA2/RX 6800.
+
+### An 8-GB consumer-GPU pruning result pushes the cost floor lower, quality unknown
+
+New issue #298 reports a community-pruned Q2 Flash-Next variant on an RTX 2060 8 GiB at about **30 tok/s decode** and
+**150 tok/s prefill**, with roughly **17.6 GiB resident system RAM** and a 128K context. The remaining ~26.8-GiB PLE
+can be served from NVMe. The reporter explicitly says coding quality versus Qwen3.6-35B is still under test.
+
+Treat this as a striking cost/capacity proof-of-concept, **not** a frontier-quality receipt and not evidence for the
+unpruned DASLab IQ3_XXS AA prior.
+
+### Apple capacity and runtime routing updates
+
+oMLX issue #3917 now has a 0.7.0 receipt on an M4 Max 64-GB machine: the reporter can complete the full 256K context
+benchmark for Qwen3.8-27B oQ6e-mtp using the new aggressive memory tier. The balanced tier spends long stretches near
+its soft cap and makes little prefill progress. This is a strong 64-GB Apple capacity receipt for the 27B family,
+not a Flash-Next 125B or exact-M1-Max throughput result.
+
+oMLX issue #4132 proposes managing Splash/splash-m1 as a per-model backend. The implementation is reported working on
+an M1 Max for Qwen3.8-27B/Qwen3.6-35B-A3B. This is interesting for the M1 fleet but does not yet serve Flash-Next, so
+it earns no headline target credit.
+
+### Resident-agent correctness gets a concrete negative test
+
+TensorFold issue #155 shows that under memory pressure, a boundary checkpoint capture can be refused and silently
+dropped before it ever reaches the configured SSD spill callback. The request completes, but the next turn has zero
+resume coverage and cold-prefills the entire conversation; reported 89K-179K conversations then took 231-496 seconds
+to rebuild on an M3 Ultra.
+
+Project-51 resident-agent certification must therefore test **checkpoint-capture refusal**, not only eviction:
+a refused checkpoint must either spill durably or fail/report loudly. Silent loss followed by a full hidden re-prefill
+does not count as retained/resumable agent state.
+
+TensorFold 0.5.0 also resolves the earlier two-Spark TP2 startup hang from issue #107; that is stability evidence for
+the Spark lane, not enough to alter the current buy/no-buy economics.
+
+### Other strict-window signals
+
+SGLang issue #41919 publishes a careful B200 TP1 NVFP4 Qwen3.8-Flash-Next benchmark and GSM8K run. It is useful as a
+datacenter throughput/reference point but does not transfer to consumer hardware targets.
+
+DASLab's Flash-Next GSQ-RCO model history is unchanged: latest main commit remains `ed59f92`; no strict-window
+checkpoint, RCO allocation, source-paired long-context result, or new benchmark landed. TurboQuant-MLX, MoEspresso,
+mlx-serve and Ishizuki likewise have no Project-51-relevant strict-window update.
+
+**Canonical numerical targets remain unchanged.** This delta promotes runtime baselines and exactness/state-retention
+gates; it does not move 5070-Ti PP centers, dual-M1 40-TG/400-PP goals, AA priors, or the K6/V4 prior.
+
+
 ## 2026-09-30 12:39 ET consolidation delta — corrected AMD long-context MTP result and RX 6800 secondary lane
 
 ### vLLM #59448 correction strengthens the long-context MTP mechanism case

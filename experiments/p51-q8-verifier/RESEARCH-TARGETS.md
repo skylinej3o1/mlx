@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-30 12:22 ET**
+Latest strategy true-up: **2026-09-30 16:42 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -26,7 +26,7 @@ Definitions:
 - For cluster PP, long enough prompts are assumed to permit useful chunk/pipeline overlap.
 - Prefix/session reuse is a separate latency objective and should not be folded into cold PP.
 - **Agent wake/prewarm** is also separate: a lightweight Slack/Telegram/iMessage wake signal may pre-materialize the invariant system/tools/skills/repo prefix and certified recurrent/QSA state before the real task arrives. Measure wake->ready and real-task->TTFT independently; the 400-PP ruler remains genuinely cold.
-- **Resident-agent capacity is not the same as one-shot context fit.** A 128K agent counts as resident only if its complete continuation state can remain retained/resumable for the next turn without a full re-prefill. Budget attention KV, recurrent/GDN state, QSA/indexer state, draft/MTP state and any retained checkpoint/state image separately from the active request. TensorFold's 64-GB 27B result is the cautionary receipt: ~140K one-shot fits, but DFlash2 conversations above roughly 100K could no longer retain their checkpoint and re-prefilled on the next turn.
+- **Resident-agent capacity is not the same as one-shot context fit.** A 128K agent counts as resident only if its complete continuation state can remain retained/resumable for the next turn without a full re-prefill. Budget attention KV, recurrent/GDN state, QSA/indexer state, draft/MTP state and any retained checkpoint/state image separately from the active request. TensorFold's 64-GB 27B result is the cautionary receipt: ~140K one-shot fits, but DFlash2 conversations above roughly 100K could no longer retain their checkpoint and re-prefilled on the next turn. TensorFold #155 adds a stricter gate: **checkpoint-capture refusal under memory pressure must spill durably or fail/report loudly**; silently dropping a refused boundary checkpoint and cold-prefilling the next turn does not count as retained state.
 - **Prefix reuse is not automatically physical prefix sharing.** A pinned system-prefix checkpoint (for example Strata 0.1.20) can eliminate repeated prefill for new chats while still using one live branch/arena at a time. Project 51 may count a common 30-60K prefix only once across several simultaneously resident agents **only after** the runtime implements refcounted/read-only shared attention+recurrent/QSA state and proves independent private-suffix continuation/rollback. Logical cache hits alone do not earn multi-agent memory-capacity credit.
 - A target can move only when new direct physical evidence or a materially stronger mechanism case
   changes the planning distribution. Mechanism transfer alone should normally change the test plan,
@@ -824,33 +824,37 @@ is insufficient.
 
 ### Verifier-width / native-expert exactness gate
 
-Current Strata native i-quant CPU experts can choose different reduction arithmetic at width 1 versus width >=2
-(issue #152), so changing speculative width can change the target model's FP32 expert result. Until upstream fixes
-and gates this, **AA/source-equivalence/MTP-certification runs must use a width-invariant expert path**.
+Strata 0.1.30 adds an explicit width-invariant native i-quant expert mode for issue #152:
+`STRATA_IQ_MT_MIN=1`. It uses the multi-token arithmetic from width 1 upward, so a token's target-model expert rows
+round the same regardless of the speculative verify window; `native_expert_parity` checks this bit-for-bit.
 
-Temporary conservative mode documented by the maintainer:
-`STRATA_NO_IQ512=1 STRATA_NO_IQ256=1 STRATA_NO_IQ4NL=1`.
+**AA/source-equivalence/MTP-certification runs must enable `STRATA_IQ_MT_MIN=1`.** The maintainer reports roughly
+1-3% decode cost on IQ3_S/AVX-512; IQ3_XXS was about +3% in that test and other arms were within noise. The old
+`STRATA_NO_IQ512=1 STRATA_NO_IQ256=1 STRATA_NO_IQ4NL=1` combination remains a conservative fallback/control.
 
-Throughput runs on the default fast path remain useful physical measurements, but do not count them as proof of
-plain-vs-MTP target arithmetic equivalence.
+Throughput runs on the default faster width-dependent path remain useful physical measurements, but do not count
+them as proof of plain-vs-MTP target arithmetic equivalence.
 
 ## Stability / admission targets
 
-**Qualified Strata baseline: 0.1.29+ for new production tests.** 0.1.29 carries the 0.1.28
-draft-head VRAM-accounting/cancellation fixes and adds faster QSA/GDN prompt/verify kernels plus sampled-token
-selection. Its published RTX-5070 sampling gains are top-k-dependent and greedy is unchanged, so they do not move
-the generic TG centers. Keep the multilingual/CJK draft for quality certification; treat the English/code-only
-draft as an explicit performance arm. On RTX 50/sm_120, use a qualified CUDA 13.x build.
+**Qualified Strata baseline: 0.1.30+ for new production tests.** 0.1.30 keeps fixed-cache output
+byte-identical to 0.1.29 on the release quants, speeds short 1K-4K prompt streaming, adds resident low-RAM and
+bounded multi-conversation caching, improves layer-split state ownership, lands AMD RDNA4 support, and provides the
+width-invariant `STRATA_IQ_MT_MIN=1` certification mode. The short-prompt gain does not move the long-context PP
+centers. Keep the multilingual/CJK draft for quality certification; treat the English/code-only draft as an
+explicit performance arm. On RTX 50/sm_120, use a qualified CUDA 13.x build.
 
-0.1.29 is **not** a stability certification: issue #251 reproduces a deterministic long-prompt verify-window stall
-on CUDA 13.0.2 / 4070 Ti SUPER / IQ3_XXS with workers and GPU apparently finished at layer 48, and issue #266 shows
-a stream-abort/immediate-retry status-ownership race that can terminate the next request. The exact-box soak must
-therefore include repeated cold long prompts plus rapid cancellation/retry handoffs.
+0.1.30 is **not** a stability/safety certification. Issue #251's 13K hang is now understood as a batched-prompt-path
+stall rather than a verify-window stall and still needs a 0.1.30 retest. Issue #266's abort/immediate-retry
+status-ownership race is confirmed, with a request-id fix planned for 0.1.31. Issue #267 shows an older Windows
+verify-window stall can leave GPU-side flag-wait kernels resident after watchdog exit and lose the device until a
+power cycle; bounded waits/flag release are planned for 0.1.31. The exact-box soak must therefore include repeated
+cold long prompts, rapid abort/retry handoffs, and watchdog/device-recovery checks.
 
-Windows host registration is also an explicit admission variable now. Issue #243 reports a 63.3-GB Windows host
-where large sliced `cudaHostRegister` leaves subsequent device allocations failing despite free VRAM/RAM; an
-8-GiB pin cap fixes that reporter's box. Treat this as a Windows-specific qualification arm, not a universal cap:
-issue #253 finds the same 8-GiB cap costs about 3.2x on one Linux multi-GPU Q2_0 prefill workload.
+Windows host registration remains an explicit admission variable. Issue #243's 63.3-GB Windows host is fixed by a
+bounded pin on the reporter's branch; upstream says 0.1.31 will cap sliced registration below the shared-GPU-memory
+budget and honor `STRATA_ARENA_PIN_GIB`. Do not transfer that cap to Linux: issue #253 finds an 8-GiB cap costs
+about 3.2x on one Linux multi-GPU Q2_0 prefill workload.
 
 | Production gate | Target | Planning confidence now |
 |---|---:|---:|
@@ -1045,12 +1049,12 @@ AA measurement and does not certify long-context/state/tool parity by itself.
 
 ## Promotion order
 
-1. Reproduce the **0.1.29+ zero-stall soak** on the user's exact box for >=8 h, including repeated cold long-prompt starts and rapid stream-abort/immediate-retry cycles; issue #251 and #266 keep both the verify-window and request-ownership families open.
+1. Reproduce the **0.1.30+ zero-stall soak** on the user's exact box for >=8 h, including repeated cold long-prompt starts, rapid stream-abort/immediate-retry cycles, and watchdog/device-recovery checks; #251 still needs a 0.1.30 prompt-path retest, while #266/#267 have fixes planned for 0.1.31.
 2. Resolve or bound the **16-GB/64-GB Windows admission-margin** issue, including whole-arena/sliced `cudaHostRegister` behavior and a bounded-pin control inspired by issue #243; do not transfer the cap to Linux without measurement.
 3. Complete a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S. The
    **79.7-TG IQ3_XXS @128K** report is now a direct anchor, but not a full controlled ladder.
 4. Validate draft-vocabulary/language coverage and record acceptance by workload before tuning verifier width.
-5. Require width-invariant native-expert arithmetic for source-equivalence / AA / MTP certification.
+5. Require width-invariant native-expert arithmetic for source-equivalence / AA / MTP certification; on Strata 0.1.30+ enable `STRATA_IQ_MT_MIN=1` and record it with every certified run.
 6. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the currently implemented
    capacity control.
 7. Port/mine the existing qwen4exp TBQ cache integration, then qualify the Strata Flash-aware lane in this order:
