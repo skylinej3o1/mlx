@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-30 01:37 ET**
+Latest strategy true-up: **2026-09-30 04:40 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -695,13 +695,31 @@ prompts and setup defaults, now measures:
 - IQ3_XXS: **1,745 / 1,609 / 1,602 PP** at 32K / 64K / 128K;
 - IQ3_S: **1,624 / 1,640 / 1,443 PP** at 32K / 64K / 128K.
 
-These are one-shot cells, so the mature centers stay below the measured values rather than chasing each sample. The
-5070-Ti planning centers are raised to:
-- IQ3_XXS: **1,650 / 1,550 / 1,500 PP**;
-- IQ3_S: **1,550 / 1,550 / 1,350 PP**.
+Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
-The gain combines 0.1.24 QSA selection, 0.1.25 prompt fusions/grouping changes and 0.1.26 batched draft-layer prefill.
-Do **not** move TG centers from the same 12-GB table; the exact 5070-Ti decode receipts remain the stronger TG anchors.
+### 2026-09-30 exact RTX 5070 Ti filled-context PP true-up
+
+Strata issue #200 finally provides a genuine near-native-context measurement on the target GPU class:
+- RTX **5070 Ti 16 GB**, IQ3_XXS native pack, streamed INT8 KV, 32K resident window, MTP spec4;
+- **257,466 tokens read from zero in 96.5 s = 2,668 PP** at a configured 262,144 context;
+- issue #199 on the same GPU/model path measures two ~60K cold prompts at **2,993 / 3,000 PP** with a safe
+  1,058-MiB VRAM reserve.
+
+The old 1.5K-class 5070-Ti PP centers are therefore retired. New production-planning centers, with a deliberate
+Windows/64-GB-host haircut versus the Linux/93-GB physical receipts:
+
+| Context | IQ3_XXS cold PP target | Evidence status |
+|---|---:|---|
+| ~32K | **3,000 tok/s** | extrapolated slightly downward from exact ~60K ~3.0K PP |
+| ~64K | **2,900 tok/s** | exact-card ~60K anchor ≈3.0K |
+| ~128K | **2,750 tok/s** | interpolation between ~60K and filled-257K exact-card receipts |
+| ~262K | **2,500 tok/s** | exact-card 257,466-token cold receipt = 2,668 PP |
+
+IQ3_S centers remain **1,550 / 1,550 / 1,350 PP** at 32K/64K/128K until an exact-card IQ3_S ladder lands;
+do not transfer the IQ3_XXS uplift numerically without measurement.
+
+The exact-card 151K–257K outputs were **95–118 TG**, but they were list-style answers with favorable draft acceptance.
+They establish an optimistic full-context receipt, **not** a generic TG center, so the TG ladder remains unchanged.
 
 ### 2026-09-29 full Strata 0.1.22 PP matrix true-up
 
@@ -849,12 +867,16 @@ This is now an explicit Project-51 target for the RTX 5070 Ti lane:
   separately certified. The normalized **compressed QSA index-key rows** may enter a qualified lower-precision
   storage lane; they are not the same thing as structural indexer state.
 
-Why this is plausible rather than a wish:
-- Strata models IQ3_XXS at **60 GB normal RAM / 42.9 GB expert arena**;
-- streamed INT8 KV is ~**13.7 KB/token**, about **3.6 GB @262K**;
-- its admission check also wants ~1 GB of margin, putting the simple stock total at roughly **64.6 GB**;
-- therefore the current 128K cap on <90-GB hosts is conservative policy around a near-cliff configuration, not evidence
-  that the model+state fundamentally needs 90 GB.
+Why this is now substantially stronger than a fit estimate:
+- Strata issue #200 physically runs **IQ3_XXS on the exact RTX 5070 Ti 16 GB at 257,466 prompt tokens** under a
+  262,144-token window with streamed INT8 KV;
+- pinned K/V is **1.55 GiB @128K / 3.09 GiB @262K**;
+- on the 93-GB Linux host, system RAM available after load is still roughly **44 / 43 GB** at 128K / 262K,
+  which implies the steady loaded footprint is far below 93 GB;
+- Strata still models IQ3_XXS at **60 GB normal RAM / 42.9 GB expert arena**, and its setup script conservatively
+  caps IQ3_XXS at 128K on <90-GB hosts;
+- the remaining uncertainty is therefore the **64-GB host's peak simultaneous load/staging + OS headroom**, not
+  whether 16-GB VRAM or the Flash state machine can execute genuine 262K.
 
 ### TurboQuant-style candidate ladder
 
@@ -936,9 +958,9 @@ Important boundary:
 ### Quality priors for the 262K lane
 
 Planning priors, not measured P51 results:
-- **physical fit, conditional on a correct Strata compressed-streaming implementation:** ~**85%**;
-- **GPU/VRAM feasibility:** high confidence now that IQ3_XXS + 262K-class Flash + compressed KV has run on another
-  **16-GB NVIDIA GPU**;
+- **physical fit, conditional on a correct Strata compressed-streaming implementation:** ~**90%**;
+- **GPU/VRAM + genuine native-context execution:** now directly proven on the **exact RTX 5070 Ti 16 GB** with
+  IQ3_XXS + streamed INT8 KV at a 257,466-token prompt;
 - **K6/V4 source-like long-horizon quality:** ~**60-70%** until Flash-specific 128K/262K evidence exists;
 - **end-to-end production readiness today:** lower than fit probability because the required path is not yet in Strata
   and the 64-GB host margin remains the unresolved part.
@@ -995,9 +1017,12 @@ AA measurement and does not certify long-context/state/tool parity by itself.
    block/page positions and checkpoint frontier exact.
 9. For every S>1/MTP sparse path, plan **one union working set across all verify rows before mutation/eviction**.
    Independent per-row residency is a correctness failure even if each row is individually valid.
-10. Qualify **IQ3_XXS + genuine 262K** on the exact 5070 Ti / 64-GB host: cold fit, peak physical RAM, compressed-host-KV
-    bytes, 32K resident-window bytes, PP/TG, needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
-11. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
+10. The exact 5070-Ti/native-context execution gate is now passed on a 93-GB host. Finish the **64-GB-host**
+    qualification: cold boot/load peak, steady physical RAM, staging overlap, compressed-host-KV bytes, 32K resident
+    window, repeated 257K cold prefills, and clean recovery under memory pressure.
+11. Run the 262K semantic gate separately: needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
+    The 29K->257K retrieval decline in issue #200 proves that “it fits” is not the same as “it retains semantics.”
+12. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
     stock Strata's current setup script caps IQ3_XXS at 128K.
 
 ---
@@ -1081,6 +1106,11 @@ Strata PR #189 now provides a strong mechanism receipt: IQ3_S snapshot/restore p
 K8V4 cases plus a 30-cycle soak reaching **119,987-token** prompts. It strengthens the state-image design but is not
 a throughput or exact-user-hardware result.
 
+Restore/import frontiers are now explicitly **monotonic commitments**: SGLang #41450 shows that a cache tree can grow
+while a restore is pending, causing a later lookup to match more tokens than the consumer was promised. P51 must clamp
+every restore/import to the committed frontier established at admission/export; a fresher lookup may discover more
+state, but it cannot silently extend the transaction already in flight.
+
 For pure interactive speed on the hardware already owned:
 
 1. **RTX 5070 Ti + Qwen3.8-27B** — now has a direct same-GPU-class long-context CUDA-v2 ladder:
@@ -1104,6 +1134,11 @@ so it does not move the dual-M1 Flash ladder numerically, but it makes a context
 Before promoting any B2-B4 target, measure B1/B2/B4 at minimum **16K / 32K / 64K / ~128K active context**, record
 per-step bytes/effective bandwidth/kernel path, and reject a scheduler optimization that raises short-context
 aggregate TG while collapsing at long context.
+
+Also treat speculative decoding itself as cohort-dependent. oMLX Qwen3.8-Flash-Next on M5 Ultra reports **B8 aggregate
+272 TG with shared MTP vs 293 TG with MTP off**; the runtime spends 81.5 ms on an 8-request depth-3 verify versus
+23.9 ms on a normal 8-row step. The scheduler must be allowed to park MTP immediately on a clear loss and retain that
+verdict across a stable cohort instead of repeatedly relearning it after joins/finishes.
 
 ## Flash mature B2-B4 aggregate ladder — retained
 
