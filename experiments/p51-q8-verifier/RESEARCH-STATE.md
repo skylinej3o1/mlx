@@ -24,6 +24,76 @@ The protocol exists because older project anchors were previously rediscovered a
 out of the formal watch-note chain.
 
 
+## 2026-09-30 12:22 ET consolidation delta — Strata 0.1.29, oMLX 0.7.0, and long-context verify gates
+
+### Strata production baseline advances to 0.1.29+, but the stall family remains open
+
+Strata 0.1.29 (commit `d6708a4aae15b4860000d54c8af9e84d684bce09`) is now the production baseline for new
+Project-51 Strata runs. The release keeps fixed-cache output byte-identical to 0.1.28 on Q2_0/IQ3_XXS/IQ3_S/Coder
+while adding faster QSA verify-window scoring, a software-pipelined prompt GDN recurrence, AVX2 expert-row prefetch,
+and a faster sampled-token selector. The sampled selector is explicitly workload-dependent: on an RTX 5070 the
+published Q2_0 gain ranges from about +4% at top-k 20 to +38-42% at top-k 64, while greedy decoding is unchanged.
+Do not turn those sampling gains into a generic TG multiplier.
+
+0.1.29 does **not** close the stability gate. Issue #251 reproduces a long-prompt stall on 0.1.29 with IQ3_XXS,
+CUDA 13.0.2, a 4070 Ti SUPER 16 GB and 128 GB RAM: all 24 expert jobs finish, workers sleep, the GPU reaches layer
+48, and the verify window remains stuck until the watchdog fires. Project-51 therefore keeps the exact-box >=8 h
+soak, repeated cold long prompts, and watchdog-free completion as promotion requirements.
+
+Issue #266 adds an agent-specific server race: a cancelled/aborted request whose generator finalizes after the next
+request starts can clear the new request's status and produce `KeyError: 'tail'` / `RemoteDisconnected`. Add
+rapid stream-abort -> immediate retry cycles to the agent soak; cancellation recovery is not certified merely by the
+0.1.29 release's ordinary cancelled-prompt test.
+
+### Windows 64-GB host admission now has a concrete host-registration failure mode
+
+Strata issue #243 reports a single-GPU Windows 11 / 63.3-GB-RAM / RTX 4090 IQ3_XXS box where a failed whole-arena
+`cudaHostRegister` followed by 28 GiB of sliced registration leaves every later `cudaMalloc` failing despite
+roughly 19 GiB free VRAM and substantial free host memory/commit. Capping registered expert-arena memory at 8 GiB
+lets the same machine reach READY in 51 s and serve at 40-44 tok/s. This is not an exact 5070-Ti receipt and it is
+only a 131K configuration, so the ~90% conditional 262K/64-GB fit prior stays unchanged. It does make Windows host
+pinning policy an explicit admission variable for the exact-box qualification.
+
+The opposite OS-specific effect exists on Linux multi-GPU: issue #253 reports the same 8-GiB cap causing a Q2_0
+32K prefill collapse from a locally patched 2,109.8 tok/s to 664.9 tok/s because expert-copy waits dominate.
+Treat the pin cap as platform/topology-specific, not a universal tuning knob.
+
+### Apple baseline advances to oMLX 0.7.0; M1-M4 mixed-width matrix use becomes a direct test
+
+oMLX 0.7.0 is now the stable Apple baseline. Relevant durable properties include exact single-request Lightning-MTP
+verify rows, the served-equivalent fused GDN norm fix, rebuilt memory admission, and an M1-Max native decode-attention
+correctness fix. The release is a baseline promotion, not a new dual-M1 128K TG/PP receipt.
+
+TensorFold PR #149 exposes a concrete pre-M5 Flash-Next inefficiency: 5/6/8-bit dense projections in mixed checkpoints
+can fall through a row-at-a-time path rather than the matrix-unit backend. Its opt-in matrix path is bit-identical
+between a 16-row window and 16 one-row steps in its tests. On M3 Ultra / Qwen3.8-Flash-Next oQ4e, the reported ranges
+move from 83-111 -> 89-130 tok/s for one stream and 121-126 -> 140-168 for N=4, with only a small prefill change.
+Those M3 Ultra numbers do **not** transfer numerically to M1 Max, but the mechanism is now a high-priority exact-M1
+experiment at S=1 and MTP verify widths.
+
+### Long-context MTP correctness remains a separate state-and-reduction problem
+
+vLLM PR #59448 shows that short speculative verify queries can fall onto a path that walks the entire KV history;
+on an AMD Strix Halo Qwen3.8-27B test, moving q_len=4 verify to a split-KV path produces large kernel-only gains at
+long context, yet greedy continuations sometimes change because the reduction order changes. This is mechanism
+evidence only, not a Project-51 speed transfer. Preserve source-equivalence tests when changing verify reductions.
+
+SGLang PR #40001 independently shows that hybrid recurrent state under pipeline-parallel speculative decoding can
+silently lose accuracy even while acceptance length looks normal when accepted GDN/KDA/Mamba state is not committed
+on every stage or is paired with the wrong in-flight micro-batch. Project-51 continues to treat recurrent/QSA/MTP
+state correctness as a first-class certification axis, separate from KV fit and acceptance rate.
+
+### Strict-window negatives
+
+No strict-window commit was found for the DASLab Flash-Next GSQ-RCO checkpoint, TurboQuant-MLX, MoEspresso,
+mlx-serve, or Ishizuki. The latest commits observed for those projects remain outside this window
+(DASLab `ed59f92`; TurboQuant-MLX 2026-09-19; MoEspresso 2026-09-24; mlx-serve 2026-09-30 00:50 UTC;
+Ishizuki 2026-09-26).
+
+**Numerical Project-51 targets do not move in this consolidation.** The new evidence changes baselines and
+qualification gates, not the measured 5070-Ti PP centers, dual-M1 TG/PP target, AA priors, or K6/V4 quality prior.
+
+
 ## 2026-09-30 06:55 ET consolidation delta — Strata 0.1.28 and arithmetic-exact verifier gates
 
 ### Strata production baseline is now 0.1.28+

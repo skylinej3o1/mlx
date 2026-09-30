@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-30 06:55 ET**
+Latest strategy true-up: **2026-09-30 12:22 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -836,11 +836,21 @@ plain-vs-MTP target arithmetic equivalence.
 
 ## Stability / admission targets
 
-**Qualified Strata baseline: 0.1.28+ for new production tests.** 0.1.28 fixes the 0.1.27 draft-head VRAM-accounting
-regression, stale cancellation state and tool-call delimiter truncation. Keep the multilingual/CJK draft for
-quality certification; treat the English/code-only draft as an explicit performance arm. On RTX 50/sm_120, use a
-qualified CUDA 13.x build; issue #224's CUDA-12.8 batched-PLE fault stays outside that lane until reproduced on
-13.x.
+**Qualified Strata baseline: 0.1.29+ for new production tests.** 0.1.29 carries the 0.1.28
+draft-head VRAM-accounting/cancellation fixes and adds faster QSA/GDN prompt/verify kernels plus sampled-token
+selection. Its published RTX-5070 sampling gains are top-k-dependent and greedy is unchanged, so they do not move
+the generic TG centers. Keep the multilingual/CJK draft for quality certification; treat the English/code-only
+draft as an explicit performance arm. On RTX 50/sm_120, use a qualified CUDA 13.x build.
+
+0.1.29 is **not** a stability certification: issue #251 reproduces a deterministic long-prompt verify-window stall
+on CUDA 13.0.2 / 4070 Ti SUPER / IQ3_XXS with workers and GPU apparently finished at layer 48, and issue #266 shows
+a stream-abort/immediate-retry status-ownership race that can terminate the next request. The exact-box soak must
+therefore include repeated cold long prompts plus rapid cancellation/retry handoffs.
+
+Windows host registration is also an explicit admission variable now. Issue #243 reports a 63.3-GB Windows host
+where large sliced `cudaHostRegister` leaves subsequent device allocations failing despite free VRAM/RAM; an
+8-GiB pin cap fixes that reporter's box. Treat this as a Windows-specific qualification arm, not a universal cap:
+issue #253 finds the same 8-GiB cap costs about 3.2x on one Linux multi-GPU Q2_0 prefill workload.
 
 | Production gate | Target | Planning confidence now |
 |---|---:|---:|
@@ -999,6 +1009,17 @@ Broader TurboQuant evidence argues for caution:
 K8V4 is not the final 262K solution because it currently **does not support Strata KV streaming**. Full Q4 K/V
 remains a lower-precision extreme/capacity arm.
 
+### Apple runtime baseline and pre-M5 mixed-width matrix gate
+
+**Qualified Apple runtime baseline: oMLX 0.7.0** for new stable-baseline comparisons. The release promotes exact
+single-request Lightning-MTP verify, the served-equivalent fused GDN norm, rebuilt memory admission, and an M1-Max
+native decode-attention correctness fix. It does not provide a new exact dual-M1-Max filled-128K TG/PP receipt.
+
+TensorFold PR #149 makes one pre-M5 Flash-Next bottleneck concrete: mixed 5/6/8-bit dense projections can miss the
+matrix-unit path and execute row-by-row. Add an exact-M1-Max A/B for the mixed-width matrix backend at S=1 and MTP
+verify widths, requiring serial/verify arithmetic equivalence before any speed credit. M3-Ultra ranges from that PR
+are mechanism evidence only and do not move the M1 targets.
+
 ### M1-M4 compressed-KV hardware boundary
 
 oMLX PR #3582 explicitly treats Affine4/Affine8 as an M5-oriented path. On M1-M4 its portable path is a
@@ -1024,8 +1045,8 @@ AA measurement and does not certify long-context/state/tool parity by itself.
 
 ## Promotion order
 
-1. Reproduce the **0.1.28+ zero-stall soak** on the user's exact box for >=8 h, including repeated cold long-prompt starts and cancellation/retry cycles.
-2. Resolve or bound the **16-GB/64-GB Windows admission-margin** issue.
+1. Reproduce the **0.1.29+ zero-stall soak** on the user's exact box for >=8 h, including repeated cold long-prompt starts and rapid stream-abort/immediate-retry cycles; issue #251 and #266 keep both the verify-window and request-ownership families open.
+2. Resolve or bound the **16-GB/64-GB Windows admission-margin** issue, including whole-arena/sliced `cudaHostRegister` behavior and a bounded-pin control inspired by issue #243; do not transfer the cap to Linux without measurement.
 3. Complete a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S. The
    **79.7-TG IQ3_XXS @128K** report is now a direct anchor, but not a full controlled ladder.
 4. Validate draft-vocabulary/language coverage and record acceptance by workload before tuning verifier width.
@@ -1045,7 +1066,9 @@ AA measurement and does not certify long-context/state/tool parity by itself.
     32K resident window, repeated 257K cold prefills, and clean recovery under memory pressure on CUDA 13.x.
 11. Run the 262K semantic gate separately: needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
     The 29K->257K retrieval decline in issue #200 proves that “it fits” is not the same as “it retains semantics.”
-12. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
+12. On the Apple lane, A/B TensorFold-style mixed-width dense matrix routing on the exact M1 Max at S=1 and verify widths; require bit/arithmetic equivalence to the chosen serial reference before counting throughput.
+13. For long-context MTP changes, separately certify verify-attention reduction order and accepted recurrent-state commit/pairing; vLLM #59448 and SGLang #40001 show that speed/acceptance alone can hide trajectory or accuracy changes.
+14. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
     stock Strata's current setup script caps IQ3_XXS at 128K.
 
 ---
