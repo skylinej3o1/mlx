@@ -24,6 +24,51 @@ The protocol exists because older project anchors were previously rediscovered a
 out of the formal watch-note chain.
 
 
+## 2026-09-30 12:39 ET consolidation delta — corrected AMD long-context MTP result and RX 6800 secondary lane
+
+### vLLM #59448 correction strengthens the long-context MTP mechanism case
+
+A 16:38:43 UTC correction to issue #59054 replaces the earlier short-sample 32K serving number for PR #59448.
+On the same gfx1151 / Qwen3.8-27B / MTP-k=3 setup, steady-state measurement over 160 generated tokens with the first
+five steps excluded gives:
+- stock 2D verify gate: **581 ms/step, 3.2 accepted tokens/step, ~5.5 tok/s**;
+- corrected 3D verify + masked-segment guards: **162 ms/step, 3.3 tokens/step, ~20.5 tok/s**;
+- no speculative decoding: **92 ms/step, 10.9 tok/s**.
+
+Thus the corrected kernel changes MTP from roughly a 2x loss into a **~1.9x steady-state gain over no-spec at 32K**
+on that AMD RDNA3.5 box. The earlier statement that fixed MTP remained slower than no-spec at 32K is retired.
+This remains architecture/runtime transfer evidence only; no Project-51 NVIDIA or Apple TG target moves.
+
+### Secondary AMD lane — RX 6800 16 GB + 64 GB DDR4
+
+This is a **low-confidence planning lane**, not a canonical target.
+
+Current upstream Strata HIP documentation supports the RX 7900 XT/XTX gfx1100 Linux path, not RDNA2 gfx1030.
+A community RDNA2 gfx1031 RX 6700 XT port has nevertheless served IQ3_XXS short prompts with MTP at **6-10 tok/s**
+and high draft acceptance, but its ~1K+ multi-chunk prefill currently hits a routed-id failure. Exact RX 6800/gfx1030
+Strata execution is therefore **not currently certified**.
+
+For a fixed/tuned Linux RDNA2 port, the planning range for an RX 6800 16 GB with 64 GB DDR4 is:
+- short / <=32K decode: roughly **12-18 tok/s**;
+- ~64K decode: roughly **10-15 tok/s**;
+- ~128K decode: roughly **8-12 tok/s**;
+- cold prefill: order-of-magnitude **~150-350 tok/s**, strongly dependent on HIP dense kernels, CPU/DDR4, SSD residency
+  and expert-cache hit rate.
+
+A current minimally tuned/community RDNA2 build should be expected closer to **8-14 tok/s** short-context until the
+long-prefill bug and architecture-specific tuning are resolved. The 64-GB upgrade primarily changes *feasibility and
+residency* rather than raw GPU speed: it can keep much more of the CPU-expert complement resident and avoid pathological
+SSD/page-fault behavior. Full 262K is not a comfortable 64-GB target on this 16-GB card; treat 64K-128K as the practical
+first qualification range and 262K as a low-RAM/mmap experiment.
+
+Evidence anchors:
+- Strata issue #259: RX 6700 XT gfx1031 community port, IQ3_XXS, 6-10 tok/s short decode; long-prefill routed-id failure.
+- Strata AMD_HIP_PERFORMANCE: RX 7900 XTX gfx1100 / 64-GB host, tuned IQ3_XXS path at 55-59 tok/s on 4K-9K fresh requests.
+- Strata PR #247: RX 9070 16 GB / gfx1201, ~238 tok/s prefill and ~23 tok/s decode on a 4,445-token prompt.
+- Strata PR #256: RX 9060 XT 16 GB / gfx1200, IQ1_M, 27-31 tok/s decode and 540-753 tok/s prefill.
+- llama.cpp community RX 6800/6800 XT Qwen3.8 evidence confirms gfx1030 ROCm is viable but does not transfer directly
+  to sparse Flash-Next/Strata expert-cache economics.
+
 ## 2026-09-30 12:22 ET consolidation delta — Strata 0.1.29, oMLX 0.7.0, and long-context verify gates
 
 ### Strata production baseline advances to 0.1.29+, but the stall family remains open
