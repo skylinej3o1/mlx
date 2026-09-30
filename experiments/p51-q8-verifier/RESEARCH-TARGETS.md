@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-29 19:52 ET**
+Latest strategy true-up: **2026-09-30 01:37 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -844,8 +844,10 @@ This is now an explicit Project-51 target for the RTX 5070 Ti lane:
 - **GPU:** RTX 5070 Ti 16 GB;
 - **host:** 64 GB RAM;
 - **KV:** Flash/QSA-aware compressed + streamed full-attention KV;
-- **protected state:** QSA/indexer keys and spare/dead row, GDN/recurrent state, MTP/draft state, checkpoint/frontier
-  identity stay lossless/high precision.
+- **protected state:** QSA/indexer **structure** (pending-ring lineage, block/page positions, spare/dead row,
+  logical->physical mapping and checkpoint frontier), GDN/recurrent state and MTP/draft state stay exact unless
+  separately certified. The normalized **compressed QSA index-key rows** may enter a qualified lower-precision
+  storage lane; they are not the same thing as structural indexer state.
 
 Why this is plausible rather than a wish:
 - Strata models IQ3_XXS at **60 GB normal RAM / 42.9 GB expert arena**;
@@ -900,13 +902,36 @@ What is still missing:
   on the user's Windows 5070 Ti box.
 
 P51 implementation should therefore **port/mine proven qwen4exp TBQ plumbing**, not invent the concept from zero:
-1. preserve QSA/indexer state separately and exactly;
+1. preserve QSA/indexer **structural state** separately and exactly; optionally qualify the normalized compressed
+   index-key store as FP8 after the BF16 control passes;
 2. compress only the actual full-attention K/V payload;
 3. keep host KV compressed at rest;
 4. gather only needed/resident cells;
 5. dequantize into bounded register/shared scratch in the attention path;
 6. never materialize a second full 262K fp16 cache;
 7. own Hadamard/rotation exactly once — existing Flash TBQ work found double-rotation to be a real integration hazard.
+
+### QSA compressed-index storage lane
+
+SGLang now provides direct Qwen3.8-Flash-Next evidence that the **normalized compressed QSA index-key cache** can be
+stored in **FP8 e4m3** while leaving the pending raw-key ring BF16, the norm/group-mean/RoPE compute path high
+precision and the main attention KV unchanged.
+
+On a B300 Qwen3.8-Flash-Next-FP8 xhigh evaluation, BF16-indexer -> FP8-indexer:
+- GSM8K: **97.80 -> 97.65**;
+- AIME26 pass@1: **98.33 -> 99.17**;
+- GPQA-D pass@1: **92.11 -> 91.98**;
+- GPQA majority@8: **93.18 -> 92.93**.
+
+For the current compressed-QSA geometry (1 index KV head, 128 dim, ratio 4, 12 QSA layers), the stored-key budget is
+about **768 B/token BF16 vs 384 B/token FP8**, roughly **96 MiB saved at 262K**. This is useful margin, not the main
+host-RAM lever.
+
+Important boundary:
+- structural indexer state remains exact;
+- FP8 applies only to the normalized compressed key rows / matching scoring query;
+- SGLang currently gates this path to **SM90/SM100**, so the user's **sm_120 RTX 5070 Ti earns no direct memory or
+  speed credit** until a Blackwell implementation is qualified.
 
 ### Quality priors for the 262K lane
 
@@ -965,11 +990,15 @@ AA measurement and does not certify long-context/state/tool parity by itself.
 6. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the currently implemented
    capacity control.
 7. Port/mine the existing qwen4exp TBQ cache integration, then qualify the Strata Flash-aware lane in this order:
-   **K8/V4 control -> K6/V4 -> K4/V4**, preserving QSA/indexer/recurrent/MTP state exactly and proving rotation ownership.
-8. Qualify **IQ3_XXS + genuine 262K** on the exact 5070 Ti / 64-GB host: cold fit, peak physical RAM, compressed-host-KV
-   bytes, 32K resident-window bytes, PP/TG, needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
-9. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
-   stock Strata's current setup script caps IQ3_XXS at 128K.
+   **K8/V4 control -> K6/V4 -> K4/V4**, preserving QSA structural/recurrent/MTP state exactly and proving rotation ownership.
+8. Add the optional **FP8 compressed-QSA-key** lane only after BF16-indexer parity; keep the pending ring, spare/dead key,
+   block/page positions and checkpoint frontier exact.
+9. For every S>1/MTP sparse path, plan **one union working set across all verify rows before mutation/eviction**.
+   Independent per-row residency is a correctness failure even if each row is individually valid.
+10. Qualify **IQ3_XXS + genuine 262K** on the exact 5070 Ti / 64-GB host: cold fit, peak physical RAM, compressed-host-KV
+    bytes, 32K resident-window bytes, PP/TG, needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
+11. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
+    stock Strata's current setup script caps IQ3_XXS at 128K.
 
 ---
 
@@ -1038,6 +1067,20 @@ Cross-cutting systems priority: **persistent canonical agent-root images** now s
 cold-PP tuning for invariant system/tool prefixes. They do not change the hardware ranking below because
 restore latency and cold PP are separate metrics.
 
+Persistent-root correctness now additionally requires:
+- **domain separation:** an exact system/tool root carrying terminal recurrent/GDN state must not enter ordinary
+  partial-prefix matching as if it were a generic token/KV block;
+- **bounded tail lineage:** retain only the explicitly required edited-turn/private-suffix generations rather than
+  accumulating one full recurrent/QSA tail per turn;
+- **admission credit for owned restored state:** a prefix already restored into owned cache slots is not billed again
+  as if every token were a fresh allocation;
+- **durable backing before eviction credit:** a GPU page counts as reclaimable only when its host/disk backing and
+  transfer ownership are already reserved.
+
+Strata PR #189 now provides a strong mechanism receipt: IQ3_S snapshot/restore parity across INT8 streamed/ring and
+K8V4 cases plus a 30-cycle soak reaching **119,987-token** prompts. It strengthens the state-image design but is not
+a throughput or exact-user-hardware result.
+
 For pure interactive speed on the hardware already owned:
 
 1. **RTX 5070 Ti + Qwen3.8-27B** — now has a direct same-GPU-class long-context CUDA-v2 ladder:
@@ -1052,6 +1095,15 @@ For pure interactive speed on the hardware already owned:
 
 For Hermes/multi-agent throughput, do not rank systems from B1 TG alone. Flash's B2-B4 aggregate
 scheduler/pipeline target remains important and should be measured separately from single-request TG.
+
+**Long-context batching gate:** do not assume shared weights make B2/B4 aggregate throughput exceed B1. An M1 Ultra
+Qwen3.8-27B/oQ4e/TQ8 run at ~20K context measured **21.7 TG solo but only ~11.2 TG aggregate for two concurrent
+MTP-off rows**, while short-context two-way reached **28.9 aggregate**. This is cross-hardware dense-model evidence,
+so it does not move the dual-M1 Flash ladder numerically, but it makes a context ladder mandatory.
+
+Before promoting any B2-B4 target, measure B1/B2/B4 at minimum **16K / 32K / 64K / ~128K active context**, record
+per-step bytes/effective bandwidth/kernel path, and reject a scheduler optimization that raises short-context
+aggregate TG while collapsing at long context.
 
 ## Flash mature B2-B4 aggregate ladder — retained
 
