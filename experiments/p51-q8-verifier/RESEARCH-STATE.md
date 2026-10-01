@@ -24,6 +24,168 @@ The protocol exists because older project anchors were previously rediscovered a
 out of the formal watch-note chain.
 
 
+## 2026-10-01 06:28 ET consolidation delta — Strata 0.1.31, exact RDNA2 anchor, 1M stretch context, Apple long-context concurrency
+
+### Strata production baseline advances to 0.1.31+
+
+Strata 0.1.31 (commit `9259cad4cfa3543cd3b8decab5962672b968c649`, published 05:13:47 UTC)
+supersedes 0.1.30 for new Project-51 runs.
+
+For Project 51, the important changes are:
+- the #266 late-finalizer/request-status race is fixed;
+- Windows verify-stall watchdog exit now releases GPU-side waits before process termination (#267);
+- Linux multi-GPU again pins the full expert arena instead of inheriting the Windows 8-GiB cap (#253);
+- Windows gets opt-in `STRATA_ARENA_PIN_GIB=auto`, bounded by the shared-GPU-memory budget (#243);
+- tagged checkouts now install their own engine/model revisions/dependencies instead of silently taking newest pieces (#214);
+- Windows GGUF expert loading is roughly 2x faster on the maintainer's path;
+- the experimental mapped/file-tier architecture can run Unsloth UD-Q4_K_XL, a ~111-GB 4-bit Flash-Next artifact,
+  on an RTX 5070 12 GB + 64 GB host at roughly 7-8.5 tok/s with a 40-GiB resident-RAM budget.
+
+Release qualification says fixed-cache outputs remain byte-identical to 0.1.30 on Q2_0/IQ3_XXS/IQ3_S/Coder across
+nine rounds, and the 64K server sequence again passes retrieval, prompt reuse, tool call, cancellation and sampled reply.
+
+**0.1.31 is the new qualification baseline, not a completed certification.** The user's exact 5070 Ti + 64-GB box
+still needs the >=8 h zero-stall soak, rapid abort/retry concurrency, watchdog recovery and Windows pin-budget admission
+tests. The release closes known implementation holes; it does not substitute for exact-box reproduction.
+
+### Exact RDNA2 evidence materially upgrades the RX 6800 secondary lane
+
+Strata PR #311 was created just before the previous hard boundary and updated inside this window, so classify its
+performance receipt as **RECOVERED CURRENT / UPDATE**, not NEW.
+
+It adds experimental gfx1030 support and reports on:
+- RX 6900 XT 16 GB (gfx1030);
+- i7-13700KF, AVX2;
+- 63 GB RAM;
+- NixOS / ROCm 7.2.3;
+- Swift 1.5 IQ3_XXS;
+- genuine 131,072-token context, 32K resident KV.
+
+Measured:
+- **38-42 tok/s decode with the default 15 CPU-pool workers, even with the 131K context full**;
+- 35-37 tok/s with 8 workers; oversubscribing to 24 workers falls to 26-28;
+- **246 tok/s prefill at ~2K**;
+- **330-339 tok/s** with auto 8,192-token chunks at ~8K/16K;
+- decode after the 16K prefill reaches 45.5 tok/s.
+
+This invalidates the previous 8-18 tok/s planning range for the user's RX 6800. The exact card is one tier down from
+the 6900 XT (fewer CUs/lower compute, similar memory bus), and the user's Ryzen generation is unspecified, so do not
+copy 38-42 directly.
+
+Revised RX 6800 + 64-GB DDR4 planning lane:
+- short-to-128K decode: **~28-36 tok/s**, planning center ~32;
+- 128K filled-context decode: **~27-34 tok/s**;
+- cold prefill: **~220-300 tok/s** order-of-magnitude;
+- 64K-128K is now a realistic first-class operating range rather than merely a feasibility experiment.
+
+Confidence is still moderate rather than high because:
+1. the PR is open/unmerged;
+2. the exact receipt is RX 6900 XT, not RX 6800;
+3. it uses Swift 1.5 IQ3_XXS rather than the canonical DASLab base IQ3_XXS;
+4. setup's gfx1030 path and quality benchmarks were not validated in the report.
+
+### Exact 5070 Ti reaches 1M context experimentally; native 262K remains the production target
+
+New Strata issue #348 uses the same GPU class as the Project-51 NVIDIA target:
+- RTX 5070 Ti 16 GB;
+- Ryzen 7 7700;
+- 93 GB host RAM;
+- IQ3_XXS;
+- INT8 streamed KV with 32K resident;
+- MTP S=4;
+- YaRN x4 to a 1,048,576-token window.
+
+Physical result:
+- 1,037,660-token prompt reads from zero in **626 s = 1,657 tok/s**;
+- pinned KV is **12.38 GiB at ~1M** versus 3.09 GiB at 262K;
+- GPU VRAM stays flat under streaming;
+- retrieval is **8/10 at ~1.04M** on the issue's adversarial exact-value test.
+
+Quality caveat is decisive:
+- at ~156K, the scaled run scores **6/10** where the prior unscaled run scored **8/10**;
+- the reporter therefore keeps production unscaled at 262K.
+
+Project-51 interpretation: 1M is now physically credible as a dedicated long-document **stretch lane** on 16-GB
+Blackwell, but it does not promote the headline context. Native unscaled 262K remains the production target because
+YaRN changes model behavior even inside the trained range. The 93-GB host also prevents transferring 1M fit to the
+user's 64-GB host.
+
+### oMLX long-context batched Lightning-MTP can become net-negative
+
+oMLX issue #4141 measures Qwen3.8-Flash-Next oQ4e on M5 Ultra at a 100K shared prefix + 2K private suffix:
+- 1 session: MTP **115.5** vs no-MTP **93.5 tok/s**;
+- 2 sessions: **107.1 vs 124.1**;
+- 4 sessions: **123.2 vs 161.3**;
+- 8 sessions: **150.9 vs 228.3** aggregate.
+
+The dominant mechanism is ragged rollback. At eight ~100K rows, each verify cycle's cache finalization physically rolls
+the whole K/V and QSA indexer banks:
+- verify attention: ~33.1 ms;
+- rollback: **~110.3 ms**.
+
+A temporary "MTP only for singleton" switch restores roughly 122.7 / 155.5 / 223.6 tok/s at 2/4/8 sessions.
+
+This does not move the Project-51 B1 headline, but it adds a hard multi-agent rule: **long-context MTP must demonstrate
+aggregate gain at B2/B4/B8 after rollback/state-commit costs; singleton wins do not authorize batched speculation.**
+An O(1) logical rotation/offset scheme is the right mechanism class; copying the whole retained bank per cycle is not.
+
+### oMLX PLE-offload warmth can dominate apparent TG on capacity-limited Macs
+
+Issue #4140 on an M3 Ultra 96 GB / oMLX 0.7.0 / Flash-Next oQ4e-mtp reports:
+- fresh short requests with PLE offloaded: roughly **62.2-64.6 tok/s** initially;
+- byte-identical immediate replays: **80.1-80.8 tok/s**;
+- fresh-request slowdown tracks process page-ins very closely in that experiment.
+
+The report does not yet prove every page-in is a PLE decode fault, but it establishes a strong confounder for
+Project-51's 64-GB Apple lane: an offloaded model can have materially different **cold-PLE** and **warm-PLE** decode
+rates even when prompt shape is tiny.
+
+Apple qualification therefore records:
+1. cold/fresh PLE residency state;
+2. warmed identical-replay state;
+3. page-in/read telemetry where available;
+4. B1/B2/B4/B8 separately.
+
+Do not compare an MTP-on warm replay to an MTP-off cold request and call the delta speculative speedup.
+
+### New Strata low-cost and multi-GPU stretch receipts stay outside canonical targets
+
+- Issue #359 reports 3x RTX 3090 + IQ4 at a 1M configured context: >120 tok/s at short context and ~60 tok/s near 1M.
+  It is a single community report without a controlled prompt-depth/quality protocol, so it is stretch evidence only.
+- The pruned-Q2 8-GB experiment reports further engineering to ~35 tok/s and an estimated 400+ tok/s prefill, and
+  speculates 6-GB VRAM may be possible. Quality remains the unresolved question; no AA credit.
+- Issue #349 reports RX 9070 16 GB + 64 GB host running Swift IQ3_XXS around 55-70 tok/s at ordinary agent depths,
+  reinforcing AMD viability but not transferring numerically to RDNA2.
+
+### Strata-side experimental work worth tracking, but no target credit yet
+
+- PR #353 rebases NVFP4 routed experts onto 0.1.31. On RTX 5090, an 8K prefill reports **4,231 tok/s W4A8** and
+  **4,583 W4A4**, same decode, but run-to-run divergence can occur because CPU/GPU NVFP4 expert rows are only
+  tolerance-equal and expert-miss ownership is timing-dependent. Fixed expert-cache size is required for identity tests.
+- PR #293 adds opt-in Hadamard rotation to INT8 KV. Attention-output error improves in one local microtest, but
+  end-to-end first-token KL **improves for NVFP4 and worsens for IQ2_XS**. Keep rotation model/quant-specific and
+  quality-gated; lower local tensor error is not sufficient.
+- PR #282 raises auto prefill chunks to 16K/32K. On RTX 5090 it reports ~15% faster 32K IQ2_XS prefill and much larger
+  gain on an NVFP4 pack, but one-vs-four chunks can change summation order and generated tokens. It therefore needs
+  source-equivalence qualification before production credit.
+- Issue #347 is only a request to explore DFlash2 support; no implementation or benchmark exists yet.
+
+### Other strict-window mechanisms
+
+- SGLang PR #41175's full optimization series reports B200x4 Qwen3.8-Flash-Next NVFP4 NEXTN TPOT 1.6936 ms vs
+  normal decode 4.1270 ms (590 vs 242 tok/s derived), with real AIME-style integration accuracy 95.00% vs 95.42%.
+  The performance run uses simulated acceptance 3.3, so this is datacenter mechanism evidence, not consumer transfer.
+- vLLM issue #59534, intentionally excluded by eight seconds from the prior watch, reports a FlashAttention
+  per-call K/V-view reconstruction regression; caching those views cuts TTFT p50 12-16% in a local 8xH100 patch.
+  Low transfer to P51, but another example that host-side bookkeeping can matter for short prefill.
+- DASLab Flash-Next GSQ-RCO still points at `ed59f92`; no new checkpoint/allocation/benchmark in this window.
+- TensorFold remains 0.6.0, oMLX remains 0.7.0, and no material strict-window TurboQuant-MLX/MoEspresso/Ishizuki
+  release changes the canonical targets.
+
+**Canonical 5070-Ti and dual-M1 numerical targets remain unchanged.** The material planning change is the RDNA2
+secondary lane and the runtime baseline/gating updates above.
+
+
 ## 2026-09-30 23:57 ET consolidation delta — Victoria/QAD lane, MTP-asset integrity, 64-GB admission reality
 
 ### Victoria creates a separate post-compression-recovery lane, not a DASLab-fidelity result

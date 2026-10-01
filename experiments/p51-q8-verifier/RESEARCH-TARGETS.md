@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-30 23:57 ET**
+Latest strategy true-up: **2026-10-01 06:28 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -860,24 +860,19 @@ bug does **not** affect the target artifact; the gate protects future checkpoint
 
 ## Stability / admission targets
 
-**Qualified Strata baseline: 0.1.30+ for new production tests.** 0.1.30 keeps fixed-cache output
-byte-identical to 0.1.29 on the release quants, speeds short 1K-4K prompt streaming, adds resident low-RAM and
-bounded multi-conversation caching, improves layer-split state ownership, lands AMD RDNA4 support, and provides the
-width-invariant `STRATA_IQ_MT_MIN=1` certification mode. The short-prompt gain does not move the long-context PP
-centers. Keep the multilingual/CJK draft for quality certification; treat the English/code-only draft as an
-explicit performance arm. On RTX 50/sm_120, use a qualified CUDA 13.x build.
+**Qualified Strata baseline: 0.1.31+ for new production tests.** 0.1.31 keeps fixed-cache output
+byte-identical to 0.1.30 on the release quants and lands the fixes we were waiting for: request-status cleanup is
+ownership-scoped (#266), watchdog exit releases GPU waits before termination (#267), Linux multi-GPU returns to
+full-arena pinning (#253), tagged installs are pinned to their own engine/model/dependency revisions, and Windows
+gets opt-in `STRATA_ARENA_PIN_GIB=auto` bounded by the shared-memory budget (#243). It also adds the experimental
+GGUF-in-place/file-tier path that can run a ~111-GB UD-Q4_K_XL artifact on a 12-GB RTX 5070 + 64-GB host at roughly
+7-8.5 tok/s.
 
-0.1.30 is **not** a stability/safety certification. Issue #251's 13K hang is now understood as a batched-prompt-path
-stall rather than a verify-window stall and still needs a 0.1.30 retest. Issue #266's abort/immediate-retry
-status-ownership race is confirmed, with a request-id fix planned for 0.1.31. Issue #267 shows an older Windows
-verify-window stall can leave GPU-side flag-wait kernels resident after watchdog exit and lose the device until a
-power cycle; bounded waits/flag release are planned for 0.1.31. The exact-box soak must therefore include repeated
-cold long prompts, rapid abort/retry handoffs, and watchdog/device-recovery checks.
-
-Windows host registration remains an explicit admission variable. Issue #243's 63.3-GB Windows host is fixed by a
-bounded pin on the reporter's branch; upstream says 0.1.31 will cap sliced registration below the shared-GPU-memory
-budget and honor `STRATA_ARENA_PIN_GIB`. Do not transfer that cap to Linux: issue #253 finds an 8-GiB cap costs
-about 3.2x on one Linux multi-GPU Q2_0 prefill workload.
+0.1.31 is **the qualification baseline, not a completed safety certification**. Keep the exact-box >=8 h soak with
+repeated cold long prompts, rapid abort/immediate-retry and concurrent-session handoffs, watchdog/device recovery,
+and Windows 64-GB admission/pin-budget checks. The known implementation fixes landing does not replace reproducing
+them on the user's exact RTX 5070 Ti + 64-GB configuration. Keep `STRATA_IQ_MT_MIN=1` for certified source/MTP
+arithmetic and a qualified CUDA 13.x build on sm_120.
 
 | Production gate | Target | Planning confidence now |
 |---|---:|---:|
@@ -1052,6 +1047,19 @@ Also qualify Apple prefill in **two regimes**: a genuinely cold long prompt and 
 ~570 tok/s on the 60K->99K suffix while oMLX 0.7.0 remains ~1,190 tok/s on the same box. Treat the diagnosis and M3
 numbers as mechanism evidence only; the M1 target does not move.
 
+### Apple long-context MTP / PLE residency qualification
+
+The headline Flash target remains **B1**. Multi-agent serving is a separate gate:
+- oMLX #4141 shows that at ~100K, batched Lightning-MTP can win at B1 yet lose badly at B2/B4/B8 because ragged
+  rollback physically rolls the whole retained K/V + QSA indexer bank each verify cycle. Count speculative batching
+  only when it improves aggregate throughput at the target context after rollback/state-commit costs.
+- Capacity-limited Macs with PLE offload must report **cold-PLE/fresh** and **warm-PLE/replay** TG separately.
+  oMLX #4140 on M3 Ultra 96 GB measures fresh requests around 62-65 tok/s initially versus ~80 tok/s immediate
+  replays, strongly correlated with page-ins in that experiment. PLE warmth is therefore part of benchmark state.
+
+For the M1 lane, B2/B4/B8 qualification must record PLE residency/page-in state, rollback bytes/time, MTP acceptance
+and aggregate throughput. A warm singleton MTP win does not promote multi-agent speculation.
+
 ### M1-M4 compressed-KV hardware boundary
 
 oMLX PR #3582 explicitly treats Affine4/Affine8 as an M5-oriented path. On M1-M4 its portable path is a
@@ -1098,12 +1106,12 @@ pruning/allocation, GSQ/RCO, post-quant QAD and a retrained draft head, but it h
 
 ## Promotion order
 
-1. Reproduce the **0.1.30+ zero-stall soak** on the user's exact box for >=8 h, including repeated cold long-prompt starts, rapid stream-abort/immediate-retry cycles, and watchdog/device-recovery checks; #251 still needs a 0.1.30 prompt-path retest, while #266/#267 have fixes planned for 0.1.31.
+1. Reproduce the **0.1.31+ zero-stall soak** on the user's exact box for >=8 h, including repeated cold long-prompt starts, rapid stream-abort/immediate-retry plus concurrent-session handoffs, and watchdog/device-recovery checks; #266/#267 fixes have landed but remain exact-box qualification items.
 2. Resolve or bound the **16-GB/64-GB Windows admission-margin** issue, including whole-arena/sliced `cudaHostRegister` behavior and a bounded-pin control inspired by issue #243; do not transfer the cap to Linux without measurement.
 3. Complete a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S. The
    **79.7-TG IQ3_XXS @128K** report is now a direct anchor, but not a full controlled ladder.
 4. Validate draft-vocabulary/language coverage **and draft-asset integrity** (source revision, byte ranges/hashes, finite tensor sanity, offered-vs-accepted counts), then record acceptance by workload before tuning verifier width.
-5. Require width-invariant native-expert arithmetic for source-equivalence / AA / MTP certification; on Strata 0.1.30+ enable `STRATA_IQ_MT_MIN=1` and record it with every certified run.
+5. Require width-invariant native-expert arithmetic for source-equivalence / AA / MTP certification; on Strata 0.1.31+ enable `STRATA_IQ_MT_MIN=1` and record it with every certified run.
 6. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the currently implemented
    capacity control.
 7. Port/mine the existing qwen4exp TBQ cache integration, then qualify the Strata Flash-aware lane in this order:
@@ -1119,13 +1127,34 @@ pruning/allocation, GSQ/RCO, post-quant QAD and a retrained draft head, but it h
     32K resident window, repeated 257K cold prefills, and clean recovery under memory pressure on CUDA 13.x.
 11. Run the 262K semantic gate separately: needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
     The 29K->257K retrieval decline in issue #200 proves that “it fits” is not the same as “it retains semantics.”
-12. On the Apple lane, A/B TensorFold-style mixed-width dense matrix routing on the exact M1 Max at S=1 and verify widths, measure prefill both cold and as a ~60K->96K/100K retained-prefix suffix, and verify advertised-window admission/retention as first request, after a tiny request and after a retained turn; require bit/arithmetic equivalence and no deep-QSA/admission collapse before counting throughput.
+12. On the Apple lane, A/B TensorFold-style mixed-width dense matrix routing on the exact M1 Max at S=1 and verify widths, measure prefill both cold and as a ~60K->96K/100K retained-prefix suffix, verify advertised-window admission/retention as first request/after a tiny request/after a retained turn, and benchmark B1/B2/B4/B8 with cold-vs-warm PLE state; require bit/arithmetic equivalence, no deep-QSA/admission collapse, and a real aggregate MTP win after rollback costs.
 13. For long-context MTP changes, separately certify verify-attention reduction order and accepted recurrent-state commit/pairing; vLLM #59448 and SGLang #40001 show that speed/acceptance alone can hide trajectory or accuracy changes.
 14. Freeze the pure-PTQ AA ladder first; then add **Victoria** as a separate post-compression-recovery control and report source fidelity separately from absolute capability-per-byte.
 15. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
     stock Strata's current setup script caps IQ3_XXS at 128K.
 
 ---
+
+# 3c. Qwen3.8-Flash-Next — RX 6800 16 GB + 64 GB DDR4 (secondary lane)
+
+This is a **secondary planning lane**, not a canonical Project-51 target.
+
+A post-boundary update to Strata PR #311 gives the first strong same-architecture anchor: RX 6900 XT 16 GB
+(gfx1030) + 63 GB host RAM + Swift 1.5 IQ3_XXS at a genuinely full 131,072-token context sustains **38-42 tok/s**
+with the default 15 CPU workers. Prefill is **246 tok/s at ~2K** and **330-339 tok/s** with auto 8K chunks; decode
+after 16K reaches 45.5 tok/s. The PR is still open and gfx1030 remains experimental.
+
+For the user's RX 6800 16 GB + 64 GB DDR4, plan around:
+- **~28-36 tok/s** short-to-128K decode;
+- **~27-34 tok/s** at genuinely filled ~128K;
+- **~220-300 tok/s** cold prefill order-of-magnitude.
+
+These are **inferences**, not RX-6800 measurements. The RX 6800 has less compute than the 6900 XT, the user's exact
+Ryzen model is unspecified, and the receipt is Swift IQ3_XXS rather than the canonical DASLab checkpoint. The old
+8-18 tok/s planning range is retired.
+
+Promotion gate: merged/validated gfx1030 support, exact RX 6800 run, 64K/128K filled-context TG+PP, MTP acceptance,
+and an AA/quality smoke test. Until then this remains a useful background-agent node, not a headline system target.
 
 # 4. DeepSeek-V4-Flash-0731 / DS4 — 2x M1 Max 64 GB / TB4
 
