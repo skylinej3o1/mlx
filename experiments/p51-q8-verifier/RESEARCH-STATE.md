@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-01 10:26 ET.
+Last consolidated: 2026-10-01 15:49 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,106 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-01 15:49 ET consolidation delta — v0.1.32, native-262K IQ3_S feasibility, and Turbo-K demotion
+
+### The exact-box experiment order changes: stock IQ3_S first, TurboQuant second
+
+Recovered TurboQuant source materially changes the proposed KV-port order. The current TurboQuant branch automatically
+upgrades symmetric Turbo K+V requests to Q8 K when GQA >= 6 unless its safeguard is explicitly disabled. Its source
+comment cites catastrophic Turbo3-K perplexity on a 7:1 Qwen case. Flash-Next's QSA geometry is 24 query heads / 2 KV
+heads = 12:1.
+
+TurboQuant PR #197 independently reports that Q8 K + Turbo4 V reduces mean KLD by ~26% versus symmetric Turbo4 and
+describes K as the dominant KLD side. Current Strata prompt/verify code also favors an INT8 K path: K8V4 composes INT8 K
+with compressed V and stays eligible for the optimized K path, while q4 K disables important prompt/verify fast paths.
+
+Project-51 planning change:
+- first prove **IQ3_S + native 262,144** using stock Strata memory/KV modes on the exact 5070-Ti 16-GB / 64-GB box;
+- only if KV/expert-cache pressure remains material, prototype **INT8 K + Turbo3 V**, with MTP/draft KV kept INT8;
+- symmetric Turbo3 K+V is a research arm, not the production default.
+
+This changes implementation order, **not canonical numerical targets**.
+
+### Native-262K IQ3_S on 64 GB is more plausible, but exact 16-GB-GPU proof is still missing
+
+Strata issue #406 gives direct 64-GB host evidence: an IQ3_S user with 32 GB VRAM reports setup forcing 256K down to
+128K, while a manual run-script edit served full native ~256K with >6 GB RAM still free. The extra context reportedly
+cost about 1.8 GB over 128K.
+
+This proves setup's conservative cap is not a physical impossibility result. It does not prove the user's 16-GB GPU,
+where less expert mass can stay in VRAM and more must fit in host RAM.
+
+Issue #392 adds real coding-agent IQ3_S evidence on 2x 5060-Ti 16 GB / 128 GB RAM: ~47 TG remained around 75K context
+during Forge sessions, with hundreds of tool calls. Useful operational evidence, but not an exact-box quality or speed
+receipt.
+
+Qualification priority remains **single 5070 Ti + 64 GB + native 262K**, vision off, before buying another GPU or
+writing a custom KV codec.
+
+### Strata v0.1.32 is now the text baseline, with a Windows vision exclusion
+
+v0.1.32 published in the strict window. The release includes multi-GPU prompt-path fixes and reports default Q2/IQ3_S
+decode +1.5-3.8% versus 0.1.31 at equal expert slots in maintainer testing.
+
+Immediately afterward, #411/#412/#419 established that the released Windows strata-vision.exe executes an unguarded
+AVX-512 instruction on non-AVX512 CPUs. The main text engine falls back correctly and remains usable.
+
+Project-51 therefore advances the **text baseline to 0.1.32** but keeps vision disabled on the user's Ultra 7 265F
+until the helper is fixed and requalified.
+
+### Memory admission and A/B methodology get stricter
+
+Strata #380 demonstrates on Windows/RX6800 that using a free-VRAM figure which ignores the desktop can overfill the WDDM
+budget, migrate engine allocations to shared system memory and make a larger apparent expert cache much slower. The
+budget-aware path measured 41.4 TG versus 30.5 TG in that exact HIP test.
+
+The user's 265F has no display iGPU, so the 5070 Ti's desktop/WDDM consumption is part of admission. Do not maximize
+expert slots past the real process budget.
+
+Issue #403 shows --resident-budget-gib can clamp exactly to the RAM safety limit and then fail a second availability
+check after a small memory change. Leave explicit margin; do not rely on clamp-at-limit semantics.
+
+Issue #410 shows STRATA_IQ_MT_MIN=1 is insufficient for deterministic server A/Bs. Adaptive expert movement changes
+whether CPU or GPU evaluates an expert and therefore changes rounding/tokens. Fidelity comparisons require a fixed
+expert cache, --adapt-swaps 0, prompt-cache controls, and preferably fresh process/server state. Residual medium-prompt
+variation is still under investigation.
+
+### Elastic KV is a speed/capacity lever, not today's low-RAM solution
+
+Strata #378 maps KV physical memory only as context grows. On an emulated 16-GB budget it increases the expert cache
+from 3,396 to 5,719 slots and improves short-chat/prompt numbers, but it explicitly requires every expert in RAM and
+does not run in the low-RAM tier.
+
+This reinforces the architecture model: KV savings can buy expert-cache residency and speed, but they are not by
+themselves the mechanism that makes the user's 64-GB host fit. Do not assign its measured percentages to the 5070 Ti.
+
+### MTP and cache-state certification remain first-order
+
+Strata #382 finds an AMD MTP prompt hang specifically when streamed KV puts the drafter in ring mode; a per-group
+fallback ran 30 rounds without hangs.
+
+llama.cpp #29811 finds a separate Flash-Next MTP startup assert caused by constructing QSA k-pool inputs for an MTP block
+that does not consume them.
+
+vLLM #59642 reports 0% Flash-Next MTP acceptance in a disaggregated prefill/decode serving configuration.
+
+These are different runtimes/backends, but together reinforce the Project-51 rule: **MTP correctness must be certified
+for the exact state topology**, including prompt processing, rollback, cache/restore and any cross-worker handoff.
+
+### Other mechanism evidence
+
+- TensorFold #191 makes Flash-Next EXL3 routed-expert grouping essentially negligible at 1K-2K rows and reduces measured
+  8K/32K prompt time ~8-9% on GB10, bit-identically downstream. Mechanism evidence only.
+- Strata #407 reduces expert misses/CPU/PCIe substantially without a measurable primary round-time win. Optimize wall
+  time, not cache-hit statistics.
+- Strata #413 speeds one DeltaNet recurrence kernel ~1.44x but moves whole-engine PP only ~2% on its 4080-S test.
+- oMLX #4175 shows a nominal 4-GB hot prefix cache making reconstruction 18-73x slower under memory pressure on an M4
+  Max 36 GB. Apple cache tiers must be measured at lookup and reconstruction separately.
+- Strata #409 adds experimental DGX Spark/aarch64 support; useful maturity signal, no purchase-case or P51 target change.
+
+**Canonical numerical targets remain unchanged.**
 
 
 ## 2026-10-01 10:26 ET consolidation delta — mainline Flash MTP, Strata prompt-path work, exact RX 6800 anchor
