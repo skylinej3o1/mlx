@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-09-30 19:19 ET**
+Latest strategy true-up: **2026-09-30 23:57 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -27,7 +27,8 @@ Definitions:
 - Prefix/session reuse is a separate latency objective and should not be folded into cold PP.
 - **Agent wake/prewarm** is also separate: a lightweight Slack/Telegram/iMessage wake signal may pre-materialize the invariant system/tools/skills/repo prefix and certified recurrent/QSA state before the real task arrives. Measure wake->ready and real-task->TTFT independently; the 400-PP ruler remains genuinely cold.
 - **Resident-agent capacity is not the same as one-shot context fit.** A 128K agent counts as resident only if its complete continuation state can remain retained/resumable for the next turn without a full re-prefill. Budget attention KV, recurrent/GDN state, QSA/indexer state, draft/MTP state and any retained checkpoint/state image separately from the active request. TensorFold's 64-GB 27B result is the cautionary receipt: ~140K one-shot fits, but DFlash2 conversations above roughly 100K could no longer retain their checkpoint and re-prefilled on the next turn. TensorFold #155 adds a stricter gate: **checkpoint-capture refusal under memory pressure must spill durably or fail/report loudly**; silently dropping a refused boundary checkpoint and cold-prefilling the next turn does not count as retained state. The maintainer confirms this still applies to 0.6.0 and asks that spill use a bounded asynchronous writer plus a resume-vs-fresh token-SHA test, so Project 51 should require the same properties.
-- **Prefix reuse is not automatically physical prefix sharing.** A pinned system-prefix checkpoint (for example Strata 0.1.20) can eliminate repeated prefill for new chats while still using one live branch/arena at a time. Project 51 may count a common 30-60K prefix only once across several simultaneously resident agents **only after** the runtime implements refcounted/read-only shared attention+recurrent/QSA state and proves independent private-suffix continuation/rollback. Logical cache hits alone do not earn multi-agent memory-capacity credit.
+- **Prefix reuse is not automatically physical prefix sharing.** A pinned system-prefix checkpoint (for example Strata 0.1.20) can eliminate repeated prefill for new chats while still using one live branch/arena at a time. Project 51 may count a common 30-60K prefix only once across several simultaneously resident agents **only after** the runtime implements refcounted/read-only shared attention+recurrent/QSA state and proves independent private-suffix continuation/rollback. Logical cache hits alone do not earn multi-agent memory-capacity credit. TensorFold #169 makes this test concrete: Flash-Next CUDA reuses a completed conversation but currently does not checkpoint a shared ~30.7K system/tools block for a *new* conversation, while its 27B path does. Add a new-conversation/common-system-prefix reuse test to resident-agent certification.
+- **Advertised context is not retained-agent capacity.** On a real 64-GB M5 Pro, TensorFold 0.6.0 can advertise 65,536 Flash-Next tokens yet refuse ~50-65K prompts either immediately after a tiny request or only after minutes of prefill. For 64-GB Apple qualification, test the window edge as the first request, after a tiny request, after a retained turn, and through final prefill completion; all paths must agree on admission and retention.
 - A target can move only when new direct physical evidence or a materially stronger mechanism case
   changes the planning distribution. Mechanism transfer alone should normally change the test plan,
   not silently become a measured rate.
@@ -815,6 +816,20 @@ slots.
 
 Do not diagnose low acceptance as an S/kernel/model-quality problem until draft-vocabulary coverage is ruled out.
 
+### MTP draft-asset integrity gate
+
+Strata #327 demonstrates that a mirror/proxy can ignore HTTP Range requests and silently populate MTP tensor files
+with the wrong shard bytes while sizes and locally-generated hashes still look valid. Before any acceptance/TG
+qualification:
+- verify ranged downloads were actually served as HTTP 206 with the expected byte interval, or extract from a
+  fully verified source file;
+- pin source revision and authoritative tensor byte ranges/hashes;
+- sanity-check draft norms/scales for finite, plausible values;
+- record offered-draft count separately from accepted-draft count.
+
+A run with `0 accepted of 0 offered` is not evidence of poor acceptance. Draft-vocabulary coverage, draft-asset
+integrity and target-arithmetic parity must all pass before changing S or blaming the model.
+
 ### Fused-GDN served-arithmetic exactness gate
 
 oMLX PR #4122 demonstrates on an M1 Max that the fused speculative GDN norm can differ by one BF16/FP16 ULP from
@@ -1060,13 +1075,34 @@ more weight precision **and** DASLab now reports **82.0% SWE-bench Verified vs 8
 unpruned IQ3_S build. That materially strengthens the long-horizon agentic prior, but it is still not a Project-51
 AA measurement and does not certify long-context/state/tool parity by itself.
 
+### Post-compression recovery control — Victoria
+
+Victoria is **not** folded into the DASLab source-fidelity priors. It is a separate capability-per-byte control:
+44% of experts are pruned (512 -> 288), then the compressed model is retrained at 4-bit with quantization-aware
+distillation and a final-model draft head.
+
+Published anchors:
+- NVFP4 Terminal-Bench 2.1 **70.04% avg@3**, HumanEval **97.0%**;
+- GGUF Q4_K_M Terminal-Bench **75.28% (67/89)** vs original Flash-Next **88.76% (79/89)** = **84.8% retained** on
+  that one agent benchmark; HumanEval **93.2% avg@5**;
+- B300 decode 134.7 tok/s without MTP, 269.3 with the unretrained pruned head, 279.6 with the retrained head;
+- M3 Max 128 GB: ~26.8-27.8 -> 34.3-38.0 tok/s with the GGUF draft head, 70.4% acceptance.
+
+After the frozen BF16/Q8/Q6/Q5/Q4/IQ3_S/IQ3_XXS fidelity ladder, run Victoria through the **same** AA, retrieval,
+agent/tool, multilingual and long-trajectory suite, but report two axes separately:
+1. **source fidelity** versus original Flash-Next;
+2. **absolute useful capability per resident byte / per joule / per dollar**.
+
+Do not use Victoria's results to raise the IQ3_XXS AA priors. A future experimental lane may combine sensitivity-aware
+pruning/allocation, GSQ/RCO, post-quant QAD and a retrained draft head, but it has no canonical target yet.
+
 ## Promotion order
 
 1. Reproduce the **0.1.30+ zero-stall soak** on the user's exact box for >=8 h, including repeated cold long-prompt starts, rapid stream-abort/immediate-retry cycles, and watchdog/device-recovery checks; #251 still needs a 0.1.30 prompt-path retest, while #266/#267 have fixes planned for 0.1.31.
 2. Resolve or bound the **16-GB/64-GB Windows admission-margin** issue, including whole-arena/sliced `cudaHostRegister` behavior and a bounded-pin control inspired by issue #243; do not transfer the cap to Linux without measurement.
 3. Complete a frozen exact-card Strata ladder at 32K / 64K / 128K for IQ3_XXS, then IQ3_S. The
    **79.7-TG IQ3_XXS @128K** report is now a direct anchor, but not a full controlled ladder.
-4. Validate draft-vocabulary/language coverage and record acceptance by workload before tuning verifier width.
+4. Validate draft-vocabulary/language coverage **and draft-asset integrity** (source revision, byte ranges/hashes, finite tensor sanity, offered-vs-accepted counts), then record acceptance by workload before tuning verifier width.
 5. Require width-invariant native-expert arithmetic for source-equivalence / AA / MTP certification; on Strata 0.1.30+ enable `STRATA_IQ_MT_MIN=1` and record it with every certified run.
 6. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the currently implemented
    capacity control.
@@ -1083,9 +1119,10 @@ AA measurement and does not certify long-context/state/tool parity by itself.
     32K resident window, repeated 257K cold prefills, and clean recovery under memory pressure on CUDA 13.x.
 11. Run the 262K semantic gate separately: needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
     The 29K->257K retrieval decline in issue #200 proves that “it fits” is not the same as “it retains semantics.”
-12. On the Apple lane, A/B TensorFold-style mixed-width dense matrix routing on the exact M1 Max at S=1 and verify widths, and measure prefill both cold and as a ~60K->96K/100K retained-prefix suffix; require bit/arithmetic equivalence and no deep-QSA prefill collapse before counting throughput.
+12. On the Apple lane, A/B TensorFold-style mixed-width dense matrix routing on the exact M1 Max at S=1 and verify widths, measure prefill both cold and as a ~60K->96K/100K retained-prefix suffix, and verify advertised-window admission/retention as first request, after a tiny request and after a retained turn; require bit/arithmetic equivalence and no deep-QSA/admission collapse before counting throughput.
 13. For long-context MTP changes, separately certify verify-attention reduction order and accepted recurrent-state commit/pairing; vLLM #59448 and SGLang #40001 show that speed/acceptance alone can hide trajectory or accuracy changes.
-14. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
+14. Freeze the pure-PTQ AA ladder first; then add **Victoria** as a separate post-compression-recovery control and report source fidelity separately from absolute capability-per-byte.
+15. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because
     stock Strata's current setup script caps IQ3_XXS at 128K.
 
 ---

@@ -24,6 +24,157 @@ The protocol exists because older project anchors were previously rediscovered a
 out of the formal watch-note chain.
 
 
+## 2026-09-30 23:57 ET consolidation delta — Victoria/QAD lane, MTP-asset integrity, 64-GB admission reality
+
+### Victoria creates a separate post-compression-recovery lane, not a DASLab-fidelity result
+
+The rmonsurate/Victoria release is now tracked as an explicit **capability-per-byte / post-compression-training**
+control alongside the pure post-training-quantization ladder.
+
+Victoria starts from Qwen3.8-Flash-Next, removes 44% of routed experts (512 -> 288 per layer) with REAP, keeps the
+same 5.9B active parameters/token, then retrains the compressed model at 4-bit using quantization-aware distillation
+on 128M tokens of coding/tool-use data. The published builds are different checkpoints:
+- NVFP4: 48.0 GiB of weights including the draft head + 95.4 GiB n-gram lookup table;
+- GGUF Q4_K_M: 49.17 GiB resident weights, with a smaller 107.20-GB download using an 8-bit lookup table.
+
+Quality is strong but clearly not source-equivalent:
+- NVFP4 Terminal-Bench 2.1: **70.04% avg@3** (75.3 / 68.5 / 66.3), HumanEval **97.0%**;
+- GGUF Q4_K_M Terminal-Bench: **75.28% (67/89)** vs original Flash-Next **88.76% (79/89)**,
+  i.e. **84.8% of the source Terminal-Bench score**; HumanEval **93.2% avg@5**.
+
+The draft-head speed result must be decomposed correctly. On one B300:
+- no draft head: **134.7 tok/s**;
+- pruned/unretrained draft head: **269.3 tok/s**, 64.1% acceptance;
+- retrained shipped head: **279.6 tok/s**, 67.6% acceptance.
+
+Thus most of the 2.08x gain comes from having MTP at all; retraining the head adds about 3.8% over the unretrained
+pruned head. On one M3 Max 128 GB, the GGUF head moves ~26.8-27.8 -> 34.3-38.0 tok/s with 70.4% acceptance.
+Those numbers are **not** transferred to M1 Max.
+
+Project-51 interpretation:
+- DASLab IQ3_XXS remains the primary **source-fidelity** hypothesis.
+- Victoria becomes a secondary **useful-capability-per-byte** arm.
+- After the pure PTQ ladder is frozen, run the same AA/agent/retrieval/tool suite on Victoria and report
+  source-fidelity and absolute capability separately.
+- A future research lane may combine sensitivity-aware pruning/allocation + GSQ/RCO + post-quant QAD + a final-model
+  draft-head retrain, but no canonical hardware or AA target is assigned yet.
+
+### Strata #327 adds a mandatory MTP-asset integrity gate
+
+A Windows RTX 5090 Laptop 24-GB report found a silent corruption path in `tools/mtp_fetch.py`: an HF mirror ignored
+the HTTP Range header and returned HTTP 200/full-file data, while the downloader saved the first requested-length
+bytes. 20 of 31 fetched `mtp.*` blobs therefore contained safetensors header/unrelated shard bytes rather than the
+requested tensor ranges.
+
+The failure was deceptive:
+- the main model loaded and decoded normally;
+- file sizes matched the requested lengths;
+- the local manifest hash matched the **wrong downloaded bytes**;
+- default logs showed `drafts accepted 0 of 0`, and forced windows showed 0/765 accepted;
+- corrupt draft tensors contained NaNs/infs.
+
+After re-fetching the affected ~110 MB:
+- forced-window test: **42.7 -> 69.9 tok/s**, acceptance 0 -> 31.8%;
+- ordinary serve: Q2_0 **93.5 tok/s** with 44-54% acceptance; IQ3_XXS **77.4 tok/s** with 59-71% acceptance.
+
+Project-51 MTP qualification must therefore validate the **artifact**, not merely runtime code:
+1. range fetches must prove HTTP 206 / correct `Content-Range` (or use full-file verified extraction);
+2. record authoritative source revision plus expected tensor byte ranges/hashes;
+3. sanity-scan draft tensors for finite scales/norms before serving;
+4. distinguish **0 offered** from **0 accepted** in telemetry;
+5. do not diagnose low acceptance as a verifier/model problem until draft assets pass integrity checks.
+
+This joins draft-vocabulary coverage and width-invariant target arithmetic as a precondition for any MTP speed claim.
+
+### TensorFold 0.6.0 still overpromises Flash-Next fit on one real 64-GB Mac
+
+Issue #95 has a strict-window M5 Pro 64-GB retest on TensorFold 0.6.0. With Flash-Next, PLE on SSD and a 24-GiB
+SSD-expert pool, the server advertises a 65,536-token window, but:
+- after a 15-token warm request, a 65,380-token prompt is refused with a reported fit around 50,624;
+- a 50,618-token prompt can be admitted, prefill for ~4.5 minutes, then be refused with a lower fit estimate;
+- as the first request, a 65,383-token prompt can also prefill for ~5.8 minutes and then be refused;
+- a 34K turn does resume correctly in ~2.0 s.
+
+The reporter identifies one contributor: sparse-attention indexer memory is profiled per valid token while the cache
+allocates in 256-position capacity steps, so a tiny request can inflate the remembered per-token cache cost by ~2.8x.
+That alone does not explain the final-chunk refusal.
+
+This is M5 Pro rather than M1 Max, but the bug is memory-accounting logic. Project-51 64-GB Apple certification must
+therefore test **window-edge admission as the first request, after a tiny request, after a retained conversation, and
+through final prefill completion**. An advertised context window is not capacity evidence until all four agree.
+
+### TensorFold Flash-Next CUDA does not yet share a common agent system prefix across new conversations
+
+Issue #169 on one DGX Spark gives a useful agent-workload control. With a common ~30.7K system+tool block and ~35.7K
+total prompts:
+- Flash-Next CUDA 0.5.0/0.6.0: new conversation gets **0 cached**, ~23.5 s; next turn of the same conversation resumes,
+  ~0.24 s;
+- Qwen3.8-27B: new conversation reuses ~30.7K, ~4.2 s; same-conversation next turn ~0.4 s.
+
+Flash-Next currently remembers admitted prompt ends, not message-start/system-prefix states. This directly supports
+Project-51's existing rule that a logical common prefix does not earn multi-agent capacity/latency credit unless the
+runtime actually checkpoints/shares it. Add an explicit **new-conversation common-system-prefix reuse** test.
+
+### Strata 0.1.30 still has independent multi-session server-state evidence
+
+Issue #328 reproduces `KeyError: 'tail'` on Strata 0.1.30 with multiple OpenAI sessions (RTX A4500, Linux,
+IQ3_S/262K). The engine remains healthy; an HTTP streaming handler loses bookkeeping state. This is consistent with
+the already-tracked request-finalization/status-ownership family around #266. It reinforces the decision not to
+promote 0.1.30 as agent-production-safe before the 0.1.31 request-id fix is released and reproduced.
+
+### New artifact-compatibility issue is third-party specific, canonical DASLab unaffected
+
+Strata #326 shows OrcaRouter IQ3_XXS `--compat-bf16` packs can become unloadable from 0.1.25 onward because the
+packer writes `blk.1.ple_key.weight` as BF16 while native loading now treats IQ3_XXS/IQ4_XS PLE keys as native and
+skips/rejects that packed row. The official GSQ-RCO files use the canonical native PLE path and are not implicated.
+This reinforces the tensor-kind/file-interpretation gate rather than changing the DASLab target.
+
+### Independent IQ2_XS coding run is fast but illustrates why physical speed cannot stand in for capability
+
+Strata #316 reports a reproducible RTX 4090 / 64-GB Linux agent run on original Flash-Next IQ2_XS:
+- 37,449 output tokens across 80 responses;
+- weighted generation rate **166.36 tok/s** using Strata's predicted decode time, not whole-request wall throughput;
+- 84.9% MTP acceptance;
+- 12.8-minute harness time.
+
+The generated browser game executed but was rejected for poor physics/game feel. This is one uncontrolled task and
+used reasoning off, so it is **not** an IQ2_XS quality score. It is a useful reminder that very high agent-loop
+throughput does not establish coding/agent quality.
+
+### Apple/Metal compiler correctness warning is M3-specific, not transferred to M1
+
+MLX issue #4603 reports a deterministic macOS 27.0 / M3 Ultra runtime-Metal-compiler bug where a custom 6-bit
+`mx.fast.metal_kernel` using `MathModeSafe` returns entire wrong rows. The same source is exact under Relaxed/Fast,
+on M2 Max, and when shader validation perturbs code generation. An MLX-free Metal reproducer points to the OS
+compiler rather than MLX.
+
+No M1 failure is demonstrated, so there is no M1 target movement. It does reinforce the Project-51 requirement that
+custom Metal kernels be validated **on the exact hardware + OS + compiler mode**, with row-level arithmetic controls;
+the name "Safe" is not a correctness proof.
+
+### Low-transfer upstream signals
+
+- vLLM PR #59214 merged at 03:40:55 UTC and adds B200/SM100 Qwen4Exp skinny-BF16 GEMM plans; many M=1-8
+  microkernels improve roughly 1.2-2.7x vs cuBLAS. This is useful small-row specialization evidence, not a numerical
+  transfer to sm_120 or Apple7.
+- SGLang's strict-window commits are not material to the consumer Flash-Next targets.
+- A vLLM FlashAttention KV-view-cache issue was created at **03:57:25 UTC**, eight seconds after this watch cutoff,
+  and is deliberately excluded from this window.
+
+### Strict-window source state
+
+Strata latest release remains **0.1.30**; 0.1.31 is still not released by the cutoff.
+
+TensorFold latest release remains **0.6.0**.
+
+oMLX latest stable remains **0.7.0**; no strict-window performance/correctness commit relevant to the Flash target.
+
+DASLab Flash-Next GSQ-RCO still has main at `ed59f92`; no new checkpoint/allocation/benchmark landed in the strict
+window. TurboQuant-MLX, MoEspresso and Ishizuki likewise have no material strict-window update.
+
+**Canonical numerical Project-51 targets remain unchanged.**
+
+
 ## 2026-09-30 19:19 ET consolidation delta — TensorFold 0.6.0, deep-QSA prefill, artifact-kind validation
 
 ### TensorFold 0.6.0 lands as a meaningful experimental-runtime baseline
