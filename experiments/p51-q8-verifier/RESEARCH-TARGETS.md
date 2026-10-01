@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-01 06:28 ET**
+Latest strategy true-up: **2026-10-01 07:01 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -850,6 +850,12 @@ round the same regardless of the speculative verify window; `native_expert_parit
 Throughput runs on the default faster width-dependent path remain useful physical measurements, but do not count
 them as proof of plain-vs-MTP target arithmetic equivalence.
 
+For **distributed/head/output-row GEMM splits**, arithmetic identity must also include the reduction schedule.
+Strata #204 shows that cuBLAS can choose a different split-K for a half-width projection than for the full-shape
+projection, changing bits despite algebraically identical GEMMs. A split path must pin a reference-equivalent
+algorithm/reduction order or be separately source-certified; same operands and same mathematical result are not
+enough.
+
 ### Runtime tensor-kind / file-interpretation gate
 
 Before source-equivalence certification, record and assert the actual GGUF tensor kind and byte count for critical
@@ -1060,6 +1066,11 @@ The headline Flash target remains **B1**. Multi-agent serving is a separate gate
 For the M1 lane, B2/B4/B8 qualification must record PLE residency/page-in state, rollback bytes/time, MTP acceptance
 and aggregate throughput. A warm singleton MTP win does not promote multi-agent speculation.
 
+Long-prefill qualification must also measure **Metal command-buffer duration versus current state depth**. oMLX #4149
+shows a shallow-optimal fixed 1,024-token chunk can survive ~124K yet hit the watchdog deep in a ~245K pipeline run;
+depth-aware shrinking avoids the failure without paying the shallow 512-token penalty everywhere. The exact budget is
+hardware-specific, so transfer the adaptive rule, not the M5 numeric threshold.
+
 ### M1-M4 compressed-KV hardware boundary
 
 oMLX PR #3582 explicitly treats Affine4/Affine8 as an M5-oriented path. On M1-M4 its portable path is a
@@ -1127,7 +1138,7 @@ pruning/allocation, GSQ/RCO, post-quant QAD and a retrained draft head, but it h
     32K resident window, repeated 257K cold prefills, and clean recovery under memory pressure on CUDA 13.x.
 11. Run the 262K semantic gate separately: needles/MRCR, xhigh AA, long agent/tool trajectories and MTP acceptance.
     The 29K->257K retrieval decline in issue #200 proves that “it fits” is not the same as “it retains semantics.”
-12. On the Apple lane, A/B TensorFold-style mixed-width dense matrix routing on the exact M1 Max at S=1 and verify widths, measure prefill both cold and as a ~60K->96K/100K retained-prefix suffix, verify advertised-window admission/retention as first request/after a tiny request/after a retained turn, and benchmark B1/B2/B4/B8 with cold-vs-warm PLE state; require bit/arithmetic equivalence, no deep-QSA/admission collapse, and a real aggregate MTP win after rollback costs.
+12. On the Apple lane, A/B TensorFold-style mixed-width dense matrix routing on the exact M1 Max at S=1 and verify widths, measure prefill both cold and as a ~60K->96K/100K retained-prefix suffix, verify advertised-window admission/retention as first request/after a tiny request/after a retained turn, benchmark B1/B2/B4/B8 with cold-vs-warm PLE state, and sweep prefill chunk size versus state depth/command-buffer duration; require bit/arithmetic equivalence, no deep-QSA/admission/watchdog collapse, and a real aggregate MTP win after rollback costs.
 13. For long-context MTP changes, separately certify verify-attention reduction order and accepted recurrent-state commit/pairing; vLLM #59448 and SGLang #40001 show that speed/acceptance alone can hide trajectory or accuracy changes.
 14. Freeze the pure-PTQ AA ladder first; then add **Victoria** as a separate post-compression-recovery control and report source fidelity separately from absolute capability-per-byte.
 15. Only after those pass, optimize 262K throughput and resident-window size; do not retreat to IQ2_XS solely because

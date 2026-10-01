@@ -24,6 +24,89 @@ The protocol exists because older project anchors were previously rediscovered a
 out of the formal watch-note chain.
 
 
+## 2026-10-01 07:01 ET consolidation delta — split-GEMM exactness and depth-aware Apple prefill
+
+### Distributed/head-split GEMMs need reduction-algorithm exactness, not just algebraic equivalence
+
+A strict-window update to Strata issue #204 reports an opt-in two-GPU GDN prompt split on 2x RTX 3090 + NVLink,
+IQ3_S. Splitting GDN heads across the helper GPU improves prefill versus the same peer-tier build by:
+- 8K: **2,202 -> 2,337 tok/s (+6.2%)**;
+- 32K: **2,615 -> 2,809 (+7.4%)**;
+- 128K: **2,696 -> 2,913 (+8.0%)**;
+- decode remains ~102-104 tok/s.
+
+The durable finding is correctness, not the 3090 speed. cuBLAS GemmEx chooses split-K based on GEMM shape, so computing
+a row/output subset can use a different split-K/reduction schedule than the unsplit full projection and therefore
+produce different bits. The contributor restores GDN-state identity by selecting a cublasLt algorithm whose split-K
+matches the full-shape heuristic; 8K and 21K multi-chunk state hashes then match and the long gate passes.
+
+Project-51 rule: any distributed/head/output-row split of a dense projection must either:
+1. pin an arithmetic/reduction schedule equivalent to the reference full-shape path; or
+2. explicitly certify the altered arithmetic against source/reference behavior.
+
+"Same mathematical GEMM" is not sufficient for source-equivalence. The numeric 3090 gains do not transfer to M1/TB4.
+
+### Strata PR #363 removes fixed verify-window PCIe launch waste, with small end-to-end gain
+
+New PR #363 (10:59:28 UTC) reduces the grouped-expert launch footprint for the verify window's PCIe arm and fuses
+SwiGLU + q8_1 work. On RTX 4080 SUPER / IQ3_S:
+- empty PCIe grouped call: **16.51 -> 4.01 us**;
+- one-group call: **19.11 -> 10.71 us**;
+- VRAM call essentially unchanged;
+- GPU PCIe-expert stage drops about **0.67 -> 0.20 ms/window**;
+- deterministic end-to-end decode improves about **1.1%**, while ordinary request TG remains within large
+  request-to-request scatter.
+
+The PR includes bitwise grouped-kernel parity across the supported quant combinations. This is useful verifier-overhead
+mining evidence but does not move the 5070-Ti TG target.
+
+### Apple pipeline memory accounting must count only state-bearing layers
+
+oMLX PR #4147 (open) fixes hybrid-model KV accounting that charged every layer as full attention. On a two-node
+M5 Pro 64-GB pipeline running Qwen3.8-27B-oQ4e-mtp:
+- 262K planner KV reservation falls from **~49 GB/node to ~17 GB/node**;
+- a **245,515-token** needle prompt is admitted and answered **3/3**;
+- minimum free memory stays ~31% on both nodes, swap flat.
+
+This is the dense 27B hybrid family, not Flash-Next, so there is no numeric transfer to the dual-M1 Flash target.
+The transferable rule is geometric: memory admission must charge KV only to full-attention/KV-bearing layers and
+recurrent/QSA state according to their own actual storage geometry.
+
+### Deep Apple prefill needs depth-aware command-buffer sizing
+
+oMLX PR #4149 (open) reports the same two M5 Pro 64-GB / TB5 pipeline:
+- fixed 1,024-token prefill chunks pass ~124K but a 245K prompt kills one rank via Metal watchdog ~19 minutes in;
+- fixed 512 avoids the deep failure but cuts shallow standalone PP roughly **680 -> 380 tok/s**;
+- a depth-aware bound keeps 1,024 through ~150K and drops to 512 deeper; the 245,515-token needle then passes **3/3**
+  with no rank death.
+
+No M5->M1 throughput percentage is transferred. Project-51 Apple qualification must measure command-buffer duration
+as a function of **chunk size x current KV/QSA depth** and allow chunk size to shrink with depth rather than selecting
+one shallow-optimal fixed chunk.
+
+### Saved-state success codes are not resume correctness
+
+New llama.cpp issue #29798 is OpenCL/Adreno-specific: q8_0 KV state restore reports the full token count loaded, but
+writes through q8_0 tensor views are silently dropped, so the resumed decode sees an empty cache and produces garbage.
+CPU q8_0 and OpenCL f16 restore correctly.
+
+This does not affect the current CUDA/Metal lanes directly. It reinforces the existing Project-51 checkpoint rule:
+every save/restore path must prove **resume output/state identity versus fresh prefill**; a successful load return value
+or correct token count is not certification.
+
+### Strict-window exclusions / negatives
+
+- llama.cpp PR #29761 adds Flash-Next MTP, but its latest update is **11:01:35 UTC**, 32 seconds after this watch's
+  11:01:03 cutoff; that update is deliberately excluded and belongs to the next watch.
+- DASLab GSQ-RCO main remains `ed59f92`; no new checkpoint/allocation/benchmark in this window.
+- Strata latest release remains 0.1.31.
+- oMLX remains 0.7.0; PRs #4147/#4149 are open.
+- TensorFold remains 0.6.0.
+- no strict-window TurboQuant-MLX, MoEspresso, Ishizuki or mlx-serve release/commit affecting Project 51.
+
+**Canonical and secondary numerical targets remain unchanged.**
+
+
 ## 2026-10-01 06:28 ET consolidation delta — Strata 0.1.31, exact RDNA2 anchor, 1M stretch context, Apple long-context concurrency
 
 ### Strata production baseline advances to 0.1.31+
