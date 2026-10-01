@@ -1160,12 +1160,19 @@ For the user's RX 6800 16 GB + 64 GB DDR4, plan around:
 - **~27-34 tok/s** at genuinely filled ~128K;
 - **~220-300 tok/s** cold prefill order-of-magnitude.
 
-These are **inferences**, not RX-6800 measurements. The RX 6800 has less compute than the 6900 XT, the user's exact
-Ryzen model is unspecified, and the receipt is Swift IQ3_XXS rather than the canonical DASLab checkpoint. The old
-8-18 tok/s planning range is retired.
+A new exact-card receipt now anchors the short-context floor: Strata PR #376 reports an **RX 6800** at
+**28.1-28.3 tok/s decode** when HIP kernels are correctly compiled with release optimization. The same build folder,
+after a failed first configure poisoned the cached HIP flags and left kernels at `-O0`, ran only 0.24-0.27 tok/s.
+That receipt is Windows/HIP SDK 7.2, Strata 0.1.30 + the Windows HIP work, expert cache 2048, and does **not** publish a
+filled-128K denominator.
 
-Promotion gate: merged/validated gfx1030 support, exact RX 6800 run, 64K/128K filled-context TG+PP, MTP acceptance,
-and an AA/quality smoke test. Until then this remains a useful background-agent node, not a headline system target.
+Therefore the **~28 tok/s lower edge is now exact-GPU physical evidence**, while the upper short-context bound,
+filled-128K **~27-34 tok/s**, and **~220-300 PP** remain transferred/inferred from the RX 6900 XT gfx1030 receipt.
+The user's exact Ryzen/Linux configuration and canonical DASLab checkpoint still need direct measurement.
+
+Promotion gate: merged/validated gfx1030 support, exact RX 6800 **64K/128K filled-context TG+PP**, MTP acceptance,
+release-build flag verification, and an AA/quality smoke test. Until then this remains a useful background-agent node,
+not a headline system target.
 
 # 4. DeepSeek-V4-Flash-0731 / DS4 — 2x M1 Max 64 GB / TB4
 

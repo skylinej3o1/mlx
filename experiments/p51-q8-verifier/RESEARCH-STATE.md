@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-09-30 06:55 ET.
+Last consolidated: 2026-10-01 10:26 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -23,6 +23,93 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+
+## 2026-10-01 10:26 ET consolidation delta — mainline Flash MTP, Strata prompt-path work, exact RX 6800 anchor
+
+### Flash-Next MTP is now mainline llama.cpp, but prefill must be benchmarked separately
+
+llama.cpp PR #29761 merged in this window. Its published DGX Spark / Flash-Next IQ4_XS sample moves decode
+**28.36 -> 43.88 tok/s (1.55x)** at **0.640 acceptance** across 24 small speed-bench prompts.
+
+A post-merge 3-GPU report at a real ~98K prompt, Q8 target + Q4 MTP draft, 262K configured context, measures only
+**~332-333 prompt tok/s** with MTP enabled. The same reporter says a non-MTP setup reached ~850 tok/s, but batching
+settings also differed, so this is not a clean A/B and the maintainers are still diagnosing scaling.
+
+Project-51 rule: every speculative configuration must report **MTP-on vs MTP-off cold PP and decode separately** at
+the target context. A decode multiplier does not authorize assuming prompt processing is unchanged.
+
+### Deep QSA runtime path remains a first-order variable
+
+llama.cpp #29751 merged concurrently and fixes Qwen4Exp hybrid-indexer attention. On DGX Spark / Flash-Next UD-IQ4_XS,
+at 131K prior-token depth it changes PP2048 from **370.71 -> 650.60 tok/s** and TG64 from **14.08 -> 21.20 tok/s**
+with ub2048 (similar uplift at ub512).
+
+Do not transfer the numbers to 5070 Ti or Apple. The durable conclusion is that deep-context QSA implementation quality
+can dominate both prefill and decode enough to invalidate shallow-context extrapolation.
+
+PR #29805 adds another boundary gate: QSA/k-pool models must be tested at **exact cache fill (`n_tokens == n_ctx`)**
+because an off-by-one re-pool bound could build one pool beyond the real cache.
+
+### Strata prompt path has two exactness-preserving optimization directions
+
+PR #372 groups streamed native-expert gathers so an MMQ group uses one launch/wait/release instead of one per expert.
+On RTX 5090 / IQ2_XS it reports ~**8.6% lower 32K prompt time** and bit-identical first-token logits under a fixed cache.
+
+PR #374 overlaps the first chunk's PLE row fetch with embedding/layer 0 and raises PLE inflight read depth. On the same
+class of box it reports **~2.9% lower 32K** and **~5.3% lower 8K** prompt time with bit-identical first-token logits.
+
+These are mechanism evidence only. Project 51 should mine the synchronization/I/O overlap ideas but retain exact-box
+PP targets until they reproduce on 5070 Ti.
+
+### Shared expert cache remains the Strata default
+
+Issue #369 shows `--expert-cache-per-layer` is currently incorrect on native/sized packs because per-layer cursors are
+not initialized to their layer ranges and the profile fill can terminate when one layer's quota is exhausted.
+
+The proposed fix restores correctness, but at equal ~10.9-GiB VRAM reserve the report measures shared-cache
+**20.7 tok/s** versus per-layer **19.1 tok/s**. Treat the fix as correctness, not a speed path; keep shared cache as the
+Project-51 default unless exact target hardware proves otherwise.
+
+### Exact RX 6800 short decode now anchors the secondary lane
+
+Strata PR #376 gives an exact RX 6800 physical receipt: with proper HIP release flags, Windows/HIP SDK 7.2 /
+Strata 0.1.30 + the Windows HIP work / expert cache 2048 measures **28.1-28.3 tok/s** decode.
+
+A failed first configure can poison the CMake cache so later GPU kernels compile at `-O0`; the same card then runs only
+**0.24-0.27 tok/s**. The configure-cache failure mode is reproduced on Linux as well.
+
+This does not prove long-context speed, model-quality parity, or the user's exact Linux/Ryzen configuration. It does
+change one planning statement: the lower edge of the existing **~28-36 tok/s** RX-6800 lane is now physically anchored
+on the exact GPU rather than wholly transferred from RX 6900 XT. The **~27-34 tok/s filled-128K** and **~220-300 PP**
+figures remain inferred.
+
+AMD qualification must record the actual HIP compile flags and rebuild provenance; a successful binary launch is not
+evidence that release kernels were produced.
+
+### Cache ownership/recurrent-state gates strengthen again
+
+oMLX #4157 identifies a prefix-cache dedup race where a block ID could be freed/reused between lookup and refcount
+acquisition, silently attaching wrong KV on restore. Atomic `block_id + expected_hash` revalidation closes it.
+
+vLLM #53912 is older evidence updated in this window: hybrid GDN/Mamba prefix caching plus MTP can leave state written
+over rejected speculative positions reachable through the prefix cache, producing occasional malformed responses.
+
+Project-51 cache certification therefore includes concurrent store/fetch/reconstruct stress and explicitly proves that
+**rejected speculative recurrent state cannot become a reusable prefix**.
+
+### Other current signals
+
+- oMLX #4154 rebases the Splash backend integration onto current main; M1 Max 64-GB integration exists for
+  Qwen3.8-27B-Splash, but there is no Flash-Next support or clean performance receipt, so no M1 Flash target movement.
+- TensorFold #188 supplies useful mixed-width sensitivity evidence on Qwen3.8-27B (KL 0.057/0.016/0.006 for 4/5/6-bit
+  g64), but it is not a DASLab Flash source-fidelity result and does not change AA priors.
+- vLLM #59605 shows substantial untuned skinny-GEMM headroom on DGX Spark; this reinforces software-maturity caution
+  rather than changing Project-51 hardware-buy economics.
+- Strata #366 remains a DFlash2 feasibility/planning PR only.
+- DASLab GSQ-RCO main remains `ed59f92`; Strata/oMLX/TensorFold stable releases remain 0.1.31/0.7.0/0.6.0.
+
+**Canonical numerical targets remain unchanged.** The only planning-text change is that exact RX-6800 short decode now
+anchors the lower edge of its existing secondary range.
 
 ## 2026-10-01 07:01 ET consolidation delta — split-GEMM exactness and depth-aware Apple prefill
 
