@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 10:24 ET.
+Last consolidated: 2026-10-02 12:59 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,60 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 12:59 ET consolidation delta — IQ3_S/full-context fit rises to ~95%; #500 headline de-risked
+
+### Same-memory-shape IQ3_S evidence closes most of the remaining physical-fit gap
+
+Recovered Strata #406 evidence includes a Windows user with **64 GB RAM + 16 GB VRAM + IQ3_S** who manually set
+the context to 256K and reports that it works fine with only a slight performance hit. The original Linux/64-GB
+IQ3_S reporter ran full native context with >6 GB free. Strata 0.1.33 then changed setup to preserve a user-selected
+262,144 context rather than forcibly reducing it to 128K.
+
+This is not the user's exact RTX 5070 Ti, but it is the missing **same OS + same host RAM + same VRAM capacity +
+same quant** memory-shape receipt. Combined with:
+- exact 5070 Ti / ~63-GB Windows / native262K operation on IQ3_XXS (#31);
+- IQ3_S through a real ~250K prompt on 11-GB VRAM (#469);
+- exact 5070 Ti 257,466-token cold execution on IQ3_XXS (#200);
+
+the Project-51 **IQ3_S/native262K physical-fit prior rises from ~90% to ~95%**.
+
+Windows 16-GB/64-GB full-context admission planning confidence rises from **~85% to ~90%**.
+This is still not exact-box certification: the user's own cold ~250K IQ3_S prompt must survive with measured RAM,
+commit, hard faults, WDDM shared memory and late transient peaks.
+
+### #481 now has a planned recovery path, but do not pre-credit an unreleased fix
+
+The maintainer resolved #481's stack to an untimed condition-variable wait where engine and server appear to have
+lost step. The next release is intended to restart the engine when a request has no output for too long or a stop is
+never acknowledged.
+
+Until that release ships and is soaked, keep:
+- 8 h zero-stall: ~75%;
+- 24 h zero-stall: ~55%;
+- current-release built-in <60 s recovery: ~55%.
+
+Once the release lands, immediately test the exact #481 stress shape: long xhigh thinking, heavy retained prefix,
+abort/cancel, immediate next request and repeated tool turns.
+
+### #500 remains a mechanism candidate, not a throughput prior
+
+An independent RX 7900 XTX / IQ3_S measurement of PR #500 reports roughly -2.3% decode and -0.6% 32K prefill.
+On that machine the quant segment is too small for the extra pool-phase protocol to pay.
+
+Therefore the original +69-78% result is explicitly **excluded** from Project-51 TG forecasting.
+Retain the patch only as an exact-box A/B candidate; the user's Ultra-7/DDR5 host may behave differently.
+
+### Low-bit MTP exactness remains a first-class quality gate
+
+oMLX #4209 reports that a uniform 4-bit Qwen3.8-Flash-Next checkpoint changes greedy output with Lightning MTP on
+versus off, while a 5-bit checkpoint is byte-identical on the same four prompts.
+
+Do not transfer this as a Strata defect. Carry the architectural lesson: the production quant must pass exact
+plain-vs-MTP continuation checks on the served runtime, especially at low precision.
+
+**No mature TG/PP center, hardware-purchase decision, protected-K policy or native262K production target changes.**
 
 
 ## 2026-10-02 10:24 ET consolidation delta — oMLX gets a real Flash-Next TQ-QSA branch; Strata CPU lever corrected
