@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 00:18 ET.
+Last consolidated: 2026-10-02 05:52 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,76 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 05:52 ET consolidation delta — IQ3_S 262K fit strengthens; long-agent stability weakens
+
+### Physical fit moves upward
+
+Strata #469 runs IQ3_S at native262K on an RTX 2080 Ti 11 GB. A real 250K cold prompt runs 466.6 PP / 31.8 TG; the
+250,463-token follow-up reuses 249,993 tokens and begins answering in 4.55 s. Engine RSS remains roughly
+**52.3-52.9 GiB**, with 3.09 GiB of streamed KV pinned in host RAM.
+
+The host has 128 GB, so this is not an exact 64-GB-host proof. However, the target 5070 Ti has 5 GB more VRAM for
+expert residency. Combined with v0.1.35's Windows low-RAM/resident-tier fix, the physical-fit/admission prior for
+**5070 Ti 16 GB + 64 GB + IQ3_S + native262K** rises to **~90%**.
+
+### Production stability moves down
+
+Strata #481 reports repeated permanent deadlocks on a 5060 Ti 16 GB / 64 GB / Windows coding-agent box under
+34K-85K heavy-prefix prompts and long reasoning streams. The watchdog does not fire and the Python server does not
+recover after the engine is killed without a full service restart.
+
+At this cutoff no v0.1.35 fix is identified.
+
+Planning confidence:
+- 8 h zero-stall soak: **~75%**;
+- 24 h zero-stall soak: **~55%**;
+- Windows auto-admission: **~85%**;
+- built-in recovery under 60 s: **~55%**.
+
+The exact-box soak must include long xhigh/high reasoning, tool loops, prefix reuse, cancellation and immediate retry.
+Use an external supervisor for early production testing.
+
+### BF16 PLE becomes a first-class fidelity control
+
+Strata #464 can stream the checkpoint's original BF16 PLE table. It is 102.4 GB on disk versus 28.8 GB for the
+DASLab IQ4_NL PLE, but the reported prompt-speed difference is within about ±2.3% across 9K-237K.
+
+Representation changes are nontrivial: 14.6% of measured routing entries differ and every probed first-window logit
+differs (mean absolute delta ~0.22, max 1.69). No accuracy result proves BF16 better.
+
+Add BF16 PLE as a **source-of-record AA/agent control**; keep IQ4_NL production-default unless the control shows a
+meaningful end-to-end gain.
+
+### Draft-vocab size becomes an exact-box headroom lever
+
+Strata #474 reports IQ3_S/262K on a 12-GB RTX 3060 failing MTP startup with the default CJK draft head (~348 MiB),
+then starting with the English head (~133 MiB). For the user's work/code lane, the English draft vocabulary is the
+first emergency VRAM lever if MTP cannot bind. Keep the larger vocabulary for multilingual qualification.
+
+vLLM #59740 independently validates reduced Flash-Next draft vocabulary as a real mechanism, but its measured speed
+gain is not transferred to Strata.
+
+### Adaptive-residency exactness remains gated
+
+Strata #462/#463 localize an adaptive expert-copy race that changes CPU-vs-GPU execution and can fork greedy output.
+The proposed wait makes the reported test reproducible at under 0.3% cost, but #463 remains open at this cutoff.
+
+Certified P51 comparisons continue to disable adaptive swaps and freeze residency.
+
+### Agentic IQ3_S receives one useful but small receipt
+
+Strata #483 reports a small semver coding-agent task on 2x 5060 Ti 16 GB: IQ3_S medium and xhigh both score 55/55,
+while Qwen3.8-27B Q6 xhigh also scores 55/55 but takes about twice as long in that one run. This supports practical
+agentic viability but is n=1 on a ceiling task, so no AA/intelligence-prior movement.
+
+### Extreme context remains out of scope
+
+Strata #466 demonstrates IQ3_S at roughly 1.048M real prompt tokens under YaRN x4 on a 5090/122-GB host. Project-51
+stays at **native262K**.
+
+**Mature TG/PP centers remain unchanged.**
 
 
 ## 2026-10-02 00:18 ET consolidation delta — Strata 0.1.34, exact 5070-Ti prompt receipts, full-window IQ3_S

@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-02 00:18 ET**
+Latest strategy true-up: **2026-10-02 05:52 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -699,6 +699,37 @@ prompts and setup defaults, now measures:
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
 
+
+### 2026-10-02 05:52 ET IQ3_S native262K fit/stability true-up
+
+**Mature TG/PP centers unchanged.**
+
+Strata #469 runs IQ3_S + native262K on an **RTX 2080 Ti 11 GB** with engine RSS roughly **52.3-52.9 GiB** through a
+real 250K prompt. The host has 128 GB, so this is not the exact 64-GB proof, but it demonstrates a full native working
+set below 53 GiB process RSS on a GPU with 5 GB less VRAM than the target 5070 Ti.
+
+Combined with Strata v0.1.35's Windows low-RAM fix, the exact-box
+**5070-Ti 16 GB + 64 GB + IQ3_S + native262K physical-fit/admission prior becomes ~90%**.
+
+Do not confuse fit with production stability. Strata #481 reports repeated permanent deadlocks on a
+**5060 Ti 16 GB + 64 GB Windows** coding-agent box under heavy-prefix prompts and long reasoning streams, with no
+watchdog recovery. Exact-box qualification therefore requires agentic long-reasoning soak and an external supervisor.
+
+Current production-readiness priors:
+- 8 h zero-stall soak: **~75%**;
+- 24 h zero-stall soak: **~55%**;
+- Windows 16-GB/64-GB admission: **~85%**;
+- built-in restart/recovery under 60 s: **~55%**.
+
+Current exact-box baseline: **Strata v0.1.35**.
+
+Fidelity qualification gains a new control: Strata #464 can stream the checkpoint's original **BF16 PLE** with little
+measured PP cost. IQ4_NL-vs-BF16 changes 14.6% of measured routing entries and all probed first-window logits, so run
+BF16 PLE as a source-of-record AA/agent control before making strong near-source claims about IQ3_S.
+
+If MTP startup is VRAM-fragmentation limited, Strata #474 establishes the English draft vocabulary (~133 MiB head)
+as a code-lane emergency lever versus the default CJK head (~348 MiB).
+
 ### 2026-10-02 exact-5070-Ti/runtime strategy true-up
 
 **No numeric target change.** New same-GPU evidence expands the physical bracket rather than moving the mature centers.
@@ -904,10 +935,10 @@ arithmetic and a qualified CUDA 13.x build on sm_120.
 
 | Production gate | Target | Planning confidence now |
 |---|---:|---:|
-| sustained single-slot soak | **8 h, zero stalls/watchdogs** | **~90%** |
-| extended soak | **24 h, zero stalls/watchdogs** | **~75%** |
-| Windows 16-GB/64-GB auto admission | **boots first try, no expert-cache OOM** | **~70%** |
-| error recovery with healthy RAM headroom | **restart <60 s** | **~80%** |
+| sustained single-slot soak | **8 h, zero stalls/watchdogs** | **~75%** |
+| extended soak | **24 h, zero stalls/watchdogs** | **~55%** |
+| Windows 16-GB/64-GB auto admission | **boots first try, no expert-cache OOM** | **~85%** |
+| error recovery with healthy RAM headroom | **restart <60 s** | **~55%** |
 
 ### 64-GB-host low-RAM fallback
 
