@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-01 15:49 ET.
+Last consolidated: 2026-10-02 00:18 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,97 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 00:18 ET consolidation delta — Strata 0.1.34, exact 5070-Ti prompt receipts, full-window IQ3_S
+
+### Strata 0.1.34 is now the exact-box baseline
+
+v0.1.33 made the 64-GB setup policy advisory: an explicit native 262,144 context is kept instead of being forced down
+to 128K, resident-budget clamping is hardened, and the v0.1.32 Windows vision helper regression is fixed. v0.1.34 adds
+the MMQ tile fallback and fast cancellation of disconnected requests while retaining the v0.1.33 answer/speed gate.
+
+Project-51 can therefore request native 262K through setup directly. First qualification remains text-only to maximize
+VRAM/expert-cache headroom, but vision is no longer excluded because of the v0.1.32 AVX-512 bug.
+
+Deterministic server A/Bs now freeze all known state-dependent arithmetic:
+**fixed expert cache, --prompt-cache 0, --adapt-swaps 0, --pcie-frac 0, STRATA_IQ_MT_MIN=1**, plus fresh process
+state when testing persistence itself.
+
+### Exact RTX 5070 Ti 16-GB prompt-path evidence now brackets the weak-host floor
+
+Strata #439/#452/#453 all use an RTX 5070 Ti 16 GB on PCIe 3.0 x16 with a Ryzen 5900XT and DDR4-2133. That host is
+materially weaker than the user's DDR5 Ultra-7 box.
+
+On IQ3_XXS:
+- grouped native expert gathers move a roughly 30K prompt **1,633 -> 1,702 PP** and are reported bit-identical;
+- Q4_0 streamed-KV tensor-core prompt attention moves 8K-30K prompts from roughly **1.58-1.60K** to
+  **about 1.88-1.90K PP**, with 15/15 needle passes but non-bitwise continuations;
+- batched MTP-draft writes into the streamed KV ring give a repeatable **+4.6-4.7%**, reaching roughly
+  **1.73-1.76K PP** in its independent A/B, with reported decode samples around 46-60 TG.
+
+Do not sum these gains: the combined arm was not measured. Do not replace the canonical PP centers: older exact-card
+receipts still show about 3.0K around 60K and 2,668 PP at 257K on a faster host. The durable conclusion is that
+**host/link bandwidth plus prompt-path implementation can move same-GPU PP by nearly 2x**, so exact-box measurement
+remains mandatory.
+
+### IQ3_S now has a real prompt at the edge of the native window
+
+Strata #440 runs DASLab IQ3_S on one RTX 5090 / 96-GB host at max-context 262,144. Needle tests use
+**261,669-261,670 actual prompt tokens** and pass 9/9 across 32K/128K/256K and three depths. The same report measures
+6,004 PP / 125 TG at its 128K speed point with the larger prefill chunk and 75-76% MTP acceptance.
+
+This materially strengthens IQ3_S/full-native runtime maturity. It does **not** resolve the user's admission question:
+the missing proof is still IQ3_S on **16 GB VRAM + 64 GB RAM** with real Windows desktop headroom.
+
+### Long-context peak memory includes transient QSA/indexer scratch
+
+llama.cpp #29825 halves Qwen4Exp indexer-score compute-buffer use: 11.7 -> 5.6 GiB at 262K/ub4096 in its reported
+geometry, without a PP/TG change. #29827 shows a separate quantized-KV FA conversion buffer can reclaim hundreds of MiB
+when bounded.
+
+Project-51 admission accounting must therefore report:
+- steady weights/expert cache;
+- resident + host KV;
+- MTP/draft state;
+- QSA/indexer structural state;
+- **peak prompt/indexer/convert scratch** at the chosen chunk size.
+
+A configuration that fits at idle but OOMs during large prompt chunks does not pass the 262K fit gate.
+
+### TurboQuant active plan protects K
+
+The legacy K6/V4 ladder is superseded. TurboQuant's current high-GQA safeguard upgrades symmetric Turbo K to Q8 at
+GQA >= 6, and Flash-Next is 12:1. Current Strata also has a strong existing INT8-K/K8V4 path.
+
+Active custom sequence, only if stock controls still need more margin:
+1. INT8 K/V fidelity control;
+2. K8V4 built-in capacity control;
+3. optional Q8/INT8-K + Turbo4-V parity bridge;
+4. **Q8/INT8-K + Turbo3-V** capacity candidate;
+5. compressed/symmetric K only as a research arm after direct long-context KL/logit/agent evidence.
+
+The old K6/V4 quality prior is retained only as historical research context; it is no longer the production candidate.
+
+### TensorFold stable advances to 0.6.1; Apple idle residency becomes a gate
+
+TensorFold 0.6.1 reports up to about 10% one-stream Flash-Next long-context improvement on an M3 Ultra and adds more
+CUDA prefix/fork reuse. This does not move dual-M1 targets.
+
+MLX #4609 shows wired memory can be reclaimed after only a few seconds of GPU idle, making the next compute several
+times slower in the reporter's test. Project-51 Apple agent certification now includes idle 2s/10s/60s -> next-turn
+TTFT/residency, with a runtime heartbeat A/B when available.
+
+A logical cached state is not a production-warm resident agent if macOS has evicted the backing pages and the next
+turn must pay a large residency fault.
+
+### Recovered older exact-GPU decode anchor
+
+Strata #127, created Sep 29, ran three independent RTX 5070 Ti 16-GB IQ3_XXS lanes with 262K configured context.
+Each completed a real roughly 141K-145K request at **78.4-80.1 TG**. This strengthens the exact-GPU deep-context
+decode anchor but does not prove the user's 64-GB host, since the multi-lane system uses a shared host arena.
+
+**Canonical numerical targets remain unchanged.**
 
 
 ## 2026-10-01 15:49 ET consolidation delta — v0.1.32, native-262K IQ3_S feasibility, and Turbo-K demotion

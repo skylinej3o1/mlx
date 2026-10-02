@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-01 07:01 ET**
+Latest strategy true-up: **2026-10-02 00:18 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,28 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+### 2026-10-02 exact-5070-Ti/runtime strategy true-up
+
+**No numeric target change.** New same-GPU evidence expands the physical bracket rather than moving the mature centers.
+
+Strict-window Strata PRs #439/#452/#453 use an exact **RTX 5070 Ti 16 GB** but a weak host
+(PCIe 3.0 x16, Ryzen 5900XT, DDR4-2133). On IQ3_XXS they place current 8K-32K prompt processing around
+**about 1.6-1.9K PP** depending on the independent optimization arm, with #453 showing roughly **46-60 TG** in its
+8K/16K MTP samples. These are a weak-host floor region, not the user's DDR5/new-platform target.
+
+Keep the canonical IQ3_XXS PP centers **3,000 / 2,900 / 2,750 / 2,500** because the stronger exact-card evidence
+already includes about 3.0K around 60K and **2,668 PP at a real 257,466-token cold prompt**. The new evidence explains
+why same-GPU results spread so widely: prompt expert streaming, host/link bandwidth, QSA attention path and MTP prompt
+work are first-order variables.
+
+IQ3_S receives a stronger runtime anchor, not an exact-box target change: Strata #440 serves a real
+**261,669-261,670-token** IQ3_S prompt on one RTX 5090 / 96-GB host and passes 9/9 needle cases. Exact
+**5070-Ti 16-GB + 64-GB-host IQ3_S** admission remains the missing proof.
+
+Current exact-box baseline: **Strata v0.1.34**. An explicit 262,144 context is now preserved by setup on 64-GB PCs;
+it is warned rather than forcibly reduced.
+
 ### 2026-09-30 exact RTX 5070 Ti filled-context PP true-up
 
 Strata issue #200 finally provides a genuine near-native-context measurement on the target GPU class:
@@ -931,9 +953,11 @@ Why this is now substantially stronger than a fit estimate:
 - the remaining uncertainty is therefore the **64-GB host's peak simultaneous load/staging + OS headroom**, not
   whether 16-GB VRAM or the Flash state machine can execute genuine 262K.
 
-### TurboQuant-style candidate ladder
+### Historical TurboQuant candidate ladder — superseded 2026-10-01
 
-The first custom candidate is **K6/V4**, not symmetric Q6.
+This K6/V4 ladder is retained for format/memory history, but it is **no longer the active production candidate**. Current TurboQuant source automatically promotes symmetric Turbo K to Q8 when GQA >= 6; Flash-Next is 12:1. The active Project-51 custom path therefore protects K: built-in K8V4 control, then Q8/INT8-K + Turbo4-V as an optional parity bridge, then **Q8/INT8-K + Turbo3-V** as the capacity candidate. Symmetric/compressed K remains a research arm.
+
+The earlier first custom candidate was **K6/V4**, not symmetric Q6.
 
 The currently audited generic TurboQuant-MLX storage format has:
 - 6-bit indices packed **5 per uint32** -> **6.4 physical bpv** before scales;
@@ -973,7 +997,7 @@ less GPU memory** in a 131K-class setup; a later short quality check reports rou
 What is still missing:
 - **Strata** does not yet expose a compressed+streamed TurboQuant Flash KV path;
 - **TurboQuant-MLX** intentionally skips Flash's `_AttnCache` because replacing it generically drops QSA indexer state;
-- no public implementation yet matches P51's proposed **K6/V4 + Strata streaming + exact QSA/indexer preservation**
+- no public implementation yet matches P51's active **Q8/INT8-K + Turbo3-V + Strata streaming + exact QSA/indexer preservation**
   on the user's Windows 5070 Ti box.
 
 P51 implementation should therefore **port/mine proven qwen4exp TBQ plumbing**, not invent the concept from zero:
@@ -1014,7 +1038,7 @@ Planning priors, not measured P51 results:
 - **physical fit, conditional on a correct Strata compressed-streaming implementation:** ~**90%**;
 - **GPU/VRAM + genuine native-context execution:** now directly proven on the **exact RTX 5070 Ti 16 GB** with
   IQ3_XXS + streamed INT8 KV at a 257,466-token prompt;
-- **K6/V4 source-like long-horizon quality:** ~**60-70%** until Flash-specific 128K/262K evidence exists;
+- **legacy K6/V4 source-like long-horizon quality prior:** ~**60-70%** until Flash-specific 128K/262K evidence exists; this is historical context, **not** the active production candidate;
 - **end-to-end production readiness today:** lower than fit probability because the required path is not yet in Strata
   and the 64-GB host margin remains the unresolved part.
 
@@ -1125,8 +1149,8 @@ pruning/allocation, GSQ/RCO, post-quant QAD and a retrained draft head, but it h
 5. Require width-invariant native-expert arithmetic for source-equivalence / AA / MTP certification; on Strata 0.1.31+ enable `STRATA_IQ_MT_MIN=1` and record it with every certified run.
 6. Run the AA suite with INT8 K/V as the default quality baseline; test **K8V4** as the currently implemented
    capacity control.
-7. Port/mine the existing qwen4exp TBQ cache integration, then qualify the Strata Flash-aware lane in this order:
-   **K8/V4 control -> K6/V4 -> K4/V4**, preserving QSA structural/recurrent/MTP state exactly and proving rotation ownership.
+7. If stock INT8/K8V4 still needs more KV margin, port/mine the existing qwen4exp TurboQuant plumbing and qualify the Strata Flash-aware lane in this order:
+   **INT8 K/V fidelity control -> K8V4 built-in control -> optional Q8/INT8-K + Turbo4-V parity bridge -> Q8/INT8-K + Turbo3-V capacity candidate -> compressed-K research arms**, preserving QSA structural/recurrent/MTP state exactly and proving rotation ownership.
 8. Add the optional **FP8 compressed-QSA-key** lane only after BF16-indexer parity; keep the pending ring, spare/dead key,
    block/page positions and checkpoint frontier exact.
 9. For every S>1/MTP sparse path, plan **one union working set across all verify rows before mutation/eviction**.
