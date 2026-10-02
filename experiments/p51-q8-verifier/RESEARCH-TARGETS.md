@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-02 16:03 ET**
+Latest strategy true-up: **2026-10-02 19:25 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,36 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-02 19:25 ET fidelity/parser true-up
+
+**No numeric runtime target or fit-prior movement. PLE and agent-correctness qualification priorities change.**
+
+Current exact-box baseline stays **Strata 0.1.37** with:
+- physical fit/admission ~95%;
+- Windows full-context admission ~90%;
+- 8 h / 24 h zero-stall ~75% / ~55%;
+- #481-style automatic containment/no-manual-service-restart ~85%.
+
+**PLE ladder changes:** stock IQ4_NL remains the compatibility baseline, but checkpoint-native **FP8 PLE becomes the
+preferred production-fidelity candidate**, with BF16 PLE retained as the source-of-record control. Strata #464 now
+reports independent FP8-vs-BF16 answer-level KL around 0.00087 on an adjacent 0.1.37/RTX5090 lane while stock IQ4_NL
+can be much farther from BF16 at individual positions. Exact IQ3_S long-agent A/B is still required before promotion.
+
+**Deterministic AA runs must freeze residency.** Strata #463 and new #550 both show timing races around adaptive expert
+residency can fork arithmetic/state. Keep `--adapt-swaps 0`, fixed expert cache, `--pcie-frac 0` for strict gates,
+and qualify adaptive residency only afterward.
+
+**Agent-production gate expands:** Strata #537 plus vLLM #59821 require explicit tests for quoted/generated
+`</think>`, quoted tool markup inside reasoning, genuine implicit-end calls, incomplete current calls, malformed
+historical calls and normal tool loops. Passing raw runtime soak is not sufficient for autonomous QA-agent signoff.
+
+**Custom sm_120 builds:** Strata #542 makes CUDA runtime/header compatibility and sane GPU-property logging a mandatory
+pre-benchmark check. A build reporting impossible shared-memory capacity is invalid evidence.
+
+Conversation parking remains OFF in the initial production baseline: official-v0.1.37 Windows data shows it can work
+at ~58K, but #528 remains unresolved near ~100K and adjacent runtimes continue to find restore-state corruption.
 
 
 ### 2026-10-02 16:03 ET Strata 0.1.37 recovery/agent-production true-up
