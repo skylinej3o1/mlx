@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 15:02 ET.
+Last consolidated: 2026-10-02 16:03 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,62 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 16:03 ET consolidation delta — 0.1.37 self-healing arrives; parking disabled; xhigh budget made explicit
+
+### Strata 0.1.37 becomes the exact-box baseline
+
+The 0.1.37 release commit was created before the previous hard boundary but was missed by that pass. A new strict-window
+maintainer update on #481 confirms that 0.1.37 is the release carrying the server-side safety net.
+
+The implementation ends a request whose engine goes silent for too long, kills the engine, and lets the next request
+restart it. The default silence threshold is 300 s, with larger allowances while long prompt chunks are being read.
+
+The underlying #481 server/engine lost-step root cause is still open and there is no real post-release recurrence/soak.
+Therefore:
+- physical fit stays ~95%;
+- Windows full-context admission stays ~90%;
+- 8 h zero-stall stays ~75%;
+- 24 h zero-stall stays ~55%.
+
+Replace the old ambiguous "<60 s built-in recovery" planning line with two clearer claims:
+- **automatic #481-style containment/no-manual-service-restart: ~85% planning confidence**;
+- **sub-60 s recovery: not yet qualified and not the shipped default** (default detection is 300 s).
+
+Production qualification should lower `engine_silence_s` only after checking cold/slow-prompt behavior, then measure
+stall->error, next-request->READY, prefix restoration/re-read and whether any human action is required.
+
+### Conversation parking is not production-safe yet
+
+Strata #528 reports a severe restored-conversation decode regression on 0.1.36 / Windows / RTX 5090 / IQ3_XXS:
+roughly **18-31 TG after parking restore versus ~87-116 TG using ordinary prompt reuse** on the same ~100K
+conversation. Fresh ~100K decoding is also fast.
+
+Until the restore path is fixed and qualified:
+- set conversation parking/cache **OFF** in the first Project-51 production baseline;
+- ordinary prompt/prefix reuse remains allowed;
+- restore-vs-reprefill A/B becomes an explicit later gate.
+
+This is an optional-feature performance failure, not evidence against native262K physical fit.
+
+### High/xhigh needs an explicit reasoning budget
+
+Strata #530 reports repeated high/xhigh requests ending at `max_tokens` with empty final content because reasoning
+consumed the whole allowance. Older #123 confirms `reasoning_budget_tokens` is supported since 0.1.31 but is off by
+default.
+
+Project-51 high/xhigh requests now require an explicit reasoning budget until Strata supplies a safe default/warning.
+Record `finish_reason`, reasoning-token count and visible-answer-token count during certification. Do not diagnose an
+empty length-terminated response as an IQ3_S quality failure until this configuration error is excluded.
+
+### Agent surface gets one more vision-tool gate
+
+Strata #529 shows that an Anthropic `tool_result` containing an image can lose the image before the vision encoder.
+The open patch fixes the Claude-Code `Read` screenshot path. If screenshot-driven QA enters the certification suite,
+#529-equivalent behavior must be present.
+
+**No TG/PP center, native262K target, protected-K policy, physical-fit prior or hardware-purchase change.**
 
 
 ## 2026-10-02 15:02 ET consolidation delta — 0.1.36 baseline; #481 still pending; agent-tool parser gate added
