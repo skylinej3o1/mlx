@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 05:52 ET.
+Last consolidated: 2026-10-02 08:27 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,77 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 08:27 ET consolidation delta — transient/calibration gates tighten; MLX gets a batch-shape exactness gate
+
+### Exact-box fit prior stays at ~90%, but the late-allocation gate gets stronger
+
+Strata #486 is a new native-262K failure report on a very different topology: Linux, 2x modified RTX 2080 Ti 22-GB
+cards, IQ3_XXS, vision enabled, layer split, INT8 KV and MTP spec4. A late ~1.43-GiB weight-arena cudaMalloc fails
+at 262,144 and the host can become unresponsive; 204,800 is stable.
+
+This does **not** reverse #469 or lower the current ~90% physical-fit prior for the user's single RTX 5070 Ti 16-GB /
+64-GB, text-first IQ3_S lane. It does strengthen an existing rule: admission is not proven until a real ~250K cold
+prompt survives its transient prefill/indexer/weight-arena peak. Keep the first exact-box run vision OFF and MTP OFF,
+then add MTP.
+
+### Do not trust a single automatic PCIe fraction on v0.1.35
+
+Strata #485 measures the same RTX A3000 / PCIe 4.0 x16 host at 18.5, 6.9 and 5.8 GB/s across separate startup probes.
+The low readings select pcie_frac around 0.12-0.15, while the host's decode calibration peaks around 0.35
+(32.7 TG versus materially lower values around the under-selected region). Open PR #487 primes the link and uses the
+median of five bursts.
+
+Until a released baseline contains this fix, exact-box qualification records the startup probe on multiple fresh starts
+and runs tools/calibrate.py when it is unstable. One auto pcie_frac value is not treated as hardware truth.
+
+### CPU/DRAM path remains first-order on low-VRAM Flash-Next
+
+Strata #489/#494 profile a 12-GB A3000 + i7-12850HX IQ3_XXS lane. In a fresh-decode window at hit_rate 0.354,
+the CPU expert pool consumes 41.6 ms / 53% of a 78.1-ms round while the GPU term is 26.7 ms / 34%.
+This supports treating the user's stronger Ultra-7/DDR5 host as a potentially material decode advantage over weak-host
+receipts, but it is not an exact-box result and does not move the IQ3_S TG centers.
+
+Open PR #484 also adds conversation-cache counters for prompt reuse, switch restores, parked slots, cache RAM and
+evictions. Use them in the retained-prefix harness if/when they reach a stable release.
+
+### Long-agent soak remains mandatory; cross-runtime evidence strengthens the stress shape
+
+Strata #481 still has no identified fix. A second terse "me too" is not enough to move the ~75% / ~55% 8 h / 24 h
+zero-stall priors.
+
+vLLM #59768 is separate-runtime evidence: Qwen3.8-Flash-Next with MTP, 80K-185K agent requests, 92-98% GPU KV
+pressure and a 74K-141K asynchronous CPU->GPU prefix restore repeatedly hits an illegal-memory-access crash.
+Do not transfer this as a Strata failure probability. Add its **restore + high pressure + MTP + immediate decode**
+shape to the Project-51 soak matrix.
+
+### MLX certified comparisons gain a batch-shape determinism gate
+
+MLX #4613 reports that 0.32.3 split-K quantized_matmul stores partial sums in the input dtype, so BF16/FP16 rounds
+each partition before the final reduction. The split factor depends on M, and the report demonstrates the same row
+changing when evaluated alone versus batched.
+
+This is not Flash-Next quality evidence, but it can contaminate Project-51 MLX fidelity A/Bs. Certified MLX
+comparisons now:
+- pin the MLX revision;
+- record batch/row shape;
+- compare identical tokens alone versus batched;
+- hold batching constant before attributing logit/trajectory differences to quant/KV changes.
+
+### Apple MTP telemetry remains first-class
+
+oMLX #4202 reports a custom-FP16 M2 Ultra lane moving from 0/12 to 9/12 MTP-parking events and roughly -10% median
+decode at 32K/64K after a v0.7.0-based rebuild. The report is explicitly confounded and does not move dual-M1 targets.
+It reinforces logging MTP engaged/parked state, acceptance and verify-cycle cost under a pinned runtime revision.
+
+mlx-serve #687, updated in this window, further shows that cold PLE/n-gram page residency can dominate TTFT; its
+large diagnostic gains were measured with warming disabled and the proper warmed A/B is still pending. Keep cold-table
+startup and warmed steady-state measurements separate.
+
+**No TG/PP center, hardware-purchase decision, TurboQuant order, K-precision policy or 262,144 production-context
+target changes in this pass.**
+
 
 
 ## 2026-10-02 05:52 ET consolidation delta — IQ3_S 262K fit strengthens; long-agent stability weakens
