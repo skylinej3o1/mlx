@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 08:27 ET.
+Last consolidated: 2026-10-02 10:24 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,66 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 10:24 ET consolidation delta — oMLX gets a real Flash-Next TQ-QSA branch; Strata CPU lever corrected
+
+### oMLX now has a direct Qwen4Exp / Flash-Next TurboQuant-QSA integration branch
+
+oMLX PR #4206 is the first source-visible adjacent-runtime implementation in the watch chain that wires TurboQuant
+through Qwen4Exp's QSA path rather than treating it as generic dense-attention KV only. The diff adds
+`TurboQuantQSAKVCache`, QSA-aware block/prefix-cache payload reconstruction, and fused TQ-enabled prefill plumbing
+for both NAX and simdgroup paths. The PR also adds YaRN handling above the native 262,144 window.
+
+This is **open / unmerged**, has no M1 Max receipt and has no Project-51-grade long-agent quality/KL result.
+Its M5-Max 1M/TQ4 claim is outside the production target. Project-51 therefore adds #4206 as the active Apple
+TurboQuant-QSA research branch but keeps **native262K first** and requires an exact M1/simdgroup PP/TG + fidelity run
+before any dual-M1 target changes.
+
+This does not change the Windows plan: stock Strata INT8/K8V4 first, custom TurboQuant only if measured headroom
+requires it.
+
+### Strata's CPU-pool bottleneck is real, but host-thread pinning is not the lever
+
+Strata #494 established that the CPU expert pool can consume about half a fresh verify round on a constrained-GPU
+host. PR #501 measured the proposed serve-host pin explicitly and found the thread was already pinned through the
+session scratch; same-binary explicit-pin A/B was ~0 performance and the PR was closed unmerged.
+
+Durable correction: do **not** carry "pin the serve host" as a speed target. The remaining CPU-side opportunities
+are pool arithmetic, memory bandwidth, expert-cache behavior and serialized work between phases.
+
+PR #500 identifies one such serialized phase: intermediate activation quantization between gate/up and down was
+performed serially by the host and the patch parallelizes it through ExpertPool workers. The source mechanism is
+credible. Its reported +69-78% end-to-end decode improvement is **not certified** because the performance arms also
+change expert-cache hit rate (~80-85% -> ~93-95%) and MTP acceptance (50-60% -> ~61-68%). Those changes violate the
+spirit of the fixed-residency A/B needed to isolate one arithmetic barrier.
+
+Before using #500 numerically, rerun with fixed expert residency, adapt-swaps off, pcie-frac 0 for the deterministic
+arm, prompt cache off, identical token stream, and direct phase timing.
+
+### Another Windows 16-GB IQ3_S receipt, but no exact-box prior movement
+
+Strata PR #499 runs IQ3_S on a Windows RX 9070 XT 16 GB with 128 GiB host RAM at a 65,536-token window. It reports
+45.2 TG median decode, ~370 PP at 4K and ~602 PP at 32K, with a 46.84-GiB host expert arena and ~9.48-GiB GPU expert
+cache.
+
+This supports operational maturity of IQ3_S on a 16-GB Windows GPU but is neither a 64-GB-host nor native262K
+receipt. The RTX-5070-Ti/64-GB physical-fit prior remains **~90%**.
+
+### Compressed-KV lesson strengthens: native kernels/layout matter as much as bits
+
+vLLM PR #59774 introduces a native RDNA3 3-bit KV backend and reports much faster 380K attention than its TurboQuant
+K3/V4 control at roughly similar capacity, plus lower NLL drift for some formats. Those AMD numbers do not transfer to
+CUDA/Strata.
+
+The durable mechanism lesson is that a generic compressed representation can lose badly if the runtime pays
+dequantization/metadata/synchronization costs. This further supports Project-51's order:
+**measure Strata INT8/K8V4 first; only port TurboQuant if the capacity need survives measurement, and fuse it into the
+actual QSA prompt/verify paths rather than treating compression alone as the win.**
+
+**No canonical TG/PP center, fit/stability prior, hardware-purchase decision, protected-K policy or native262K
+production target changes in this pass.**
+
 
 
 ## 2026-10-02 08:27 ET consolidation delta — transient/calibration gates tighten; MLX gets a batch-shape exactness gate
