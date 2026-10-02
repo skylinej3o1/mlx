@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-02 05:52 ET**
+Latest strategy true-up: **2026-10-02 12:59 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -700,6 +700,31 @@ Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti P
 
 
 
+### 2026-10-02 12:59 ET IQ3_S native262K fit/admission true-up
+
+**Physical-fit/admission prior rises from ~90% to ~95%. Mature TG/PP centers remain unchanged.**
+
+Recovered Strata #406 supplies the previously missing memory-shape receipt: a Windows user reports
+**64 GB RAM + 16 GB VRAM + IQ3_S** working at manually configured 256K context with only a slight performance hit.
+The original Linux/64-GB IQ3_S reporter also ran full native context with >6 GB free. Since 0.1.33, setup preserves an
+explicit 262,144 request instead of forcing 128K.
+
+This still is not the user's exact RTX 5070 Ti. Exact certification requires a real ~250K IQ3_S cold prompt on that
+machine. But together with #469 (IQ3_S ~250K on 11-GB VRAM), #31 (exact 5070 Ti/~63-GB Windows/native262K on
+IQ3_XXS) and #200 (exact 5070 Ti 257,466-token cold prompt on IQ3_XXS), the remaining physical-fit uncertainty is now
+small enough for a **~95%** planning prior.
+
+Windows 16-GB/64-GB full-context admission confidence rises from **~85% to ~90%**.
+
+Stability does **not** inherit those numbers. #481 remains open on 0.1.35; its next-release automatic-restart fix is
+promising but not yet released-and-soaked. Keep the current 8 h / 24 h zero-stall priors at **~75% / ~55%** and
+current-release <60 s recovery at **~55%**.
+
+PR #500's original +69-78% decode headline is now explicitly excluded from planning centers after an independent
+RX 7900 XTX / IQ3_S test measured approximately **-2.3% decode / -0.6% 32K prefill**. Treat it as an exact-box A/B
+candidate only.
+
+
 ### 2026-10-02 05:52 ET IQ3_S native262K fit/stability true-up
 
 **Mature TG/PP centers unchanged.**
@@ -937,7 +962,7 @@ arithmetic and a qualified CUDA 13.x build on sm_120.
 |---|---:|---:|
 | sustained single-slot soak | **8 h, zero stalls/watchdogs** | **~75%** |
 | extended soak | **24 h, zero stalls/watchdogs** | **~55%** |
-| Windows 16-GB/64-GB auto admission | **boots first try, no expert-cache OOM** | **~85%** |
+| Windows 16-GB/64-GB auto admission | **boots first try, no expert-cache OOM** | **~90%** |
 | error recovery with healthy RAM headroom | **restart <60 s** | **~55%** |
 
 ### 64-GB-host low-RAM fallback
