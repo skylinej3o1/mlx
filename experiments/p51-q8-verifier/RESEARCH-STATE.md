@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 12:59 ET.
+Last consolidated: 2026-10-02 15:02 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,73 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 15:02 ET consolidation delta — 0.1.36 baseline; #481 still pending; agent-tool parser gate added
+
+### Current exact-box baseline is Strata 0.1.36
+
+Recovered release evidence shows engine 0.1.36 existed before the previous pass's cutoff. The prior watch chain's
+"0.1.35 latest" statement was stale.
+
+0.1.36 becomes the current exact-box qualification baseline. Its release commit includes cancelled-prompt accounting,
+draft-head failure guidance, update scripts and learned expert-profile persistence. The subsequent 0.1.36 speed merge
+adds RTX-50-class decode kernels and optional fused native-IQ prompt experts.
+
+The release commit does **not** include #481's server/engine lost-step recovery, and #481 has no post-boundary
+confirmation that 0.1.36 fixes it. Keep:
+- IQ3_S/native262K physical fit: ~95%;
+- Windows full-context admission: ~90%;
+- 8 h zero-stall: ~75%;
+- 24 h zero-stall: ~55%;
+- current-release built-in <60 s recovery: ~55%.
+
+### RTX-50 decode work is favorable but does not justify an IQ3_S TG-center move yet
+
+The 0.1.36 cluster kernels are bitwise against the prior QSA top-k / greedy argmax paths in their parity harness.
+On an RTX 5070, QSA top-k kernel time drops from roughly 200 -> 22 us at 262K and greedy argmax from ~39.6 -> 5.9 us.
+
+This is exactly the right GPU generation for the user's 5070 Ti, but these are subphase numbers.
+Do not convert them directly into full-request IQ3_S TG. Measure on the exact box first.
+
+### Keep STRATA_PF_FUSED=1 out of the source-certification baseline
+
+The optional native-IQ fused prompt kernels do not help IQ3_S on the published exact RTX 5070 A/B:
+~ -0.2% at 4K and -1.4% at 32K. The fused path is numerically close to the default but not bit-identical; one IQ3_S
+greedy comparison diverged after a 31-token common prefix.
+
+Therefore:
+- canonical IQ3_S certification uses the default native-IQ prompt path;
+- STRATA_PF_FUSED=1 is a separate performance/quality experiment only;
+- no PP-center change.
+
+### Add agent tool-call parsing to the production-readiness gate
+
+Strata PR #525 documents a real Qwen3.8-Flash-Next failure mode where a tool call begins before the model emits
+`</think>`; the current parser can then emit the complete tool call as reasoning and an agent silently stops because
+it sees no executable call.
+
+The open patch treats `<tool_call>` inside reasoning as an implicit think end. This is directly relevant to the
+user's long QA/coding-agent workload.
+
+Production-agent certification now explicitly requires:
+- #510-equivalent safe handling of malformed/partial historical tool arguments;
+- #525-equivalent reasoning->tool boundary handling;
+- repeated long tool-loop replay under xhigh/high reasoning.
+
+These are agent-surface gates, not reasons to lower physical-fit or raw runtime-stability priors.
+
+### Apple adjacent runtimes reinforce the retained-context/accounting gate
+
+TensorFold #271 and oMLX #4213 both show that a model's nominal/native context and host memory size do not guarantee a
+large **resumable** agent window. TensorFold 0.6.0 can actually report a smaller retained window when the memory budget
+is raised because its prefill chunk choice consumes more working memory; oMLX 0.7.0 can reject a ~139K Flash-Next
+session through its dynamic guard on a 128-GB M5 Max.
+
+No Windows/Strata target movement. Keep measuring cold admission, retained continuation state, restore, and subsequent
+turn behavior separately.
+
+**No hardware-purchase, native262K-context, protected-K, TG/PP-center, or fit-prior change in this consolidation.**
 
 
 ## 2026-10-02 12:59 ET consolidation delta — IQ3_S/full-context fit rises to ~95%; #500 headline de-risked
