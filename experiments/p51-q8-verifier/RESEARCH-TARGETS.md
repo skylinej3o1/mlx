@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-02 12:59 ET**
+Latest strategy true-up: **2026-10-02 15:02 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -700,6 +700,31 @@ Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti P
 
 
 
+### 2026-10-02 15:02 ET Strata 0.1.36 baseline true-up
+
+**Current exact-box baseline becomes Strata 0.1.36. Numeric planning priors and TG/PP centers do not move.**
+
+The 0.1.36 release was missed by the immediately preceding watch pass. It preserves the default native-IQ prompt path
+while adding RTX-50-class cluster decode kernels whose QSA selection and greedy argmax parity tests are bitwise through
+262,144. This is favorable for the RTX 5070 Ti lane but remains subphase evidence until a controlled IQ3_S full-request
+ladder lands.
+
+Do **not** enable `STRATA_PF_FUSED=1` for source-certification runs. On the published exact RTX 5070 IQ3_S A/B it is
+approximately neutral/slower (-0.2% at 4K, -1.4% at 32K) and uses different arithmetic; one greedy arm diverged after
+a 31-token common prefix. Treat it as a separate experimental speed/quality arm.
+
+The promised #481 lost-step recovery is not listed in the 0.1.36 release commit and has no new soak receipt.
+Therefore keep:
+- physical fit/admission ~95%;
+- Windows full-context admission ~90%;
+- 8 h zero-stall ~75%;
+- 24 h zero-stall ~55%;
+- current-release <60 s built-in recovery ~55%.
+
+Add Strata #525's reasoning-to-tool-call boundary to the agentic production gate; it does not change the raw
+runtime/fit priors.
+
+
 ### 2026-10-02 12:59 ET IQ3_S native262K fit/admission true-up
 
 **Physical-fit/admission prior rises from ~90% to ~95%. Mature TG/PP centers remain unchanged.**
@@ -746,7 +771,7 @@ Current production-readiness priors:
 - Windows 16-GB/64-GB admission: **~85%**;
 - built-in restart/recovery under 60 s: **~55%**.
 
-Current exact-box baseline: **Strata v0.1.35**.
+Current exact-box baseline: **Strata v0.1.36**.
 
 Fidelity qualification gains a new control: Strata #464 can stream the checkpoint's original **BF16 PLE** with little
 measured PP cost. IQ4_NL-vs-BF16 changes 14.6% of measured routing entries and all probed first-window logits, so run
