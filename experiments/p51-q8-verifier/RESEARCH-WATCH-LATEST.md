@@ -1,252 +1,215 @@
-# Project 51 research watch — 2026-10-02 15:02 ET
+# Project 51 research watch — 2026-10-02 16:03 ET
 
-Freshness boundary entering: **2026-10-02 16:59:41 UTC**
-Cutoff: **2026-10-02 19:02:53 UTC**
+Freshness boundary entering: **2026-10-02 19:02:53 UTC**
+Cutoff: **2026-10-02 20:03:27 UTC**
 
 ## Decision
 
-**No numeric fit, TG/PP, 8 h / 24 h zero-stall, recovery, context-target, or hardware-purchase prior changes.**
+This pass makes a **real production-readiness change**, but **not** a physical-fit or zero-stall change.
 
-This pass does make one important baseline correction:
+- Current exact-box baseline moves **Strata 0.1.36 -> 0.1.37**.
+- IQ3_S + native262K physical-fit/admission remains **~95%**.
+- Windows 16-GB/64-GB full-context admission remains **~90%**.
+- 8 h / 24 h **zero-stall** priors remain **~75% / ~55%** because the #481 root cause is still open.
+- Strata 0.1.37 now ships a server-side #481 safety net: a silent/stuck engine is killed, the current request errors,
+  and the **next request restarts the engine**.
+- New planning prior: **~85% automatic containment/no-manual-service-restart** for a #481-shaped lost-step recurrence.
+  This is source/test-based confidence, not a live recurrence/soak receipt.
+- Do **not** keep the old “<60 s built-in recovery” probability as if it described 0.1.37. The default
+  `engine_silence_s` is **300 s**, plus prompt-reading allowances. Sub-minute recovery requires a deliberately lower
+  production setting and its own soak.
+- New agent-production restrictions:
+  1. **conversation parking/cache OFF** until Strata #528 is fixed/qualified;
+  2. **explicit `reasoning_budget_tokens` for high/xhigh** until Strata #530 gains a safe default/warning;
+  3. #525 reasoning->tool-call parsing remains an open agent gate.
 
-- **Strata 0.1.36 is the current exact-box baseline.**
-- The earlier watch chain incorrectly kept calling 0.1.35 latest even though the 0.1.36 release commit existed before
-  the prior cutoff.
-- 0.1.36 adds RTX-50-class bitwise-exact decode work and new prompt kernels, but the native-IQ fused prompt path
-  remains opt-in.
-- **The #481 long-agent lost-step recovery is not part of the 0.1.36 release commit and #481 has no post-boundary
-  confirmation that it is fixed.** Do not raise the stability/recovery priors yet.
+No TG/PP center move. No hardware purchase. Native 262,144 stays the target.
 
-Current Project-51 exact-box priors therefore remain:
-- IQ3_S + native262K physical fit/admission: **~95%**;
-- Windows 16-GB/64-GB full-context admission: **~90%**;
-- 8 h zero-stall: **~75%**;
-- 24 h zero-stall: **~55%**;
-- current-release built-in restart/recovery <60 s: **~55%**.
-
-Native 262,144 remains the production target. No new GPU or 128-GB host-RAM purchase is justified.
-
-## RECOVERED OLDER EVIDENCE — Strata 0.1.36 existed before the prior cutoff
+## RECOVERED OLDER EVIDENCE + UPDATE — Strata 0.1.37 ships the #481 safety net
 
 Release commit:
-https://github.com/Niko1221/Strata/commit/5ccf3a72cd30159ecaa60d7324a4b79ea9b7b1b5
+https://github.com/Niko1221/Strata/commit/db4f91a1171d697928b0d2e1f50ef95e25559d4c
 
-Created **2026-10-02 09:17:13 UTC**, so this is recovered older evidence, not NEW in the strict window.
+The release commit itself is **RECOVERED OLDER EVIDENCE**: it was created at **2026-10-02 17:26:00 UTC**, before the
+entering 19:02:53 UTC hard boundary and was missed by the prior pass.
 
-The release commit bumps the engine to 0.1.36 and names:
-- cancelled-prompt accounting (#471);
-- draft-head failure guidance (#474);
-- UPDATE.bat / update.sh (#475);
-- learned expert-profile persistence (#477).
+The strict-window **UPDATE** is the maintainer's new #481 comment explicitly identifying
+[0.1.37](https://github.com/Niko1221/Strata/releases/tag/v0.1.37) as the release carrying the safety net.
 
-It does **not** name #481 or the server/engine lost-step recovery described by the maintainer in that issue.
+Implementation commit:
+https://github.com/Niko1221/Strata/commit/e07540f84a09639c40f26c176881f66dfdce1e19
 
-Therefore:
-- move the exact-box baseline from 0.1.35 -> **0.1.36**;
-- do **not** treat 0.1.36 as the #481 fix;
-- keep the exact #481 stress test in the production gate.
+The mechanism is concrete:
+- during a request, if the engine emits no line for `engine_silence_s`, the server raises `EngineSilent`;
+- default silence threshold is **300 s**;
+- prompt reads get a larger allowance so a slow 32K prefill chunk is not mistaken for a dead engine;
+- the STOP drain is no longer an untimed wait;
+- the server kills the engine and marks it ended;
+- the current request fails with an error;
+- the **next request** starts the engine again;
+- `"engine_silence_s": 0` restores the old wait-forever behavior;
+- tests cover silence, prefill chunk allowances, STOP-not-acknowledged and HTTP stream/non-stream behavior with a
+  fake engine process.
 
-## RECOVERED OLDER EVIDENCE + NEW confirmation — 0.1.36 RTX-50 decode and native-IQ prompt kernels
+Interpretation:
+- this directly addresses the operational consequence of #481;
+- it does **not** identify/fix the underlying server/engine desynchronization itself;
+- there is no real post-release recurrence receipt or 8 h / 24 h soak yet.
 
-Relevant commits:
-- https://github.com/Niko1221/Strata/commit/bbe3d2acb58f750731e7e583fedbfbd4a3e31ccf
-- https://github.com/Niko1221/Strata/commit/b3e954592f6e510dbb746261fd57fd84fe335dbe
-- https://github.com/Niko1221/Strata/commit/78f071c1715f2e75213fd0b40717d62cd4f092cf
+Therefore keep zero-stall priors unchanged but introduce:
+- **#481-style automatic containment/no-manual-service-restart: ~85% planning confidence**;
+- default recovery latency is **not sub-minute**; 300 s detection is the shipped default.
 
-These landed before the entering boundary and were missed by the previous pass.
+For Project 51 qualification, test both:
+1. default 300 s behavior once, to verify the shipped path;
+2. a production candidate lower threshold (after cold/slow-prompt safety testing), measuring stall->error,
+   next-request->READY, retained-prefix recovery and total operator intervention.
 
-### RTX-50 decode kernels
-
-The new cluster path is eligible on sm_90+ and explicitly documented as RTX-50-class for Strata's shipped build.
-
-On an RTX 5070, the kernel-level measurements report:
-- QSA top-k at 32K: **21.9 -> 15.6 us**;
-- 128K: **58 -> 18 us**;
-- 262K: **200 -> 22 us**;
-- greedy argmax over 248,320 logits: **39.6 -> 5.9 us**.
-
-The parity harness checks selected ids/tokens bit-for-bit over contexts through 262,144, ties, NaNs, infinities,
-1-16 queries and captured CUDA graphs.
-
-This is directly favorable for the user's RTX 5070 Ti, especially at deep context, but it is **subphase evidence**.
-No controlled IQ3_S full-request TG ladder on the target card is available, so the canonical IQ3_S TG centers do not move.
-
-### Native IQ fused prompt experts stay opt-in
-
-0.1.36 can run fused native-IQ expert kernels under **STRATA_PF_FUSED=1**.
-
-Exact RTX 5070 end-to-end measurements in the implementation commit show:
-- IQ3_XXS: ~+1.8% at 4K, ~-0.4% at 32K;
-- IQ3_S: **~-0.2% at 4K, ~-1.4% at 32K**.
-
-More importantly for certification, the fused and default prompt paths are numerically close but not the same arithmetic.
-The implementation report gives greedy A-vs-B common-prefix lengths including only **31/256** on one IQ3_S 4K arm,
-while another IQ3_S arm matched 256/256.
-
-Project-51 rule:
-- **do not enable STRATA_PF_FUSED=1 for the IQ3_S source-certification baseline**;
-- benchmark it only as a separate experimental speed/quality arm;
-- default native-IQ path remains the canonical fidelity lane.
-
-## NEW — Strata #519: 0.1.36 is now being exercised on production RTX hardware
+## NEW — Strata #528: conversation parking can destroy decode throughput after restore
 
 Issue:
-https://github.com/Niko1221/Strata/issues/519
+https://github.com/Niko1221/Strata/issues/528
 
-Created **2026-10-02 18:04:51 UTC**, inside this strict window.
+Created **2026-10-02 19:16:23 UTC**.
 
-RTX 5090 / Windows / 96 GB host / Swift IQ3_XXS:
-- 0.1.36 default PP is close to 0.1.34 in the reported 2.7K/14.7K/28.9K prompts;
-- opt-in STRATA_PF_FUSED=1 gives **+19% / +23% / +13%** PP on that 5090;
-- the author did **not** retain answer text, so this is speed evidence only;
-- short ~550-token prompts still spend roughly 470 ms in the batched path.
+Environment:
+- Windows 11;
+- RTX 5090 32 GB;
+- 96 GB system RAM;
+- Strata 0.1.36;
+- GSQ-RCO IQ3_XXS;
+- INT8 KV, 32K KV-resident, max-context 262144, spec4.
 
-This shows the optional fused-IQ path can pay on a much larger GPU even though it did not pay on the RTX 5070 IQ3
-measurements. That makes it hardware-dependent, not a target-card planning uplift.
+A/B around a ~100K conversation:
+- **conversation cache ON**, restored parked snapshot: **17.6 / 20.4 / 26.0 / 31.1 TG**;
+- same conversation with conversation cache OFF and ordinary prompt reuse: **86.6 / 100.5 / 115.8 TG**;
+- fresh ~100K read without parking: **80.4 / 83.0 / 94.5 TG**.
 
-## UPDATE — Strata #481: no new fix receipt in this window
+Longer 27-turn cached session:
+- first two turns ~59-64 TG;
+- turns 3-27 mostly ~15-31 TG;
+- GPU clocks remain full;
+- KV streaming ~97-98% resident and expert-cache hit ~93-98%;
+- slowdown tracks **restore from parked snapshot**, not generic cache pressure.
+
+This is a major production-agent finding even though it is not the target GPU or IQ3_S.
+
+Project-51 decision:
+- **do not enable `--conversation-cache-mib` / conversation parking in the first production baseline**;
+- use ordinary prompt/prefix reuse first;
+- re-enable parking only after #528 has a root cause/fix and exact-box restore-vs-reprefill A/B;
+- this does not lower physical-fit or zero-stall priors because the feature is optional.
+
+## NEW — Strata #530: high/xhigh can consume the whole output budget in reasoning and return empty content
 
 Issue:
-https://github.com/Niko1221/Strata/issues/481
+https://github.com/Niko1221/Strata/issues/530
 
-The issue remains open and its latest maintainer comment is still the pre-boundary diagnosis:
-- engine main thread in an untimed condition-variable wait;
-- likely server/engine lost step;
-- next release intended to restart on no-output / unacknowledged-stop conditions.
+Created **2026-10-02 19:26:47 UTC**.
 
-There is **no post-boundary comment or commit tying that recovery to 0.1.36**.
+Reporter saw five runs, across Strata 0.1.32 / 0.1.35 and both high/xhigh, finish with:
+- `finish_reason: length`;
+- empty `content`;
+- reasoning alone consumed the request's entire token allowance.
 
-Because the 0.1.36 release commit does not list #481 and recent commit history does not show the promised recovery,
-Project 51 must continue treating it as pending.
+Setting `reasoning_budget_tokens` fixed the reproductions: the server closes the thinking span at the budget and lets
+the model answer.
 
-This matches the user's intuition that it looks fixable, but it is not yet evidence that it **is fixed**.
+Older issue #123 confirms:
+- `reasoning_budget_tokens` has existed since 0.1.31;
+- it may be supplied per OpenAI/Anthropic request or as a config default;
+- it is **off by default**.
 
-## NEW — Strata #525: agent tool calls can be swallowed inside thinking
+Project-51 decision:
+- production high/xhigh requests require an **explicit reasoning budget** until a safe runtime default/warning lands;
+- do not treat an empty `content` at `finish_reason:length` as model incapability;
+- certification must separately record reasoning tokens, answer tokens and termination reason.
+
+No exact budget number is promoted from this evidence; tune it against the user's actual xhigh QA workload.
+
+## NEW — Strata #529: Anthropic tool_result images are currently dropped before the vision encoder
 
 PR:
-https://github.com/Niko1221/Strata/pull/525
+https://github.com/Niko1221/Strata/pull/529
 
-Created **2026-10-02 18:48:58 UTC**, open/unmerged.
+Created **2026-10-02 19:19:18 UTC**, open/unmerged.
 
-Observed live on Qwen3.8-Flash-Next:
-- the model can move directly from reasoning into a `<tool_call>` without emitting `</think>`;
-- current parsing can therefore emit the whole call as `reasoning_content`;
-- an agent sees a thinking-only response with no executable tool and can silently stop mid-task;
-- reporter saw two occurrences in one overnight session.
+Claude Code can return an image from `Read` inside an Anthropic `tool_result`.
+Current Strata text-flattens that tool result, so the image never reaches the encoder and the model can hallucinate
+about a screenshot it has not seen.
 
-The patch treats a tool-call opener inside reasoning as an implicit think end and has streaming/non-streaming tests.
+The patch preserves image parts inside tool results and reports a successful Windows/RTX5090/Flash-Next end-to-end
+screenshot test.
 
-This is **directly relevant to the user's QA/coding-agent workload**. It is not a model-quality failure and not a
-runtime deadlock, but source certification should not call Strata production-ready for agent work until this class is
-merged/released or independently worked around.
+For the user's Playwright/QA lane, this matters if agents inspect screenshots through Anthropic-style tool results.
+Add it to the agent-surface gate, but it does not affect text-only certification.
 
-Track alongside #510's malformed/partial historical tool-call fix.
-
-## UPDATE — Strata #500 gets an adaptive threshold, still no planning-speed credit
+## NEW — Strata #531: peer-GPU expert tier works on 2x3090, irrelevant to the current no-new-GPU plan
 
 PR:
-https://github.com/Niko1221/Strata/pull/500
+https://github.com/Niko1221/Strata/pull/531
 
-After the independent RX 7900 XTX result showed the parallel quant phase losing ~2.3% decode, the author added an
-adaptive threshold:
-- small quant-job counts stay sequential;
-- larger counts use the worker pool;
-- default threshold scales with worker count;
-- STRATA_POOL_QUANT_THRESH can override.
+On 2x RTX 3090 + NVLink, IQ3_S / 0.1.36, the opt-in second-GPU expert tier reports roughly:
+- prefill +15-25%;
+- decode +14-19%;
+- byte-identical against the single-GPU baseline under the stated frozen controls.
 
-This is the right shape for avoiding fixed barrier overhead, but no new controlled exact-box A/B exists.
-The original +69-78% result remains excluded from Project-51 TG centers.
+This is interesting architecture work but does not justify buying another GPU for Project 51.
+The user's single 5070 Ti remains the qualification target.
 
-## UPDATE — Strata #413: bitwise GDN-prefill optimization broadens across Ampere/Ada
+## UPDATE — Strata #418: 0.1.36 dual-Blackwell community run is faster, but not transferable
 
-PR:
-https://github.com/Niko1221/Strata/pull/413
+2x RTX PRO 4500 / 64 GB DDR5 / Swift IQ3_XXS:
+- 0.1.36 prompt reading roughly doubled versus the submitter's earlier 0.1.30 run;
+- 32K ~5,065 PP, 128K ~5,762 PP;
+- output 104.8-132.3 TG;
+- 6/6 needles.
 
-Additional RTX 3090 testing confirms the new DeltaNet recurrence kernel remains bitwise and is a draw-or-win across
-the tested SM-count bands. Engine-level expectation remains only ~1.5-2% prefill on the tested IQ3_S split deployment.
+Driver/CUDA also changed and this is dual-GPU IQ3_XXS, so no 5070-Ti/IQ3_S target movement.
 
-No RTX 5070-Ti end-to-end receipt and no PP target change.
+## UPDATE — Strata #372 / #407 remain optimization candidates, not planning-center inputs
 
-## NEW — Strata #507: another 64-GB/16-GB box reports successful real harness use
+### #372 grouped prompt gathers
+Rebased to 0.1.36. Published controlled Windows IQ3_S evidence on an RTX 4080 SUPER remains favorable:
+~+4.3% at 32K and +3.8% at 64K, with same short greedy continuation.
 
-Issue:
-https://github.com/Niko1221/Strata/issues/507
+This is a credible prompt-path optimization but not yet merged/exact-5070-Ti measured.
 
-A user reports successful Qwen3.8-Next use in both browser and Pi programming harness on **64 GB RAM / 16 GB VRAM**,
-around **40 tok/s** for the session, eventually hitting the configured maximum context.
+### #407 adaptive tier
+Also rebased to 0.1.36. Existing IQ3_S tests show no reliable end-to-end round-time win.
+Do not add it to TG centers.
 
-The quant/context configuration is not stated precisely enough to turn this into an IQ3_S/native262K receipt.
-Useful maturity evidence only; no fit-prior move.
+## NEW/UPDATE — adjacent runtimes
 
-## NEW — Strata #511 shows why zero-VRAM-margin configurations remain out of scope
+### TensorFold #273
+New CUDA Flash-Next draft-vocabulary superset:
+- 79,591 -> 80,014 ids;
+- code-shaped held-out coverage ~99.30-99.60% -> ~99.81-99.92%;
+- decode measured neutral on one GB10;
+- missing draft ids affect speed, not target correctness because every draft is verified.
 
-Issue:
-https://github.com/Niko1221/Strata/issues/511
+Mechanism supports Project 51's rule that reduced-vocab MTP is a capacity/speed lever that needs workload-specific
+acceptance measurement.
 
-RTX 3070 Ti / IQ3_S / 0.1.35:
-- startup explicitly reports **0 MiB VRAM free**;
-- long OMP-harness use eventually produces GPU/verify timeouts;
-- a second stall triggers the existing 60-second watchdog and dump;
-- memory snapshot shows ~59.9 GiB committed and only ~1.5 GiB RAM available.
+### vLLM #52244
+Older PR updated in-window. It fixes hybrid recurrent/GDN prefix-cache replay under MTP so cached prompts can resume
+near the true hash-unit ceiling instead of falling back by whole recurrent pages or to zero. Separate runtime/model,
+but directly reinforces the need to test prefix reuse **with MTP enabled**, not only serial decode.
 
-This is not analogous to the target 16-GB card with a mandatory reserve gate.
-It reinforces Project 51's existing rule that "fits with 0 MiB free" is a fail, not a success.
+### SGLang #41593
+Older PR updated in-window. It keeps waiting requests' cached prefixes warm under FCFS-style scheduling so long
+multi-turn prefixes are not evicted merely because the request sat in queue. Multi-agent scheduling mechanism only;
+no single-stream target movement.
 
-## NEW — TensorFold #265: finished-reply resume removes repeated agent-turn prefill
+### oMLX #4213
+New in-window commenter independently reproduces the 0.7.0 dynamic-memory-guard regression and reports RC1 does not
+show the same restrictive ceiling. This strengthens the Apple-runtime regression diagnosis but does not affect Strata.
 
-PR:
-https://github.com/ashhart/TensorFold/pull/265
+### mlx-serve #703
+Anthropic usage accounting now separates cached from uncached input tokens in an open PR. Useful for Claude-Code
+monitoring, not a throughput target.
 
-On Apple Silicon, planned serving previously failed to reuse a finished reply as the next turn's resume point.
-
-Reported Flash-Next 4-bit agentic multi-turn result:
-- turn TTFT **3.55 -> 2.80 s (-21%)**;
-- uncached tokens per turn **4,165 -> 3,142**;
-- drafted-vs-serial exactness bench: all equal.
-
-Mechanism is relevant to Project 51's retained-agent design, but no Windows/Strata target transfer.
-
-## NEW — TensorFold #268: long-context tree-attention folding improves drafted rounds
-
-PR:
-https://github.com/ashhart/TensorFold/pull/268
-
-One GB10, Qwen3.8-27B DFlash2:
-- drafted round time ~-5% at 90K;
-- ~-8% at 180K;
-- ~-9 to -10% at 242K;
-- short contexts unchanged;
-- drafted rows remain equal to serial under the PR's exactness contract.
-
-Separate 27B runtime; useful mechanism evidence only.
-
-## NEW — TensorFold #271: 128-GB M5 Max resumable-context planner can regress when memory budget rises
-
-Issue:
-https://github.com/ashhart/TensorFold/issues/271
-
-TensorFold 0.6.0 / M5 Max 128 GB / Flash-Next 4-bit:
-- default 89.6-GiB budget reports a 48,128-token resumable window;
-- raising the budget to 107.5 GiB changes prefill chunk 2,048 -> 8,192 and reports only a 10,240-token resumable window;
-- reporter's code reading suggests chunk working-memory accounting is inconsistent with retained-window accounting;
-- the reporter estimates 2,048-token chunks at the larger budget could allow ~130-140K, but could not configure them;
-- one series of high-budget starts coincided with a Mac restart, attribution unknown.
-
-This is an Apple/TensorFold planner issue, not evidence against Strata/Windows native262K.
-It strengthens the existing rule that advertised context and resumable agent context must be qualified separately.
-
-## NEW — oMLX #4213: GA memory guard rejects a long Flash-Next session around 139K
-
-Issue:
-https://github.com/jundot/omlx/issues/4213
-
-M5 Max 128 GB / oMLX 0.7.0 / Qwen3.8-Flash-Next-oQ4e-mtp:
-- long session around ~139K is rejected by the dynamic memory guard;
-- reported current+prefill peak is ~78.05 GB against a ~77.82-GB dynamic ceiling despite a much higher static cap.
-
-Again, this is Apple/oMLX admission behavior, not a Windows Strata fit signal.
-
-## OTHER strict-window checks
+## Strict-window negatives
 
 Searched:
 - Strata;
@@ -261,31 +224,30 @@ Searched:
 - mlx-serve;
 - Ishizuki.
 
-Notable adjacent-runtime items that do not move Project-51 targets:
-- llama.cpp #29869: major few-row Metal MMA speedup for speculative decode on pre-tensor-API Apple GPUs; strong M3 Ultra
-  DFlash2 result, but dense 27B / llama.cpp / M3, not dual-M1 Flash proof;
-- SGLang #41729: breakable Qwen3.8 Flash-Next prefill CUDA graphs with explicit non-bitwise graph/eager analysis;
-- vLLM #59533: merged QSA/indexer projections improve small-M GEMMs on GB300/B200 but B1 end-to-end is ~neutral;
-- no TurboQuant repository change;
-- no Ishizuki change;
-- no new DASLab long-agent IQ3_S certification table;
-- current DASLab model card still lists IQ3_S at 3.50 transformer bpw, 54.8-GB transformer shard + 28.8-GB n-gram
-  shard, with AIME25 100, GPQA-D 92.93 and LCBv6 86.86.
+No TurboQuant repository change.
+No Ishizuki change.
+No MLX-core change relevant to the current lane.
+No new DASLab long-agent/xhigh IQ3_S quality table. The live model card remains at IQ3_S **3.50 transformer bpw,
+54.8-GB weight shard + 28.8-GB n-gram shard**, with the same conventional benchmark table.
+No target-moving llama.cpp item in this one-hour window.
 
 ## Target state after this pass
 
-1. Current exact-box Strata baseline: **0.1.36**.
+1. Current exact-box Strata baseline: **0.1.37**.
 2. IQ3_S/native262K physical-fit prior: **~95%**.
 3. Windows 16-GB/64-GB full-context admission prior: **~90%**.
 4. 8 h zero-stall: **~75%**.
 5. 24 h zero-stall: **~55%**.
-6. Current-release built-in restart/recovery <60 s: **~55%**; #481 recovery still pending.
-7. IQ3_S TG/PP centers: **unchanged**.
-8. Default native-IQ prompt path remains the source-certification baseline; STRATA_PF_FUSED=1 is experimental.
-9. Add #525 tool-call-inside-thinking to the agentic-production gate.
-10. Native production context target remains **262,144**.
-11. No hardware purchase change.
+6. #481-style **automatic containment/no-manual-service-restart: ~85%**; no live post-release recurrence receipt yet.
+7. Default 0.1.37 silence detection is **300 s**, so do not claim default sub-minute recovery.
+8. Conversation parking/cache: **OFF for production baseline** pending #528.
+9. High/xhigh: **explicit `reasoning_budget_tokens` required** pending #530.
+10. Agent parser/tool gates: #510, #525, and vision-tool_result #529 if screenshot workflows are in scope.
+11. IQ3_S TG/PP centers: **unchanged**.
+12. Default native-IQ prompt path remains the source-certification baseline; `STRATA_PF_FUSED=1` remains experimental.
+13. Native production context target remains **262,144**.
+14. No hardware purchase change.
 
 ## New hard boundary
 
-**2026-10-02 19:02:53 UTC**
+**2026-10-02 20:03:27 UTC**
