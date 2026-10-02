@@ -1,303 +1,238 @@
-# Project 51 research watch — 2026-10-02 10:24 ET
+# Project 51 research watch — 2026-10-02 12:59 ET
 
-Freshness boundary entering: **2026-10-02 12:27:00 UTC**
-Cutoff: **2026-10-02 14:24:02 UTC**
+Freshness boundary entering: **2026-10-02 14:24:02 UTC**
+Cutoff: **2026-10-02 16:59:41 UTC**
 
 ## Decision
 
-**No canonical TG/PP center, fit prior, context target, hardware-purchase decision, or Strata/TurboQuant implementation order changes.**
+This pass **does change one planning prior**.
 
-Strata **v0.1.35 remains the latest release** at this cutoff. The exact-box plan remains:
-- IQ3_S first;
-- stock Strata first;
-- one RTX 5070 Ti 16 GB + 64 GB DDR5;
-- native 262,144;
-- vision off initially;
-- MTP off for base fit, then spec4;
-- stock INT8 KV -> K8V4 -> Q4 capacity arm;
-- custom TurboQuant only if stock measurements justify it.
+The physical-fit/admission case for the user's **RTX 5070 Ti 16 GB + 64 GB Windows + IQ3_S + native 262,144**
+lane is now strong enough to raise from **~90% to ~95%**.
 
-This pass does, however, change two implementation beliefs:
+The key evidence is a recovered Strata #406 comment from a **Windows / 64 GB RAM / 16 GB VRAM / IQ3_S** user:
+setup had conservatively capped the context, but manually setting 256K worked fine with only a slight performance hit.
+The original #406 reporter also ran IQ3_S at full native context on a 64-GB Linux host and reported >6 GB free RAM.
+Strata 0.1.33 subsequently changed setup to preserve an explicitly requested 262,144 context instead of forcing 128K.
 
-1. **oMLX now has an active, direct Qwen4Exp / Flash-Next TurboQuant-QSA integration PR.**
-   This is the first adjacent runtime in the current watch chain with source-visible TQ handling for QSA state,
-   prefix-cache reconstruction and fused prefill rather than a generic KV wrapper only.
+This is not the user's exact GPU model, so it is not 100% certification. It closes most of the remaining **host-memory
+shape** uncertainty, however, when combined with:
+- exact RTX 5070 Ti 16 GB / ~63 GB Windows / native262K operation on IQ3_XXS (#31);
+- IQ3_S through a real ~250K prompt on only 11 GB VRAM (#469);
+- exact RTX 5070 Ti near-native 257,466-token cold prompt execution on IQ3_XXS (#200).
 
-2. **The obvious Strata CPU-affinity fix is dead.**
-   New measurement shows the serve host thread was already pinned. The CPU expert pool remains first-order on
-   low-VRAM lanes, but future speed work should target pool arithmetic / serialization rather than host-thread placement.
+Windows full-context admission planning confidence moves from **~85% to ~90%**.
 
-## NEW — oMLX #4206: direct Flash-Next TurboQuant-QSA integration
+The 8 h / 24 h **zero-stall** priors do **not** move in this pass: Strata #481 remains open on 0.1.35.
+The maintainer has now resolved the wait site well enough to add automatic restart behavior to the **next release**,
+but that release and its soak receipt do not yet exist at this cutoff.
 
-PR:
-https://github.com/jundot/omlx/pull/4206
+No TG/PP center changes. No hardware purchase. Native262K remains the production target.
 
-Created **2026-10-02 13:23:24 UTC**, therefore inside this strict window.
+## RECOVERED OLDER EVIDENCE — Strata #406 materially strengthens 64-GB IQ3_S fit
 
-The title advertises:
-- Qwen4Exp YaRN context extension;
-- full fused TurboQuant-enabled prefill on NAX and simdgroup;
-- 1M context on an M5 Max at 4-bit TQ.
+Issue:
+https://github.com/Niko1221/Strata/issues/406
 
-The source diff is more important than the headline. It adds explicit Qwen4Exp/QSA TurboQuant machinery, including:
-- `TurboQuantQSAKVCache` / `BatchTurboQuantQSAKVCache`;
-- QSA-specific cache payloads carrying compressed K/V plus dense indexer sidecar;
-- block/prefix-cache slicing and reconstruction for the hybrid TQ-QSA state;
-- fused QSA TQ parameter structures and prefill kernel plumbing;
-- YaRN scaling support derived from the native 262,144 window.
+Original report:
+- IQ3_S;
+- Ubuntu;
+- 64 GB host RAM;
+- manual full 256K/native context;
+- >6 GB RAM still free at full context;
+- only ~1.8 GB extra was needed for 256K versus 128K in that setup.
 
-This means TurboQuant is no longer merely an abstract port idea in the Apple Flash-Next ecosystem: an active oMLX
-branch is wiring it through QSA and cache reuse.
+More important for the user's topology, a commenter reports:
+- **Windows**;
+- **64 GB RAM**;
+- **16 GB VRAM**;
+- **IQ3_S**;
+- setup capped 128K;
+- manually setting **256K worked fine**, with only a slight performance hit.
 
-**Limitations at this cutoff:**
-- PR is open / unmerged;
-- no M1 Max measurement;
-- no controlled M1/M2/M3 simdgroup benchmark;
-- no long-agent quality/KL table;
-- no evidence that TQ4 is appropriate for Project-51's fidelity target;
-- the 1M claim is outside Project-51's production target anyway.
+Maintainer response:
+- multiple users had reported the same;
+- setup should recommend, not force;
+- released in **0.1.33**, preserving an explicitly selected 262,144 context with a warning.
 
-Project-51 action:
-- add #4206 to the Apple watch lane;
-- once review stabilizes, test the **native262K** path first, not 1M YaRN;
-- for dual M1 Max, require simdgroup-path PP/TG and long-agent quality before any target movement;
-- do not transfer M5-Max capacity claims to M1 Max.
+Interpretation:
+- this is not an exact RTX 5070-Ti receipt;
+- it **is** the previously missing same-OS / same-host-RAM / same-VRAM-capacity / same-quant memory-shape receipt;
+- together with #469 and #31/#200, physical fit is now a high-confidence proposition rather than a borderline estimate.
 
-This does **not** alter the Windows/Strata decision to test stock INT8/K8V4 first.
+New Project-51 physical-fit prior: **~95%**.
 
-## NEW — Strata #500: real serial CPU barrier found, but the +69-78% headline is not certified
+## UPDATE — Strata #481: deadlock recovery path identified for the next release
+
+Issue:
+https://github.com/Niko1221/Strata/issues/481
+
+The maintainer resolved the supplied stack against the 0.1.34/0.1.35 lineage:
+- the engine main thread is in the STL's untimed condition-variable wait;
+- the likely state is engine waiting for its next command while the server is waiting for the current request to end;
+- the two sides have lost step;
+- the current stall watchdog only counts while the engine considers a request running, so this path escapes it.
+
+The maintainer says the **next release** changes the server behavior:
+- no engine output for too long during a request, or
+- a stop request that is never acknowledged
+will cause the engine to restart instead of waiting forever.
+
+This is materially encouraging for production usability, but it is **not yet released-and-soaked evidence**.
+Therefore:
+- 8 h zero-stall prior stays ~75%;
+- 24 h zero-stall prior stays ~55%;
+- built-in <60 s recovery stays ~55% for the current 0.1.35 baseline;
+- re-score recovery immediately when the next release lands and has an exact/near-exact soak.
+
+## UPDATE — Strata #500: independent hardware result rejects the giant universal-speedup interpretation
 
 PR:
 https://github.com/Niko1221/Strata/pull/500
 
-Created **2026-10-02 13:18:49 UTC**.
+An independent RX 7900 XTX 24 GB / Ryzen 9 7900X / IQ3_S test reports:
+- decode: **60.2 vs 61.3 tok/s**, about **-2.3%** for #500;
+- 32K prefill: about **-0.6% median**, confidence interval spanning both directions.
 
-Source-code fact:
-- multi-token verification previously quantized intermediate expert activations serially on the host between
-  gate/up and down phases;
-- the patch adds pool `mode 7` and distributes those independent quantization jobs across ExpertPool workers;
-- the diff is small and the intended arithmetic is unchanged.
+The tester's interpretation matches the mechanism:
+- on small verify windows, the quant work is only microseconds;
+- the new pool phase's fixed publish/wake/done overhead can exceed the serialized work it removes;
+- the patch may still pay in regimes with many more expert-token quant jobs or CPUs with a different overhead balance.
 
-Reported box:
-- i9-14900K;
-- RTX 4090 24 GB;
-- 64 GB DDR5;
-- Windows 11;
-- heavy DASLab IQ3_S;
-- MTP spec4.
+This means:
+- the source-level serial barrier is real;
+- the original +69-78% end-to-end result is **not a portable Project-51 speed prior**;
+- keep #500 out of canonical TG centers unless the exact 5070-Ti/Ultra-7 box measures a win.
 
-Reported decode:
-- cold: **51.2 -> 91.1-92.9 TG**;
-- warm: **62.1 -> 105.2 TG**.
-
-Do **not** accept those percentages as a Project-51 speed receipt yet.
-
-The performance arms also report:
-- expert-cache hit rate **~80-85% -> 92.8-95.0%**;
-- MTP acceptance **50-60% -> 60.7-67.9%**.
-
-Those quantities should not move merely because independent activation-quant jobs execute in parallel under a truly
-frozen residency / deterministic A/B. They show that the measured run changed more than the isolated barrier
-(or at minimum that state-dependent residency/drafting contaminated the end-to-end comparison).
-
-Project-51 certification request for this mechanism:
-- fixed expert-cache size and placement;
-- `--adapt-swaps 0`;
-- `--pcie-frac 0` for arithmetic repeatability arm;
-- `--prompt-cache 0`;
-- same prompt/token stream;
-- fresh process per arm;
-- report phase-7 time directly;
-- then separately re-enable production cache behavior.
-
-The mechanism is credible and potentially high-leverage for the user's strong DDR5 host.
-The **69-78% headline is planning-excluded** until a controlled arm exists.
-
-## NEW / CORRECTION — Strata #501 closes the host-thread pinning hypothesis
+## NEW — Strata #512: QSA active-bound optimization is explicitly *not* for the 5070 Ti
 
 PR:
-https://github.com/Niko1221/Strata/pull/501
+https://github.com/Niko1221/Strata/pull/512
 
-Created **2026-10-02 13:37:18 UTC**, then closed unmerged.
+On a modified 2080 Ti 22 GB at ~131K actual context inside a 262K allocation:
+- fresh prefill: **~831 -> ~886 tok/s**, +6.83%;
+- TTFT saves ~10 s.
 
-Follow-up measurement to #494 found that the serve host thread is already pinned:
-- main/host stayed on core 0;
-- eight workers stayed on 2,4,6,8,10,12,14,16;
-- 120 x 50-ms samples found no host/worker collision.
+But the patch is intentionally enabled **only on sm_75**.
+The author notes the RTX 5070 path retains the allocated-capacity rule because active-bound selection regressed it
+by roughly 1-3% in current source testing.
 
-Same-binary A/B:
-- pin-off mean 25.88 TG;
-- explicit pin-on mean 25.82 TG;
-- **-0.3% mean delta**, inside noise.
+No target-GPU transfer.
 
-The proposed fix was therefore closed as redundant.
-
-Durable correction:
-- #494 remains strong evidence that the CPU expert pool can dominate a low-VRAM decode round;
-- **host-thread pinning is not the next lever on the measured path**;
-- attention moves to pool compute, expert-cache behavior and serialized phases such as #500.
-
-## NEW — Strata #499: IQ3_S operational on a 16-GB Windows AMD card
+## NEW — Strata #508: another native262K 16-GB-class operational receipt
 
 PR:
-https://github.com/Niko1221/Strata/pull/499
+https://github.com/Niko1221/Strata/pull/508
 
-Created **2026-10-02 12:50:14 UTC**.
+Setup:
+- 2x RTX 5060 Ti 16 GB;
+- Xeon E5-2690 v4;
+- 125 GB RAM;
+- IQ3_XXS;
+- Strata 0.1.35;
+- configured 262,144 context;
+- INT8 KV + MTP.
 
-Reported setup:
-- RX 9070 XT 16 GB;
-- Threadripper 3960X;
-- 128 GiB DDR4-3200;
-- Windows 11;
-- ready-made Strata 0.1.35 HIP engine;
-- IQ3_S;
-- 65,536 context;
-- INT8 KV;
-- MTP on;
-- vision off.
+Fresh measurements:
+- 4K: 808 PP / 77.5 TG;
+- 32K: 1,931 PP / 72.7 TG;
+- 128K: 2,199 PP / 72.4 TG;
+- 32K/128K needle: 6/6 exact.
 
-Measured medians:
-- decode: **45.2 TG** [37.1-46.4];
-- 4K cold prompt: **370 PP**;
-- 32K cold prompt: **601.5 PP**.
+Different topology and host size, so no exact-box target movement.
 
-Memory:
-- expert arena: **46.84 GiB** host;
-- expert cache: 4,983 slots / **9.48 GiB**;
-- ~462 MiB VRAM free with everything loaded.
+## NEW — Strata #510: interrupted tool-call histories no longer need to poison an agent session
 
-This is a useful **Windows + 16-GB + IQ3_S** operational receipt.
-It is not a 64-GB-host or 262K receipt and therefore does not move the current ~90% exact-box physical-fit prior.
+PR:
+https://github.com/Niko1221/Strata/pull/510
 
-## UPDATE — Strata #486 gets another similar multi-GPU/vision report
+Current frontend can throw an unhandled JSON parse error when an agent client sends history containing a partial or
+malformed tool-call argument. Because clients preserve history, every subsequent request can then fail with HTTP 400.
+
+The open patch:
+- falls back to a raw argument payload instead of rejecting the session;
+- logs the parse failure;
+- adds a regression test.
+
+This is directly relevant to the user's coding-agent workload. Track for merge/release; no throughput effect.
+
+## NEW — Strata #511: very-tight-VRAM long-run failure is a useful edge case, not a target-box analog
 
 Issue:
-https://github.com/Niko1221/Strata/issues/486
+https://github.com/Niko1221/Strata/issues/511
 
-A second commenter supplied another 262K, multi-GPU, layer-split, vision-on configuration reporting the same general
-problem shape. It is still not the user's one-GPU / vision-off topology.
+RTX 3070 Ti, IQ3_S, 0.1.35 reaches:
+- 0 MiB VRAM free after load;
+- long multi-turn operation;
+- eventually a verify timeout at layer 31 after very long generations.
 
-No prior movement. Keep the late-allocation / real-cold-prefill gate.
+The target 5070 Ti has 16 GB and Project 51 explicitly requires reserve/headroom gates, so this does not lower the
+~95% physical-fit prior. It reinforces that **idle fit at zero reserve is not admission**.
 
-## NEW — TensorFold #247: INT8 KV helps Qwen3.8-27B CUDA increasingly with depth
+## NEW — oMLX #4209: 4-bit Flash-Next MTP is not automatically greedy-exact
 
-PR:
-https://github.com/ashhart/TensorFold/pull/247
+Issue:
+https://github.com/jundot/omlx/issues/4209
 
-Created **2026-10-02 14:15:35 UTC**.
+On one M5 Ultra / oMLX 0.7.0:
+- a uniform 4-bit Qwen3.8-Flash-Next checkpoint produced different greedy output with Lightning MTP on vs off on all
+  four coding prompts;
+- the 5-bit checkpoint was byte-identical on the same prompts;
+- 4-bit MTP output was stable across repeated runs, but differed from one-token decode.
 
-This is the 27B CUDA lane, not Flash-Next Strata.
+This is Apple/oMLX evidence, not Strata evidence.
+It does strengthen the Project-51 rule that low-bit production certification must test **plain decode vs MTP**
+on the exact quant/runtime, not infer correctness from plausible output or benchmark score.
 
-On one DGX Spark, `--kv-dtype int8` reportedly changes drafted-round time:
-- ~90K: about **-6 to -7%**;
-- ~180K: about **-9 to -10%**;
-- ~242.5K: about **-13%**.
-
-Startup estimate at 262,144:
-- MLX 4-bit checkpoint: **37.39 -> 30.38 GiB**;
-- NVFP4/FP8 mixed: **43.60 -> 36.59 GiB**.
-
-The 100-task quality table changes a few items in both directions and greedy continuations are not bit-identical.
-Therefore this is performance/capacity evidence for a specific TensorFold INT8 scheme, not a fidelity-equivalence proof
-for Strata INT8.
-
-No Project-51 Flash-Next target movement.
-
-## NEW — TensorFold #248: Flash-Next decode-share scheduling fix on CUDA
+## NEW — oMLX #4210: M1 Max / 64 GB Flash-Next expert staging gives a small real decode win
 
 PR:
-https://github.com/ashhart/TensorFold/pull/248
+https://github.com/jundot/omlx/pull/4210
 
-Created **2026-10-02 14:16:36 UTC**.
+Exact M1 Max 64 GiB, Flash-Next oQ4e, 25% resident / 75% streamed experts, MTP off:
+- 1K input: +7.55% decode;
+- 4K: +5.24%;
+- 8K: +5.04%;
+- all 15 A/B pairs positive.
 
-For Flash-Next NVFP4 on a DGX Spark, `--decode-share` was effectively a no-op because row timing was never calibrated
-on the relevant standalone pass. The patch feeds that timing and caps share-sized prefill passes at 512 rows.
+The change removes Python-bytes copies by staging offloaded expert slabs through shared buffers.
+The PR reports preserved token/probability/routes/read-plan behavior.
 
-Reported effect with a simultaneous prefill:
-- decode inter-delta gap: **~1.33 s -> ~76 ms**;
-- two 30K requests finish in about the same total wall time;
-- outputs unchanged.
+Useful single-M1 mechanism evidence, not a dual-M1/TB4 target move.
 
-This is a responsiveness/scheduling result, not a B1 TG/PP target result.
+## NEW — TensorFold Flash-Next MTP and n-gram work
 
-## NEW — vLLM #59774: specialized native 3-bit KV substantially beats its TurboQuant control on RDNA3
+### #250 — measured-cost MTP stop
 
-PR:
-https://github.com/vllm-project/vllm/pull/59774
+On one GB10, the opt-in cost-based draft stopping policy reports:
+- MLX 4-bit geometric mean over 32 cases: **+4.3%**;
+- EXL3 4.05 bpw: **+2.8%**;
+- every drafted reply equals serial reference in the reported tests.
 
-Created **2026-10-02 12:31:52 UTC**.
+This supports per-engine measured MTP economics instead of a fixed depth, but does not transfer numerically to Strata.
 
-ROCm `ROCM_OCTAVE` is a native 3-4-bit KV backend for head_dim 256 models. On 4x RX 7900 XTX / Qwen3.8-27B the
-author compares against an existing TurboQuant K3/V4 control.
+### #252 / #254 — PLE/n-gram page residency is a first-order cold-path variable
 
-At a 380K attention-layer microbench, reported:
-- TurboQuant K3/V4 decode: 2,565 us;
-- Octave K3/V3 compact: 563 us;
-- TurboQuant 4-token verify: 6.65 ms;
-- Octave: 0.58 ms.
+TensorFold #252 reads future EXL3 PLE pages ahead and cuts cold 24K prompt time dramatically on one GB10 while keeping
+outputs identical. #254 re-reads/pins the table after warm-up and reports new-reply decode gains of roughly 11-14%
+on EXL3 4.05 when the table otherwise begins only partly resident.
 
-The author also reports lower NLL drift for some Octave formats at comparable size.
+Project-51 implication:
+- continue separating cold-page-fault behavior from warm steady-state PP/TG;
+- record PLE/table residency in any cross-runtime comparison.
 
-Project-51 interpretation:
-**compressed KV capacity is not enough; kernel/data-layout integration can dominate.**
-This strengthens, rather than weakens, the decision not to rush a generic TurboQuant port into Strata before stock
-K8V4/INT8 measurements.
-
-Do not transfer AMD speed or quality percentages to CUDA/Strata.
-
-## NEW — vLLM #59778: GB10 skinny-GEMM tuning was measured, then closed unmerged
+## UPDATE — mlx-serve #687: warmed default path no longer supports the earlier giant cold-calibration story
 
 PR:
-https://github.com/vllm-project/vllm/pull/59778
+https://github.com/ddalcu/mlx-serve/pull/687
 
-Created **2026-10-02 13:34:50 UTC** and closed unmerged.
+A proper main-vs-branch M5 Max / 128 GiB / default-warmer-on replication is now posted.
+The table was 100% resident by readiness on all boots and branch auto-policy returned to serial after warming.
 
-Qwen3.8-Flash-Next NVFP4 on one GB10:
-- B1 MTP3 TPOT: about **-6.7%** in the submitted table;
-- gain shrinks rapidly with batch size;
-- author says 84% of measured gain was the LM head.
+Observed request-level deltas are sub-1% and explicitly not claimed as speedups.
 
-Useful mechanism evidence for sm_121 only; no RTX 5070 Ti target movement.
-
-## NEW — llama.cpp #29856: hybrid recurrent-state reserve fix
-
-PR:
-https://github.com/ggml-org/llama.cpp/pull/29856
-
-Created **2026-10-02 14:00:57 UTC**.
-
-Hybrid recurrent states could trigger an unplanned graph reallocation when moved back into place. The patch gathers
-the states once into a buffer covered by the worst-case reserve.
-
-Reported:
-- bit-exact output;
-- no decode-speed change.
-
-This reinforces explicit recurrent-state peak accounting but does not change Strata memory estimates.
-
-## RECOVERED CURRENT / UPDATE — oMLX #3964 canonical-state recovery
-
-PR:
-https://github.com/jundot/omlx/pull/3964
-
-Older PR, updated in this window.
-
-It repays SpecPrefill's non-reusable sparse-state debt during idle time by densely rebuilding canonical prefix state
-in bounded slices. On one M4 Max / Qwen3.8-27B workload it sharply reduces cumulative foreground work, but the PR
-itself calls the result single-run and notes arrival-latency tradeoffs.
-
-Useful for future multi-turn Apple-agent architecture, not a current numerical target change.
-
-## KNOWN / SAME-DAY CURRENT — DASLab IQ3_S
-
-Live DASLab model card still shows the already-known IQ3_S line:
-- 3.50 transformer bpw;
-- ~54.8 GB transformer;
-- ~28.8 GB IQ4_NL PLE;
-- ~83.6 GB combined file/table footprint;
-- short benchmark task average 93.26.
-
-This is not new in the strict window and is **not** long-agent parity evidence.
+This confirms the methodological lesson already in Project 51:
+**cold table residency and warmed production behavior must be measured separately.**
 
 ## Strict-window negatives
 
@@ -309,44 +244,36 @@ Searched:
 - SGLang;
 - vLLM;
 - MLX;
-- DASLab / Hugging Face;
+- DASLab/Hugging Face;
 - TurboQuant;
 - mlx-serve;
-- Ishizuki;
-- broader Qwen3.8-Flash-Next GitHub results.
+- Ishizuki.
 
-No strict-window evidence moves:
-- IQ3_S vs IQ3_XXS model preference;
-- the ~90% physical-fit prior;
-- Windows auto-admission ~85%;
-- 8 h / 24 h zero-stall priors ~75% / ~55%;
-- current IQ3_S TG/PP centers;
-- native262K as production target;
+No strict-window item changes:
+- IQ3_S as the preferred quality-first Strata quant;
+- native262K production target;
 - no-new-GPU / no-128-GB-RAM-before-testing decision;
-- protected-K policy;
-- stock-Strata-before-custom-TurboQuant order.
+- protected-K TurboQuant policy;
+- stock Strata INT8 -> K8V4 -> Q4/custom-capacity test order;
+- mature IQ3_S TG/PP centers.
 
-No new commit appeared in `TheTom/llama-cpp-turboquant`.
-No relevant new Ishizuki item.
-No relevant MLX-core change supersedes the batch-shape exactness concern.
-No new DASLab long-agent / SWE-style IQ3_S validation appeared in this strict window.
-No relevant SGLang strict-window item changes the Qwen3.8 Flash-Next plan.
-mlx-serve's M3-Ultra deep-prefill issue remains an open non-NAX optimization gap; no new controlled 26.10.1 A/B was posted.
+No new TurboQuant repo change.
+No relevant Ishizuki change.
+No new DASLab long-agent IQ3_S certification table.
 
-## Target state
+## Target state after this pass
 
-Unchanged:
 1. Strata baseline: **v0.1.35**.
-2. IQ3_S/native262K physical-fit prior on RTX 5070 Ti 16 GB / 64 GB: **~90%**.
-3. Windows auto-admission: **~85%**.
+2. Exact-box IQ3_S/native262K physical-fit/admission prior: **~95%**.
+3. Windows 16-GB/64-GB full-context admission prior: **~90%**.
 4. 8 h zero-stall soak: **~75%**.
 5. 24 h zero-stall soak: **~55%**.
-6. Built-in restart/recovery <60 s: **~55%**.
+6. Built-in restart/recovery <60 s on the current release: **~55%**; next release is expected to improve this but is unqualified.
 7. Mature IQ3_S TG/PP centers: **unchanged**.
 8. Production context target: **262,144 native**.
 9. No hardware purchase before exact-box data.
-10. oMLX #4206 becomes the active **Apple Flash-Next TurboQuant-QSA watch branch**, not a production target.
+10. #500 speedup is **not** incorporated into planning centers.
 
 ## New hard boundary
 
-**2026-10-02 14:24:02 UTC**
+**2026-10-02 16:59:41 UTC**
