@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-02 15:02 ET**
+Latest strategy true-up: **2026-10-02 16:03 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,36 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-02 16:03 ET Strata 0.1.37 recovery/agent-production true-up
+
+**Current exact-box baseline becomes Strata 0.1.37. Fit and zero-stall priors stay fixed; recovery semantics improve.**
+
+0.1.37 ships the #481 server-side safety net: a silent or STOP-unresponsive engine is killed, the active request
+errors, and the next request restarts the engine. The shipped default silence threshold is **300 s** (with long-prompt
+allowances), so the former "<60 s built-in recovery" line is no longer an honest description of the current release.
+
+Current planning state:
+- IQ3_S/native262K physical fit: **~95%**;
+- Windows full-context admission: **~90%**;
+- 8 h zero-stall: **~75%**;
+- 24 h zero-stall: **~55%**;
+- #481-style **automatic containment/no-manual-service-restart: ~85%**;
+- sub-60 s recovery: **not yet qualified**; requires a lower `engine_silence_s` production setting plus a real soak.
+
+This ~85% is an engineering prior based on the implemented kill/restart path plus unit/HTTP fake-engine tests. There is
+not yet a live 0.1.37 recurrence showing recovery from the exact #481 failure.
+
+**Production configuration change:** leave `--conversation-cache-mib` / conversation parking OFF until #528 is
+fixed. A Windows RTX5090/IQ3_XXS report shows restored ~100K conversations at ~18-31 TG versus ~87-116 TG with ordinary
+prompt reuse. This does not prohibit prefix reuse; it only disqualifies parking/restore for the initial baseline.
+
+**High/xhigh configuration change:** set `reasoning_budget_tokens` explicitly. #530 shows high/xhigh can otherwise
+consume max_tokens entirely in reasoning and return empty content. No universal budget number is promoted yet.
+
+If screenshot-driven QA is included, require #529-equivalent Anthropic tool_result image handling in addition to the
+existing #510/#525 tool-call gates.
 
 
 ### 2026-10-02 15:02 ET Strata 0.1.36 baseline true-up
