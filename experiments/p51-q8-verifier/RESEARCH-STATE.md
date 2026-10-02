@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 16:03 ET.
+Last consolidated: 2026-10-02 19:25 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,74 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 19:25 ET consolidation delta — FP8 PLE becomes preferred fidelity candidate; agent/parser and deterministic-residency gates tighten
+
+### PLE precision is now a first-class quality lever
+
+Strata #464 now carries stronger evidence that checkpoint-native PLE precision matters materially:
+- stock IQ4_NL vs BF16 first-window KL is reported at 0.156 / 0.0030 / 0.220 on 2K / 16K / 37K prompts, with the
+  top token unchanged in each probe;
+- an independent 0.1.37 / RTX5090 NVFP4-derived measurement reports answer-level FP8-vs-BF16 median KL ~0.00087,
+  on the same scale as BF16-vs-BF16/cache-size noise (~0.00080);
+- BF16 prompt cost remains within roughly +/-2.3% of stock IQ4_NL through a 232K-class sweep.
+
+This does **not** prove FP8 PLE equivalence on the exact IQ3_S target. It changes the qualification order:
+1. stock IQ4_NL PLE for compatibility/performance;
+2. **native FP8 PLE as the preferred production-fidelity candidate**;
+3. BF16 PLE as the source-of-record control.
+
+The exact IQ3_S lane must still measure long-agent KL/logit/top-flip/trajectory behavior. The important engineering
+point is that PLE fidelity can likely be improved without increasing the 54.8-GB transformer arena or breaking the
+native262K physical-fit case.
+
+### Controlled quality runs must keep adaptive residency frozen
+
+Strata #463 now has independent evidence that the nonblocking adaptive-swap timing can fork greedy output.
+Strata #550 adds a second race: the expert-residency table itself is uploaded on a legacy stream and can be read from
+a non-blocking compute stream before DMA completion after swap/trim/refill.
+
+Therefore the Project-51 AA/source-certification lane explicitly keeps:
+- `--adapt-swaps 0`;
+- deterministic/fixed expert cache placement;
+- `--pcie-frac 0` for the strict arithmetic gate;
+- fresh process / prompt cache off where already specified.
+
+Adaptive residency is qualified later as a production-performance mode, not allowed to contaminate the fidelity
+baseline.
+
+### Agent parser certification is now a discrete blocker independent of hardware viability
+
+Strata #537 reproduces, on v0.1.37 + IQ3_S, both:
+- quoted/self-generated `</think>` text ending or leaking reasoning incorrectly;
+- unfinished tool-call structures disappearing behind an empty clean-stop response.
+
+vLLM #59821 independently shows the other side of the parser ambiguity: a quoted `<tool_call>` inside reasoning must
+remain reasoning while a genuine implicit-end call must still execute.
+
+The Project-51 agent parser suite must therefore test literal and generated think tags, quoted tool markup, genuine
+implicit tool calls, malformed historical calls, unfinished current calls, and ordinary well-formed tool loops.
+Do not call the local runtime production-agent-ready until these pass, even if raw model/runtime stability is good.
+
+### sm_120 custom-build sanity becomes mandatory before interpreting PP
+
+Strata #542 shows a CUDA 13-header / CUDA12-runtime ABI mismatch can make shared-memory capacity read as 1 byte,
+silently disable IQ MMQ, and cut prefill roughly 4x. The official prebuilt was not the failing path.
+
+Any custom 5070-Ti build must record linked/runtime CUDA, sanity-check GPU properties and reject impossible values
+before a PP measurement can enter Project-51 planning.
+
+### Long-context restore remains a separate qualification target
+
+New official-v0.1.37 Windows data in Strata #189 shows correct 57.7K conversation-cache restore on an RTX4070 Laptop /
+64GB system, so #528 is not evidence that all parking is broken. But #528's ~100K RTX5090 restored-decode collapse
+remains unresolved, and mlx-serve #706 independently reports one corrupted Flash-Next hot-cache restore on M5 Max.
+
+Initial production baseline therefore still leaves conversation parking OFF. Resume equivalence must be proven at the
+actual 200-262K agent regime before parking earns production status.
+
+**No physical-fit, admission, zero-stall, TG/PP-center, context-target or hardware-purchase change.**
 
 
 ## 2026-10-02 16:03 ET consolidation delta — 0.1.37 self-healing arrives; parking disabled; xhigh budget made explicit
