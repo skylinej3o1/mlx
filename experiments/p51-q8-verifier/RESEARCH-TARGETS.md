@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-02 23:26 ET**
+Latest strategy true-up: **2026-10-03 07:00 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,36 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-03 07:00 ET M1-27B/PLE/RX producer true-up
+
+**No numeric target movement. The implementation baseline and artifact identities get sharper.**
+
+Primary Windows remains Strata 0.1.38 with:
+- IQ3_S/native262K physical fit ~95%;
+- Windows full-context admission ~90%;
+- 8 h / 24 h zero-stall ~75% / ~55%;
+- #481 automatic containment ~85%;
+- 204800 as the first fallback if native262K qualification fails.
+
+**PLE correction:** FP8 remains the practical production-fidelity candidate, but new direct #586 evidence shows it
+is **not source-equivalent to BF16**. BF16 is the exact source-value control; stock IQ4_NL remains the capacity/default
+baseline. Production PLE choice must be made by labeled quality/agent evaluation, not KL alone.
+
+**Single-M1 Qwen3.8-27B:** retain **25 TG / 110 cold PP**. Build the custom lane on current upstream MLX:
+- include merged #4596 before measuring attention;
+- include/cherry-pick #4598 if available before writing replacement affine Q4/Q5/Q6/Q8 gather-QMV;
+- bespoke work focuses on long-context multi-row GQA verify, MTP scheduling, state/cache lifecycle and quant mapping.
+
+**Primary M1/RX artifact:** DASLab **IQ3_S-MTP integrated (~12.1 GB)**. Target-only IQ3_S is the serial control;
+IQ3_XXS-MTP is the speed/capacity control; ByteShape remains the alternate quality-allocation family.
+
+**RX6800 producer:** TensorFold ROCm Qwen3.8-27B (#100) and ROCm GGUF (#144) are implementation mines. Their R9700 /
+Strix numbers do not transfer to gfx1030. Bridge credit still requires exact RX6800 PP plus full-state HIP->M1 import.
+
+**Dense-27B KV:** INT8/Q8 is the first compressed long-context control; more aggressive KV follows only after
+continuation and agent-quality gates.
 
 
 ### 2026-10-02 23:26 ET single-M1 27B / RX-prefill strategy true-up
