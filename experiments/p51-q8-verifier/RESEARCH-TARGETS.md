@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-03 07:00 ET**
+Latest strategy true-up: **2026-10-03 07:53 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,24 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-03 07:53 ET resident-state / reasoning-accounting true-up
+
+**No numeric target movement. Qualification rules tighten.**
+
+- Reasoning-budget continuation telemetry does **not** count as trusted PP/context accounting until segment aggregation
+  preserves the original input/cache counts and aggregates continuation output/timing exactly.
+- Resident-agent admission must include **checkpoint-slot count and bytes**, not just active context.
+- Parking/terminal snapshots must **not duplicate paged KV**. Store only state not already durably represented by the
+  page pool plus stable references/metadata; restore must still pass fresh-vs-resumed equivalence.
+- High/xhigh keeps an explicit reasoning budget and now requires a **non-empty final answer after budget rollover**
+  soak case.
+- Draft-vocabulary tuning is workload-weighted. For the QA/coding lane, protect code/tool/CJK tail coverage instead
+  of minimizing vocabulary size blindly.
+
+Primary Windows 262144/204800 fallback, single-M1 **25 TG / 110 cold PP**, DASLab IQ3_S-MTP artifact priority,
+RX6800 prefill experiment, PLE ladder and hardware-purchase decision remain unchanged.
 
 
 ### 2026-10-03 07:00 ET M1-27B/PLE/RX producer true-up
