@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-03 07:53 ET.
+Last consolidated: 2026-10-03 15:42 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,102 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-03 15:42 ET consolidation delta — exclude #646 on 16GB; streamed-KV baseline; RX producer becomes prefill-only first
+
+### Strata #646 gets zero 5070-Ti planning credit until non-resident correctness is fixed
+
+The resident CUDA optimization branch's original +39-72% numbers came from dual RTX3090s with fully resident
+IQ2_XS. New evidence directly probes the regime closer to Project 51:
+- RTX5080 16 GB, sm_120;
+- partially resident Swift IQ3_XXS;
+- 131K, spec4.
+
+That branch crashes 3/3 under spec4 in the new staged IQ3_S codebook path; stock main does not. With staging worked
+around, matched high-acceptance decode is modestly slower than main, and the zero-doorbell all-resident mechanism
+never runs.
+
+A separate dual-3090 IQ3_S result gets ~11-14% decode uplift but fails strict greedy equivalence against stock
+0.1.38.
+
+Therefore:
+- no #646 speed credit on the single-5070Ti lane;
+- do not use #646 in source/AA certification;
+- re-open only after non-resident sm_120 crash and IQ3_S arithmetic/quality are independently requalified.
+
+### Streamed INT8 KV is a required exact-box configuration feature
+
+Strata #620 provides an exact 16GB Blackwell + 64GB host receipt:
+- RTX5060Ti16 / IQ3_S / 131K;
+- all INT8 KV resident in VRAM -> native head upload OOM at startup;
+- `--kv-resident 32768` -> startup succeeds with useful expert cache and ~514 MiB free.
+
+This does not lower the physical-fit prior because Project 51 already planned streamed KV. It makes the baseline
+explicit:
+- INT8 streamed KV;
+- ~32K resident first;
+- meaningful post-load VRAM reserve;
+- no “full long-context KV resident on 16GB” arm in production certification.
+
+### RX6800 prefill producer starts with no speculation
+
+Strata #649 reports intermittent gfx1030 speculative verify hangs on RX6950XT/UD-Q4_K_XL at full-attention layers,
+apparently around the CPU-pool/GPU-wait handshake.
+
+Our RX6800 experiment does not need speculative decode to deliver its value. First proof is now:
+1. target-only DASLab IQ3_S (or exact producer artifact);
+2. MTP/spec off;
+3. cold 16/32/64/96/128K prefill;
+4. committed conv/recurrent/KV state export;
+5. M1 import and continuation-equivalence.
+
+Only after the bridge works do we test drafter/decode behavior on gfx1030.
+
+### M1 custom effort stays focused on multi-row long-context verification
+
+TensorFold #323's exact M2-Max Qwen3.8-27B DeltaNet one-row tuning improves isolated projections by 6-14%, but only
+~0.8-2.2% on two short full-model decode prompts.
+
+It is useful upstream evidence but reinforces priority:
+- ride upstream MLX one-row/GDN improvements;
+- bespoke Project-51 work goes to multi-row verify, MTP scheduling, quant mapping, state/cache lifecycle and
+  long-context geometry first.
+
+Single-M1 target remains 25 TG / 110 cold PP.
+
+### Disk session persistence becomes a separate candidate from live parking
+
+Strata #668 reports ~63K session restore in ~1.05 s vs ~25.5 s re-prefill, with the same next 32 token IDs, after
+restart of the same engine/model/settings.
+
+This is promising enough to track, but does not reverse the initial “conversation parking OFF” rule. Qualify session
+files separately at 128K/200K/~250K with:
+- full state/continuation parity;
+- damaged-file refusal;
+- version/model/config mismatch refusal;
+- low-memory/disk preflight behavior;
+- restore time and file size.
+
+### Agent state must commit only outputs the client actually received
+
+Strata #652 finds that current speculative final-window commit can include accepted draft tokens beyond max_tokens or
+an end-of-turn. The next client-supplied history then fails to match the live session and may re-prefill.
+
+Project-51 adds explicit max-token/EOT-inside-window tests: committed continuation state must correspond exactly to
+the API-visible token sequence.
+
+### Primary numeric planning remains unchanged
+
+Strata #674 demonstrates IQ3_S/262K at ~95 TG on RTX3090Ti despite old Xeons/PCIe3, but the box has 24GB VRAM and
+384GB RAM; it is speed/maturity evidence, not 64GB admission evidence.
+
+Strata #618 shows Windows HIP at ~248K on R9700, but cannot transfer to RX6800.
+
+TurboQuant #392 improves deep-spill transport/native-routing substantially; protected INT8/Q8 K remains the first
+aggressive-production K choice.
+
+**No fit/admission/stability/TG/PP probability, context target, or hardware-purchase change.**
 
 
 ## 2026-10-03 07:53 ET consolidation delta — continuation accounting, checkpoint admission, and snapshot de-duplication
