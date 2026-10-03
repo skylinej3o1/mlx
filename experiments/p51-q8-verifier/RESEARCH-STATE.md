@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 20:20 ET.
+Last consolidated: 2026-10-02 23:26 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,78 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 23:26 ET consolidation delta — Strata 0.1.38; custom M1 27B verifier lane; RX prefill experiment formalized
+
+### Strata 0.1.38 is the current baseline
+
+The 0.1.38 release commit was created at 2026-10-02 20:54:11 UTC and was missed by the preceding watch pass.
+It becomes the exact-box baseline.
+
+The release bundles several known prompt-path improvements (#372/#374/#413/#452), Q5_0 GPU experts, IQ4_XS AVX2
+experts, unbuffered Windows loading and peer-device support. No new exact 5070-Ti/IQ3_S/native262K controlled ladder
+lands in this pass, so physical-fit/admission/stability/TG/PP planning priors remain unchanged.
+
+Open #510/#525/#537/#572 parser/tool fixes are not credited as shipped merely because they target 0.1.38.
+
+### Single-M1 Qwen3.8-27B is now an explicit custom-engine optimization lane
+
+Recovered MTPLX #506 evidence isolates a concrete pre-M5 long-context bottleneck:
+- the packed-GQA q=2..4 verify kernel designed for long dense KV never dispatches in the measured path;
+- context-dependent verify traffic scales with MTP draft depth;
+- production M3-Max telemetry falls from ~32.9 TG at 4-16K to ~20.2 TG at 64K+;
+- the reporter estimates a correct one-sweep verify path could yield ~+30% at 64K and ~+39% at 88K.
+
+Those uplift numbers are estimates on M3, not exact M1 measurements, so the canonical single-M1 25-TG / 110-PP target
+does not move.
+
+However this materially changes implementation priority. A Project-51 M1 27B engine should:
+- treat multi-row full-attention/GQA verify as a bespoke kernel, not a generic SDPA fallback;
+- ensure one long-KV traversal serves the whole accepted/drafted row block;
+- benchmark q=2/3/4 and wider DFlash-style blocks;
+- log dispatch counts/fallbacks;
+- run a 16/32/64/96/128K context ladder with acceptance and total verify-cycle time.
+
+The old MTPLX 2.11.1 semantic-corruption reports (#459/#464) were an M5 NAX kernel accidentally enabled on M1-M4
+and were fixed in 2.11.2; do not treat them as evidence that MTP itself is unsafe on M1.
+
+### RX 6800 is promoted to a formal dense-27B prefill-producer experiment
+
+Strata's current RDNA2 documentation now gives a strong gfx1030 anchor:
+- RX6900XT-class / 63-GB host / full 131K Flash-Next: 38-42 TG;
+- ~330-339 PP with 8K prompt chunks;
+- plain hipBLAS, because gfx1030 has no hipBLASLt kernels.
+
+The maintainer additionally reports an exact RX6800 Windows result reaching ~42 TG on 0.1.37 after the current HIP
+path improvements.
+
+Separate llama.cpp evidence shows Qwen3.8-27B Q4_K_M on a dual RX6800XT+RX6800 setup at ~230 cold PP for a fresh 15K
+prompt. This does not establish single-card PP, but proves dense-27B execution on RDNA2 and provides a scale anchor.
+
+Because DASLab IQ3_S (~11.8 GB) / IQ3_XXS (~10.1 GB) and similar ByteShape packs fit inside one 16-GB RX6800, the
+user's Linux RX6800 is now worth testing as a **cold-prefix producer** for a tuned M1 decoder.
+
+No production PP credit yet. Required gates:
+1. single-RX6800 local 16/32/64/96/128K cold PP on the exact candidate quant;
+2. export of all continuation state, not KV alone;
+3. committed-frontier metadata and tokenizer/model identity;
+4. import into the M1 engine;
+5. Mac-native-vs-imported continuation equivalence;
+6. transfer time included in end-to-end TTFT.
+
+### Cross-engine handoff is feasible but HIP->M1 remains unimplemented
+
+TensorFold #77 already established that Qwen3.8-27B CUDA conv/recurrent/KV state maps directly into the corresponding
+MLX caches with only batch/axis layout changes. The issue moved implementation to MCDMA rather than rejecting it.
+
+MCDMA has since run a smaller Qwen3-4B Spark-prefill -> Mac-decode request end-to-end, moving ~2.17 GiB in 0.48 s over
+RDMA. That is architecture proof, not an RX6800 transport measurement.
+
+Project-51 keeps the existing 32K -> 96/128K bridge qualification sequence and adds HIP/RDNA2 as a producer candidate.
+No RX->M1 latency credit is granted until the exact transport and state contract are measured.
+
+**Primary 5070-Ti fit/admission/stability/TG/PP priors, native262K target and hardware-purchase decision remain unchanged.**
 
 
 ## 2026-10-02 20:20 ET consolidation delta — Apple TQ works but does not buy ceiling by arithmetic; hot VRAM release stays out of baseline
