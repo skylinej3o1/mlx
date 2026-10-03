@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 19:25 ET.
+Last consolidated: 2026-10-02 20:20 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,56 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-02 20:20 ET consolidation delta — Apple TQ works but does not buy ceiling by arithmetic; hot VRAM release stays out of baseline
+
+### Apple QSA TurboQuant is now measured, but capacity credit requires cold-prefill proof
+
+oMLX #3436 now has live M4 Pro / 64-GB evidence that real QSA TurboQuant works:
+- ~84,839-token request;
+- measured memory ~55.8 GB at the BF16/full-precision prefill peak;
+- ~49.2 GB after 4-bit QSA KV conversion;
+- exact needle retrieval at ~64K in the reported test.
+
+The important negative result is stronger than the post-prefill saving: the author also tested quantizing during
+prefill and **it did not move the practical context ceiling**. Project-51 therefore does not award context-capacity
+credit from KV bytes alone. A compressed-KV lane must prove lower **cold-prefill transient peak** on the actual runtime.
+
+oMLX #3437 independently walks a previous single-64GB Apple ~200K+ projection back to a measured ~121-122K ceiling
+for Flash-Next oQ2 with streamed experts on one 64-GB M4 Pro. Chunked-prefill transient memory, not resident expert
+weight arithmetic, is the limiting wall.
+
+This does **not** lower the dual-M1/TB4 target: it is a different machine/topology/runtime/quant. It does remove a
+bad inference path. The dual-node 200K+ target must be established by a true two-node cold admission ladder rather
+than extrapolating from streamed weights or TurboQuant cache size.
+
+### Strata hot expert-cache release is useful but excluded from certification
+
+Strata #563 can unmap the expert-cache VRAM while leaving the model/session loaded and refill it later at the same
+virtual addresses. The reported 3090 test gives back 14.5 GiB in ~50 ms and refills in 1.7-2.5 s with byte-identical
+slots over three cycles.
+
+However, a refill while another Windows application still occupies the card can trigger WDDM shared-memory spill and
+drop decode to ~10-17 TG. Keep the feature OFF for the primary Project-51 baseline. If later enabled for workstation
+sharing, admission after refill must verify dedicated/shared VRAM before servicing inference.
+
+### Correct a TensorFold resume interpretation
+
+TensorFold #287 demonstrates that an earlier 32K "resumed turn re-prefills" result was caused by **editing the tail of
+the last message**, not by an ordinary append-style multi-turn resume. Ordinary append resumes were already fast on
+0.6.2; the PR adds an earlier checkpoint specifically for tail-edit clients.
+
+Do not use that old benchmark as evidence of general Mac resume failure. Separate >100K retention/admission evidence
+still justifies the broader Project-51 resume-equivalence gate.
+
+### Restore should validate before becoming serviceable
+
+vLLM #59832 adds a private recovered-output canary before a snapshot-restored engine opens HTTP. Carry this design
+principle into future Strata conversation-cache qualification: a restored 200-262K agent state should pass a known
+deterministic continuation canary before it is admitted as production state.
+
+**Primary 5070-Ti fit/admission/stability/TG/PP priors, native262K target and hardware-purchase decision remain unchanged.**
 
 
 ## 2026-10-02 19:25 ET consolidation delta — FP8 PLE becomes preferred fidelity candidate; agent/parser and deterministic-residency gates tighten
