@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-03 07:00 ET.
+Last consolidated: 2026-10-03 07:53 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,69 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-03 07:53 ET consolidation delta — continuation accounting, checkpoint admission, and snapshot de-duplication
+
+### Reasoning-budget continuations need segment-safe usage accounting
+
+Strata #615 demonstrates that 0.1.38 can combine original request prompt tokens with a continuation segment's cache
+count, producing impossible API telemetry such as cached tokens greater than original input. Until the fix ships,
+Project-51 must not use reasoning-continuation API usage counters as PP/context-accounting evidence.
+
+Qualification adds:
+- force at least one reasoning-budget continuation;
+- compare native segment totals to final OpenAI/Anthropic usage;
+- require original input/cache accounting to remain stable while generated/timing/I/O counters aggregate across
+  continuation segments.
+
+This is telemetry correctness, not a speed target change.
+
+### Retained checkpoint count is part of admission
+
+TensorFold #302 turns Flash-Next concurrent kept-state count into an explicit `--checkpoint-slots` admission input.
+The physical GPU path is not yet validated, but the architecture is correct: more retained states must shrink the
+admitted live window instead of silently consuming reserve.
+
+Project-51 resident-agent capacity now explicitly budgets:
+- active request context/state;
+- retained checkpoint count and bytes;
+- shared-prefix references/private suffix;
+- pending snapshot/sidecar bytes;
+- restore scratch/transients.
+
+### Snapshot sidecars must not duplicate paged KV
+
+oMLX #4081's aligned 131072-token/two-worker follow-up removes exactly 8 GiB of duplicated KV from each fresh terminal
+snapshot (8.1434 -> 0.1434 GiB sidecar) in the candidate path.
+
+The total process-memory improvement belongs to a larger patch series and is not a single-change speed/quality claim.
+The durable architecture rule is nevertheless direct:
+- if paged KV is already durable/addressable, a terminal or parking sidecar stores references/metadata plus only
+  continuation state not represented there;
+- do not serialize a second full KV image per resident agent;
+- restoration must still prove fresh-vs-resumed continuation equivalence and corrupted/missing backing-page failure.
+
+This strengthens resident-agent capacity prospects without changing numerical M1 targets.
+
+### Draft vocabulary tuning becomes workload-weighted, not size-minimizing
+
+TensorFold #273's in-window discussion reports a 40,960-id frequency-ranked Flash-Next draft list preserving 98.8%
+of correct drafts and improving geometric-mean throughput ~1.8%, but code regressed ~1.8%. A hybrid list retaining
+the code tail is proposed.
+
+For Project-51's coding/QA workload:
+- optimize accepted useful tokens per verifier millisecond on our corpus;
+- protect code/tool/CJK tokens that materially affect acceptance;
+- never adopt a globally smaller draft vocab solely from aggregate speed.
+
+### Existing high/xhigh reasoning-budget rule gets independent support
+
+Strata #617 shows a V100 field case where 5K and 15K max-token requests both exhausted the full allowance in reasoning
+with empty visible output; a 4K reasoning budget forced a final answer. This validates the existing Project-51 rule
+to set an explicit high/xhigh reasoning budget and adds a “final answer survives budget rollover” soak assertion.
+
+**No primary Windows, single-M1, RX-prefill, context, hardware-purchase, or TG/PP target change.**
 
 
 ## 2026-10-03 07:00 ET consolidation delta — PLE equivalence correction; upstream MLX gains; RX 27B implementation path strengthens
