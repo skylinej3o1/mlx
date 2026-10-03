@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-02 20:20 ET**
+Latest strategy true-up: **2026-10-02 23:26 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,40 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-02 23:26 ET single-M1 27B / RX-prefill strategy true-up
+
+**No numeric target changes. Two experimental lanes become explicit priorities.**
+
+Current primary baseline moves to **Strata 0.1.38**. Windows Flash-Next physical-fit/admission/stability priors stay
+unchanged.
+
+For **Qwen3.8-27B on one M1 Max 64 GB**, keep the existing **25 TG / 110 cold-PP** working targets. Recovered MTPLX
+#506 does not justify a numeric raise because its +30-39% long-context improvement is an estimate on M3 Max, but it
+identifies the exact kernel seam our custom engine should attack: pre-M5 multi-row GQA verification must traverse the
+long KV once per verify block, not once per drafted row. The custom-engine benchmark contract now includes
+16/32/64/96/128K, q=2/3/4 plus wider DFlash-style blocks, dispatch/fallback counters, verify-cycle time, acceptance,
+and serial-equivalence checks.
+
+Candidate order for the custom M1 27B engine:
+1. **DASLab GSQ-RCO IQ3_S (3.50 bpw / 11.8 GB)** — quality-first;
+2. **ByteShape ~3.8-bpw quality arm**;
+3. **DASLab IQ3_XXS (3.00 bpw / 10.1 GB)** and ByteShape ~3.2-bpw — speed/context arms.
+Q5/Q6/Q8 remain controls, not presumed production winners.
+
+For the user's **RX 6800 16 GB + Linux host**, add a formal **dense-27B cold-prefill-producer** experiment.
+Same-architecture Strata evidence reaches ~330-339 PP on RX6900XT-class gfx1030 Flash-Next, and llama.cpp has a
+dual-RDNA2 Qwen3.8-27B Q4_K_M fresh-prompt result around 230 PP. These are not single-RX6800/DASLab measurements, so
+the canonical RX secondary-lane PP estimate does not move.
+
+RX->M1 bridge credit requires:
+- single-card RX6800 PP receipt on the exact low-bit 27B artifact;
+- full conv/recurrent/KV state export at a committed frontier;
+- exact tokenizer/model identity;
+- M1 import;
+- continuation equivalence versus Mac-native prefill;
+- transfer time included in TTFT.
 
 
 ### 2026-10-02 20:20 ET Apple TurboQuant/transient-memory true-up
