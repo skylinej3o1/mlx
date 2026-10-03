@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-02 23:26 ET.
+Last consolidated: 2026-10-03 07:00 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,90 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-03 07:00 ET consolidation delta — PLE equivalence correction; upstream MLX gains; RX 27B implementation path strengthens
+
+### PLE: FP8 is practical, but BF16 remains behaviorally distinct
+
+Strata #586 supplies a direct fixed-residency BF16-vs-FP8-vs-IQ4_NL experiment. BF16 and FP8 diverge within roughly
+four verify windows on all eight prompts in the reported sweep; median teacher-forced KL BF16-vs-FP8 is ~0.011,
+while IQ4_NL-vs-FP8 is ~0.023.
+
+This corrects the prior over-strong wording that FP8 looked essentially source-equivalent.
+
+Canonical PLE roles are now:
+- stock IQ4_NL: compatibility/capacity baseline;
+- **FP8: practical production-fidelity candidate**;
+- **BF16: exact source-value control / quality-ceiling arm**.
+
+FP8 remains attractive because it recovers more of the gap from IQ4_NL and costs ~51 GB disk instead of ~102 GB
+for BF16, while reported runtime cost is within noise. But production choice requires task/agent evaluation; KL does
+not establish which table is behaviorally better.
+
+### Custom M1 27B engine should ride current MLX primitives and specialize only where needed
+
+MLX #4596 merged a generic two-pass SDPA unroll with large M1-Pro improvements at long context (up to ~1.5-1.7x on
+some generic 32K shapes). Qwen3.8-27B's exact GQA6/head256 shape is not measured, so no target movement.
+
+MLX #4598 adds a medium-alignment gather-QMV path with M1-Pro gains of roughly:
+- Q4 target shape: +10%;
+- Q5: +21%;
+- Q6: +16%;
+- Q8: +12%.
+
+Therefore the Project-51 M1 engine is **not** a clean-room GEMV project. Base it on current MLX and spend bespoke
+effort on:
+- Qwen3.8 multi-row long-context GQA verify;
+- exact per-tensor DASLab/ByteShape quant mapping;
+- MTP/DFlash scheduling;
+- resident-prefix/state lifecycle;
+- deterministic parser/agent serving.
+
+Single-M1 working target stays 25 TG / 110 cold PP.
+
+### DASLab IQ3_S-MTP becomes the first production-like 27B artifact
+
+Recovered Hugging Face evidence confirms the `-mtp.gguf` builds contain the MTP head directly. IQ3_S-MTP is ~12.1
+GB, only ~0.3 GB above target-only IQ3_S.
+
+Use:
+- IQ3_S-MTP as first production-like M1/RX test;
+- IQ3_S without MTP as target-only control;
+- IQ3_XXS-MTP as speed/capacity control;
+- ByteShape quality/speed siblings as alternate allocations.
+
+### RX6800 prefill producer now has a real ROCm 27B codebase to mine
+
+TensorFold #100 demonstrates Qwen3.8-27B + DFlash2 on ROCm, including chunk/resume and drafted-vs-serial tests, on a
+much stronger R9700 32-GB card. TensorFold #144 adds a ROCm GGUF path with fast W8A8 prefill on Strix Halo.
+
+Do not transfer their rates to RX6800. The durable change is implementation risk: Project 51 can port/mine an
+existing ROCm 27B execution path instead of designing the producer from scratch.
+
+The RX producer still earns no target credit until exact gfx1030 + DASLab IQ3_S-MTP cold PP and HIP->M1
+continuation-state handoff are measured.
+
+### Dense-27B compressed KV starts at INT8/Q8
+
+TensorFold #247 shows INT8 KV materially lowers long-context dense-27B attention cost while preserving prompt speed
+and passing the reported needle/task samples. It is not source-equivalent proof, but it is the right first compressed
+KV control for Project-51's dense lane before Turbo3/4-class experiments.
+
+### Primary Windows planning remains unchanged
+
+Strata #608's new 204800 option reinforces 200K as a comfortable fallback, but its setup estimator remains
+deliberately conservative on 64-GB IQ3_S systems. It is not a new physical failure receipt.
+
+Strata #603's large-context PP gain applies to the old/pre-Hopper top-k path; the RTX5070Ti uses the sm_90+ cluster
+path and does not inherit those percentages.
+
+Strata #577 is a mapped UD-Q4 file-tier regression; native IQ3 packs improved in the reporter's same 0.1.38 tests.
+
+Strata #606 adds a worthwhile repeated-token/non-finite canary to soak testing, but the report is confounded by a
+large VRAM overclock and an old engine, so no stability-prior change.
+
+**No primary fit/admission/stability/TG/PP target or hardware-purchase change.**
 
 
 ## 2026-10-02 23:26 ET consolidation delta — Strata 0.1.38; custom M1 27B verifier lane; RX prefill experiment formalized
