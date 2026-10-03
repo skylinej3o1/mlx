@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-02 19:25 ET**
+Latest strategy true-up: **2026-10-02 20:20 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,25 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-02 20:20 ET Apple TurboQuant/transient-memory true-up
+
+**No numeric primary-Windows target movement. Apple capacity qualification gets a stricter rule.**
+
+oMLX #3436 demonstrates real QSA TurboQuant on a 64-GB M4 Pro: an ~84.8K request peaks around 55.8 GB before
+post-prefill conversion and falls to ~49.2 GB afterward. An attempted quantize-during-prefill implementation still did
+**not** raise the practical context ceiling. Therefore Project 51 grants **no max-context credit from KV compression
+arithmetic alone**; the exact runtime must show a lower cold-prefill transient peak.
+
+oMLX #3437 also corrects its own earlier single-64GB ~200K+ estimate: streamed-expert Flash-Next oQ2 on one M4 Pro
+hits a measured ~121-122K wall from chunked-prefill transient memory and uses a 120K production setting. This is not
+the dual-M1/TB4 topology, so the Project-51 two-node target does not move. It does mean the dual-node 200K+ hypothesis
+must be proven by a true two-node cold 128K/200K/262K admission ladder, not inferred from resident-weight + KV bytes.
+
+Strata #563's hot expert-cache VRAM release/refill remains **off** in the certified baseline because a refill while
+another Windows application still holds VRAM can trigger WDDM shared-memory spill and ~10-17 TG decode. It may be
+qualified later as a workstation-sharing feature.
 
 
 ### 2026-10-02 19:25 ET fidelity/parser true-up
