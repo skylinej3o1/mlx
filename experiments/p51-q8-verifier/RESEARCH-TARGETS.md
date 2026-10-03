@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-03 07:53 ET**
+Latest strategy true-up: **2026-10-03 15:42 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,36 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-03 15:42 ET 16GB-baseline / RX-prefill / persistence true-up
+
+**No numeric target movement. Configuration and qualification rules sharpen.**
+
+Primary Windows exact-box qualification:
+- Strata **0.1.38**;
+- native 262144, 204800 first fallback;
+- **INT8 streamed KV with ~32768 resident cells first**;
+- preserve real post-load VRAM reserve;
+- #646 resident-verify optimization branch excluded until its non-resident sm_120 crash and IQ3_S exactness issues
+  are fixed.
+
+The exact RTX5060Ti16/64GB #620 receipt is the reason this is now a requirement: full 131K resident INT8 KV can
+consume the head's startup allocation, while `--kv-resident 32768` succeeds.
+
+Single-M1 Qwen3.8-27B stays **25 TG / 110 cold PP**. TensorFold #323's M2-Max GDN tuning yields only ~0.8-2.2%
+full-model gain, reinforcing that bespoke work should stay focused on the multi-row long-context verifier and
+state/cache lifecycle.
+
+RX6800 producer qualification starts **prefill-only / spec off** because Strata #649 shows an unresolved gfx1030
+speculative-verify hang. The producer earns credit only from cold target-only PP + full-state export/import parity;
+decode/spec can be qualified later.
+
+Conversation parking remains OFF in the initial production baseline. Strata #668 session-file restore is a separate
+future persistence arm; qualify 128K/200K/~250K restart restore before promotion.
+
+Agent-state gate adds: at max_tokens/EOT inside a speculative window, live committed state must contain exactly the
+API-visible outputs (#652).
 
 
 ### 2026-10-03 07:53 ET resident-state / reasoning-accounting true-up
