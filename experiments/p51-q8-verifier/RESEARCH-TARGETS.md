@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-04 03:53 ET**
+Latest strategy true-up: **2026-10-04 07:00 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,42 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-04 07:00 ET strict-pass qualification true-up
+
+**No numeric target or planning-confidence change.**
+
+Production baseline remains:
+> **DASLab IQ3_S / 2x M1 Max 64 GB / native262144 / >=35 TG / >=400 cold PP / source-like xhigh agent behavior.**
+
+Performance target remains:
+> **IQ3_S / ~128K / >=40 TG / >=425 cold PP.**
+
+Stretch remains:
+> **IQ3_S / native262144 / >=40 TG.**
+
+Model-challenger order changes:
+1. **Build/qualify Swift 1.5 Flash-Next IQ3_S** using the ISTA IQ3_S allocation as the reproducible starting point,
+   then apply/verify Swift-specific GSQ refinement;
+2. existing Swift GSQ-RCO IQ3_XXS becomes the immediately available lower-precision control;
+3. no Swift tier can inherit Swift-BF16 coding/Terminal gains without quant-level xhigh task evidence.
+
+Quality-gate clarification:
+- streamed **INT8 KV remains the first Windows long-context baseline**;
+- long-context FP16-vs-INT8 teacher-forced KL can remain tiny while greedy trajectories fork at near ties;
+- certification therefore uses task success, tool behavior, retrieval and repeated xhigh trajectories, not token
+  identity to FP16.
+
+RX producer clarification:
+- nearby gfx1031 evidence is not gfx1030 certification;
+- exact RX6800/gfx1030 cold prefill must prove QSA/PLE/prompt-kernel coverage before state-export/import gets bridge
+  credit.
+
+Admission/operability clarification:
+- Windows exact-box logging adds **commit-capacity headroom**;
+- disk continuation persistence is a later qualified feature, not part of initial cold-fit certification;
+- cross-request repetition and reasoning->tool boundary behavior are explicit agent correctness gates.
 
 
 ### 2026-10-04 03:53 ET Swift 1.5 challenger / task-normalized throughput true-up
