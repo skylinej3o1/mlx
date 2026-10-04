@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-03 15:42 ET.
+Last consolidated: 2026-10-03 20:51 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,92 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-03 20:51 ET consolidation delta — exact 5070-Ti PP headroom; #646 root fixes; copy-draft lane
+
+### Exact 5070-Ti prefill gets a new high-priority configuration arm
+
+Strata #693 is the first strong same-GPU evidence that prompt chunk planning can leave large PP on the table.
+On RTX5070Ti16 + 64GB Windows + IQ3_XXS, `--prefill auto:16384` with finer intermediate chunk selection reaches
+roughly 3.1-3.4K PP at 32-100K, around +21-35% over the released 0.1.38 chunk plan in those cells.
+
+Because the quant is IQ3_XXS rather than target IQ3_S, do not raise the canonical IQ3_S PP center yet.
+
+Exact-box qualification now measures:
+- released `auto`;
+- #693-equivalent `auto:16384`;
+- optional `auto:32768` if the VRAM/transient reserve stays safe;
+- actual chosen chunk, lent expert slots, expert read traffic, TTFT/PP and transient VRAM at
+  16/32/64/128/200/~250K.
+
+This is likely one of the highest-leverage low-risk 5070-Ti PP tests because the user's DDR5/PCIe platform is stronger
+than the published DDR4-2133/PCIe3 host, but that directional advantage is not converted into a numeric target.
+
+### #646 has plausible root fixes, but still no 5070-Ti production credit
+
+After independent sm_120 crash and IQ3_S exactness reports, #646's author identifies:
+- mixed shared/global pointer lowering as the sm_120 IQ3 codebook crash;
+- final-mixer reduction order and a fast-math boundary as exactness sources.
+
+The branch now uses compile-time address-space selection, avoids staging IQ3_S/IQ3_XXS codebooks, restores the stock
+final mixer by default and aligns SwiGLU/Q8_1 arithmetic.
+
+An independent partially-resident RTX4090/IQ2_XS result now shows +5% short / +8% 32K / +16% 119K decode with matching
+compared outputs.
+
+Project-51 status remains conservative:
+- #646 excluded from the 5070-Ti certified baseline;
+- no TG planning credit;
+- promotion requires independent 16-GB sm_120 partial-residency retest plus exact IQ3_S gates and soak.
+
+### Agent-serving context admission should fit static max-token requests
+
+Strata #694 shows a coding client can advertise a fixed 64K output allowance that makes a perfectly usable mid-context
+prompt fail admission even though the real answer would be much shorter.
+
+Project-51 serving profile now prefers `fit_max_tokens=true` for these clients, alongside explicit
+`reasoning_budget_tokens`. Log requested max, fitted max, reasoning and answer tokens so a fitted request is not
+mistaken for extra model context.
+
+### Copy-from-context proposals become a planned coding-workload accelerator
+
+TensorFold #319 demonstrates a workload-specific mechanism highly relevant to the user's brownfield work:
+target-verified copies from existing context can accelerate file rewrite/copy-heavy responses ~3.7x while leaving
+unrelated generation essentially unchanged.
+
+For the custom M1 27B engine, this becomes a **later** optimization after base verifier/state correctness:
+- detect long context matches;
+- propose 16->32->64 copied rows;
+- verify through the same target;
+- fall back to MTP chains on breaks;
+- benchmark real Playwright fixtures/config/code rewrites.
+
+Do not fold copy-heavy effective TG into the generic 25-TG single-M1 target.
+
+### Apple extended-context evidence further separates prefill admission from usable context
+
+oMLX #4206 gets exact structured recall at ~510K on M5 Max 128GB, but an 800K request can complete prefill then add
+15-25GB at first decode and die. A reproducible ~3x per-chunk allocation jump also appears exactly as prefill crosses
+262,144.
+
+This reinforces the existing Apple rule:
+**context admission requires cold prefill + first decode/verify + continuation**, not a successful prefill alone.
+
+No M1 numeric target transfer.
+
+### Parser semantics remain a separate agent blocker
+
+Strata #700, oMLX #4233 and MTPLX #588 add more evidence that literal tool tags and unclosed-thinking termination need
+semantic parsing, not string replacement:
+- a prose `<tool_call>` must not capture a later real call;
+- an EOS inside an unclosed think block may be either a final answer or unfinished reasoning depending on output
+  structure/tool markers;
+- length truncation must remain distinguishable.
+
+These cases join the existing #510/#525/#537/#572 parser gate.
+
+**No fit/admission/stability/TG/PP probability, context-target, RX-bridge, or hardware-purchase change.**
 
 
 ## 2026-10-03 15:42 ET consolidation delta — exclude #646 on 16GB; streamed-KV baseline; RX producer becomes prefill-only first
