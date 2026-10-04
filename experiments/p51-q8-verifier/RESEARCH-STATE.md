@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-04 11:18 ET.
+Last consolidated: 2026-10-04 13:00 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,89 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 13:00 ET strict research pass — 5070 context ladder, WDDM correction, admission planner and Slipstream MTP guard
+
+**Strict window: 2026-10-04 15:18:32 UTC -> 2026-10-04 17:00:03 UTC.**
+
+### Exact 5070 Ti + IQ3_S now has a calibrated <=131K context ladder
+
+Strata #791 reports the exact target GPU and target quant on Linux / 96-GB host:
+- 2K: ~100.4 TG / 1982 PP;
+- 8K: ~100.4 TG / 3241 PP;
+- 32K: ~95.9 TG / 3393 PP;
+- 64K: ~99.5 TG / 3333 PP;
+- 131K: ~99.1 TG / 3147 PP.
+
+This complements #775's much deeper ~257.6K Windows anchor (~43-53.5 TG after tuning). It does not transfer admission
+or exact speed to the user's 64-GB host, but it establishes that the 5070-Ti GPU itself is not the limiting factor at
+<=131K when the memory/topology plan is healthy.
+
+### Correction: 1M max-context was not shown to intrinsically halve decode
+
+The previous pass attributed #781's ~46 TG 1M arm to configured-context / VRAM-touching locality pressure.
+
+Updated #780 and new #799 show the decisive confound:
+- explicit 11,631-slot cache at 1M had 0 MiB free and ~13.7-14.7 TG;
+- auto cache at ~11,178 slots retained ~217 MiB free and ran ~102-122 TG;
+- smaller/reserved cache arms also returned ~90-101 TG.
+
+Therefore:
+- remove the claim that 1M configured context itself is proven to cause the collapse;
+- the demonstrated failure mechanism is **WDDM VRAM overcommit/sysmem fallback from an oversized explicit cache**;
+- Project 51 still keeps 262144 as the intended production ceiling because that is the user's useful-context target,
+  not because 524K/1M are inherently slow.
+
+For exact-box qualification:
+- start with expert-cache auto;
+- reserve real VRAM headroom;
+- record free VRAM after touch/initialization;
+- treat near-zero VRAM headroom as unsafe even when allocation succeeds;
+- high expert-cache hit rate does not prove the card is not paging.
+
+### #796 is the preferred next admission-planner experiment, not yet production baseline
+
+Strata #796 prices exact prefill requirements before committing expert residency, makes expert residency elastic and
+clamps/refuses unsafe chunk plans before first prompt. It directly targets the allocation-order problem behind #760/#799.
+
+It is open and its main physical validation is Linux 4070Ti SUPER, not the user's Windows 5070-Ti/64-GB box. Keep the
+Windows admission prior at ~90% until exact-box validation.
+
+### Slipstream comparisons require an explicit MTP-health check
+
+Slipstream commit 8df6674 restores one missing buffers.mtpEnabled assignment. Project notes report the regression had
+0% draft acceptance and ~15 TG versus roughly 40-50+ TG after restore.
+
+Project-51 donor audit therefore records:
+- exact Slipstream commit;
+- whether MTP is enabled;
+- draft attempts/acceptance;
+- target-only rate separately.
+
+Do not interpret 0% draft acceptance as model quality or as the architecture's normal speed.
+
+### Windows non-AVX512 prebuilt stability gets a new gate
+
+Strata #795 reports 20 c000001d crashes in official 0.1.35/0.1.38 prebuilts on an i9-13900KF across long IQ2_XS/IQ3_S
+agent workloads. Current 0.1.39 is not yet implicated.
+
+Exact-box 0.1.39 qualification records CPU ISA and includes a long-agent soak before production. No 8h/24h prior moves.
+
+### Agent quality accounting adds forced-tool and grammar/parser assistance labels
+
+- #790 can server-force a required/named tool-call opening;
+- Splash #299 changes tool-call grammar/parsing to avoid schema-order and union-type corruption.
+
+Project-51 records native model intent separately from:
+- server-forced tool opening;
+- strict grammar;
+- parser recovery/coercion;
+- retries/synthetic actions.
+
+### Strict boundary
+
+**Strict research hard boundary is now 2026-10-04 17:00:03 UTC.**
 
 
 ## 2026-10-04 11:18 ET strict research pass — Responses correction, 1M-context guard, worker calibration and fusion candidates
@@ -51,14 +134,12 @@ calibration is mandatory.
 
 Do not promote a universal worker count. Measure the user's CPU.
 
-### Keep max-context equal to the intended production ceiling
+### Max-context note corrected by the 13:00 ET pass
 
-Strata #781 runs the same ~44K active prompt with the same expert cache at max-context 262K, 524K and 1M. Reported
-decode is ~103.9 / 94.4 / 46.4 TG; at 1M the VRAM-touching GDN/QSA path grows sharply despite similar expert work.
-
-Root cause remains a hypothesis, but the operational rule is strong:
-- keep Project-51 production max-context at **262144**;
-- do not oversize max-context to 524K/1M unless a real workload requires it and exact-box performance is requalified.
+The 11:18 ET pass treated #781's 1M slowdown as likely configured-context/locality cost. Updated #780/#799 show the
+slow arm was confounded by an oversized explicit expert cache and Windows/WDDM overcommit. See the 13:00 ET correction
+above. Production still defaults to 262144 because that is the required useful context, not because larger caps are
+proven inherently slow.
 
 ### 0.1.39 CUDA fusion stack is promising but still unqualified on sm_120/IQ3_S
 
