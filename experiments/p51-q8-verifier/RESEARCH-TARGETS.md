@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-04 14:00 ET**
+Latest strategy true-up: **2026-10-04 17:01 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -183,7 +183,7 @@ exact M1-Max/TB4 evidence.
 |---|---:|---:|---:|---:|
 | **Flash-Next — 2x M1 Max 64 / TB4** | **40 tok/s @ ~128K active context** | **~70% planning confidence for >=40** | **400 tok/s** | **~70%** |
 | **Qwen3.8-27B — M1 Max 64** | **25 tok/s** | **~65%** | **110 tok/s native/exact-runtime** | **~60%** |
-| **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 <=8K / 110 ~16K / 95 ~64K / 90 ~128K tok/s** | **~75-90% by context; direct same-GPU-class v2 ladder** | **1,900 @24-32K / 1,500 @~128K tok/s** | **~80-85%** |
+| **Qwen3.8-27B — RTX 5070 Ti 16 GB** | **120 <=8K / 110 ~16K / 95 ~64K / 90 ~128K tok/s** | **~75-90% by context; direct same-GPU-class v3 ladder** | **1,900 @24-32K / 1,500 @~128K tok/s** | **~80-85%** |
 | **DS4-0731 — 2x M1 Max 64 / TB4** | **15 tok/s** | **~60-65%** | **180 tok/s** | **~60%** |
 
 Interpretation: these are the numbers to optimize toward in planning and experiment selection. They
@@ -698,6 +698,52 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-04 17:01 ET dense-27B fleet / RX-producer true-up
+
+**No headline numeric target or planning-confidence movement.**
+
+A new formal dense-27B topology is promoted:
+
+> **5070 Ti cold initial prefill -> one-time canonical-state transfer -> M1 Max permanent session ownership.**
+
+This is not continuous prefill/decode disaggregation. The phase-1 objective is to capture most of the 5070's cold-PP
+advantage while keeping all ongoing decode/tool/state behavior local to one M1.
+
+Qualification:
+- exact same post-train + weights + quant + tokenizer/template/config on producer and destination;
+- canonical image includes target KV + GDN recurrent/convolution state + position/frontier metadata;
+- 32K CUDA->Apple equivalence first, then 96K/128K;
+- measure export/network/import wall time versus M1-local cold prefill;
+- draft/MTP state may be rebuilt locally in phase 1;
+- no Swift->ThinkingCap/base cross-state reuse.
+
+Recovered exact-card CUDA-v3 dense-27B receipt:
+- real agent PP ~2,177;
+- ~62.5K ~1,949 PP;
+- ~92.9K ~1,814 PP;
+- ~128.8K ~1,680 PP;
+with ~93 TG at 128K and ~147 TG on the measured real-agent replay.
+
+This **strengthens the physical anchor but does not raise the existing mature RTX5070 target ladder**, which already
+keeps margin for workload variance and a source-like production quant.
+
+RX6800:
+- exact gfx1030 now has a known 0.1.39 decode regression/fix path;
+- near-chip gfx1030 IQ3_S evidence shows ~2x prompt throughput from FP16-output rocBLAS GEMMs;
+- promote RX6800 cold-prefill bring-up to high priority;
+- **no numeric RX PP target** until exact RX6800 + production artifact is measured.
+
+Flash exact-box priors remain:
+- IQ3_S/native262K physical fit **~97%**;
+- Windows 16-GB/64-GB full-context admission **~90%**;
+- 8 h / 24 h zero-stall **~75% / ~55%**.
+
+Dual-M1 Flash remains:
+- production: IQ3_S/native262144/**>=35 TG / >=400 cold PP**;
+- performance: IQ3_S/~128K/**>=40 TG / >=425 cold PP**;
+- stretch: IQ3_S/native262144/**>=40 TG**.
 
 
 ### 2026-10-04 14:00 ET Strata numerical-quality / exactness gate
