@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-04 10:31 ET.
+Last consolidated: 2026-10-04 11:18 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,68 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 11:18 ET strict research pass — Responses correction, 1M-context guard, worker calibration and fusion candidates
+
+**Strict window: 2026-10-04 14:31:51 UTC -> 2026-10-04 15:18:32 UTC.**
+
+### Canonical correction: Strata 0.1.39 DOES have native Responses
+
+The previous 10:31 ET pass incorrectly inferred from PR #759 closing unmerged that native /v1/responses was absent.
+
+Correct source fact:
+- upstream commit **0ad8f70** from 2026-10-03 16:35:35 UTC implemented stateless POST /v1/responses under #451;
+- current 0.1.39 / 6f32ec0 contains serve/responses.py, server routing, tests and Codex documentation;
+- #759 was a separate later contribution, not the origin of current Responses support.
+
+Current status is therefore:
+> **Strata 0.1.39 has native Responses, but Codex compatibility is incomplete.**
+
+New issue #782 shows Codex 0.160.0 can emit an additional_tools input item that current Strata rejects. Project-51
+Codex certification must include that exact payload class before calling the endpoint Codex-complete.
+
+### 5070-Ti calibration policy strengthens; no speed prior moves
+
+Strata #780 independently shows a large expert-pool worker-count effect on a Windows Intel hybrid CPU:
+4 workers beats the default 15 by ~28.7% in its ABBA. Together with #775's i7-14700KF result, exact-box pool-worker
+calibration is mandatory.
+
+Do not promote a universal worker count. Measure the user's CPU.
+
+### Keep max-context equal to the intended production ceiling
+
+Strata #781 runs the same ~44K active prompt with the same expert cache at max-context 262K, 524K and 1M. Reported
+decode is ~103.9 / 94.4 / 46.4 TG; at 1M the VRAM-touching GDN/QSA path grows sharply despite similar expert work.
+
+Root cause remains a hypothesis, but the operational rule is strong:
+- keep Project-51 production max-context at **262144**;
+- do not oversize max-context to 524K/1M unless a real workload requires it and exact-box performance is requalified.
+
+### 0.1.39 CUDA fusion stack is promising but still unqualified on sm_120/IQ3_S
+
+Strata #783 rebases the unmerged remainder of the #646-style verify/MTP fusion work onto 0.1.39. On a fully resident
+2x3090 IQ2_XS layer split it reports ~9-10% decode improvement and 25/25 parity tests.
+
+Treat this as a high-priority exact-5070 A/B candidate after the clean 0.1.39 baseline. No production speed credit
+until sm_120 / 16-GB / IQ3_S is independently exercised.
+
+### Responses/tool parser qualification expands
+
+- #782: Codex additional_tools item;
+- #787: complete tool call emitted before reasoning closes;
+- existing tool-in-thinking, literal-marker and malformed-history cases remain.
+
+Server recovery/parser success is tracked separately from native model/quant success.
+
+### RX6800 path unchanged numerically
+
+#786 gives strong gfx1100 QSA prompt-attention gains but is RDNA3-specific. It does not transfer to gfx1030.
+The RX6800 producer still needs exact gfx1030 target-only/speculation-OFF measurements and state bridge equivalence.
+
+### Strict boundary
+
+**Strict research hard boundary is now 2026-10-04 15:18:32 UTC.**
 
 
 ## 2026-10-04 10:31 ET strict research pass — exact 5070-Ti IQ3_S 262K speed, Responses correction, gfx1030 bring-up
@@ -73,17 +135,10 @@ For Project 51:
 - record engine version, BUILD.json/source identity and git commit for every result;
 - no stability prior moves until exact-box soak.
 
-### Native Responses support is not part of current Strata
+### Responses note corrected by the 11:18 ET pass
 
-PR #759 was closed unmerged after the previous cutoff. Its large-prefix Codex/subagent run remains useful evidence that
-the protocol adapter worked, but Project 51 must not depend on native /v1/responses in Strata.
-
-Any Responses path is classified separately:
-- native engine support, if a future upstream implementation lands;
-- external translation/router;
-- client using Chat Completions or Anthropic directly.
-
-Protocol adapters cannot receive model-quality credit.
+The 10:31 ET pass misread #759's closure as absence of native Responses. Current 0.1.39 already contains the older
+0ad8f70 / #451 implementation. See the 11:18 ET correction above. #759 is a separate contribution.
 
 ### gfx1030/RX producer moves from compile uncertainty to physical bring-up, not to production credit
 
