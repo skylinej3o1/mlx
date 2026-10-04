@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-04 07:00 ET.
+Last consolidated: 2026-10-04 08:27 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,88 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 08:27 ET strict research pass — exact 16GB/64GB IQ3_S fit, Codex protocol and pipeline/tool gates
+
+**Strict window: 2026-10-04 11:00:23 UTC -> 2026-10-04 12:27:27 UTC.**
+
+### 16-GB / 64-GB IQ3_S native262K physical fit strengthens from ~95% to ~97%
+
+Strata #757 supplies a direct same-memory-class receipt:
+- original DASLab IQ3_S;
+- 16-GB RTX4090 Laptop;
+- 64-GB host / 61.28 GiB usable;
+- 262144 configured context;
+- 250K cold prompt completed;
+- VRAM ~15.7/16 GB;
+- MemAvailable stayed >=6.17 GiB;
+- no swap growth;
+- 15/15 retrieval needles passed.
+
+This is **capacity evidence**, not a speed transfer to the user's 5070 Ti.
+
+Project-51 planning update:
+- IQ3_S/native262K physical-fit prior: **~95% -> ~97%**;
+- Windows 16-GB/64-GB admission remains **~90%** because the receipt is Linux and does not resolve Windows commit/page-lock/WDDM risk;
+- 8 h / 24 h zero-stall remain **~75% / ~55%**.
+
+The receipt also shows a 262K cap with non-streamed INT8 KV shrinking expert-cache slots and costing ~13-17% decode versus a 131K cap. This reinforces the existing 5070-Ti production baseline:
+**streamed INT8 KV, ~32K resident first**, preserving expert-cache headroom.
+
+### Strata Responses/Codex becomes a first-class qualification lane, but remains unreleased
+
+Strata #759 adds a native /v1/responses endpoint and reports a real Codex CLI run with a 92,672-token tools/skills
+prefix plus exec_command, and a separate spawn_agent/wait_agent/close_agent workflow.
+
+Once the selected Strata build includes this work, Project-51 agent qualification should include:
+- large tool/skill prefix near 100K;
+- normal shell/file tool rounds;
+- subagent spawn/wait/close;
+- continuation after tool results;
+- reasoning-token and wall-clock accounting.
+
+Protocol success does not promote a quant; the model-level xhigh suite still controls quality.
+
+### Server recovery must not masquerade as model quality
+
+Strata #762 adds JSON extraction from prose/fences.
+Strata #763 can retry required tool_choice and, if the model still declines to call a tool, synthesize a schema-valid
+tool call.
+
+Project-51 quality rule:
+- native model/tool output, parser-recovered output, retry-assisted output and server-synthesized actions are four
+  different outcomes;
+- **server-synthesized tool calls receive zero native-model success credit** in DASLab-vs-Swift certification;
+- every recovery/retry/synthesis is logged and counted in task wall-clock / corrections.
+
+This prevents protocol middleware from hiding quant/model differences.
+
+### Balanced dual-M1 PP bring-up explicitly avoids downstream-wait serialization
+
+Strata #761 doubles PP on one 4-way CUDA layer split by letting a stage return while downstream stages continue,
+with one in-flight chunk per stage and a final outer join. Arithmetic/output remains unchanged in the reported A/B.
+
+Direct transfer is forbidden, but the implementation lesson is strong:
+- dual-M1 balanced-pipeline bring-up uses asynchronous stage handoff;
+- stage-local buffers have explicit one-in-flight ownership;
+- measure stage wait/bubble separately from compute and TB4 copy time.
+
+The >=400 native262K PP planning confidence does **not** move from this CUDA result.
+
+### Stage-owned weights are required in dual-M1 layer-split bring-up
+
+Strata #390 predates this strict window but was updated in-window. Its current design demonstrates that a split stage
+need not load the whole model's dense/native weights.
+
+Project-51 engineering rule:
+- balanced/asymmetric M1 stages load/price only their owned layer weights;
+- never duplicate the full nonexpert body accidentally;
+- any helper-expert tier is a later optimization after correctness and basic topology measurements.
+
+### Strict boundary
+
+**Strict research hard boundary is now 2026-10-04 12:27:27 UTC.**
 
 
 ## 2026-10-04 07:00 ET strict research pass — Swift IQ3_S priority, KV semantics, persistence and RX/agent gates
