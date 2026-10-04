@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-04 03:09 ET**
+Latest strategy true-up: **2026-10-04 03:53 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,37 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-04 03:53 ET Swift 1.5 challenger / task-normalized throughput true-up
+
+**No change to the DASLab IQ3_S production target. Model-selection metrics expand.**
+
+Production baseline remains:
+> **DASLab IQ3_S / 2x M1 Max 64 GB / native262144 / >=35 TG / >=400 cold PP / source-like xhigh behavior.**
+
+New challenger:
+> **Swift 1.5 GSQ-RCO IQ3_XXS**, pending quant-level long-agent qualification.
+
+Underlying Swift 1.5 BF16 is especially relevant to Project 51:
+- GPQA-D essentially flat at xhigh while mean thinking tokens fall ~56%;
+- LiveCodeBench improves ~2 points with ~45% fewer mean thinking tokens;
+- Terminal-Bench improves ~2 points;
+- but IFBench and AIME regress, so it is not globally superior.
+
+The compact bucket currently has **IQ3_XXS / IQ2_XS / Q2_0**, not IQ3_S. IQ3_XXS has promising short-context KLD
+against Swift BF16, but no quant-level long-agent task receipt. Therefore it cannot inherit the BF16 benchmarks by
+assumption.
+
+Add a first-class KPI alongside TG/PP:
+> **time-to-correct-agent-result / total task wall-clock**
+
+Report reasoning-token count, tool count, retries and success together with raw TG/PP. This prevents a token-efficient
+Swift model from being undervalued merely because its decoder TG is lower—or overvalued because the BF16 model thinks
+less while the quant loses capability.
+
+Swift promotion requires coding/Terminal/SWE-bench-style/Playwright/deep-context/repeated-xhigh qualification plus
+single/dual-M1 memory and speed measurements.
 
 
 ### 2026-10-04 03:09 ET dual-M1 Flash-Next target recalibration
