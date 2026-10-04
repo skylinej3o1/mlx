@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-04 11:18 ET**
+Latest strategy true-up: **2026-10-04 13:00 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -700,6 +700,42 @@ Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti P
 
 
 
+### 2026-10-04 13:00 ET 5070 context-ladder / VRAM-safety true-up
+
+**No numeric target or planning-confidence movement.**
+
+New measured 5070-Ti performance anchor (Linux / 96-GB host / IQ3_S / calibrated):
+- ~100 TG at 2K-8K;
+- ~96-100 TG through 32K-131K;
+- ~3.1K PP at 131K.
+
+This complements the existing ~257.6K Windows anchor (~43-53.5 TG after tuning). Neither proves the user's exact
+64-GB host admission or final xhigh agent wall-clock.
+
+**Important correction to the previous pass:** the 1M slowdown in #781 is now attributed to an oversized explicit
+expert cache/WDDM sysmem fallback, not proven intrinsic max-context cost. Project 51 still configures **262144** by
+default because that is the production requirement, but larger caps are not rejected on principle.
+
+5070-Ti admission/configuration rules:
+- expert-cache auto first;
+- streamed INT8 KV / ~32K resident remains the first 64-GB Windows arm;
+- measure free VRAM after allocations are physically touched;
+- treat near-zero VRAM headroom or WDDM paging as failed admission even if startup succeeds;
+- #796 unified VRAM planner is a high-priority A/B after baseline but earns no admission credit until exact Windows
+  5070-Ti/64-GB validation;
+- calibrate pool workers/spec/min-p/pcie-frac/profile only after the memory plan is safe.
+
+Production priors remain:
+- IQ3_S/native262K physical fit **~97%**;
+- Windows 16-GB/64-GB full-context admission **~90%**;
+- 8 h / 24 h zero-stall **~75% / ~55%**.
+
+Dual-M1 remains:
+- production: IQ3_S/native262144/**>=35 TG / >=400 cold PP**;
+- performance: IQ3_S/~128K/**>=40 TG / >=425 cold PP**;
+- stretch: IQ3_S/native262144/**>=40 TG**.
+
+
 ### 2026-10-04 11:18 ET protocol/configuration correction
 
 **No numeric target or planning-confidence movement.**
@@ -711,7 +747,7 @@ Canonical Strata protocol correction:
 
 5070-Ti configuration gate:
 - pool-worker count is now a mandatory calibration dimension, not a default to trust;
-- keep production max-context at **262144**, rather than configuring 524K/1M without need;
+- production default remains **262144** because it is the required context; #780/#799 correct the prior inference that larger configured caps are intrinsically slow when VRAM residency is healthy;
 - #783 becomes a later exact-sm_120 fusion A/B after the clean 0.1.39 baseline, with no pre-credit.
 
 Production priors stay:
