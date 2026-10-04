@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-04 17:01 ET.
+Last consolidated: 2026-10-04 18:06 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,75 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 18:06 ET strict research pass — stability, AMD calibration, and agent-history hardening
+
+**Strict window: 2026-10-04 21:01:52 UTC -> 2026-10-04 22:06:41 UTC.**
+
+### Strata exact-box soak should include the #838 q8_1 finite clamp
+
+#838 closes two fused q8_1 activation-quantizer paths that could still store non-finite fp16 scale/sum metadata.
+The shared-expert fused SwiGLU path is relevant to normal Flash decode.
+
+The added sm_120 overflow test shows:
+- existing finite blocks stay bit-identical;
+- synthetic overflow blocks are clamped finite;
+- the old fused path fails the new overflow cases.
+
+A second 5090 conversation showed the same persistent token-0/"!" collapse family around ~99K, but the author could
+not reproduce it or causally tie it to this kernel.
+
+Project-51 policy:
+- treat #838 as a high-priority stability candidate, not a proven root cause;
+- exact RTX5070 long-agent soak should include a build with this clamp or later;
+- record non-finite activation events and repeated-token degeneration;
+- restart/replay controls remain mandatory;
+- no 8h/24h stability-prior movement until exact-box soak.
+
+### Windows/HIP calibration is excluded from AMD evidence until launch-path parity exists
+
+#840 demonstrates ~18x decode discrepancy between Strata's Windows/HIP `--calibrate` path and the same engine/config
+through normal serving on an RX7900XTX. Prompt processing is likewise badly distorted.
+
+For RX6800 bring-up:
+- do not use `--calibrate` winners as evidence;
+- sweep pool workers / pcie-frac / speculation through the normal server path;
+- one fresh server per arm where practical;
+- record launch path and environment as part of benchmark identity.
+
+This is a methodology correction, not a gfx1100->gfx1030 numeric transfer.
+
+### Agent-history gate adds empty assistant-turn poisoning
+
+#843 shows that Qwen IQ3_S and Swift IQ3_XXS can imitate prior empty assistant turns and subsequently stop producing
+tool calls, even though fresh requests succeed.
+
+Project-51 agent certification now includes:
+- 1 and 3 empty assistant turns injected into prior history;
+- tool-required next turn under greedy and production sampling;
+- native empty-turn rate;
+- normalized-history result.
+
+Skipping empty assistant turns is classified as **history-normalization-assisted** success, not native model success.
+This remains separate from parser rescue (#804/#525) and server-forced tool intent (#790).
+
+### #783 gets stronger deep-context mechanism evidence
+
+On one RTX4090 / Flash IQ2_XS / 262K setup, #783 improves decode by ~14% at 119K and ~9.5% at 238K while prompt
+throughput stays flat and recall remains correct.
+
+This raises exact RTX5070/IQ3_S A/B priority but does not transfer a numeric uplift. The earlier partial-residency
+trajectory-divergence history still requires exact-target end-to-end controls before production credit.
+
+### Batch/layer-split all-resident correctness adds a gate
+
+#845 fixes the all-resident batch stage waiting for a host doorbell that is intentionally absent. Add
+layer-split + parallel>=2 + all-resident-stage coverage to future Strata multi-agent qualification.
+
+### Strict boundary
+
+**Strict research hard boundary is now 2026-10-04 22:06:41 UTC.**
 
 
 ## 2026-10-04 17:01 ET strict research pass — 27B fleet handoff promoted; RX6800 producer strengthened
