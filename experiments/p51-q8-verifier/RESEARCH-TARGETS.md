@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-04 08:27 ET**
+Latest strategy true-up: **2026-10-04 10:31 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,46 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-04 10:31 ET exact-5070 native262K performance anchor / protocol correction
+
+**No dual-M1 target movement and no fit/admission/stability-prior movement.**
+
+Windows/5070-Ti planning remains:
+- IQ3_S/native262K physical fit: **~97%**;
+- Windows 16-GB/64-GB full-context admission: **~90%**;
+- 8 h / 24 h zero-stall: **~75% / ~55%**.
+
+New direct performance anchor:
+> **RTX 5070 Ti 16 GB / Windows / DASLab IQ3_S / 262144 / streamed INT8 KV / 96-GB host** has now been reported
+> above **40 TG** at a 257.6K prompt after calibration, with single runs spanning roughly **43-53.5 TG**.
+
+This is the exact target GPU and quant but **not** the target host-memory capacity. It demonstrates GPU/runtime
+capability; it does not prove the user's 64-GB box will admit and sustain the same configuration.
+
+Exact-box tuning order:
+- frozen-residency quality baseline first;
+- then pool workers, spec4/spec6, spec-min-p and pcie-frac sweep;
+- learned profile as an independent arm;
+- repeated cold/warm xhigh agent runs with wall-clock and retry accounting.
+
+Do not copy #775's settings blindly. The host/CPU differ and its cells are single-run observations.
+
+Software identity:
+- treat **0.1.39 / commit 6f32ec0** as the next current-engine qualification candidate when BUILD.json confirms it;
+- retain 0.1.38 as the regression comparator;
+- native /v1/responses is **not** part of the baseline because #759 closed unmerged.
+
+RX6800:
+- #778 materially reduces gfx1030 bring-up risk by fixing current-main compilation and showing adjacent RX6950XT
+  execution;
+- no bridge/PP target credit until exact RX6800 + target artifact + speculation-OFF prefill and state-equivalence tests.
+
+Dual-M1 remains:
+- production: IQ3_S/native262144/**>=35 TG / >=400 cold PP**;
+- performance: IQ3_S/~128K/**>=40 TG / >=425 cold PP**;
+- stretch: IQ3_S/native262144/**>=40 TG**.
 
 
 ### 2026-10-04 08:27 ET exact 16GB/64GB fit / agent-protocol true-up
