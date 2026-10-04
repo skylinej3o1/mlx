@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-03 15:42 ET**
+Latest strategy true-up: **2026-10-03 20:51 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,29 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-03 20:51 ET exact-5070 PP / copy-draft / agent-admission true-up
+
+**No numeric target movement. Exact-box PP and agent-serving qualification get new arms.**
+
+Primary Windows stays Strata 0.1.38, IQ3_S/native262K fit ~95%, Windows admission ~90%, 8 h / 24 h zero-stall
+~75% / ~55%, automatic #481 containment ~85%, with INT8 streamed KV and ~32K resident cells first.
+
+**5070-Ti prefill:** add a #693-equivalent `--prefill auto:16384` fine/equal-chunk arm. Same-GPU IQ3_XXS evidence
+shows ~21-35% higher PP from 32-100K and ~3.1-3.4K PP absolute. Do not transfer that rate to IQ3_S; measure
+16/32/64/128/200/~250K on the exact quant and log chosen chunk / expert loans / transient VRAM.
+
+**#646:** root-cause fixes for the sm_120 crash and source-gate drift are plausible, and a 24-GB Ada partial-residency
+test now gets +5-16% decode. Still exclude the branch from 5070-Ti certification until an independent 16-GB sm_120
+partial-residency retest plus exact IQ3_S gate succeeds.
+
+**Agent-serving profile:** enable `fit_max_tokens=true` for clients that send large static max-token allowances;
+keep explicit reasoning budget and log the fitted effective cap.
+
+**Custom M1 27B:** generic target remains **25 TG / 110 cold PP**. Add context-copy proposals as a later,
+workload-specific accelerator after base verifier/state correctness. Copy-heavy rewrite TG never substitutes for the
+generic TG target.
 
 
 ### 2026-10-03 15:42 ET 16GB-baseline / RX-prefill / persistence true-up
