@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-03 20:51 ET**
+Latest strategy true-up: **2026-10-04 03:09 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,99 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-04 03:09 ET dual-M1 Flash-Next target recalibration
+
+**This section supersedes the September dual-M1 Flash target center. It is based on targeted source audits, not a
+new comprehensive search pass; the strict search hard boundary remains 2026-10-04 00:51:42 UTC.**
+
+New physical anchor:
+- paperniuk/ds4 / M1 Max 64 GB / Qwen3.8-Flash-Next;
+- Q2_0: ~43.4 MTP TG @128K and ~37.4 @256K;
+- IQ3_XXS: ~34.2 @128K and ~31.7 around259K;
+- **IQ3_S: ~32-34 MTP TG at short context**;
+- tuned long-context QSA/indexer work has already demonstrated a 23.8 -> 33.8 TG plain-decode jump at ~128K.
+
+This is sufficiently stronger than the old ~22-23-TG M1 long-context anchor to move the canonical dual-M1 planning
+distribution.
+
+#### Canonical production artifact
+
+**DASLab IQ3_S** is now the first production artifact for the 2x M1 Max lane.
+
+IQ3_S may be used as a **Q5-class task-quality planning shorthand at ~3.5-bpw transformer economics**, but this does
+not imply source equivalence. Production still requires source-like xhigh coding/tool/long-context/state behavior.
+
+#### Canonical dual-M1 goals
+
+| IQ3_S / 2x M1 Max 64 GB | Initial bring-up | Mature realistic | Success target | Stretch |
+| --- | ---: | ---: | ---: | ---: |
+| TG @ ~128K | 25-28 | **34-38** | **40** | 45+ |
+| TG @ native262K | 23-26 | **31-35** | **35** | **40** |
+| cold PP @ ~128K | 330-380 | **420-460** | **425+** | 500 |
+| cold PP @ native262K | 330-380 | **390-430** | **400** | 450+ |
+
+Canonical production definition:
+> **IQ3_S / native262144 / >=35 TG / >=400 cold PP / source-like xhigh behavior.**
+
+Performance definition:
+> **IQ3_S / ~128K / >=40 TG / >=425 cold PP.**
+
+Stretch:
+> **IQ3_S / native262144 / >=40 TG.**
+
+Planning confidence:
+- fit cleanly across two 64-GB M1 Maxes: **>=90%**;
+- >=400 cold PP @262K: **~80%**;
+- >=35 TG @262K: **~70-75%**;
+- >=40 TG @128K: **~70-75%**;
+- >=40 TG @262K: **~45-55%**.
+
+These are engineering planning priors.
+
+#### Memory basis
+
+paperniuk/ds4 plans IQ3_S approximately as:
+- 55.2 GiB base;
+- ~33 KiB per context token;
+- +2 GiB reserve.
+
+At native262K this is **~65.9 GiB**, only slightly above a single 64-GB Mac and trivial across 128 GB aggregate.
+The large n-gram/PLE table can stay on SSD.
+
+Therefore the dual-M1 problem is now primarily **latency/topology**, not aggregate fit.
+
+#### Architecture competition
+
+Do not lock PP2/pipeline as the only architecture.
+
+Qualify three arms:
+1. balanced contiguous layer pipeline;
+2. asymmetric decode split after one-time post-prefill state migration;
+3. **almost-local IQ3_S with shallow routed-expert SSD spill**.
+
+For arm 3, the approximate bytes that must leave Mac A at resident budgets of 54/56/58 GiB are **11.9 / 9.9 /
+7.9 GiB** respectively. Slipstream makes this mechanism credible, but its M5-Pro rates do not transfer to M1.
+
+The winning architecture is the one that meets the native262K 35/400 production goal with the best xhigh quality and
+operational reliability—not the one with the prettiest microbenchmark.
+
+#### Custom-engine scope
+
+Do not rebuild generic Flash-Next M1 execution from zero.
+
+Start from paperniuk/ds4 and add only the missing Project-51 work:
+- Qwen Flash distributed/asymmetric execution;
+- exact IQ3_S memory/residency control;
+- shallow expert spill experiment;
+- additional multi-row verifier work only where profiling still shows headroom;
+- copy-from-context proposals for repo/file edits;
+- resident-agent/session correctness;
+- dual-M1 scheduling.
+
+Historical September 40 TG / 400 PP @128K remains in this file for provenance but is superseded as the sole production
+goal by the native262K 35/400 definition above.
 
 
 ### 2026-10-03 20:51 ET exact-5070 PP / copy-draft / agent-admission true-up
