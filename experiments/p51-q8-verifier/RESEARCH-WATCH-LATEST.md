@@ -1,323 +1,354 @@
-# Project 51 research watch — 2026-10-03 20:51 ET
+# Project 51 research watch — 2026-10-04 07:00 ET
 
-Freshness boundary entering: **2026-10-03 19:42:13 UTC**
-Cutoff: **2026-10-04 00:51:42 UTC**
+Freshness boundary entering: **2026-10-04 00:51:42 UTC**
+Cutoff: **2026-10-04 11:00:23 UTC**
 
 ## Decision
 
 **No numeric fit/admission/stability/TG/PP target movement.**
 
-Primary Windows state remains:
-- Strata baseline: **0.1.38**;
-- IQ3_S + native262K physical fit/admission: **~95%**;
-- Windows 16-GB/64-GB full-context admission: **~90%**;
-- 8 h / 24 h zero-stall: **~75% / ~55%**;
-- #481-style automatic containment/no-manual-service-restart: **~85%**;
-- native production context: **262,144**, with **204,800** first fallback;
-- baseline long-context KV: **INT8 streamed, ~32K resident first**;
-- conversation parking OFF for initial certification;
-- explicit `reasoning_budget_tokens` for high/xhigh;
-- frozen residency for source/AA qualification.
+The strict boundary advances to **2026-10-04 11:00:23 UTC**.
 
-This pass makes six durable strategy changes/refinements:
+This pass does make seven durable strategy/qualification refinements:
 
-1. **Exact RTX 5070 Ti evidence makes larger adaptive prefill chunks a first-class qualification arm.**
-   Strata #693, on a 5070 Ti 16 GB / 64 GB Windows host, raises IQ3_XXS long-prompt PP from ~2.4-2.6K to
-   **~3.1-3.4K** at 32-100K using `--prefill auto:16384` plus finer/equal chunk planning. This is exact-GPU
-   evidence, but not exact IQ3_S, so it changes the test plan—not the canonical IQ3_S PP center.
+1. **Swift 1.5 Flash-Next IQ3_S becomes the highest-priority model artifact to build and qualify.**
+   The current public Swift Flash GSQ-RCO bucket still has IQ3_XXS / IQ2_XS / Q2_0 and no IQ3_S at the cutoff.
+   However, the same Swift quant workflow already publishes an IQ3_S tier for Swift 1.5 27B, and the Flash release
+   explicitly reuses matching ISTA allocation profiles before Swift-specific GSQ refinement. Therefore an IQ3_S
+   Flash build is an engineering/reproduction task, not a new quantization research problem. DASLab IQ3_S remains
+   production baseline until the Swift build passes the full xhigh suite.
 
-2. **#646 remains excluded from the 5070-Ti baseline, but its status improves from “unknown crash” to
-   “plausible fix awaiting independent sm_120 retest.”**
-   The author traced the 5080 crash to mixed shared/global codebook pointer lowering on sm_120 and the source-gate
-   drift to final-mixer / fast-math differences, then pushed compile-time staging and exactness fixes. A separate
-   partially-resident RTX4090 now reports +5% short, +8% at 32K and +16% at 119K with matching compared outputs.
-   Until an independent 5080/5070 retest passes, #646 still receives zero production credit on our lane.
+2. **INT8 KV remains the practical long-context baseline, but “indistinguishable from FP16” is no longer an
+   acceptable trajectory claim.** Strata #729 finds tiny median distribution shift and no depth-dependent KL growth
+   through 240K, yet 13/16 greedy continuations fork within 32 tokens because near-ties amplify tiny perturbations.
+   Certification must therefore compare task success / tool behavior / long-agent trajectories against FP16 controls,
+   not require token identity and not infer equivalence from teacher-forced KL alone.
 
-3. **Agent serving should use `fit_max_tokens=true` for long coding sessions, while logging the effective cap.**
-   Strata #694 shows a real OMP session where prompt + configured 64K max output exceeded a 131K window and hard-400'd;
-   enabling the already-supported fit behavior solved it. This is server admission hygiene, not model context
-   expansion.
+3. **RX6800 prefill-producer work remains exact-gfx1030, speculation-OFF first, with an added kernel-coverage gate.**
+   Strata #703 shows nearby gfx1031 can sustain long heterogeneous Flash decode but then fail on long-history prefill
+   with a missing PLE kernel image. That is useful caution, not direct gfx1030 evidence. No RX bridge/PP credit moves.
 
-4. **Copy-from-context drafting becomes a future custom-engine optimization for rewrite-heavy coding work.**
-   TensorFold #319 verifies copied spans before MTP chains and accelerates a file-rewrite response **~3.7x** while
-   keeping drafted output equal to serial. This is CUDA evidence, not an M1 receipt, but it maps unusually well to
-   the user's brownfield QA/file-edit workload and belongs after the basic M1 verifier is correct.
+4. **Disk-backed continuation persistence graduates from a speculative feature to a serious post-baseline lane.**
+   Strata #751 demonstrates an opt-in bounded disk LRU restoring a 4.46-GiB snapshot at ~258K tokens and reusing
+   258,012 tokens with the same structured checks, plus byte-exact deterministic continuation across restarts at 4K.
+   Initial production certification still keeps RAM conversation parking/persistence OFF; persistence is qualified
+   separately after core inference/state correctness.
 
-5. **Apple long-context qualification keeps “prefill success != usable context.”**
-   oMLX #4206 now has an M5 Max 128-GB stock-config 510K run passing 12/12 structured needles, but 800K can complete
-   prefill and then die at decode start from a +15-25 GB transient. It also observes a sharp prefill-cost step exactly
-   at the native 262,144 boundary. This strengthens the existing transient/decode-start gate; it does not move M1
-   Max targets.
+5. **Windows admission must consider commit capacity, not only reported free RAM.** Issue #730 shows page-locked
+   complement allocation can fail while apparent RAM remains; PR #749 adds commit-capacity-aware admission/logging.
+   This is pending/unmerged, so no admission-probability raise.
 
-6. **Agent parser gate expands again.**
-   Strata #700 catches `<tool_call>` named in prose before a real call; oMLX #4233 and MTPLX #588 independently
-   reinforce unclosed-thinking recovery ambiguity. Parser correctness remains a separate production blocker from
-   hardware/runtime fit.
+6. **Agent correctness gates expand beyond token generation.** Strata #710 shows a cross-request tool loop repeating
+   an ineffective repair 98 times despite a per-request reasoning budget; #754 shows Anthropic tool markup can be
+   emitted inside thinking and returned as end_turn rather than structured tool_use. Add cross-request repetition
+   detection and Anthropic thinking/tool boundary cases to the Project-51 agent gate.
 
-No newer Strata release than **0.1.38**.
-No new exact M1 Max DASLab/ByteShape benchmark.
-No new exact single-RX6800 dense-27B PP receipt.
+7. **Generic MLX still has meaningful prefill kernel headroom, but paperniuk/ds4 stays the M1 Flash baseline.**
+   MLX #4621 reports large-M quantized_matmul slower than dequantize+BF16 matmul on M2 Max, with Qwen3.8-27B 4-bit
+   8K prefill moving 137 -> 179 tok/s when switching paths. MLX #4516 separately updates a narrow-output QMV path
+   with ~18-20% model-shaped Flash-layer step gains on M5 Max and bitwise-identical outputs. These are upstream
+   mechanism clues only; they do not replace or numerically transfer into the M1-specific ds4 fork.
 
-## NEW — Strata #693: exact RTX 5070 Ti shows large PP headroom from chunk planning
+No newer Strata release than **0.1.38** was found in-window.
 
-PR:
-https://github.com/Niko1221/Strata/pull/693
+## SAME-DAY / KNOWN — paperniuk/ds4 M1 Flash work
 
-Created **2026-10-03 22:21:32 UTC**, open.
+The targeted 03:09 ET design true-up already persisted the important M1-Max Flash receipts that fall on the same
+calendar day:
+- tuned Q2_0 / IQ3_XXS / IQ3_S M1-Max rates;
+- long-context QSA/indexer improvements;
+- current prefill table including the ~398K chat;
+- checkpoint/session-anchor behavior;
+- IQ3_S memory planning and the shallow-expert-spill architecture.
 
-Environment:
-- RTX **5070 Ti 16 GB**, PCIe 3.0 x16;
-- Ryzen 9 5900XT;
-- 64 GB DDR4-2133;
-- Windows 11;
-- IQ3_XXS;
-- 400K configured context, INT8 KV.
+Do not re-label these as new in this strict pass.
 
-Mechanism:
-- current `auto:16384` tries 16K, then falls directly to 8K;
-- a 16-GB card may fit an intermediate chunk such as 13K but not 16K;
-- because >=1K chunks stream nearly all non-resident experts, fewer/larger chunks substantially reduce repeated
-  expert streaming;
-- patch tries every 1K size above 8K and uses equal-sized chunks when that does not create a tiny last chunk.
+Repository:
+https://github.com/paperniuk/ds4/tree/m1-flash-next
 
-Measured PP:
-- ~20K: **2,101 -> 2,898 (+38%)**;
-- ~32.7K: **2,570 -> 3,120 (+21%)**;
-- ~40K: **2,546 -> 3,088 (+21%)**;
-- ~65K: **2,597 -> 3,392 (+31%)**;
-- ~100K: **2,428 -> 3,275 (+35%)**.
+## SAME-DAY / UPDATE — Swift 1.5 IQ3_S build feasibility
 
-Needles:
-- 9/9 at 32K, 128K and 262K depths 10/50/90 with `auto:16384`.
+Public Swift Flash bucket at cutoff:
+https://huggingface.co/buckets/adamm-hf/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF-bucket
 
-Important limits:
-- model is IQ3_XXS, not target IQ3_S;
-- host is DDR4/PCIe3, not the user's stronger DDR5 platform;
-- branch is open;
-- `auto:32768` not measured.
+Swift 1.5 source / quant references:
+https://huggingface.co/ukisai/Swift1.5-Qwen3.8-Flash-Next
+https://huggingface.co/ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF
 
-Project-51 decision:
-- exact-box IQ3_S qualification gains explicit prefill arms:
-  1. released `--prefill auto`;
-  2. `--prefill auto:16384` with #693-equivalent finer sizing;
-  3. optionally `auto:32768` if VRAM reserve/transient gate still passes.
-- benchmark 16/32/64/128/200/250K cold prompts and record actual chunk size, expert-loan slots, file/RAM reads,
-  transient VRAM and final PP.
-- **no IQ3_S PP-center raise until exact-quant measurement**.
+ISTA Flash GSQ-RCO reference:
+https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF
 
-## UPDATE — Strata #646: author fixes the reported sm_120 crash/exactness roots, but independent retest is still required
+Classification:
+- the 03:53 ET Swift BF16/IQ3_XXS audit is **SAME-DAY / KNOWN**;
+- the conclusion that Project 51 should **build Swift Flash IQ3_S as the preferred challenger artifact** is an
+  **UPDATE** to challenger ordering.
 
-PR:
-https://github.com/Niko1221/Strata/pull/646
+Implementation interpretation:
+- reuse the exact ISTA Flash IQ3_S per-tensor allocation as the starting layout;
+- quantize Swift weights with the Swift-specific importance/calibration path;
+- apply Swift-specific GSQ refinement where reproducible;
+- preserve and separately verify the MTP package;
+- package n-gram/PLE separately/mmap-friendly;
+- call an allocation-only build exactly that until GSQ refinement is actually applied.
 
-After the previous pass's RTX5080 crash and IQ3_S exactness failures, the author reports two root causes/fixes.
+Do not assume Swift BF16's coding/Terminal gains survive the new quant. The full Project-51 xhigh task ladder controls
+promotion.
 
-### sm_120 crash root cause
-
-The new expert code selected between shared-memory and global/constant codebook pointers through a runtime ternary.
-CUDA 13.2 on sm_120 emitted a mixed address-space generic-pointer sequence that miscompiled for multi-column IQ3_S.
-
-Patch:
-- compile-time `STAGE_GRID` selection;
-- IQ3_S/IQ3_XXS use constant/global cache rather than staging;
-- staging remains only on the wider 64-bit tables;
-- kill switch `STRATA_IQ_STAGE_GRID=0`;
-- PTX inspection shows the mixed `selp.b64` path removed.
-
-### exactness root causes
-
-Two sources were identified:
-- fused final mixer changed the FP32 reduction order / exp implementation immediately before lm_head;
-- Q8_1 quantization had crossed a `--use_fast_math` compilation boundary.
-
-Patch:
-- restores the old final mixer by default (`STRATA_FUSE_HEAD_GR=1` becomes opt-in);
-- moves/fixes SwiGLU/Q8_1 arithmetic to reproduce the unfused instruction behavior;
-- adds component kill switches for A/B.
-
-Micro parity now reports the IQ kernels bitwise equal to the old path in the author's tests.
-
-### New independent Ada partial-residency data
-
-RTX4090 24 GB, IQ2_XS, ~1/3 experts in VRAM, 262K:
-- short decode: **+5%**;
-- 32K: **+8%**;
-- 119K: **+16%**;
-- prompt speed unchanged;
-- compared recall outputs / MTP acceptance matched;
-- no spec4 faults in ~40 requests.
-
-This is encouraging mechanism evidence but is **sm_89 / 24 GB / IQ2_XS**, not the target.
-
-Project-51 status:
-- move #646 from “reject until root cause known” to **“watch, fixes plausible”**;
-- still **zero speed credit** in 5070-Ti planning;
-- promotion requires the original/another independent **sm_120 16-GB partially-resident IQ3-family retest**, then exact
-  IQ3_S source gate and soak.
-
-## NEW — Strata #694: fit max_tokens for agent clients that advertise huge output budgets
+## NEW — Strata #703: nearby gfx1031 can decode long Flash, but long prefill can miss a kernel
 
 Issue:
-https://github.com/Niko1221/Strata/issues/694
+https://github.com/Niko1221/Strata/issues/703
 
-OMP client:
-- context 131,072;
-- prompt 67,811;
-- client `max_tokens=64,000`;
-- request hard-fails because 67,811 + 64,000 > 131,072.
+Created **2026-10-04 00:54:36 UTC**.
 
-Enabling existing `fit_max_tokens=true` caps the output budget to the remaining context and the workflow proceeds.
+On a heterogeneous RX9070XT gfx1201 + RX6750XT gfx1031 layer split:
+- Qwen3.8 Flash IQ2_XS completed a 262K-token long generation at ~80.9 tok/s;
+- Swift IQ2_XS completed ~75K generated tokens at ~72.5 tok/s;
+- short prefill and fresh multimodal use worked;
+- a later ~75K history prefill failed on gfx1031 with a native PLE post-op “no kernel image” error.
 
-Project-51 agent-serving profile:
-- enable **`fit_max_tokens=true`** for coding clients that send a large static output allowance;
-- still set explicit `reasoning_budget_tokens`;
-- log requested max, fitted effective max, reasoning tokens and visible-answer tokens;
-- never interpret the fitted cap as additional model context.
+Project-51 impact:
+- nearby gfx1031 proves useful HIP functionality exists in the RDNA2 family, but it does **not** certify RX6800/gfx1030;
+- exact gfx1030 prefill remains the first proof target;
+- require all prompt/PQSA/PLE kernels used by the producer path to execute at 32/64/96/128K before state-export work;
+- speculation stays OFF for first proof.
 
-## NEW — Strata #700: a tool tag mentioned in prose can currently abort a real tool call
+## NEW — Strata #710: per-request reasoning budgets do not bound cross-request agent loops
+
+Issue:
+https://github.com/Niko1221/Strata/issues/710
+
+Created **2026-10-04 01:25:34 UTC**.
+
+A v0.1.38 Q2_0 coding/review workflow repeated the same ineffective shell repair **98 times** across separate
+tool-result requests for ~34.9 minutes and still failed to complete by the one-hour harness deadline.
+
+Project-51 impact:
+- add harness-level repeated-action / no-state-change detection;
+- report retries/corrections in the time-to-correct KPI;
+- do not treat a per-request reasoning-token budget as an end-to-end loop bound.
+
+This is a single workflow report, not evidence that IQ3_S or Swift necessarily shares the failure.
+
+## NEW — Strata #729: INT8 KV stays statistically close but forks free generation at near ties
+
+Issue:
+https://github.com/Niko1221/Strata/issues/729
+
+Created **2026-10-04 06:47:09 UTC**.
+
+Setup:
+- Qwen3.8 Flash-Next IQ3_S;
+- RTX5090 32 GB / 192 GB RAM;
+- 16 prefixes from 15K through 240K;
+- FP16 KV vs INT8 KV, otherwise fixed engine/expert/prefill settings.
+
+Results:
+- median KL is around 1e-3 with no monotonic growth with context depth;
+- several 195-240K points are lower than the older 8K mean;
+- heavy-tail near-tie positions exist (e.g. 45K top-1 flips);
+- **13/16 depths fork within 32 greedy tokens**, median first fork around token 8;
+- three tested depths remained identical for all 32 tokens.
+
+Interpretation:
+- INT8 KV remains the fit/performance baseline;
+- tiny average KL is compatible with rapidly different deterministic trajectories;
+- xhigh certification compares task/agent outcomes to FP16 controls, especially near ties, tool loops and long
+  trajectories;
+- token identity is not required for quality equivalence.
+
+No KV-memory or fit target moves.
+
+## NEW — Strata #728 / #736: Swift field reports remain anecdotal controls
+
+#728:
+https://github.com/Niko1221/Strata/issues/728
+Created **2026-10-04 06:43:29 UTC**.
+
+A Windows RTX4090/64-GB user reports Swift 1.5 IQ2_XS at ~103 tok/s but later endless loops in OpenCode/Qwen Coder.
+Root cause is unresolved; do not transfer this to Swift IQ3_XXS or a future IQ3_S build.
+
+#736:
+https://github.com/Niko1221/Strata/issues/736
+Created **2026-10-04 07:49:51 UTC**.
+
+A 5090-laptop/96-GB report says INT8 KV outperformed Q4_0 KV by ~12% in its tested Qwen setup. Useful directional
+support for INT8 as the first baseline, but the issue's key measurements are screenshots and do not override the
+stronger #729 distribution study.
+
+## NEW — Strata #730 + PR #749: Windows free-RAM reporting is not enough for page-locked admission
+
+Issue #730:
+https://github.com/Niko1221/Strata/issues/730
+Created **2026-10-04 07:10:13 UTC**.
+
+On Windows 11 / 96 GB / RX6900XT, a Q4 run reports ~73 GiB available but cannot allocate the planned ~65.9-GiB
+page-locked complement; it falls back to file reads and ~1 tok/s behavior while IQ3 works normally.
+
+PR #749:
+https://github.com/Niko1221/Strata/pull/749
+Created **2026-10-04 10:26:02 UTC**, open.
+
+The patch changes Windows allocation planning to respect **commit capacity** and improves allocation diagnostics.
+
+Project-51:
+- exact 5070-Ti qualification records Windows commit headroom in addition to RAM/VRAM;
+- no admission-probability raise until the patch or equivalent behavior is independently exercised on the target box.
+
+## NEW — MLX #4621: large-M quantized_matmul can lose to dequantize + BF16 matmul
+
+Issue:
+https://github.com/ml-explore/mlx/issues/4621
+
+Created **2026-10-04 08:14:27 UTC**.
+
+M2 Max 64 GB / MLX 0.32.3:
+- affine 4/8-bit quantized_matmul is faster at decode-sized M;
+- from ~512 rows upward it falls behind dequantize + BF16 matmul;
+- Qwen3.8-27B 4-bit 8K prompt throughput reportedly rises **137 -> 179 tok/s** with the prefill-only path switch,
+  without a peak-memory increase in that test.
+
+Project-51:
+- track as a generic MLX/prefill dispatch seam;
+- do not transfer its M2 dense-27B rate to M1 Flash;
+- paperniuk/ds4's model-specialized prompt kernels remain the production starting point.
+
+## NEW — Strata #741/#742/#743: old NVIDIA prompt path gets large QSA/prefill gains
+
+PRs created **2026-10-04 09:09 UTC**:
+- #741 converts selected BF16 prefill projections to FP16 tensor-core paths below sm_80;
+- #742 adds an FP32 tiled QSA scorer;
+- #743 adds a streaming long-context top-k path.
+
+On RTX2080Ti + Swift IQ3_XXS, the combined family of changes reports large prompt gains, including #742's
+~22% at 128K / ~33% at 248K and #743's additional ~23% at 248K in its tested stack.
+
+These are **sm_75-specific** and do not move 5070-Ti or M1 targets. They reinforce the general rule that QSA/top-k
+and prompt projection dispatch can dominate deep-context PP.
+
+## NEW — TensorFold #351/#352/#355/#357: more exact-kernel / multi-row / two-rank mechanism evidence
+
+Relevant PRs created **2026-10-04 09:17-09:32 UTC**:
+- #351: EXL3 Flash prompt chunk sizing up to 4,096 rows, up to ~16% one-stream PP in its GB10 tests;
+- #352: B16 verify windows share each head weight load across rows and keep the same bits, yielding large verify
+  speedups on GB10;
+- #355: Qwen3.8-27B NVFP4 two-rank execution while preserving stored precision/layout;
+- #357: page-locked host-memory row-parallel sums when two CUDA GPUs lack peer mapping.
+
+Project-51:
+- these are useful cross-runtime mechanism confirmations;
+- #352 especially reinforces the already-adopted “read a weight once across multi-row verification” direction;
+- no CUDA/GB10 rates transfer to M1/TB4.
+
+## NEW — Strata #744/#745: gfx1100 tuning shows both warm-up and hipBLASLt table choice matter
+
+#744:
+https://github.com/Niko1221/Strata/pull/744
+Created **2026-10-04 09:42:42 UTC**.
+
+#745:
+https://github.com/Niko1221/Strata/pull/745
+Created **2026-10-04 09:55:00 UTC**, updated before cutoff.
+
+On RX7900XTX 24 GB / IQ3_S:
+- ROCm nightly vs packaged stack gives ~+10% warm steady-state decode in the submitted comparison;
+- cold->warm decode rises roughly 35% on both stacks;
+- after tuning a matching hipBLASLt table, 128K prefill is reported at **1687 vs 926 tok/s (+82%)** for the tuned
+  table vs fallback, with decode unchanged.
+
+Project-51 RX6800 implication:
+- always separate cold and warmed cells;
+- record ROCm/hipBLASLt versions and whether an exact gfx1030 tuning table is active;
+- a missing/mismatched table can masquerade as a hardware/architecture limit;
+- no numeric transfer from gfx1100 to gfx1030.
+
+## NEW — Strata #748: fatal verification timeout containment gets an automatic-reload patch
 
 PR:
-https://github.com/Niko1221/Strata/pull/700
+https://github.com/Niko1221/Strata/pull/748
 
-Created **2026-10-03 23:31:42 UTC**, open.
+Created **2026-10-04 10:20:41 UTC**, open.
 
-Current parser treats every literal `<tool_call>` as the start of a call. Example:
-- model says in prose: “I will use the `<tool_call>` format now.”
-- then emits the real call.
+The patch marks the engine unavailable after native verification-timeout signatures, terminates it, and relies on the
+existing lifecycle to reload on the next request instead of leaving a poisoned verifier reported as loaded.
 
-The first prose tag captures the remainder and the parser raises malformed-tool-call.
+Validation is synthetic/process-level, not an exact 5070-Ti soak. Keep zero probability credit until merged and
+physically exercised, but it matches Project-51's required automatic-containment behavior.
 
-Patch only treats the tag as a call opener when followed by `<function=`; streaming holds the potential tag until
-its follower is known.
-
-Project-51 parser suite adds:
-- literal/backticked `<tool_call>` mentioned in prose;
-- then a genuine call later in the same response;
-- streaming and non-streaming parity.
-
-## UPDATE — TensorFold #319: copied-context proposals can dominate rewrite-heavy coding responses
+## NEW — Strata #751: bounded disk LRU restores ~258K continuation state across restart
 
 PR:
-https://github.com/ashhart/TensorFold/pull/319
+https://github.com/Niko1221/Strata/pull/751
 
-Flash-Next CUDA now tries a copied continuation from already-present context before an MTP chain when >=8 tokens
-repeat. Copy verify windows start at 16 rows and grow to 64 while the copy keeps landing.
+Created **2026-10-04 10:32:27 UTC**, open.
 
-DGX Spark / Flash-Next 4-bit MTP / 262K:
-- rewrite a 2,274-token file already in the prompt: **~92 -> 340-341 TG (~3.7x)**;
-- OLD/NEW edit block: ~91 -> **~224 TG**;
-- unrelated new-code generation: essentially unchanged;
-- drafted outputs were checked equal to serial in the reported suite.
+Mechanism:
+- streams authoritative INT8 K/V, QSA/GDN/PLE state, stage checkpoints and MTP draft K/V;
+- bounded global disk LRU with atomic indexing;
+- text-only INT8/MTP path, including layer-split GPUs, with RAM parking disabled.
 
-Memory at parallel5 rises modestly (~84.9 -> 86.8 GiB startup estimate); concurrency can make unrelated requests
-share wider rounds, so scheduling needs care.
+Validation reported:
+- Windows + 2x RTX3080 20 GB + IQ3_S;
+- byte-exact deterministic continuation/branch checks across engine restarts at 4K;
+- a **258,019-token** structured request passes nine checks;
+- after graceful restart, a **4.46-GiB** snapshot restores and reuses **258,012 tokens**, with the same checks passing.
 
-Project-51 custom-engine implication:
-- after the base M1 27B verifier/state engine is correct, add a **copy-index / context-copy proposal lane** before
-  MTP for repo/file rewrite operations;
-- verify every copied row through the same target path;
-- measure the user's actual Playwright patch/rewrite traces, not generic prose;
-- no single-M1 target movement because this is CUDA and workload-dependent acceleration.
+Project-51:
+- elevate disk persistence to a serious later lane;
+- still certify inference with conversation parking/persistence OFF first;
+- later gate atomic failure handling, identity/version mismatch refusal, bounded disk behavior, write/restore latency and
+  continuation equivalence at 128/200/250K.
 
-## UPDATE — oMLX #4206: 510K works on M5 Max, 800K exposes decode-start transient cliff
+## NEW — Strata #752/#753: concurrency correctness work is blocked on unmerged #559
 
-M5 Max 128 GB / Qwen3.8-Flash-Next / 4-bit TQ / YaRN:
-- **509,676 tokens: 12/12 structured needles**, including six beyond native262K;
-- cold PP roughly **1,452-1,537**;
-- decode ~140-190 TG with MTP;
-- stock settings also pass.
+Created **2026-10-04 10:36 UTC**, both draft/open:
+- #752 preserves checkpoints when split allocation fails;
+- #753 isolates per-request metrics under concurrent batch work.
 
-At 800K:
-- prefill can finish around ~96 GB resident;
-- first decode step adds roughly **15-25 GB** transient and aborts;
-- forcing gathered attention and disabling MTP do not remove the spike.
+Useful design material, but both explicitly depend on unmerged #559. No production or multi-agent capacity credit.
 
-Another repeatable observation:
-- same 8K chunk below native boundary: ~6.2 GB step;
-- chunk ending exactly at **262,144**: ~18.6-19.5 GB step;
-- ~3x cost discontinuity at native-context crossing.
+## NEW — Strata #754: Anthropic tool call can remain inside thinking and end as end_turn
 
-Project-51 lesson:
-- “cold prefill completed” does not certify a context size;
-- admission must include first decode/verify and at least one continuation;
-- this further validates our Apple cold-prefill transient gate but does not transfer M5 rates/capacity to M1.
+Issue:
+https://github.com/Niko1221/Strata/issues/754
 
-## NEW — oMLX #4233 / MTPLX #588: unclosed reasoning remains a cross-runtime parser ambiguity
+Created **2026-10-04 10:47:04 UTC**.
 
-oMLX #4233:
-- Qwen3.8-27B can EOS while still inside template-opened `<think>`;
-- non-streaming path may return ~14.5K reasoning tokens as ordinary `content` with `reasoning_content=null`;
-- deterministic on the reported case.
+On v0.1.38, a Pi/Anthropic-compatible workflow intermittently receives the intended <tool_call> markup as
+thinking_delta content, then end_turn, with no structured tool_use block. The same session also has successful turns.
 
-MTPLX #588:
-- fixes the opposite agent symptom after tool use: a clean-stop answer inside an unclosed reasoning block can be
-  recovered as visible content when tools are declared, but only when no tool-control markup/call is present.
+Project-51 parser/agent gate adds:
+- tool markup emitted while the server believes it is inside reasoning;
+- transition from thinking -> structured Anthropic tool_use;
+- correct stop_reason;
+- repeated runs because the failure is intermittent.
 
-These are not contradictory: they show that “unclosed think + stop” is semantically ambiguous.
-Project-51 parser must distinguish:
-- genuine final answer written inside an unclosed think block;
-- model simply stopping mid-reasoning;
-- actual tool markup/call;
-- length truncation.
+This joins the existing literal-tag / unclosed-think parser cases.
 
-Do not solve this by blindly moving every unclosed reasoning block to content or every one to reasoning.
+## UPDATE — MLX #4516: narrow-output QMV fast path gets model-shaped Flash evidence
 
-## UPDATE — ByteShape / DASLab 27B check
+PR:
+https://github.com/ml-explore/mlx/pull/4516
 
-No new exact M1 Max 64-GB benchmark or long-agent table appeared in this strict window.
+Originally opened 2026-09-15; updated **2026-10-04 10:54:41 UTC**.
 
-Current artifacts remain unchanged for Project 51:
-- DASLab IQ3_S target-only ~11.8 GB;
-- DASLab IQ3_S-MTP integrated ~12.1 GB;
-- DASLab IQ3_XXS ~10.1 GB / MTP ~10.4 GB;
-- ByteShape remains the alternate ~3.2-3.8-bpw quality-allocation family.
+On M5 Max, the updated receipt reports:
+- ~1.38x on an N=1 8-bit QMV microcase;
+- ~1.20x / ~1.19x on Qwen3.8 Flash-Next layers 4-7 at context 128 / 4096;
+- bitwise-identical outputs over the reported eight-step layer benchmark.
 
-## Strict-window negatives
+This is **UPDATE**, not new. It is M5/generic-MLX evidence and does not move the M1 ds4 target; audit whether the
+corresponding narrow projections in paperniuk/ds4 already avoid this fallback before porting anything.
 
-Searched:
-- Strata;
-- oMLX;
-- TensorFold;
-- MTPLX;
-- Splash;
-- Ishizuki;
-- llama.cpp;
-- SGLang;
-- vLLM;
-- MLX;
-- TurboQuant;
-- mlx-serve;
-- DASLab/Hugging Face;
-- ByteShape.
+## KNOWN / NO CHANGE
 
-Strata main still declares **0.1.38**.
-No strict-window TurboQuant repository change.
-No strict-window MLX-core Metal change relevant to the M1 lane.
-No strict-window Splash/Ishizuki change.
-No exact single-RX6800 dense-Qwen3.8-27B PP receipt.
-No hardware-purchase evidence.
-
-## Target state after this pass
-
-1. Primary Windows baseline: **Strata 0.1.38**.
-2. IQ3_S/native262K physical fit: **~95%**.
-3. Windows 16GB/64GB admission: **~90%**.
-4. 8 h / 24 h zero-stall: **~75% / ~55%**.
-5. #481 automatic containment: **~85%**.
-6. Native target 262144; 204800 first fallback.
-7. Long-context baseline: INT8 streamed KV, ~32K resident first.
-8. Exact 5070-Ti PP qualification adds **#693-style `auto:16384` fine/equal-chunk arm**; no IQ3_S PP-center move yet.
-9. #646 remains outside 5070-Ti production baseline; root fixes are plausible but need independent sm_120 retest.
-10. Agent-serving profile: explicit reasoning budget + **`fit_max_tokens=true`**, with effective cap logged.
-11. Agent parser gate adds prose tool tags and ambiguous unclosed-thinking cases.
-12. PLE ladder unchanged: IQ4_NL -> FP8 candidate -> BF16 exact control.
-13. Single-M1 27B remains **25 TG / 110 cold PP**.
-14. Custom M1 engine priority: multi-row long-context verify/state lifecycle first; later add **copy-from-context drafts**
-    for rewrite-heavy QA/coding workloads.
-15. RX6800 producer remains target-only prefill/spec-off first, pending exact PP + state bridge.
-16. Conversation parking remains OFF initially; disk session restore remains a separate persistence candidate.
-17. No hardware purchase change.
-
-## New hard boundary
-
-**2026-10-04 00:51:42 UTC**
+- Strata release baseline remains **0.1.38**.
+- 5070-Ti baseline remains IQ3_S/native262K with streamed INT8 KV (~32K resident first), released #646 excluded,
+  and #693-style fine prefill chunking as the exact-box high-priority PP arm.
+- No hardware purchase is needed.
+- DASLab IQ3_S remains the production quality artifact.
+- Dual-M1 goals remain:
+  - production: native262K / >=35 TG / >=400 cold PP;
+  - performance: ~128K / >=40 TG / >=425 cold PP;
+  - stretch: native262K / >=40 TG.
+- The strict quality rule remains source-like xhigh task/agent behavior; low-bit artifacts are never called lossless.
