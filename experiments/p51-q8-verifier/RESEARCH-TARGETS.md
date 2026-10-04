@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-04 10:31 ET**
+Latest strategy true-up: **2026-10-04 11:18 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -700,6 +700,31 @@ Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti P
 
 
 
+### 2026-10-04 11:18 ET protocol/configuration correction
+
+**No numeric target or planning-confidence movement.**
+
+Canonical Strata protocol correction:
+- **0.1.39 / 6f32ec0 DOES include native stateless /v1/responses**, implemented earlier by 0ad8f70 (#451);
+- PR #759 closing unmerged does not remove that support;
+- current Codex qualification is incomplete because #782 shows Codex 0.160.0 additional_tools input is rejected.
+
+5070-Ti configuration gate:
+- pool-worker count is now a mandatory calibration dimension, not a default to trust;
+- keep production max-context at **262144**, rather than configuring 524K/1M without need;
+- #783 becomes a later exact-sm_120 fusion A/B after the clean 0.1.39 baseline, with no pre-credit.
+
+Production priors stay:
+- IQ3_S/native262K physical fit **~97%**;
+- Windows 16-GB/64-GB full-context admission **~90%**;
+- 8 h / 24 h zero-stall **~75% / ~55%**.
+
+Dual-M1 remains:
+- production: IQ3_S/native262144/**>=35 TG / >=400 cold PP**;
+- performance: IQ3_S/~128K/**>=40 TG / >=425 cold PP**;
+- stretch: IQ3_S/native262144/**>=40 TG**.
+
+
 ### 2026-10-04 10:31 ET exact-5070 native262K performance anchor / protocol correction
 
 **No dual-M1 target movement and no fit/admission/stability-prior movement.**
@@ -727,7 +752,7 @@ Do not copy #775's settings blindly. The host/CPU differ and its cells are singl
 Software identity:
 - treat **0.1.39 / commit 6f32ec0** as the next current-engine qualification candidate when BUILD.json confirms it;
 - retain 0.1.38 as the regression comparator;
-- native /v1/responses is **not** part of the baseline because #759 closed unmerged.
+- native /v1/responses **is present in 0.1.39** via older commit 0ad8f70/#451; current Codex compatibility still has the #782 additional_tools gap.
 
 RX6800:
 - #778 materially reduces gfx1030 bring-up risk by fixing current-main compilation and showing adjacent RX6950XT
