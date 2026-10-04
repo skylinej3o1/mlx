@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-04 08:27 ET.
+Last consolidated: 2026-10-04 10:31 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,98 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 10:31 ET strict research pass — exact 5070-Ti IQ3_S 262K speed, Responses correction, gfx1030 bring-up
+
+**Strict window: 2026-10-04 12:27:27 UTC -> 2026-10-04 14:31:51 UTC.**
+
+### Exact target GPU + exact IQ3_S now demonstrates >40 TG at native262K, but not on the target 64-GB host
+
+Strata #775 is the first direct Project-51 performance receipt combining:
+- RTX 5070 Ti 16 GB;
+- Windows;
+- DASLab GSQ-RCO IQ3_S;
+- max-context 262144;
+- INT8 KV streaming / 32768 resident cells;
+- a real 257,630-token repo-source/docs prompt.
+
+The host is **96 GB DDR5-5600** and the CPU is i7-14700KF, so this does not close the user's 64-GB admission question.
+
+Reported single-run TG:
+- stock: ~17;
+- spec6 + calibration: 43.0 cold / 53.5 warm;
+- plus learned expert profile: 45.5 cold / 47.0 warm.
+
+The issue itself warns of normal ~20% single-run noise. Treat 40+ TG as a **demonstrated same-GPU capability**,
+not a guaranteed exact-box rate.
+
+Exact-box performance qualification now explicitly sweeps:
+1. frozen-residency deterministic baseline;
+2. pool-worker calibration;
+3. spec4 vs spec6;
+4. spec-min-p;
+5. pcie-frac including 0.0 vs auto;
+6. learned profile separately;
+7. repeated cold and warm long-agent runs.
+
+Do not assume the learned profile is always faster: in this one report it improves cold TG but the calibrated arm has
+the higher single warm sample.
+
+Physical fit remains ~97%, Windows 64-GB admission ~90%, 8h/24h zero-stall ~75%/~55%.
+
+### Current Strata engine identity moves to a pinned 0.1.39 candidate, not a blind “latest”
+
+Current source at commit 6f32ec0 identifies as 0.1.39, and Strata #777 reports a published Windows engine at that exact
+commit. During the pass, GitHub Releases still displayed v0.1.38 as Latest.
+
+For Project 51:
+- next qualification may use engine 0.1.39 / commit 6f32ec0 **if setup actually installs that BUILD.json**;
+- retain 0.1.38 as an A/B comparator;
+- record engine version, BUILD.json/source identity and git commit for every result;
+- no stability prior moves until exact-box soak.
+
+### Native Responses support is not part of current Strata
+
+PR #759 was closed unmerged after the previous cutoff. Its large-prefix Codex/subagent run remains useful evidence that
+the protocol adapter worked, but Project 51 must not depend on native /v1/responses in Strata.
+
+Any Responses path is classified separately:
+- native engine support, if a future upstream implementation lands;
+- external translation/router;
+- client using Chat Completions or Anthropic directly.
+
+Protocol adapters cannot receive model-quality credit.
+
+### gfx1030/RX producer moves from compile uncertainty to physical bring-up, not to production credit
+
+Strata #778 fixes a current-main gfx1030 HIP compile error and reports end-to-end RX6950XT execution with three clean
+verify runs when combined with #648.
+
+This materially improves feasibility for the RX6800 producer lane, but:
+- #649's intermittent gfx1030 verify timeout remains unresolved;
+- RX6950XT is adjacent, not exact RX6800;
+- tested quant is UD-Q4 rather than target IQ3_S;
+- three runs are not a soak.
+
+Exact RX6800 producer proof is unchanged: target artifact, speculation OFF, cold PP ladder, complete QSA/PLE kernel
+coverage, then continuation-state export/import equivalence to M1.
+
+### Linux producer host adds THP/startup-policy hygiene
+
+Strata #771 shows 0.1.39 Linux expert-arena MADV_HUGEPAGE can trigger severe synchronous compaction under
+defrag=madvise and low free memory. RX6800 qualification records THP enabled/defrag policy and performs a THP-off A/B
+if startup becomes pathological. This is startup/admission hygiene, not a PP/TG target change.
+
+### Multi-agent measurement adds fairness, not only aggregate throughput
+
+TensorFold #387 shows four long Flash requests can have acceptable aggregate TG while three individual streams nearly
+stall behind another stream's prefill. Project-51's time-to-correct-agent-result metric therefore records per-agent
+TTFT/progress and mixed prefill+decode fairness in addition to aggregate throughput.
+
+### Strict boundary
+
+**Strict research hard boundary is now 2026-10-04 14:31:51 UTC.**
 
 
 ## 2026-10-04 08:27 ET strict research pass — exact 16GB/64GB IQ3_S fit, Codex protocol and pipeline/tool gates
