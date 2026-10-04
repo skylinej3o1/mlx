@@ -1,319 +1,301 @@
-# Project 51 research watch — 2026-10-04 08:27 ET
+# Project 51 research watch — 2026-10-04 10:31 ET
 
-Freshness boundary entering: **2026-10-04 11:00:23 UTC**
-Cutoff: **2026-10-04 12:27:27 UTC**
+Freshness boundary entering: **2026-10-04 12:27:27 UTC**
+Cutoff: **2026-10-04 14:31:51 UTC**
 
 ## Decision
 
-One narrow planning prior moves:
+**No dual-M1 TG/PP target movement. No fit/admission/stability-prior movement.**
 
-- **Strata IQ3_S/native262K physical-fit prior on the 16-GB-GPU / 64-GB-host memory class: ~95% -> ~97%.**
+Durable changes from this window:
 
-Everything else stays put:
-- Windows 16-GB/64-GB full-context admission: **~90%**;
-- 8 h / 24 h zero-stall: **~75% / ~55%**;
-- automatic containment: **~85%**;
-- dual-M1 production target: **IQ3_S/native262144/>=35 TG/>=400 cold PP**;
-- dual-M1 performance target: **~128K/>=40 TG/>=425 cold PP**;
-- native262K stretch: **>=40 TG**.
+1. **Exact RTX 5070 Ti + DASLab IQ3_S + native262K Windows performance is now directly demonstrated**, but on a
+   96-GB host rather than the target 64-GB host. A single-run community receipt reaches 43.0-53.5 TG after calibration
+   at a 257,630-token prompt, versus ~17 TG stock.
+2. **Do not assume native OpenAI Responses support in Strata.** PR #759 was closed unmerged; a community router can
+   translate Responses to Chat Completions, but that is an adapter lane, not the engine baseline.
+3. **gfx1030 bring-up improves:** PR #778 fixes a current-main HIP compile blocker and reports end-to-end RX6950XT
+   execution, but the intermittent #649 verify-timeout signal remains unresolved and the Project-51 RX6800 producer
+   still requires exact gfx1030 measurements.
+4. **Current source/engine line identifies as 0.1.39 at commit 6f32ec0**, and #777 reports a published Windows engine
+   at that commit. The GitHub Releases page still showed v0.1.38 as Latest during this pass. Pin BUILD.json + commit
+   for every benchmark instead of relying on the word “latest.”
+5. **Linux 0.1.39 THP policy can catastrophically slow startup under memory pressure** (#771), relevant to the RX6800
+   Linux producer host even though it does not alter steady-state TG/PP.
 
-The strict hard boundary advances to **2026-10-04 12:27:27 UTC**.
+The strict hard boundary advances to **2026-10-04 14:31:51 UTC**.
 
-## NEW — Strata #755: gfx1100 ROCm-nightly hipBLASLt table becomes an engine-tree artifact
-
-PR:
-https://github.com/Niko1221/Strata/pull/755
-
-Created **2026-10-04 11:17:16 UTC**, open.
-
-This is the engine-tree companion to the already-known #745 benchmark:
-- RX7900XTX / gfx1100;
-- ROCm nightly hipBLASLt 1.5.0 / version 100500;
-- exact-version tuning table;
-- 131071-token IQ3_S prefill reported at **1687 vs 926 tok/s (1.82x)** with the table vs plain hipBLAS;
-- decode unchanged.
-
-Classification: **NEW implementation artifact; underlying benchmark mechanism was KNOWN from the previous pass.**
-
-Project-51 impact:
-- RX6800 qualification must record exact ROCm + hipBLASLt version and whether a matching gfx1030 table is active;
-- no numeric transfer from gfx1100 to gfx1030.
-
-## NEW — Strata #757: exact 16-GB GPU / 64-GB host IQ3_S native262K fit receipt
+## NEW — Strata #766: packaged ROCm 10.0 gfx1100 hipBLASLt table
 
 PR:
-https://github.com/Niko1221/Strata/pull/757
+https://github.com/Niko1221/Strata/pull/766
 
-Created **2026-10-04 11:30:42 UTC**, open/results-only.
+Created **2026-10-04 12:36:12 UTC**.
 
-Hardware / runtime:
-- RTX 4090 Laptop GPU, **16 GB**;
-- host **64 GB / 61.28 GiB usable**;
-- Linux;
-- Strata 0.1.38 lineage;
-- original DASLab **IQ3_S**;
-- INT8 KV;
-- context caps 131072 and **262144**.
+Independent RX7900XTX / ROCm 10.0.0 / hipBLASLt 1.4.1 (100401) data reports, with an exact-version tuning table:
+- 370-token prompt: 319 -> 371 PP;
+- 1,670: 682 -> 1,038 PP;
+- 6,471: 857 -> 1,524 PP;
+- decode unchanged within noise.
 
-At the 262144 cap:
-- 250000-token prompt: **2116 PP / 40.3 TG**;
-- 128000-token prompt: **2292 PP / 39.7 TG**;
-- 15/15 recall needles across the tested ladder;
-- VRAM peak ~15.7/16.0 GB;
-- MemAvailable never below **6.17 GiB**;
-- swap did not grow.
+This independently reinforces the previous #745/#755 conclusion: exact hipBLASLt table/version state can dominate AMD
+prefill. For RX6800, record the exact ROCm/hipBLASLt build and whether a gfx1030 table is active. No gfx1100 numeric
+transfer.
 
-Important configuration result:
-- with KV streaming off, the 262K cap shrank the expert cache from 3865 to 2856 slots;
-- decode was ~13-17% lower than the 131K-cap arm even at shorter prompt lengths;
-- prompt throughput stayed within ~4%.
-
-Project-51 decision:
-- this is the strongest same-memory-class exact IQ3_S/native262K capacity receipt now in the record;
-- raise **physical fit ~95% -> ~97%**;
-- do **not** raise Windows admission because this is Linux and Windows commit/page-lock behavior remains separately risky;
-- do **not** transfer the 4090-Laptop TG/PP numbers to the 5070 Ti;
-- retain streamed INT8 KV (~32K resident first) on the 16-GB 5070-Ti production baseline specifically to avoid sacrificing expert-cache residency to a fully resident long KV allocation.
-
-## NEW — Strata #758: MI50 experimental receipt
-
-PR:
-https://github.com/Niko1221/Strata/pull/758
-
-Created **2026-10-04 11:49:39 UTC**.
-
-MI50 32 GB / gfx906 / 64-GB host / IQ2_XS:
-- ~330 PP at 4K/24K;
-- ~35-36 TG;
-- 6/6 recall;
-- ~8.1 GiB swap peak.
-
-Classification: **NEW**, but outside Project-51 hardware/quant targets. No planning movement.
-
-## NEW — Strata #759: native Responses API reaches real Codex + subagent workflow
+## UPDATE — Strata #759 native Responses contribution was closed unmerged
 
 PR:
 https://github.com/Niko1221/Strata/pull/759
 
-Created **2026-10-04 11:51:24 UTC**, open.
+At the previous cutoff it was open. It was closed **2026-10-04 12:54 UTC**, unmerged.
 
-Adds POST /v1/responses with:
-- streaming/non-streaming text;
-- reasoning effort;
-- function/custom tools and namespaces;
-- full-history tool-call/result replay;
-- auth/cancellation/monitoring integration.
+Therefore:
+- do not list native /v1/responses as an assumed upcoming Strata production capability;
+- retain its 92,672-token Codex/tool/subagent run as useful **protocol feasibility evidence only**;
+- if Project 51 uses Codex against Strata before native support lands elsewhere, qualify an explicit adapter/router
+  separately from model/runtime quality.
 
-Reported real validation:
-- Windows + Codex CLI 0.160.0 + Qwen3.8 Flash-Next;
-- a streaming exec_command round trip completed;
-- initial prompt contained **92,672 tokens** from tools/skills;
-- a separate coding profile completed native **spawn_agent / wait_agent / close_agent** with the child returning the expected marker.
+This supersedes the previous pass's “once the selected Strata build includes this work” wording.
 
-Project-51 impact:
-- Responses/Codex becomes a high-priority Strata qualification lane once the PR is merged/rebased into the selected production build;
-- add the user's long tools/skills prefix and subagent workflow to the agent test suite;
-- no quality credit merely because the protocol works.
+## NEW — Strata #768 ROCm Docker build
 
-## NEW — Strata #760: 524K Blackwell field data exposes 16-GB staging/residency coupling
+PR:
+https://github.com/Niko1221/Strata/pull/768
+
+Created **2026-10-04 12:41:22 UTC**.
+
+Adds a ROCm Docker build path, defaulting to gfx1100/gfx1101/gfx1200/gfx1201 but explicitly allowing gfx1030 additions.
+Operationally useful for repeatable RX experiments; no performance or correctness credit by itself.
+
+## NEW — Strata #770 asks for 27B support
 
 Issue:
-https://github.com/Niko1221/Strata/issues/760
+https://github.com/Niko1221/Strata/issues/770
 
-Created **2026-10-04 11:52:59 UTC**.
+Created **2026-10-04 13:07:37 UTC**.
 
-On 4x 5060 Ti 16 GB at 524K YaRN:
-- the histogram QSA fallback works end-to-end;
-- long context consumes enough KV VRAM to collapse main-card expert residency;
-- large 24576 prefill staging can then fail admission;
-- 4096 chunks boot;
-- the reported chunk clamp costs ~18% PP in a controlled arm.
+This is a feature request only. No Strata 27B implementation/benchmark exists from this issue, so Project 51's
+single-M1 27B lane remains based on MLX/oMLX/TensorFold/Splash work, not Strata.
 
-Project-51 impact:
-- no move beyond native262K;
-- reinforces that max-context configuration, KV residency and prefill-chunk staging must be qualified jointly on 16-GB cards;
-- our 262K streamed-KV baseline is the right first arm.
-
-## NEW — Strata #761: multi-stage prefill pipeline fixes a downstream-wait serialization bug
-
-PR:
-https://github.com/Niko1221/Strata/pull/761
-
-Created **2026-10-04 12:05:23 UTC**, open.
-
-4-way mixed 3060/5060 layer split, IQ3_S:
-- old pipeline: ~1090 PP;
-- new pipeline: **2211-2228 PP (~2.04x)**;
-- cards busy three-or-more-at-once: 0% -> 54%;
-- stage-0 downstream wait: 6253 -> 131 ms;
-- residual dumps byte-identical.
-
-Mechanism:
-- each stage keeps a deque of downstream futures;
-- reaps one-for-one before the next handoff;
-- outer stage joins at completion;
-- only one chunk per stage remains in flight because buffers are shared.
-
-Project-51 transfer:
-- strong mechanism evidence that pipeline PP can be lost to host-side stage synchronization rather than compute;
-- for dual-M1 Flash bring-up, make asynchronous stage handoff / one-in-flight ownership explicit in the balanced-pipeline implementation;
-- **no 2.04x numeric transfer to M1/TB4** and no change to the >=400 PP prior.
-
-## NEW — Strata #762/#763: parser recovery helps clients, but synthetic tool intent is disallowed in quality certification
-
-#762:
-https://github.com/Niko1221/Strata/pull/762
-Created **2026-10-04 12:06:37 UTC**.
-
-It extracts balanced JSON from prose/code fences before validating structured output.
-
-#763:
-https://github.com/Niko1221/Strata/pull/763
-Created **2026-10-04 12:07:00 UTC**.
-
-It:
-- honors required/function-specific tool_choice;
-- retries once with an explicit directive;
-- if the model still does not call a tool, can **synthesize a minimal valid tool call from the selected schema**;
-- allows response_format with tools and validates the final answer.
-
-Project-51 rule:
-- parser recovery may be evaluated as a separate server-recovery metric;
-- **a server-synthesized tool call must never count as a native model/quant success** in AA/xhigh/agent certification;
-- record native model call, recovered JSON, retry, and synthesized action separately;
-- production use of synthesized actions requires an explicit application policy, not a hidden benchmark assist.
-
-This is important for comparing DASLab IQ3_S vs Swift: protocol repair must not erase a real model-level difference.
-
-## NEW — Strata #764: delayed adaptive swaps seek determinism without paying every-window synchronization
-
-PR:
-https://github.com/Niko1221/Strata/pull/764
-
-Created **2026-10-04 12:12:40 UTC**, open.
-
-Instead of synchronizing every verify window on the immediately previous adaptive expert swaps, swaps become eligible
-after a fixed number of windows (STRATA_ADAPT_LAG, default 2), by which time their copies should normally have landed.
-
-Project-51 impact:
-- useful exactness/performance design candidate for adaptive expert placement;
-- no production credit until independent exact-IQ3_S 16-GB soak and trajectory gates.
-
-## NEW — Splash #295: prefill-only decision scoring becomes a possible eval/routing primitive
-
-PR:
-https://github.com/incoai/splash/pull/295
-
-Created **2026-10-04 11:02:59 UTC**, open.
-
-Adds /v1/score and /v1/decisions:
-- fixed-label probabilities from one prefill, no generation;
-- shared-prefix batching;
-- explicit batch-invariance work because alternate K-split order changed logits/expert routing;
-- production-fork evidence reports deterministic packed/cold/warm scoring.
-
-Project-51 impact:
-- useful future eval/routing/jury primitive;
-- also reinforces a standing rule: execution-plan changes can flip near-tie routing even when arithmetic precision is unchanged;
-- not part of the production TG target.
-
-## NEW — TensorFold #368: batch SSD n-gram gathers across concurrent requests
+## NEW — Strata #771: 0.1.39 Linux MADV_HUGEPAGE startup pathology
 
 Issue:
-https://github.com/ashhart/TensorFold/issues/368
+https://github.com/Niko1221/Strata/issues/771
 
-Created **2026-10-04 11:46:39 UTC**.
+Created **2026-10-04 13:15:09 UTC**.
 
-Single DGX Spark / 16 concurrent Flash requests:
-- combined SSD n-gram gathers reduce reported decode GPU idle;
-- aggregate decode 190.0 -> 212.4 tok/s (+11.7%);
-- all 144 paired outputs reportedly matched.
+On Linux / RTX5070Ti / 62-GiB RAM / IQ3_XXS, the reporter isolates a host-memory-pressure case where requesting
+transparent huge pages with kernel defrag=madvise makes the expert arena fault path crawl. The reported end-to-end
+startup is about **432 s** with the THP request versus **~25 s** when that request is skipped, even though the engine's
+later “loaded GiB/s” line can look healthy.
 
-Project-51 impact:
-- multi-agent n-gram I/O should batch/coalesce across active agents where possible;
-- no single-request M1 TG credit.
+Project-51 RX6800/Linux producer implication:
+- record /sys/kernel/mm/transparent_hugepage/enabled and defrag policy;
+- include an arena-THP-off A/B if startup becomes pathological;
+- do not confuse startup compaction stalls with model prefill throughput.
 
-## NEW — TensorFold #379/#380: Flash distributed execution expands to four ranks / Volta
+No TG/PP target movement.
 
-#379:
-https://github.com/ashhart/TensorFold/pull/379
-Created **2026-10-04 12:15:32 UTC**.
+## NEW — oMLX #4245: exact g32 hyper-connection projection
 
-#380:
-https://github.com/ashhart/TensorFold/pull/380
-Created **2026-10-04 12:15:37 UTC**.
+PR:
+https://github.com/jundot/omlx/pull/4245
 
-#379 adds four-rank Flash machinery but has no standalone >=sm80 four-GPU physical receipt.
-#380 physically exercises a stacked four-rank NVFP4 Flash path on 4x V100 32 GB:
-- drafted/serial exactness checks;
-- reported ~82-100 TG depending prompt in upstream-tool cells;
-- ~1.2K PP in the older branch measurements.
+Created **2026-10-04 13:20:02 UTC**.
+
+On M5 Ultra, group-size-32 Qwen3.8 Flash 4-bit checkpoints gain an exact hybrid hyper-connection projection path.
+Reported MTP-off decode moves ~48 -> 75-77 TG (+55-57%) while outputs remain byte-identical to the pre-change canonical
+path. MTP-on is essentially unchanged because that path is not used there.
+
+Project-51 interpretation:
+- strong Apple mechanism evidence that HC dispatch compatibility can hide a very large single-row penalty;
+- audit ds4's IQ3_S/Swift tensor shapes and HC path before assuming a generic MLX/oMLX fast path applies;
+- no M5 numeric transfer to M1 and no reason to replace paperniuk/ds4 as the M1 Flash baseline.
+
+## NEW — Strata #772: external Responses router, not native engine support
+
+Issue:
+https://github.com/Niko1221/Strata/issues/772
+
+Created **2026-10-04 13:51:45 UTC**.
+
+Community project strata-router translates /v1/responses to Strata Chat Completions and adds sticky multi-node routing.
+It is useful architecture evidence for:
+- explicit protocol adaptation;
+- session affinity to preserve KV;
+- move-to-idle-node only when reread cost is small.
+
+But it is external middleware. It does not change Strata's native protocol baseline or model-quality certification.
+
+## NEW — Strata #773: Linux direct expert-file reads under severe SSD streaming
+
+PR:
+https://github.com/Niko1221/Strata/pull/773
+
+Created **2026-10-04 13:57:04 UTC**.
+
+On a 30-GB Linux host / RTX3080Ti 16 GB / native Q4_K_M with only 16 GiB of experts resident, O_DIRECT + Linux AIO
+raises reported decode from **4.38 -> 7.90 TG aggregate (~1.8x)** across the test prompts and improves startup.
 
 Project-51:
-- distributed Flash mechanics continue to mature cross-runtime;
-- no V100/CUDA numeric transfer to M1/TB4;
-- useful implementation patterns only.
+- additional mechanism support for direct/unbuffered SSD expert streaming under severe memory pressure;
+- not transferable to the much shallower ~8-12-GiB M1 IQ3_S spill plan;
+- keep direct-I/O/read-ahead as optional spill experiments after the basic almost-local topology works.
 
-## RECOVERED OLDER + IN-WINDOW UPDATE — Strata #390 per-stage weight carve / helper tier
-
-PR:
-https://github.com/Niko1221/Strata/pull/390
-
-Originally created **2026-10-01**, updated again **2026-10-04 12:19:02 UTC**.
-
-Do **not** classify its core mechanism as new.
-
-Current PR documents:
-- a layer-split stage loads only its own dense/native layer weights rather than the whole model;
-- reclaimed VRAM grows stage expert caches;
-- leftover per-card VRAM can become a global helper-expert tier;
-- on one 4-way IQ3_S rig, expert slots rise 9269 -> 14172 and auto prefill chunk 2048 -> 4096.
-
-Project-51 engineering inference:
-- balanced/asymmetric dual-M1 bring-up should price and load stage-owned weights only;
-- do not accidentally duplicate the full dense/nonexpert body on both Macs;
-- helper-tier ideas are later optimizations, not part of initial correctness bring-up.
-
-No numeric target movement.
-
-## RECOVERED OLDER — oMLX #4240 SSD expert-streaming improvements
-
-PR:
-https://github.com/jundot/omlx/pull/4240
-
-Created **2026-10-04 08:24:50 UTC**, before this strict boundary.
-
-Classification: **RECOVERED OLDER**, never NEW.
-
-On an emulated 24-GB Mac with Qwen3.8 Flash oQ4e and only ~10% experts resident:
-- prefill 112-130 -> 220-320 tok/s;
-- decode +16-25%;
-- mechanisms include least-used expert eviction, larger prompt chunks, prompt borrowing of expert-cache memory and next-chunk expert read-ahead.
-
-This reinforces the already-adopted shallow-expert-spill architecture, but does not change its M1 target probabilities.
-
-## RECOVERED OLDER — oMLX #4241 tool-marker parser content loss
+## NEW — Strata #775: exact RTX5070Ti + IQ3_S + native262K Windows speed receipt
 
 Issue:
-https://github.com/jundot/omlx/issues/4241
+https://github.com/Niko1221/Strata/issues/775
 
-Created **2026-10-04 09:13:51 UTC**, before this strict boundary.
+Created **2026-10-04 14:05:29 UTC**, updated **14:24:06 UTC**.
 
-Classification: **RECOVERED OLDER**.
+Hardware/config:
+- RTX 5070 Ti 16 GB;
+- i7-14700KF;
+- **96 GB DDR5-5600** host RAM;
+- Windows;
+- Strata 0.1.38;
+- DASLab Qwen3.8-Flash-Next GSQ-RCO **IQ3_S**;
+- vision encoder on GPU;
+- max context 262,144;
+- INT8 KV streaming with 32,768 resident cells;
+- one 257,630-token repo-source/docs prompt;
+- greedy, reasoning off.
 
-Literal tool markers inside normal prose can open a streaming envelope; if never closed, recoverable text is withheld and
-the request fails. This is consistent with the parser gate already added from Strata/oMLX/MTPLX evidence. No new state movement.
+Single-run results (reporter explicitly warns normal ±20% noise):
+- stock spec4 / no calibration / shipped profile: **17.5 cold / 17.2 warm TG**;
+- spec6 + calibration: **43.0 cold / 53.5 warm TG**;
+- plus learned expert profile: **45.5 cold / 47.0 warm TG**;
+- prompt reading: **1,468 -> 1,744 PP**.
 
-## KNOWN / NO CHANGE
+Calibration sub-results on that box:
+- pool workers: 19 -> 36.9 TG, **13 -> 54.4**, 10 -> 41.3;
+- spec-min-p: 0.3 -> 36.6, 0.5 -> 41.7, **0.7 -> 44.6**;
+- pcie-frac: **0.0 -> 42.1**, 0.2 -> 37.9, 0.35 -> 27.9, 0.55 -> 23.9, 0.75 -> 20.7.
 
-- No public **Swift 1.5 Flash-Next GSQ-RCO IQ3_S** release was found by the cutoff.
-- Swift Flash IQ3_S remains the highest-priority artifact to build/qualify, not an assumed published artifact.
-- DASLab IQ3_S remains the production baseline.
-- No paperniuk/ds4 commit newer than the prior strict boundary was found; its latest relevant work remains SAME-DAY/KNOWN.
-- No npanj/slipstream commit newer than the prior strict boundary was found.
-- Strata release baseline remains **0.1.38**.
-- #646 remains excluded from 5070-Ti production credit pending independent sm_120/16-GB IQ3-family retest.
-- 5070-Ti first long-context arm remains streamed INT8 KV with ~32K resident cells and fine adaptive prefill chunking.
-- RX6800 producer remains exact gfx1030, target-only/speculation-OFF first.
-- M1 implementation starts from paperniuk/ds4; do not rebuild the Flash engine from scratch.
+Interpretation:
+- **Measured source fact:** exact target GPU + exact target quant + native262K can exceed 40 TG on Windows.
+- **Non-transfer:** host RAM is 96 GB, CPU is known, runs are single samples, and settings change expert placement /
+  speculation. This is not proof of the user's 64-GB exact box.
+- **Engineering inference:** after clean admission, >=40 TG at native262K is now a realistic 5070-Ti tuning expectation,
+  not a speculative ceiling.
+- **Qualification rule:** do not simply copy spec6/profile settings. Sweep pool workers, spec4/spec6, pcie-frac,
+  spec-min-p and profile use on the exact box. Keep deterministic source/quant gates on frozen residency first.
 
+No fit/admission prior moves: the 96-GB host does not close the 64-GB Windows admission question.
+
+## UPDATE — Strata source/engine line is 0.1.39, but release labeling is transient
+
+Commit:
+https://github.com/Niko1221/Strata/commit/6f32ec070f23ced9f50e704d854d775da52591ab
+
+The source at 6f32ec0 identifies project version **0.1.39**, and #777 below says its Windows benchmark used the
+published 0.1.39 engine at that exact commit.
+
+However, during this pass GitHub's Releases page still listed **v0.1.38 as Latest**.
+
+Project-51 rule:
+- benchmark software identity by **BUILD.json + git commit + engine version**, not “latest”;
+- use 0.1.39/6f32ec0 as the next current-engine qualification candidate when setup actually supplies it;
+- retain 0.1.38 as the comparator until 0.1.39 passes the exact 5070-Ti/64-GB cold-admission + agent soak;
+- do not move 8h/24h stability priors based on version number.
+
+## NEW — Strata #777: 0.1.39 Windows benchmark on RTX5090
+
+PR:
+https://github.com/Niko1221/Strata/pull/777
+
+Created **2026-10-04 14:14:57 UTC**.
+
+Windows / RTX5090 32 GB / ~93.7 GiB host / IQ3_XXS / context262144 / INT8 KV streamed at 32K:
+- 4K: 3775 PP / 171.7 TG;
+- 32K: 6367 PP / 181.2 TG;
+- 128K: 6080 PP / 178.3 TG;
+- 6/6 needles.
+
+Useful as a current-engine smoke/identity receipt, not a 5070/IQ3_S speed transfer.
+
+## NEW — TensorFold #386: level-2 CUDA sleep/wake with prefix preservation
+
+PR:
+https://github.com/ashhart/TensorFold/pull/386
+
+Created **2026-10-04 14:20:31 UTC**.
+
+Single-device CUDA can release model memory while keeping the HTTP frontend and optional conversation-prefix snapshots.
+Reported Qwen3.8-27B + DFlash continuation remains exact in its tested configurations and decode medians stay within
+~1% across sleep/wake.
+
+Project-51: useful future workstation-sharing mechanism; no production credit now. Initial qualification still avoids
+dynamic memory lifecycle features.
+
+## NEW — TensorFold #387: mixed prefill/decode fairness matters for multi-agent throughput
+
+PR:
+https://github.com/ashhart/TensorFold/pull/387
+
+Created **2026-10-04 14:24:02 UTC**.
+
+On one DGX Spark / Flash EXL3 / 4 concurrent long requests, scheduler changes move aggregate generation roughly:
+- 32K: ~47 -> ~101 TG;
+- 64K: ~44 -> ~80 TG;
+while preventing individual streams from sitting near 1-4 TG during another request's long prefill.
+
+Project-51 multi-agent rule:
+- report per-agent progress/latency, not aggregate TG alone;
+- mixed prefill+decode fairness is part of time-to-correct-agent-result;
+- no single-stream M1/5070 target movement.
+
+## NEW — Strata #778: current-main gfx1030 compile fix + RX6950XT smoke
+
+PR:
+https://github.com/Niko1221/Strata/pull/778
+
+Created **2026-10-04 14:27:06 UTC**.
+
+HIP clang / ROCm 7.1 rejects the current shared-buffer alignas placement on gfx1030. The PR moves alignment to a
+portable declarator attribute. With this plus #648's split-shard arch guard, the author reports:
+- current main builds for gfx1030;
+- UD-Q4_K_XL re-split runs end to end on RX6950XT;
+- 3/3 clean verify-window runs;
+- the #649-class stall did not reproduce in those three runs.
+
+Project-51 RX6800 impact:
+- gfx1030 is no longer treated as merely hypothetical compile support;
+- **do not close the reliability question**: #649 remains an intermittent timing-sensitive report, three clean runs
+  are insufficient, the quant is UD-Q4 rather than target IQ3_S, and the card is RX6950XT rather than RX6800;
+- exact RX6800 first proof remains target-only/speculation OFF, cold 32/64/96/128K PP, required QSA/PLE kernel coverage,
+  then state export/import to M1.
+
+## NEW — Strata #779: last-second 0.1.39 Swift/16GB/64GB crash report
+
+Issue:
+https://github.com/Niko1221/Strata/issues/779
+
+Created **2026-10-04 14:31:30 UTC**, 21 seconds before this cutoff.
+
+Windows / RTX4090 Laptop 16 GB / 64 GB host / Swift IQ3_XXS / engine0.1.39 startup logs show:
+- streamed KV;
+- partial host pinning after whole-arena registration fails;
+- ~444 MiB VRAM free after load.
+
+The issue title says “laptop crash with latest,” but the body at cutoff is primarily startup logs plus a screenshot,
+without enough textual root-cause detail to classify the failure.
+
+Project-51:
+- record as **NEW negative signal / insufficient diagnosis**;
+- do not move Swift, fit or stability priors from one incomplete report;
+- revisit after maintainer diagnosis or reproducible failure steps.
+
+## KNOWN / SAME-DAY / NO CHANGE
+
+- No new paperniuk/ds4 commit after the prior boundary was found.
+- No new npanj/slipstream commit after the prior boundary was found.
+- No public Swift 1.5 Flash-Next **GSQ-RCO IQ3_S** release was found by cutoff.
+- Swift Flash IQ3_S remains the highest-priority artifact to build/qualify.
+- DASLab IQ3_S remains the production-quality baseline.
+- Dual-M1 goals remain:
+  - production native262K >=35 TG / >=400 cold PP;
+  - ~128K >=40 TG / >=425 cold PP;
+  - stretch native262K >=40 TG.
+- 5070-Ti 16GB/64GB fit prior remains ~97%; Windows admission remains ~90%; 8h/24h zero-stall remain ~75%/~55%.
