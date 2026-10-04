@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-04 17:01 ET**
+Latest strategy true-up: **2026-10-04 18:06 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,38 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-04 18:06 ET qualification hardening true-up
+
+**No numeric TG/PP target or planning-confidence movement.**
+
+Operational changes:
+
+- RTX5070 Flash long-agent soak should use the #838 q8_1 finite clamp or a later build containing it and log
+  non-finite/repeated-token degeneration signals.
+- Windows/HIP `--calibrate` is excluded from RX6800 tuning evidence until its rate matches the normal server launch
+  path; AMD tuning uses server-path A/Bs instead.
+- Agent qualification adds empty-assistant-history poisoning. History filtering/normalization is scored separately
+  from native tool-call success.
+- #783 deep-context CUDA fusion becomes a high-priority exact 5070/IQ3_S A/B candidate; no uplift is transferred from
+  the 4090 result.
+- Future Strata multi-agent testing includes layer-split + parallel>=2 with an all-resident stage (#845).
+
+Public artifact status remains:
+- Swift Flash GSQ-RCO has IQ3_XXS / IQ2_XS / Q2_0, **no IQ3_S**;
+- no ThinkingCap-specific GSQ-RCO IQ3_S release found;
+- Swift 1.5 27B GSQ-RCO IQ3_S+MTP remains the preferred alternate dense artifact.
+
+Flash priors remain:
+- IQ3_S/native262K physical fit **~97%**;
+- Windows 16-GB/64-GB full-context admission **~90%**;
+- 8 h / 24 h zero-stall **~75% / ~55%**.
+
+Dual-M1 Flash remains:
+- production: IQ3_S/native262144/**>=35 TG / >=400 cold PP**;
+- performance: IQ3_S/~128K/**>=40 TG / >=425 cold PP**;
+- stretch: IQ3_S/native262144/**>=40 TG**.
 
 
 ### 2026-10-04 17:01 ET dense-27B fleet / RX-producer true-up
