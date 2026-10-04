@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-04 13:00 ET**
+Latest strategy true-up: **2026-10-04 14:00 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,31 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-04 14:00 ET Strata numerical-quality / exactness gate
+
+**No numeric target or planning-confidence movement.**
+
+New runtime-quality requirements before Strata production promotion:
+- exact-production-artifact teacher-forced/logprob sanity check versus an independent runtime at 2K and long context;
+- investigate #803 if DASLab IQ3_S reproduces a material cross-engine distribution/perplexity gap;
+- performance patches must pass **end-to-end** greedy/trajectory controls under realistic partial residency and topology,
+  not only kernel/unit parity;
+- parser-recovered implicit tool calls and server-forced tool intent are reported separately from native model success.
+
+The #803 report does **not** lower the DASLab IQ3_S model-quality prior because it uses different artifacts/packing and
+has no exact IQ3_S reproduction yet.
+
+Production priors remain:
+- IQ3_S/native262K physical fit **~97%**;
+- Windows 16-GB/64-GB full-context admission **~90%**;
+- 8 h / 24 h zero-stall **~75% / ~55%**.
+
+Dual-M1 remains:
+- production: IQ3_S/native262144/**>=35 TG / >=400 cold PP**;
+- performance: IQ3_S/~128K/**>=40 TG / >=425 cold PP**;
+- stretch: IQ3_S/native262144/**>=40 TG**.
 
 
 ### 2026-10-04 13:00 ET 5070 context-ladder / VRAM-safety true-up
