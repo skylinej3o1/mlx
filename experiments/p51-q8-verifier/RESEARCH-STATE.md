@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-04 03:53 ET.
+Last consolidated: 2026-10-04 07:00 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,87 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 07:00 ET strict research pass — Swift IQ3_S priority, KV semantics, persistence and RX/agent gates
+
+**Strict window: 2026-10-04 00:51:42 UTC -> 2026-10-04 11:00:23 UTC.**
+
+No numeric fit/admission/stability/TG/PP target moves in this pass.
+
+### Swift challenger ordering changes
+
+DASLab IQ3_S remains production baseline, but the highest-priority Swift experiment is now to **build a Swift 1.5
+Flash-Next IQ3_S artifact**, not to spend the main qualification budget on the already-published IQ3_XXS tier.
+
+Reason:
+- the public Flash Swift GSQ-RCO bucket still has no IQ3_S at cutoff;
+- the same Swift quant workflow already publishes IQ3_S for Swift 1.5 27B;
+- the Flash release reuses matching ISTA allocation profiles before Swift-specific refinement;
+- therefore a Flash IQ3_S build is a credible engineering/reproduction task.
+
+Keep labels precise:
+- an allocation-only reproduction is **Swift + ISTA-IQ3_S allocation**;
+- call it **GSQ-RCO IQ3_S** only after the intended GSQ refinement is actually applied and reproducible.
+
+Promotion still requires MTP compatibility, coding/Terminal/SWE-bench-style/Playwright work, deep-context retrieval,
+near ties, multilingual/tool loops, repeated xhigh trajectories, reasoning-token distribution, task wall time and
+single/dual-M1 memory/TG/PP.
+
+### INT8 KV remains baseline, but deterministic trajectory identity is explicitly not expected
+
+Strata #729 tests IQ3_S at 15K..240K with FP16 vs INT8 KV:
+- median distribution shift is tiny and does not grow with depth;
+- near-tie heavy-tail points still occur;
+- 13/16 greedy continuations fork within 32 tokens.
+
+Therefore:
+- keep INT8 streamed KV as the first 16-GB Windows long-context baseline;
+- do **not** describe it as output-identical to FP16;
+- certify task/agent quality against FP16 controls, especially near ties and long tool trajectories;
+- token-for-token identity is not the quality criterion.
+
+### RX6800 producer adds a kernel-coverage prerequisite
+
+Strata #703 shows nearby gfx1031 can perform long heterogeneous Flash decode but can fail long-history prefill on a
+missing PLE post-op kernel. This does not transfer to gfx1030.
+
+RX6800 first proof remains:
+1. exact target artifact;
+2. speculation/MTP OFF;
+3. cold 32/64/96/128K prefill;
+4. verify every QSA/PLE/prompt kernel required by gfx1030;
+5. export committed conv/recurrent/KV state;
+6. import on M1 and compare continuation.
+
+No bridge or PP credit before this exact proof.
+
+### Disk continuation persistence becomes a serious later lane
+
+Strata #751 reports a bounded disk LRU that restores a 4.46-GiB ~258K IQ3_S continuation snapshot across restart and
+reuses 258,012 tokens while retaining its structured checks, plus byte-exact deterministic continuation tests at 4K.
+
+Project 51 still certifies the engine with persistence/parking OFF first. After base correctness, persistence is
+qualified separately for atomicity, model/config identity, damaged-file refusal, bounded disk use, restore/write
+latency and continuation equivalence at 128/200/250K.
+
+### Windows admission and agent correctness gates expand
+
+- #730/#749: Windows page-locked allocation can be limited by **commit capacity** even when free-RAM reporting looks
+  sufficient. Exact 5070-Ti admission telemetry records commit headroom as well as RAM/VRAM.
+- #710: a per-request reasoning budget does not prevent a cross-request tool loop; add repeated-action/no-state-change
+  detection and count corrections/retries in task wall time.
+- #754: Anthropic tool calls can be emitted inside thinking and finish as end_turn instead of structured tool_use;
+  add reasoning->tool boundary and stop-reason cases to the parser gate.
+
+### Upstream MLX remains a mechanism donor, not the M1 production baseline
+
+MLX #4621 shows a large-M prefill dispatch case where dequantize+BF16 matmul beats quantized_matmul on M2 Max, while
+#4516 updates a narrow-output QMV path with model-shaped Qwen3.8 Flash gains on M5 Max.
+
+Audit these seams against paperniuk/ds4 before porting. Do not numerically transfer M2/M5 rates to the tuned M1 fork.
+
+**Strict research hard boundary is now 2026-10-04 11:00:23 UTC.**
 
 
 ## 2026-10-04 03:53 ET design/source true-up — Swift 1.5 becomes the first model-level challenger
