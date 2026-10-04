@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-04 14:00 ET.
+Last consolidated: 2026-10-04 17:01 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,121 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 17:01 ET strict research pass — 27B fleet handoff promoted; RX6800 producer strengthened
+
+**Strict window: 2026-10-04 18:00:16 UTC -> 2026-10-04 21:01:52 UTC.**
+
+### One-time RTX5070 -> M1 dense-27B prefill handoff becomes a formal Project-51 topology
+
+The fleet architecture is now explicit:
+
+> **Transfer ownership, not computation.**
+
+For Qwen3.8-27B-class agents, the 5070 Ti should first be tested as a **cold session launcher**, not as a persistent
+remote prefill/decode partner.
+
+Phase-1 flow:
+1. the 5070 loads the exact checkpoint/quant/runtime identity of the destination agent;
+2. it performs the initial large cold prefill;
+3. freeze at a committed token frontier;
+4. export complete target continuation state;
+5. one bulk transfer to an M1 Max;
+6. the M1 imports/verifies the frontier and becomes the sole authoritative owner for all later generation, tools,
+   incremental prompts and cache lifecycle;
+7. the 5070 discards that session and can launch another agent.
+
+The portable image must include:
+- attention KV;
+- GDN recurrent and convolution state;
+- position/RoPE/context metadata;
+- committed token frontier;
+- exact model/post-train/quant/tokenizer/template/config identity.
+
+Swift state is valid only for the same Swift build; ThinkingCap only for the same ThinkingCap build; base only for
+the same base build. Architectural shape equality is insufficient.
+
+Draft/MTP state is **optional in phase 1**. Reconstruct it locally on M1 unless measured reconstruction cost is material.
+Continuous token-by-token cross-node decode is explicitly out of scope for the first implementation.
+
+Promotion sequence:
+- 32K exact CUDA->Apple state handoff and next-token/logit/trajectory comparison;
+- 96K and 128K;
+- export + network + import wall time versus M1-local cold prefill;
+- only after that consider later ownership migration for giant appended contexts.
+
+### Recovered RTX5070 dense-27B v3 receipt strengthens the session-launcher case
+
+The 2026-09-28 feveromo CUDA-v3 receipt was absent from the canonical v2 summary.
+
+Exact RTX5070Ti / Qwen3.8-27B GSQ-RCO IQ3_S + embedded MTP:
+- real agent sessions: ~147.2 TG / 2,177 PP;
+- 15.7K: ~109.6 TG / 2,200 PP;
+- 62.5K: ~99.7 TG / 1,949 PP;
+- 92.9K: ~100.2 TG / 1,814 PP;
+- 128.8K: ~93.2 TG / 1,680 PP;
+- peak VRAM ~14.53 GiB at 128K.
+
+This supersedes v2 as the best same-card dense-27B physical anchor. The mature target ladder remains intentionally
+below it for workload/source-like-quant margin.
+
+### Splash #301 validates useful retained hybrid state on Mac 27B
+
+M5 Pro 64GB / Qwen3.8-27B + DFlash2:
+- ~19K shared prefix;
+- current path re-prefills second conversation in ~39.6 s;
+- retaining the last 4,096-token checkpoint reuses 16,384 tokens and cuts TTFT to ~6.3 s;
+- reported replies remain identical;
+- retained state costs ~187 MiB.
+
+This does not prove CUDA->Metal portability. It directly strengthens the mechanism case that Mac-side 27B continuation
+is a composite state object suitable for explicit serialization/import, rather than KV alone.
+
+### RX6800 producer lane materially strengthens
+
+Exact RX6800 / gfx1030 / 64GB Windows evidence (#815/#816) shows current Strata works and identifies a 0.1.39
+HIP regression caused by the shared-expert second stream. #826 root-causes the backend-specific stream cost and makes
+the fork default-off on HIP.
+
+Near-chip same-architecture #835 is more important for prefill:
+one RX6900XT / gfx1030 / IQ3_S moves from roughly 439/466/461 PP at 9K/35K/106K to
+**744/915/926 PP** by using rocBLAS FP16-in/FP16-out prompt GEMMs. 15/15 needle recall passes and the reported
+teacher-forced distribution moves toward the higher-precision reference on that corpus.
+
+Project-51 consequence:
+- RX6800 cold-prefill producer becomes **high priority**;
+- first exact Linux RX6800 IQ3_S run uses the gfx103x FP16 prompt path where available and speculation OFF;
+- still no numeric RX PP target until exact-card target-artifact measurement and CUDA/Metal-style continuation
+  equivalence are proven.
+
+### Exact 5070/64GB Windows Flash PP strengthens through 164K, but does not transfer to dense 27B
+
+Strata #832 measures DASLab Flash IQ3_S on RTX5070Ti16 + 64GB Windows:
+- ~5K: 3012 PP / 75.8 TG;
+- ~41K: 3487 / 74.7;
+- ~131K: 3523 / 82.8;
+- ~164K: 3442 / 79.6.
+
+This is a valuable exact-box Flash receipt, not a dense-27B receipt. It does not close full ~250K Windows/64GB
+admission and does not move current fit/admission/stability priors.
+
+### Codex protocol gate adds namespaced MCP spelling
+
+Strata #812 demonstrates Qwen emitting Codex MCP tools in the flattened `namespace__name` form while the Responses
+adapter expected a dotted name. Mapping both forms restores a real Codex 0.160.0 MCP web-search loop.
+
+Add this to the Codex compatibility gate. #782 `additional_tools` remains a separate unresolved payload class.
+
+### Runtime/parser doctrine remains explicit
+
+#525's updated design puts stranded-call rescue behind named, default-off format adaptations and reports when an
+adaptation fires. This matches Project-51 policy: fail loud by default and score parser/adaptation-assisted success
+separately from native model behavior.
+
+### Strict boundary
+
+**Strict research hard boundary is now 2026-10-04 21:01:52 UTC.**
 
 
 ## 2026-10-04 14:00 ET strict research pass — Strata numerical-quality gate and end-to-end exactness hardening
