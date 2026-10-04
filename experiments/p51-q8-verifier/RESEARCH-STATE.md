@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-04 13:00 ET.
+Last consolidated: 2026-10-04 14:00 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,72 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 14:00 ET strict research pass — Strata numerical-quality gate and end-to-end exactness hardening
+
+**Strict window: 2026-10-04 17:00:03 UTC -> 2026-10-04 18:00:16 UTC.**
+
+### Strata gets an unresolved cross-engine numerical-quality gate
+
+New issue #803 reports a repeatable ~7-10% teacher-forced perplexity gap versus llama.cpp on identical token IDs and
+scoring positions, including 2K chunks where QSA is dense.
+
+This is not yet evidence against Project-51's production DASLab IQ3_S:
+- the report uses AP-Q4_K_XL / NVFP4 artifacts and custom packing;
+- older Strata documentation contains a different UD-Q4_K_XL parity result;
+- root cause is unresolved.
+
+But the discrepancy is too large to ignore for a quality-first project.
+
+Before Strata is promoted as a production-quality runtime:
+1. run identical-token teacher-forced/logprob comparison on **DASLab IQ3_S**;
+2. include 2K dense-QSA and long-context cells;
+3. freeze expert placement / MTP / sampling;
+4. compare against at least one independent runtime/reference;
+5. if a gap persists, isolate dense/recurrent/QSA/output-head paths before relying on agent benchmarks alone.
+
+No quality prior or TG target moves until that controlled test exists.
+
+### Kernel parity is not enough: add realistic end-to-end exactness gates
+
+PR #783 had passed its CUDA parity suite, but a new external partially-resident 2x3090 Swift IQ3_XXS A/B diverged
+from 0.1.39 on 4 of 5 greedy prompts while stock-vs-stock remained 5/5 identical.
+
+The author attributes the divergence to:
+- a 1-ULP fused norm/RoPE fast-math/SASS difference;
+- a partial-residency expert-buffer path mismatch;
+and pushed a fix plus kill switches at 17:58 UTC.
+
+By cutoff the external reporter had not rerun the corrected head.
+
+Project-51 performance-patch gate now requires:
+- kernel parity;
+- end-to-end greedy control on realistic residency/topology;
+- at least one long prompt;
+- full/partial residency when the path differs;
+- draft/acceptance counts where relevant;
+- task-level xhigh A/B after numerical exactness/acceptable-divergence is established.
+
+No #783 speed credit on 5070 Ti until an exact sm_120/IQ3_S gate exists.
+
+### Reasoning->tool boundary remains a real production failure mode
+
+Issue #804 reports 4/~1050 IQ3_S agent responses where a complete tool call was emitted before </think>; the parser
+returned it as reasoning only and the agent stopped.
+
+The parser gate already existed from #787. #804 adds real-agent frequency and strengthens the requirement to record
+implicit-reasoning-end recoveries separately from native well-formed tool calls.
+
+### Raw TG vs task wall time receives another direct receipt
+
+A #764 Windows Swift A/B reports ~8.5% higher decode but essentially unchanged median request wall time because reasoning
+length and draft acceptance changed. This directly supports the Project-51 KPI:
+**time-to-correct-agent-result / total successful task wall-clock** over raw TG alone.
+
+### Strict boundary
+
+**Strict research hard boundary is now 2026-10-04 18:00:16 UTC.**
 
 
 ## 2026-10-04 13:00 ET strict research pass — 5070 context ladder, WDDM correction, admission planner and Slipstream MTP guard
