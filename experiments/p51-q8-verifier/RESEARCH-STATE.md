@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-03 20:51 ET.
+Last consolidated: 2026-10-04 03:09 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,139 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 03:09 ET design/source true-up — M1 Flash-Next physical anchor materially recalibrates Project 51
+
+**This consolidation is based on targeted source audits after the last strict search pass. The strict research hard
+boundary remains 2026-10-04 00:51:42 UTC.**
+
+### paperniuk/ds4 turns the M1 Flash-Next software thesis into a physical receipt
+
+The `m1-flash-next` fork now provides a credible, public M1 Max 64-GB implementation/benchmark anchor:
+- Q2_0: ~44-45 MTP TG short, 43.4 @128K, 37.4 @256K;
+- IQ3_XXS: ~35 short, ~34.2 @128K, ~31.7 @259K;
+- **IQ3_S: ~26 plain / ~32-34 MTP TG at short context**.
+
+It implements several mechanisms Project 51 had treated as future work:
+- Apple7 mixed-IQ kernels;
+- 2/3-row MTP verify kernels that reuse weight reads;
+- pre-M5 long-context QSA/indexer/top-k/attention kernels;
+- prompt expert remainder/register tiles;
+- n-gram I/O overlap;
+- agent prefix/session anchors.
+
+One measured long-context kernel change moves plain decode around 128K from 23.8 -> 33.8 TG with byte-identical
+output. Therefore the prior ~25-27-TG target-only M1 software center is no longer a good basis for dual-M1 planning.
+
+### DASLab IQ3_S becomes the canonical dual-M1 production artifact
+
+Project 51 no longer needs a hypothetical custom ~3.4-3.6-bpw artifact as its first production target.
+
+Use:
+- **DASLab IQ3_S** as the quality-first production artifact;
+- IQ3_XXS as speed/capacity control;
+- custom allocations/ByteShape as later challengers only if they beat IQ3_S on the full xhigh suite.
+
+Planning shorthand:
+- IQ3_S is reasonably treated as **conventional-Q5-class task quality at ~3.5-bpw economics**;
+- this is not numerical/source equivalence and does not weaken the xhigh certification gate.
+
+### Native262K IQ3_S is only slightly too large for one 64-GB M1
+
+The fork's launcher plans IQ3_S at:
+- ~55.2 GiB base;
+- ~33 KiB/context token;
+- +2 GiB reserve.
+
+At 262,144 tokens this is roughly **65.9 GiB** total.
+
+The large n-gram/PLE shard can remain on SSD; it is not part of resident transformer capacity.
+
+Implication:
+- across 2x64 GB, fit is easy;
+- Project 51's hard problem is **decode topology/latency**, not aggregate memory.
+
+### Revised canonical dual-M1 goals
+
+**Production goal:**
+- IQ3_S;
+- native262144;
+- **>=35 TG**;
+- **>=400 cold PP**;
+- source-like xhigh agent behavior.
+
+**Performance goal:**
+- ~128K;
+- **>=40 TG**;
+- **>=425 cold PP**.
+
+**Stretch:**
+- **>=40 TG @ native262K**.
+
+Current planning confidence:
+- dual-M1 native262K fit >=90%;
+- >=400 PP @262K ~80%;
+- >=35 TG @262K ~70-75%;
+- >=40 TG @128K ~70-75%;
+- >=40 TG @262K ~45-55%.
+
+These are engineering priors, not statistical confidence intervals.
+
+### Architecture bakeoff expands to three serious candidates
+
+1. **Balanced dual-M1 layer pipeline** — simple capacity/prefill control; likely decode synchronization penalty.
+2. **Asymmetric decode split** — balanced prefill, one-time state migration, then most target layers on Mac A and a
+   small tail/output/MTP on B.
+3. **Almost-local IQ3_S + shallow SSD expert spill** — keep target forward local to Mac A and spill only enough routed
+   expert bytes to leave safe headroom.
+
+At a full-plan size of ~65.9 GiB, keeping Mac A at:
+- 54 GiB implies ~11.9 GiB displaced;
+- 56 GiB implies ~9.9 GiB;
+- 58 GiB implies ~7.9 GiB.
+
+Only routed expert weights should be candidates for spill; active context/recurrent/QSA/MTP state remains local.
+
+### Slipstream makes shallow expert spill a credible architecture, not a thought experiment
+
+`npanj/slipstream` runs a ~95.5-GiB custom Flash-Next/Swift model on a 64-GB M5 Pro using predictive SSD expert
+streaming, read-ahead, prompt lookup + MTP, QSA kernels and mapped n-gram handling. Its 3,086-request telemetry remains
+around low-30s TG through 96-130K.
+
+Do **not** transfer M5-Pro throughput or its custom model quality to Project 51.
+
+Durable mechanism conclusion:
+- streaming ~8-12 GiB of IQ3_S routed experts on an M1 is now worth direct measurement;
+- this may beat a mandatory TB4 target-stage hop if cache hit/read-ahead are good enough.
+
+### Copy-from-context becomes a higher-priority workload-specific accelerator
+
+Slipstream independently reinforces TensorFold #319's result:
+- for code/file edits, propose spans already present in context;
+- verify them with the target;
+- fall back to MTP then ordinary target decode.
+
+This matches the user's Playwright/brownfield workflow unusually well.
+
+Do not count copy-heavy effective TG as generic model TG.
+
+### Implementation strategy changes
+
+Do **not** build a Flash-Next M1 engine from scratch.
+
+New order:
+1. reproduce/audit paperniuk/ds4;
+2. make IQ3_S the production artifact;
+3. measure exact IQ3_S memory map;
+4. implement/compare balanced pipeline, asymmetric split and shallow expert spill;
+5. choose the topology against 35 TG / 400 PP @262K;
+6. then add Project-51-specific verifier/copy-draft/persistence/multi-agent improvements.
+
+The paperniuk fork currently does not implement Qwen3.8 Flash-Next network TP/pipeline even though upstream ds4 has
+distributed machinery for other models, so multi-M1 Flash remains Project-51 engineering.
+
+**Primary Windows/Strata 5070-Ti targets and priors are unchanged by this design true-up.**
 
 
 ## 2026-10-03 20:51 ET consolidation delta — exact 5070-Ti PP headroom; #646 root fixes; copy-draft lane
