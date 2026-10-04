@@ -1,6 +1,6 @@
 # Canonical Runtime / Architecture Research State
 
-Last consolidated: 2026-10-04 03:09 ET.
+Last consolidated: 2026-10-04 03:53 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and
 DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are deltas;
@@ -22,6 +22,97 @@ Before any new search:
 
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
+
+
+## 2026-10-04 03:53 ET design/source true-up — Swift 1.5 becomes the first model-level challenger
+
+**Targeted source audit only. Strict research hard boundary remains 2026-10-04 00:51:42 UTC.**
+
+### Swift BF16 is unusually well aligned with Project 51's xhigh agent workload
+
+Swift 1.5 Qwen3.8-Flash-Next is post-trained for shorter reasoning plus coding/agent/long-horizon work.
+
+At xhigh, reported BF16 comparisons versus base include:
+- GPQA-D: 89.80 -> 89.60 while mean thinking tokens fall 17,683 -> 7,823 (-55.8%) and median falls 63.4%;
+- LiveCodeBench v6: **88.40 -> 90.39** with mean thinking tokens -44.8%;
+- Terminal-Bench 2.1: **67.64 -> 69.66**;
+- MMLU-Pro: 87.75 -> 87.20;
+- AIME26: 98.67 -> 96.67;
+- IFBench: 73.20 -> 70.13.
+
+Therefore Swift is not universally better, but it is highly compelling for the user's xhigh coding/agent workload:
+model-level quality is roughly base-class on the strongest relevant tasks while reasoning-token consumption is much
+lower.
+
+### The current compact GSQ-RCO release is IQ3_XXS, not IQ3_S
+
+The adamm-hf/UkisAI bucket provides:
+- IQ3_XXS: 75.97 GB combined, dev KLD 0.240139;
+- IQ2_XS: 68.15 GB, 0.341275;
+- Q2_0 experimental: 66.55 GB, 0.424350.
+
+It reuses ISTA allocation profiles and applies Swift-specific attention/expert refinement.
+
+The IQ3_XXS KLD results are encouraging across prose/code/math/multilingual text and generally improve on its Swift
+starting quant. However:
+- KLD is against **Swift BF16**, not base BF16;
+- tests are at 512-token context;
+- IQ3_XXS lacks the fresh-English holdout available for the smaller tiers;
+- the release explicitly says these tests do not establish long-context quality;
+- there is no published quant-level Terminal-Bench/SWE-bench/LCB rerun in this bucket.
+
+So **do not transfer Swift BF16's agent benchmarks to Swift IQ3_XXS by assumption**.
+
+### Production ranking
+
+1. **DASLab IQ3_S remains the production baseline.**
+2. **Swift 1.5 GSQ-RCO IQ3_XXS becomes the highest-priority model-level challenger.**
+3. Swift IQ2_XS is a later speed/efficiency arm only after IQ3_XXS is qualified.
+
+DASLab IQ3_S keeps first place because its quant-level evidence is stronger and it already has direct M1 kernel/runtime
+support in the paperniuk fork.
+
+Swift can win only by proving that its large reasoning-token savings and coding/agent gains survive the IQ3_XXS
+quantization over long xhigh trajectories.
+
+### Add task-normalized agent throughput as a first-class KPI
+
+Raw TG/PP is no longer sufficient for model selection.
+
+Every serious Project-51 model arm should report:
+- raw TG/PP;
+- total reasoning tokens;
+- visible/tool tokens;
+- tool-call count;
+- retries/corrections;
+- total wall time to successful task completion;
+- final task success.
+
+A lower raw-TG Swift quant may still be the better production agent if it reaches correct solutions with dramatically
+fewer reasoning tokens.
+
+Do not hide raw TG/PP; report task-normalized wall-clock alongside them.
+
+### Swift qualification
+
+Required before promotion:
+- confirm paperniuk/ds4 load/runtime and MTP compatibility;
+- frozen LiveCodeBench/coding suite;
+- Terminal-Bench/terminal-agent tasks;
+- SWE-bench-style repo repair;
+- Project-51 Playwright diagnosis/repair;
+- deep-context retrieval 32/64/128/200/250K;
+- near ties, multilingual and tool/parser loops;
+- repeated xhigh trajectories;
+- reasoning-token distribution and task wall time;
+- single-M1 and dual-M1 TG/PP/memory ladder.
+
+### License caution
+
+Swift's additional license permits personal/research use but places a US$1M gross-annual-revenue threshold on free
+commercial use. Keep this separate from technical quality and verify licensing before any corporate deployment.
+
+**No change to the canonical DASLab IQ3_S native262K 35-TG / 400-PP production target.**
 
 
 ## 2026-10-04 03:09 ET design/source true-up — M1 Flash-Next physical anchor materially recalibrates Project 51
