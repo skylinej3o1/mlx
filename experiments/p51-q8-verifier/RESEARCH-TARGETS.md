@@ -2,7 +2,7 @@
 
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
-Latest strategy true-up: **2026-10-04 07:00 ET**
+Latest strategy true-up: **2026-10-04 08:27 ET**
 
 This is the canonical planning-target file for the recurring model/hardware lanes:
 
@@ -698,6 +698,44 @@ prompts and setup defaults, now measures:
 
 Those 12-GB cells are now retained as weaker-card calibration, not the 5070-Ti PP center.
 
+
+
+### 2026-10-04 08:27 ET exact 16GB/64GB fit / agent-protocol true-up
+
+One planning prior moves; production TG/PP targets do not.
+
+**Windows/Strata lane:**
+- IQ3_S/native262K **physical fit: ~95% -> ~97%**;
+- Windows 16-GB/64-GB full-context admission: **~90% unchanged**;
+- 8 h / 24 h zero-stall: **~75% / ~55% unchanged**;
+- automatic containment: **~85% unchanged**.
+
+Why physical fit moves:
+Strata #757 is a direct IQ3_S/262144 receipt on the same broad memory class—16-GB GPU + 64-GB host—with a 250K cold
+prompt, ~15.7/16-GB VRAM peak, >=6.17-GiB host MemAvailable, no swap growth and 15/15 needles. GPU compute and OS are
+different from the target box, so **no TG/PP transfer** and **no Windows-admission raise**.
+
+**5070-Ti configuration remains:**
+- streamed INT8 KV;
+- ~32K resident cells first;
+- fine auto:16384-class prefill chunking;
+- measure RAM commit, WDDM/shared memory, hard faults, VRAM reserve and late transients.
+
+The #757 control strengthens this streamed-KV choice: when its 262K KV allocation was kept non-streamed, the expert
+cache shrank materially and decode fell ~13-17% versus the 131K-cap arm.
+
+**Agent qualification adds:**
+- Responses/Codex protocol lane with ~100K tools/skills prefixes and subagent workflows;
+- log native tool calls separately from JSON recovery, retry-assisted calls and synthesized calls;
+- server-synthesized tool calls receive zero native-model quality credit.
+
+**Dual-M1 numeric targets remain unchanged:**
+- production: IQ3_S/native262144/**>=35 TG / >=400 cold PP**;
+- performance: IQ3_S/~128K/**>=40 TG / >=425 cold PP**;
+- stretch: IQ3_S/native262144/**>=40 TG**.
+
+Strata #761's 2.04x four-way pipeline A/B changes the implementation checklist, not the M1 numeric prior:
+asynchronous stage handoff and explicit stage-wait telemetry are required before judging balanced-pipeline PP.
 
 
 ### 2026-10-04 07:00 ET strict-pass qualification true-up
