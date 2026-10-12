@@ -4256,3 +4256,14 @@ Highest-value missing measurements:
 - **NEW Strata #90:** Hermes requests 65,536 output tokens with 70,527-token prompt under131,072 context, correctly gets400 because prompt+reservation exceeds window. Orchestrator must use dynamic remaining-context output caps/compaction; no context-corruption evidence.
 - **RECOVERED CURRENT DASLab IQ3_S SWE:** unpruned GSQ-RCO IQ3_S **82.0 SWE Verified vs82.8 BF16 (~99%)**. TARGETS quality prior IQ3_S AA>=40 rises **~75%->~80%**, still not AA certification. IQ3_XXS prior unchanged.
 - **Speed target effect:** none. Dual-M1 Flash remains **40TG@128K /400PP /~70%**.
+
+
+## 2026-10-12 09:07 ET consolidated external research and repo audit
+
+Strict watch advancement: 2026-10-04 22:06:41 UTC -> 2026-10-12 13:07:45 UTC.
+Controlling delta: `RESEARCH-WATCH-2026-10-12-0907.md` (also byte-identical `RESEARCH-WATCH-LATEST.md`).
+Detailed source audit: `REPO-AUDIT-2026-10-12-PI-VCC-ADAPTIVE-KV.md`.
+
+**Durable methods/results:** (1) RTX5070Ti native IQ3_S 0.1.43 overlap-off 86.4 TG vs default 68.4 on an external 93GB host; A/B `STRATA_ADAPT_OVERLAP=0`, not a 64GB/262K target. (2) External 5070Ti 96GB context receipts: ~99 TG at actual 131K on one system, ~43-53.5 TG at ~258K on another; do not use the old ~90 early-context estimate at full long context or as Swift-1.5 xhigh proof. (3) oMLX merged Splash external-engine integration plus M4 Max TurboQuant/MTP attention improvement; pilot on actual M1 Max, no PP2 TG promotion. (4) Agent sibling cache checkpoint placement may dominate prefill latency; preserve identity-gated committed prefix/recurrent state across branches and restarts. (5) Pi-vcc's no-LLM compaction has semantic-recall risk; manual A/B first. (6) CUDA adaptive KV streaming on 5070Ti dense 27B preserves full pinned-host history and shares phase arenas, but is serial CUDA only and has no proven Metal/Relay bridge. Historical and rebased V2 speed cohorts are distinct.
+
+**Decision:** no source patch, certification, quantified confidence or target change. Canonical `RESEARCH-TARGETS.md` is unchanged. No hardware purchase. Keep Project 51 exact-Q8 verifier P58/P61/P69B3/P69B6/P69B11/P69B12 gates and certified state distinct from the external fleet research.
