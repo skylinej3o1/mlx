@@ -1,89 +1,97 @@
-# Project 51 research watch — 2026-10-12 09:07 ET
+# Project 51 research watch — 2026-10-12 12:49 ET
 
-Strict previous boundary: **2026-10-04 22:06:41 UTC** (the previous `RESEARCH-WATCH-LATEST.md`).
-New evidence/documentation cutoff: **2026-10-12 13:07:45 UTC**.
-Nature of update: **cumulative true-up of verified Oct 5–12 external research and Oct 12 code audit**. Public upstream receipts and selected new source/PR checks; **not a claim of an exhaustive issue-by-issue replay of every GitHub project**.
+Prior hard boundary: **2026-10-12 13:07:45 UTC**.
+Cutoff: **2026-10-12 16:49:11 UTC** (user message timestamp).
+Scope: fresh upstream PRs, issues, code commits and model artifacts relevant to Project 51, 5070 Ti Swift/Flash, two M1 Max PP2, Relay, Pi and agent orchestration. Sources created strictly after prior boundary are NEW; rebase/merge of older work is an UPDATE, not new measurement.
+Model-repository listings examined during this window may recover earlier-existing artifacts; do not attribute their upload time to the crawler.
 
-## Canonical decision
+## Overall decision
 
-**No promotion of Project 51 P69 verifier code, no change to the exact-Q8 certified champion, and no numerical promotion of canonical M1/5070/DS4 TG, cold-PP, xhigh-quality, fit or stability targets.** Existing `RESEARCH-TARGETS.md`, `CURRENT.md` and runtime-gated verifier lineage remain the controlling baselines.
+**No numeric TG, cold PP, xhigh-quality, fit, 8h/24h stability, or hardware target promotion.** No change to certified P58/P61/P69B3/P69B6/P69B11/P69B12 verifier code, M1 Max architecture, or accepted benchmark outputs. `RESEARCH-TARGETS.md`, `CURRENT.md`, and `RUNTIME-STATE.md` remain unchanged.
 
-The new evidence materially improves **test prioritization** and highlights opt-in CUDA controls, Pi-agent compaction correctness, recurrent/KV ownership, Mac server integration, and context-normalized benchmark reporting.
+Durable qualification update: include expert-slot provenance race, strict request reasoning-budget compatibility, FP32 GDN state/decay correctness, and producer/consumer checkpoint leases. Separate all model/quant/context/hardware cohorts.
 
-**Never conflate**:
-- context capacity configured vs tokens actually in the attended prompt vs KV held in GPU vs KV retained for subsequent turns;
-- original Flash-Next vs Swift-1.5 vs dense 27B;
-- low-reasoning/no-thinking speed tests vs xhigh-quality end-to-end coding tasks;
-- a 96-GB 5070 Ti host vs the user's **64-GB DDR5-4800 Lenovo**, even with the same GPU;
-- speculative *generation* TG vs complete cold-request time and task pass rate.
+## NEW: Strata optional Foresight swaps may serve *wrong expert bytes* (#2134)
+Created 2026-10-12 15:59:47 UTC.
+https://github.com/Niko1221/Strata/issues/2134
 
-## NEW / UPDATED: Strata RTX 5070 Ti performance, qualification and regressions
+Cause: an asynchronous Foresight RAM->GPU slot fill reads an address that an adaptive `commit_exchanges/commit_copies/commit_flip` moves while the fill is in flight. Slot identity remains expert X while bytes belong to expert Y. Clean Strata 0.1.43/7695859, RTX PRO 6000, Flash IQ3_XXS, `STRATA_FS_SLOTS=4 STRATA_FS_VERIFY=1`, one HumanEval-50 sequence: **19 BAD / 425,973 verified OK**. Contributor's 37-line local invalidation fix: **0 BAD / 763,665 OK, 263,727 exchange invalidations**. Median per-request decode 71.8 TG in both arms; whole-run 75.3 vs 74.7 is noise. **Not merged.** Default Foresight off unaffected.
 
-- **Strata v0.1.43 overlap:** issue #2010 / draft PR #2011 now include an isolated `STRATA_ADAPT_OVERLAP` A/B on RTX 5070 Ti 16GB / Ryzen 7 7700 / 93GB DDR5 / native Flash IQ3_S. Same engine default: **68.4 TG**; overlap disabled: **86.4 TG** (+26.3%), ~300-output-token short-context trials. This is hardware-class evidence, **not** proof for the user's 64GB/long-context run; set `STRATA_ADAPT_OVERLAP=0` as the first opt-in A/B on 0.1.43 and pin a v0.1.42 reference.
-  - https://github.com/Niko1221/Strata/pull/2011
-  - https://github.com/Niko1221/Strata/issues/2010
-- **Full context is not necessarily slow, but cross-machine evidence is heterogeneous:** #791 RTX5070Ti IQ3_S / Core Ultra 7 265K / 96GB reported **99.4 TG at 16K** and **99.1 TG at 131K** in limited-repeat benchmark; #775 different RTX5070Ti / 96GB, 257,630-token tuned benchmark reported **43–53.5 TG** depending on cold/warm/profile configuration. Neither is the owner's Swift-1.5 IQ3_S / 64GB / xhigh at 262K; our early-context ~90-TG hypothesis **must not** be relabeled a filled-262K target.
-  - https://github.com/Niko1221/Strata/issues/791
-  - https://github.com/Niko1221/Strata/issues/775
-- **Exact 5070Ti + 64GB class:** #2053 native Flash IQ2_XS/IQ3_XXS / Ryzen 5600G / 64GB shows short-chat **81.9/66.4 TG** and fresh-16K **2177/1945 PP**. 32K/65K configured test arms do not qualify filled 262K Swift.
-  - https://github.com/Niko1221/Strata/pull/2053
-- **Release regression still unresolved:** #1964 decode loss after v0.1.42->0.1.43; #1975 adaptive-overlap regression; #2038 CUDA dual-3090 split scheduling regression; #2101 PLE `direct`->`mmap` automatic decision slowdowns. Test `STRATA_ADAPT_OVERLAP=0`, record effective `--ple-io`, validate single vs split paths and compare full-task outputs.
-  - https://github.com/Niko1221/Strata/issues/1964
-  - https://github.com/Niko1221/Strata/issues/1975
-  - https://github.com/Niko1221/Strata/issues/2038
-  - https://github.com/Niko1221/Strata/issues/2101
-- **MTP break-even:** #2045 RTX3070 GSQ-RCO IQ3_S finds MTP-off faster for fresh 48K–128K prompts ending in ~1K output; extrapolated output threshold does not fit the 128K budget. Do not rank engines by TG alone for control decisions; add total TTFT+TG/answer length and correct-outcome comparison.
-  - https://github.com/Niko1221/Strata/pull/2045
+P51: keep `STRATA_FS_SLOTS=0`; no Foresight speed credit until read-after-write ownership canary and identity checks pass sampled, long-context, batch and adversarial swap tests. General Relay ownership lesson: invalidate/in-flight fence correctly across expert-state relocation. Silent numerical contamination is more dangerous than an obvious crash.
 
-## UPDATED: cross-backend state and multi-agent scheduling
+## NEW: Strata ignores a llama.cpp client's reasoning budget (#2141 / PR #2140)
+Issue created 2026-10-12 16:24:35 UTC; PR created 16:18:18 UTC (source provenance overlaps, despite PR number).
+https://github.com/Niko1221/Strata/issues/2141
+https://github.com/Niko1221/Strata/pull/2140
 
-- **CUDA/Metal precedent:** merged llama.cpp #26004 has a reported GB10 CUDA -> M3 Ultra Metal checkpoint restoration for a hybrid model. It is **not** Swift Flash / Strata CUDA -> MLX Relay export; requires same-model semantics, numerical checks, recurrent GDN, QSA/KV, indexer/PLE and MTP state.
-  - https://github.com/ggml-org/llama.cpp/pull/26004
-- **Strata early cross-engine probe:** #1990 puts Strata gateway over llama.cpp token engine with Metal MTP draft + NVIDIA target. Reported direct target 6.40 TG vs Metal draft 5.61 TG (slower). Interop proof, no decode handoff or Project 51 PP2 proof.
-  - https://github.com/Niko1221/Strata/pull/1990
-- **Checkpointing:** #1937 disk-spilled conversations, #1959 scattered checkpoints for edited older prefixes, #2077 persistent common prompt root across restart, #2098 version-gated cache blobs. Distinct scopes, mostly unmerged. Persist only complete, identity-validated state; treat old-build blob reuse as dangerous, and ensure restore cannot extend past committed frontier.
-  - https://github.com/Niko1221/Strata/pull/1937
-  - https://github.com/Niko1221/Strata/pull/1959
-  - https://github.com/Niko1221/Strata/pull/2077
-  - https://github.com/Niko1221/Strata/pull/2098
-- **Multi-agent economics:** #2099 14.8K sibling shared prefix had 0% reuse when below 16,384 periodic checkpoint; `--prompt-cache-tail` achieved **93.4% reuse** and ~**11.7x later-sibling prefill speed** on a GTX1080Ti. #2050 chunked prefill on 2x5090 reduces a long-running stream stall **12.2->4.2s** (32K pieces) at the cost of a later incoming TTFT. Neither is a TG uplift claim for the user's fleet.
-  - https://github.com/Niko1221/Strata/issues/2099
-  - https://github.com/Niko1221/Strata/pull/2050
-- **Branching contexts:** #2094 correctness/recovery progress, but **50.35s branching API vs 42.12s unmodified** for eight serial calls. Keep as experimental, not a proven latency win.
-  - https://github.com/Niko1221/Strata/pull/2094
+Pi `pi-llama-cpp` sends `thinking_budget_tokens` (medium=8192) while Strata reads only `reasoning_budget_tokens`. On 2x CMP 50HX + Flash IQ3_XXS, a 109,013-token automatic compaction generated 26,214 thinking tokens per retry and repeated five times (~250 seconds each; ~21 min), never producing a summary. Proposed alias fix reads either name with `reasoning_budget_tokens` taking precedence. No merged release yet.
 
-## NEW: M1 Mac control plane, MTP and prefix restoration
+P51: explicitly send recognized `reasoning_budget_tokens` or validate adapter mapping, assert the budget in e2e replies/logs, bound retries and cap compaction completion; compare Pi default compaction vs manual pi-vcc separately. This can dominate agent wall time despite high decode TG.
 
-- **oMLX #4447 merged Oct 12:** Splash/Splash-M1 can run as supervised external inference backend under oMLX model/APIs and admission/lifecycle interface. Author's **M3 Ultra** test with Splash 1.3.1, dense 27B and DFlash2 had favorable greedy code TG; no user M1 Max + Swift validation. Require engine launcher compatibility and actual Mac runs; do not assume an early Splash-M1 binary is compatible with 1.3+ interface.
-  - https://github.com/jundot/omlx/pull/4447
-- **oMLX #4408 merged:** M4 Max dense 27B with MTP/TurboQuant4 attention improvement at actual 16K **21.2->32.6 TG** and 32K **20.5->31.8 TG**. No M1 long-262K numeric transfer. #4442 restores TQ prefix as temporary dense KV for multi-chunk suffix prefill when memory allows; #4453 repairs multi-row left-padding and MTP verify correctness.
-  - https://github.com/jundot/omlx/pull/4408
-  - https://github.com/jundot/omlx/pull/4442
-  - https://github.com/jundot/omlx/pull/4453
-- **Operational staging:** one independent dense Swift agent per 64GB Mac is the deployment minimum; oMLX native and Splash-M1 are A/B backends, not evidence of native PP2. Preserve existing dual-M1 exact-Q8 verifier champion and its validator gates while comparing routes.
+## NEW: same 64GB host capacity benchmark of Swift-1.5 IQ3_S, but **not long context** (#2133)
+Created 2026-10-12 15:54:05 UTC.
+https://github.com/Niko1221/Strata/issues/2133
 
-## NEW: code audit — Pi conversation compaction and CUDA adaptive KV
+RTX5090 32GiB VRAM + Threadripper9960X +63.4GiB installed RAM, Windows 11, Strata0.1.43, Swift1.5 IQ3_S native GGUF/MTP: median short-chat **185.6 TG**, fresh 16K **6639.4 PP**, agent followup **184.7 TG** with actual agent prompts only ~14.4K. **131,072-token configured window is not an actually filled 131K performance test**; thinking off, greedy, no coding correctness evaluation. Demonstrates artifact/host class admission, not 5070Ti transfer or deep xhigh quality.
 
-Detailed reproducible design/limitations:
-`REPO-AUDIT-2026-10-12-PI-VCC-ADAPTIVE-KV.md`
+RECOVERED EXISTING MODEL ARTIFACT (upload date NOT established in this research window): https://huggingface.co/tomngdev/Swift1.5-Qwen3.8-Flash-Next-GGUF has an independent **IQ3_S** GGUF of Swift1.5 with modified ISTA-DASLab-style recipe, MTP included Q4_K_M, embedding Q6_K, shared projections Q8_0 and disk PLE BF16. Don't equate its weights/layout to original ISTA-DASLab or proposed P51 xhigh mixed quant; source revision, files, license, tensor fingerprint and external PLE footprint must be confirmed before testing. This corrects the October 4 artifact watch's broader implication that no public Swift Flash IQ3_S existed, **but does not establish a fresh upload since 13:07 UTC**.
 
-- **pi-vcc 0.10.1:** deterministic Pi summarizer, ranked structured facts and searchable original session JSONL. Internal median ranked weighted fact recall **69.2%** vs **72.0% prior pi-vcc baseline**, **~1.4x** fact-density. Not an LLM-compaction benchmark. Manual `/pi-vcc` with `overrideDefaultCompaction: false` only until adversarial agent constraints and tool/failure recall pass. Merged fix #49 addresses Pi 1.1 context edits.
-  - https://github.com/sting8k/pi-vcc
-  - https://github.com/sting8k/pi-vcc/pull/49
-- **Adaptive KV Streaming V2:** a llama.cpp CUDA fork keeps full Qwen3.8-27B attention KV in pinned CPU RAM and streams bounded GPU resident/ring pages; separate MTP host history and lease, recurrent-state rollback. **Only** single RTX5070Ti serial UD-IQ4_XS 27B Q8_0/Q4_0 tested. Historical V2 near-256K: **8.73 TG MTP off vs 19.12 TG MTP depth3**. Subsequent upstream rebase: **69.96 TG at 96K / 54.06 at 128K / 28.51 at 192K**, depth3. **Do not splice different revisions**, call an arena bound total VRAM bound, transfer dense-to-Flash speed, or call it Mac/Metal support. Multi-GPU #2 open.
-  - https://github.com/RaymondHuang210129/llama.cpp-adaptive-kv-streaming
-  - https://github.com/RaymondHuang210129/llama.cpp-adaptive-kv-streaming/pull/2
+## NEW: Strata disk-parking alternative PR #2119
+Created 2026-10-12 14:07:35 UTC.
+https://github.com/Niko1221/Strata/pull/2119
 
-## Next evidence gates — no promotion from this watch
+Opt-in `--conversation-cache-storage disk`, native session snapshot per parked conversation, atomic write and LRU eviction. Compared with the more complete #2098 page-granular version-tagged disk tier; #2119 deliberately omits blob sharing, GC and version tag gating. RTX5090 Laptop 24GiB, IQ3_XXS 14.4K conversation, ~435MiB snapshot: park RAM 105ms versus disk 411ms; restore RAM 32ms versus disk **42.5ms page-cache hot**; disk park decreases engine RSS ~26MiB vs RAM park +308MiB; identical 14087/14188 reused tokens; decode RAM 30.3 versus disk 27.7 TG. After engine restart disk restore 152ms. Source author says alternating conversations on RAM-constrained box ~2–4 seconds versus full cold re-prefill. **Draft/unmerged**.
 
-1. User Lenovo RTX5070Ti16GB/Core Ultra7 265F/64GB DDR5-4800: pin Strata 0.1.42 vs 0.1.43; one-switch ABBA overlap/PLE/calibration; report committed RAM, pinned RAM, VRAM, GGUF/PLE residence, TTFT/cold PP, decode and quality, at filled **8K/32K/64K/128K/192K/near262K**.
-2. Explicit **original Flash vs Swift-1.5**, **IQ3_S vs IQ3_XXS**, **no-thinking vs xhigh** labels and MTP on/off controls. No near-262K promises based on 96GB third-party rigs.
-3. Two M1 Max servers: benchmark oMLX TurboQuant + Lightning MTP and separately Splash-M1 on the *same actual model/context* before attempting Project 51 PP2. Keep exact verifier proof and dual-ABI validation unchanged.
-4. Relay state portability: export/import precise GDN/recurrent, attention KV, QSA/indexer, MTP and prompt chronology with independent cross-backend oracle; fail closed on mismatched model/runtime/checkpoint geometry.
-5. Pi fan-out: verify saved-prefix placement, independent private tails, failed-turn retries and multi-agent correctness; test pi-vcc manual mode before allowing automatic compaction.
+P51: architecture reference for bounded durable spill, but prefer version-tagged/validated #2098 path; require cold-cache, restart, disk exhaustion, concurrent evictions, crash atomicity and exact resumed state. No M1 numerical transfer.
 
-## Target movement / provenance
+## NEW: Strata QA / high-context community receipts
+- #2138 created 2026-10-12 16:11:43 UTC: two independent RTX3090 replicas with batch2, 2×EPYC virtualization, same immutable v0.1.43, warm aggregate **153.60 TG overlap off vs 121.53 TG on** (~-20.9%), v0.1.42 155.67 control. Solo mode neutral. **Not a layer split**; confirms `STRATA_ADAPT_OVERLAP=0` test requirement for B2 as well as B1. https://github.com/Niko1221/Strata/issues/2138
+- #2139 created 16:15:05 UTC: RTX3060 12GiB + i7-12700 +64GB, three original Flash quant types Q2_0, IQ2_XS, IQ3_XXS, Windows 0.1.43. Fresh inputs through **260,000** tokens; xhigh sampled MTP; 90/90 speed requests and 21/21 synthetic recall; one-hour IQ2_XS 128K soak. Expert placements/cache differ, uncontrolled OS cache, not quality/Swift/5070 comparative causal evidence. https://github.com/Niko1221/Strata/pull/2139
+- #2117 created 13:52:41 UTC: RTX4080 16GiB +128GB, Flash IQ3_S, configured 262K but benchmark actual <=32K, 66.0 short TG / 1996.3 fresh 16K PP; supplemental personal ~225K agent-session observations must remain distinct from standardized suite and RAM is larger than ours. https://github.com/Niko1221/Strata/issues/2117
+- #2131 created 15:44:01 UTC: under `--prefill auto`, prompt cache loan can be too small for a short request's legacy ring on IQ3_XXS, causing engine exit. Proposed fix sizes for max selected/legacy chunk; L4 24GiB reproduction and 3/3 failure->0/3 for affected expert-cache sizes. Test small fresh prompts *after* long prompt initialization, and on varying expert-cache capacities. https://github.com/Niko1221/Strata/pull/2131
+- #2135 created 16:03:00 UTC: benchmark utility warning for `--expert-profile-save` overwriting live routing profile; do NOT run quality/perf test suites with profile-save to production artifact. https://github.com/Niko1221/Strata/pull/2135
 
-**None.** Certified P58/P61/P69B3/P69B6/P69B11/P69B12 verifier lineage unchanged; no new physical dual-M1 PP2 decode receipt, no user's-own Swift Flash 262K xhigh TG measurement, no cross CUDA->Apple Flash replay. `RESEARCH-TARGETS.md` retained unchanged.
+## UPDATE (MERGED during window): mlx-serve Flash GDN dtype correctness #815/#814
+Git commit `9c511c4710` 2026-10-12 15:25:30 UTC; **underlying issue/PR created Oct 11 and numeric evidence is older, not a new Oct 12 measurement**.
+https://github.com/ddalcu/mlx-serve/pull/815
+https://github.com/ddalcu/mlx-serve/issues/814
 
-This dated note is the **new hard GitHub research boundary at 2026-10-12 13:07:45 UTC**. The separate Local LLM Fleet cumulative research master v0.74 and October 12 repository-audit artifact remain supporting archives; this branch note records decision-relevant findings rather than copying 1+ MB of conversation history.
+`qwen4_exp` GDN recurrent state and decay factor had bf16 instead of declared FP32; 206/1728 heads rounded decay to g=1, effectively failing to forget. Reported M5 Max 128GB over a 16,384-token chat, teacher-forced perplexity decode **56.95 bf16 -> 39.76 f32**, chunked prefill **48.16 -> 42.35**; fp32 state/decay introduces higher memory and checkpoint dtype change, SSD namespace split. This demonstrates a general *state-precision* correctness gate, **not evidence existing oMLX/P51 P58 patch has this bug**. Verify oMLX/M1 state and decay dtype against model/reference, and native short/long recurrence correctness before accepting cross-backend state transfers or quantized islands.
+
+## NEW: oMLX Apple Silicon PLE and cluster research
+- #4464 created 13:39:56 UTC: removes redundant extra mmap copy. Synthetic selected-row microtest 0.1164 -> 0.1059ms (8K rows), but **real M5 Max Flash-Next oQ5e end-to-end 8K cold PP 2036->1957, decode 99.9->100.0, TTFT 3.947->4.104s**; micro win is NOT a serving win. No M1 target change. https://github.com/jundot/omlx/pull/4464
+- #4467 created 14:16:12 UTC, **rebase of old #3063** (older since September). Distributed prompt-cache slots tiered by per-rank headroom on two 48GB Thunderbolt Macs; 121 tests, old deployment reports zero incidents. Different Mac RAM, TP2 topology and old measurement; useful cache-pressure policy, not new PP2 throughput. https://github.com/jundot/omlx/pull/4467
+- #4472 created 16:27:28 UTC: bounded SSD PLE prefetch workers; 2,048-page synthetic 16.0877 -> 11.6100 ms on M5 Max, no model TG proven. #4473 created 16:28:20 UTC: cached immutable shard layouts, 64-row synthetic planning 0.0426 -> 0.0101 ms, no E2E improvement. Both open. Avoid mistaking synthetic lookup micro gains for dual-M1 B1/B4 rates. https://github.com/jundot/omlx/pull/4472 https://github.com/jundot/omlx/pull/4473
+- #4470 created 16:04 UTC: optional Decision 3.0 auxiliary decision-model serving. No effect on Flash verifier; M3 Ultra 3 text questions 0.35s is unrelated. https://github.com/jundot/omlx/pull/4470
+
+## NEW: vLLM QSA context-parallelism capacity/throughput tradeoff
+#61242 created 2026-10-12 16:13:26 UTC, draft.
+https://github.com/vllm-project/vllm/pull/61242
+
+8×A100 40GiB, Flash FP8, TP8/EP, DCP=4 splits two KV heads' tokens across GPUs instead of 4x replication: **GPU KV capacity 2.18M -> 7.70M tokens** (3.53x FP8), but 3x60min MLPerf agentic 20-session run **aggregate TG 915->805**, TPOT p50 13.2->16.4–16.8ms; strict SLO goodput ~2.0->1.52–1.69 req/s. A100 kernel merge fallback + 4 collectives per QSA layer. Useful capacity-only research, *not* dual M1 TB4 PP2 speed evidence. Preserve topology-by-execution-mode rule.
+
+## NEW: distributed checkpoint safety
+- vLLM #61229 issue created 14:42:21 UTC: NIXL producer expires KV lease during stalled consumer READ; reused physical pages silently poison decode. Controlled Qwen2.5-0.5B test **5/5 wrong request outputs** at both 30-second and 1-second lease settings. Must tie remote block ownership to in-flight consumers, transfer completion and content epoch, and never reclaim until safe. https://github.com/vllm-project/vllm/issues/61229
+- vLLM #61238 PR created 15:50 UTC: marks stalled-read engine invalid after ~480s timeout; test later requests fail fast rather than pin blocks. Simulated blocks pinned **470->55** and followup hangs **5->1**. The first in-flight request remains pinned until it finishes; no premature free. This does not itself solve #61229's producer expiry. https://github.com/vllm-project/vllm/pull/61238
+- vLLM #61248 created 16:36 UTC: drain asynchronous HF3FS save writers and validate complete writes before release/confirm; CPU 22 focused tests passed. Matches Relay's durable-write-before-reclamation requirement. https://github.com/vllm-project/vllm/pull/61248
+- SGLang #43868 created 16:03 UTC: HiCache block-group page hits, caller-owned destination pages, and allocation-target FULL eviction policy. Supports explicit owner/layout metadata; no exact-target measurement. https://github.com/sgl-project/sglang/pull/43868
+- SGLang commit #40896 merged by 16:03 UTC: fail a request whose external linker load fails rather than crash global scheduler. https://github.com/sgl-project/sglang/commit/f92199b569
+
+## NEW: llama.cpp image+MTP interface
+PR #30397 created 15:19:10 UTC: Qwen3.8-Flash-Next image embeddings pass to MTP. Contributor's image/text/image-repeat HTTP smoke no longer fails after patch; **open**, limited correctness suite and no quality/speed improvement claimed. https://github.com/ggml-org/llama.cpp/pull/30397
+
+## Checked, no target movement / boundary exclusions
+- antirez/ds4 latest direct commit Oct 7; no fresh Oct 12 PR/issue in query. This is a negative current-window check, not a new performance conclusion.
+- Adaptive KV Streaming V2 and pi-vcc have no new created PRs/issues or default-branch commits later than previous checkpoint. Previous Oct 12 audit stands.
+- SGLang #43820 proposed exact-affine GDN CP but was created at 09:41 UTC *before* our 13:07 boundary; do not label new here. Similarly oMLX #4460/#4461/#4456 predates the boundary; ignore crawl/update time.
+- Exact user's 2×M1 Max/TB4 PP2 decode and 5070Ti/Core Ultra7/64GB Swift IQ3_S 128K–262K xhigh performance still unmeasured. No confirmed official Qwen successor model refresh established.
+
+## New qualification actions (no benchmark/target promotion)
+1. Strata Foresight opt-out until expert-slot identity is proved; same-build overlap A/B for B1/B2; guard benchmark profile files.
+2. Pi/Strata request compatibility matrix including `thinking_budget_tokens` and `reasoning_budget_tokens`, maximum output and failure/retry boundaries.
+3. Typed recurrent/GDN state and decay-gate numerical parity with model declaration, PP/chunk/verify/restore/rewind and 16K+ accumulative drift; fail cross-backend import when precision differs.
+4. Remote state epochs/lease references: producer cannot reclaim blocks until all readers finish or are conclusively revoked; image/schema digest, committed frontier and writer drain before publish/reuse.
+5. Long-context performance ledger preserves actual prompts and supported hardware/quant, never configured length. Experimental cache/PLE micro speed is not production TG/PP.
+6. Research priorities remain Project 51 PP2/cross-runtime state correctness, single-Mac quality-grounded Swift dense 27B service, and 5070Ti Flash Swift IQ3_S fit/quality.
+
+**New strict hard boundary: 2026-10-12 16:49:11 UTC.**
