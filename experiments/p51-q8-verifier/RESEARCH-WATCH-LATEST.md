@@ -1,88 +1,79 @@
-# Project 51 research watch — 2026-10-12 16:27 ET
+# Project 51 research watch — 2026-10-13 02:13 EDT
 
-Prior hard boundary: **2026-10-12 16:49:11 UTC**.
-New cutoff: **2026-10-12 20:27:25 UTC** (user request).
-Method: GitHub PRs/issues/commits and releases on Strata, oMLX, mlx-serve, llama.cpp, vLLM, SGLang, DS4, pi-vcc and adaptive-KV fork, plus model/Hugging Face and Reddit evidence. Classify **NEW** by substantive creation/measurement time inside window; **UPDATE** for older issues newly fixed/merged; **RECOVERED** for older community receipts. Do not treat a later commit or crawler date as the result's measurement date.
+Previous hard cutoff: **2026-10-12 20:27:25 UTC**.
+New exact cutoff: **2026-10-13 06:13:56 UTC** (user message).
+Scope: MiniCPM-V 4.7 from user's r/LocalLLM link; Strata, oMLX, mlx-serve, llama.cpp, vLLM, SGLang, DS4, TencentDB/Pi and adaptive-KV repo. Sources created or substantive measurements strictly within the window count as NEW; merged older PR = UPDATE; old measurements reprinted in new PRs are NOT novel physical receipts. Release issues may be self-reports. URLs below point to source projects.
 
-## Canonical decision
+## Verdict and canonical targets
 
-**No promotion of exact dual-M1 Max PP2 / TB4 128K TG or cold PP, no owner's RTX5070Ti/64GB Swift IQ3_S xhigh long-context numeric target change, no model-quality promotion and no hardware purchase.** The certified P58/P61/P69B3/P69B6/P69B11/P69B12 exact-Q8 verifier baseline, `CURRENT.md`, `RUNTIME-STATE.md`, `RESEARCH-TARGETS.md` are unchanged.
+**The first directly topology-matched external M1 Max (32-core GPU / 64 GB) long-context dense 27B speed report in this watch is a meaningful increase in *experimental-path plausibility*, but it does NOT promote our numeric B2 or B1 targets.** It is one developer's single-Mac MTP-versus-DFlash2+kernel comparison, not a strict same-backend isolated kernel A/B, nor dual-M1 PP2 execution. Keep certified exact-Q8 P58/P61/P69B3/P69B6/P69B11/P69B12, canonical oQ5e xhigh quality comparator, custom mixed-precision Flash transformer target and all `RESEARCH-TARGETS.md` numbers unchanged. Swift-1.5 IQ3_S / 5070 Ti 64 GB filled 128K–262K xhigh still untested on user's exact computer. No new hardware purchases.
 
-**Operational candidate update:** new stable Strata **v0.1.43.1** published 2026-10-12 17:30:57 UTC supersedes plain v0.1.43 as the *test candidate*, **not** automatically the certified baseline. Keep v0.1.42 pinned for ABBA and all quality/liveness gates, and explicitly distinguish the release's asserted parity from exact-user verification. No new supported Strata source commit beyond v0.1.43 itself was in the last default-branch commit list before this release query; release artifact is authoritative for shipping state.
+## NEW release: OpenBMB MiniCPM-V 4.7 35B-A3B / 1B
+Official:
+https://huggingface.co/openbmb/MiniCPM-V-4.7-35B-A3B
+https://huggingface.co/openbmb/MiniCPM-V-4.7-35B-A3B-gguf
+https://huggingface.co/collections/openbmb/minicpm-v-47
+https://github.com/OpenBMB/MiniCPM-V/blob/main/docs/minicpm_v4dot7_en.md
+User post: https://www.reddit.com/r/LocalLLM/comments/1x493yc/openbmbminicpmv4735ba3b_hugging_face/
 
-## UPDATE: Strata 0.1.43.1 hotfix (published within window)
-https://github.com/Niko1221/Strata/releases/tag/v0.1.43.1
+35B total / A3B active parameters MoE VLM, Qwen3.5/Qwen3.6 language backbone acknowledged in official model card, SigLIP2 vision module, mixable 4x/16x visual-token compression (intra-ViT), images/multiple images/video in model card, 1B smaller variant; Apache 2.0 weights. Vendor says ~13+ TG on iPhone17 ProMax with ~3GB *runtime memory footprint* using **lookahead expert scheduling (LES)**, fine-grained layer-wise expert quants and DSpark; Reddit cites ~17+ on 16GB M4 iPad. Critically **3GB is not 35B weight storage or total runtime/SSD memory requirement**, and vendor claims are not third-party verified on RTX5070 Ti 16GB, either M1 Max 64GB, or Pi tool-agent tasks.
 
-The release consolidates fixes for issues known in earlier watches; the shipped release is NEW, the original failures are KNOWN:
-- **Adaptive overlap OFF by default on all GPUs**, opt in via `STRATA_ADAPT_OVERLAP=1`, startup records effective status. Reacts to published RTX5070Ti (68.4 on versus 86.4 off), RTX5060Ti -19%, RTX5090 laptop -21% regressions and one RTX5090 desktop small benefit. Earlier 0.1.43 OFF workaround now default; benchmark ON vs OFF on owner's host, not globally ban ON.
-- **Linux NVIDIA callback affinity/overlap signaling**: warm callback before decode CPU pin; replace host callbacks with 4-byte pinned-memory stream-ordered signal (opt back to callback with `STRATA_ADAPT_SIGNAL=host`). On RTX3060 / Core Ultra 7 265 Linux, 5 paired runs under reporter's overlap settings **36.5 -> 56.5 TG**. This is not 5070Ti or long context.
-- **PLE `direct` no longer silently switched to `mmap`** when throughput probe low (old auto via `STRATA_PLE_AUTO_MMAP=1`). Windows cold-table 60-second watchdog and Linux SATA SSD long-prompt regressions addressed; measured SATA 77.8K prompt 884 PP direct vs 76-154 PP mapped in older release and mapped 32K prefetch ~269->301 PP after patch. Collect actual I/O mode and storage queue/throughput; do not call cached page reads disk I/O.
-- **Multi-agent CUDA:** split + batch-MTP restores pipelined groups (2x A4000, four simultaneous requests 62.3->85.2 aggregate TG); admission BGEN 400 becomes wait/retryable 503; GPU ownership before_load hook can fail-closed with `before_load_strict` and load/unload waits. Strict failure handling preferred for fleet.
-- **Owner's RX6800 exact model of GPU:** RX6000 Windows side-stream correction tested RX6800 7.9K prompt **584–596->798–808 PP**, not a Linux result, TG unchanged/unreported.
-- **Short-prompt cache loan and PLE/parking watchdog:** #2090 cache-loan fatal fit repaired; #2049 parked snapshot writes now report progress, startup install stamp compares engine source build/version. Distinguish load/compile from runtime.
-- **AMD multi-slot GPU source-lifetime and Intel SYCL swap defects** fixed; not exact target speed receipts.
-- **Server tool delimiter recovery** and JSON fenced tool support; more detailed compatibility tests required.
-- **Important not fixed by reported release changelog:** optional Foresight expert identity race #2134 (`STRATA_FS_SLOTS=0` remains); Pi client's ignored `thinking_budget_tokens` #2141/#2140 not listed as included. Explicitly use supported `reasoning_budget_tokens` or verify adapter; don't infer these fixes shipped.
+LES predicts expert IDs ahead but actual original routing is evaluated: prediction only controls prefetch/order, missed experts are still fetched. This is attractive *architecture reading* for our Strata/Relay expert-stream scheduling without sacrificing numerical routing identity. Official GGUF, INT4/AWQ/GPTQ/FP8 and DSpark draft variants exist; compare downloaded exact quant/tower/model weights and runtime compatibility before claiming fit or speed. Vision detail performance tradeoff 4x vs 16x must be evaluated at fine screen text; keep structured OCR/UI element grounding and false-positive controls.
 
-Action: release-locked runtime experiment matrix 0.1.42 vs 0.1.43.1 (overlap 0/1, pinned host, effective PLE, RAM/pagefile/commit, VRAM reserve, prefill, KV type), at actual filled 16K/64K/128K/192K/near262K and full coding/tool correctness. B1 vs B2 separately, stable output/health/24h soak.
+**Recommendation:** **pilot as *vision/screenshot/document/video specialist*** for Playwright and agents, NOT replacement for Swift-1.5 xhigh coding model or Project51 main Flash dual-M1 research target. Stage on currently available 5070 Ti or M1 Max as *separate service* (can swap with existing model; do not claim two 35B models co-resident at 16GB). 1B is a fast screening tier. Evaluate screenshot-based navigation grounding, OCR small text, dense PDFs, UI coordinate errors, chart extraction, video frame tasks against current pipeline; wall-clock TTFT, correct answers and video processing time. DSpark vs no draft; 4x/16x. Initial launch under llama.cpp/Ollama GGUF and actual memory measured. Generic vendor evaluation plots without raw reproducible per-item data are not quality certification.
 
-## NEW: 12-part oMLX memory-scheduling/pause-resume stack #4478–#4489
-Created 2026-10-12 19:45:52–19:46:20 UTC, all **open/unmerged**, mutually dependent, opt-in/off defaults.
-Start https://github.com/jundot/omlx/pull/4478 ; finish https://github.com/jundot/omlx/pull/4489
+**NEW implementation evidence:** mlx-serve merged text support commit `7a2a975a` 2026-10-12 21:28 UTC and image support PR #834, merged code commit `15eaaea5` 2026-10-13 05:45 UTC:
+https://github.com/ddalcu/mlx-serve/pull/834
+Ports SigLIP2 tower, 2x2 merger and crop slicing plus M-RoPE positions into Zig. M5 Max128GB, 23/23 vision smoke cases (tools, two pictures, image prefix cache, OCR-ish page), 3854 tests passed in Zig suite, 4005 in app suite, reference cosine >=0.9993. **Video unsupported by this runtime (returns 400)** although the model advertises video. No M1 Max performance receipt; a text-only 4-bit pack without vision tower cannot inspect screenshots.
 
-Mechanisms:
-1. #4478 independently commit completed prompt-prefill blocks (including TurboQuant) asynchronously to SSD prefix before request finishes; no re-prefill from zero on later parked session.
-2. #4479 park one prefill victim under nonemergency memory pressure, pin committed blocks, preserve client stream and arrival order.
-3. #4480 single-victim abort fallback and per-request domain-separated **exact-chain** cache (do not match recurrent/MTP private state as generic prefix).
-4. #4481 pause one decoding row: emit pending token, save exact prefix and parser, sampler, stop conditions, RNG, output budget; restore without cold prefill. Singleton Lightning MTP hands off to non-MTP before pause; batched MTP/DFlash/VLM MTP rows not supported. Loss of cache fails with explicit `decode_resume_lost`.
-5. #4482/#4486 resume only when estimated capacity permits; pressure hysteresis, solo mode for parked head, no immediate re-park/abort thrash.
-6. #4483 media-aware text suffix chunking after a cached media prefix with mRoPE checks, not an unrestricted multimodal-cache proof.
-7. #4484/#4485 cap-aware memory scheduling: `memory_scheduling` mode, `context_exceeds_capacity` structured nonretryable 400 with required/capacity/token math; requests fitting later wait rather than fail, capacity API for harness.
-8. #4487–#4489 emergency pause-first and explicit stall/progress clock; count hot-cache pages releasable before capacity refusal; avoid false timeout while another request makes progress.
+## NEW exact M1 Max 64GB report: oMLX PR #4496 (critical)
+https://github.com/jundot/omlx/pull/4496
+Created 2026-10-12 22:58:23 UTC, **open draft**, approximately 1050 changed lines with 500 lines of tests. Author tested one 32-core GPU M1 Max /64GB, MLX0.32.2/oMLX0.7.0 runtime, memory guard custom ceiling 52 GB, interleaved A/B same session. Three models (Qwen3.8-27B-oQ4e, Qwen3.6-35B-A3B-oQ4, Gemma4 26B-A4B-oQ4e). M1-gen-specific verify qmv (short multi-rows), fp16 skinny QMM for 5–16 rows, chunked MLX SDPA on head_dim256/512, M1 key split attn. All on `applegpu_g13` only; M2+ unaffected.
+Qwen3.8-27B **DFlash2 block8** at actual filled 17K/67K/133K, author-reported greedy TG:
+- Before upstream MTP **31.3 / 23.8 / 17.6**
+- After patched DFlash2 **40.4 / 33.7 / 24.2**, gains ~29/42/38%. **Confounded** by switching MTP-to-DFlash2 and patch; not proof of isolated kernel-only gain. At temp1.0 short-code, MTP **25.8 TG** outperformed patched DFlash2 **16.4 TG**.
+Other models (mixed confounds): Qwen3.6 MTP3 17K/34K/67K **75.9/65.6/48.4 -> 93.2/81.3/54.7 TG** but before used different memory tier and MTP auto setting; Gemma4 long prefill 71–103K/103–136K **281/216 -> 305/252 PP**. Some kernel unit precision checks vs fp32, multi-hour coding-agent session (~117K reused prefix); full pinned dependency test suite NOT run, 16 existing failures on app MLX older than repo pins, batch>1 untested.
+P51: this is directly comparable physical silicon for **independent per-Mac dense-27B** lane; prioritize oMLX M1 verify kernels and DFlash2 A/B for actual 32/64/128/133K and *sampled coding* tasks. Keep Swift variant, quant, context/MTP acceptance, cache behavior, TTFT/PP/TG and correctness separate. **Does not establish dual-M1 tensor/pipeline handoff or long-context Swift Flash-Next.**
+Related #4495 DFlash2 config omitted num_target_layers and silently fell back to no speculation; now proposed fallback to target depth and log loud errors; tested on M1 Max. https://github.com/jundot/omlx/pull/4495
 
-Validation: latest slice #4489 Python suite **17,580 passed, 3 failed, 721 skipped**, same 3 pre-existing `test_gemma4_rendering.py` failures on base; **not a clean 100% pass, and no physical user's M1 test**. Author's full-stack M5 Max 128GB / Qwen3.8-27B-oQ4e-MTP/TurboQuant4 runs report no aborts in forced 42–44GB pressure scenarios against aborting main, but **one Mac, one checkpoint family, single scenario runs, full stack plus other fork features, and not a current-main isolated 12-PR A/B**. Do not substitute for measured 64GB M1 Max headroom or core PP2. Do not deploy until upstream merges sequentially and passes exact resume state/long-token streams/duplicate parser behavior/memory high-water mark tests.
+## NEW: more oMLX correctness/performance
+- #4500 created **2026-10-13 06:03:34 UTC** just before cutoff: optional 3-bit coarse lm_head draft on *greedy* MTP chains. M4 Max64GB Qwen3.8-27B oQ4e: 4K pooled 47.85->51.59 TG (+7.8%), 16K 42.52->46.62 (+9.6% pooled, but drift and noise); per-cycle gain ~4%; extra ~493MiB resident coarse head, target full-precision verification unchanged but near-tied outputs can differ across verify width. Not measured M1/133K, opt-in `OMLX_MTP_GREEDY_COARSE=1`; no promotion. https://github.com/jundot/omlx/pull/4500
+- #4493 created 2026-10-12 22:18 UTC: **more-compact oQ4e-fp16-mtp Flash-Next** 70.5GB resident on M5Max128GB only reached ~65K usable prompt vs older oQ5e 84.2GB resident with ~256K usable under different pack path; external prefill guard predicts ~19.7GB transient. This is reported, not controlled causal test; **main merged commit 89a40d1131 2026-10-13 02:25 UTC** fixes fp16 Flash-Next PLE reads staying fp16 from SSD; retest before blaming quant itself. Robust lesson: resident **model footprint is not viable context or peak prefill footprint**.
+  https://github.com/jundot/omlx/issues/4493
+- #4492 created 2026-10-12 21:23 UTC: sub-4096-token hybrid prefix lookup races async boundary store; developer reproduces 888–963 token same-prefix instant repeat MISS TTFT ~5 sec vs ~50ms gap HIT ~0.37 sec on M2 Max. Actual 13-day logs 4 fast-extending pairs all HIT: rare synthetic race. Main commits **a789c89ac0** and **c756df2a5a** at 2026-10-13 04:57–04:58 UTC fix sub-block waiting/side snapshots. No exact user's Mac proof.
+  https://github.com/jundot/omlx/issues/4492
+- Other oMLX #4478–#4489 SSD pressure park stack remains OPEN at cutoff; not part of main M1 results or production. 
+- No direct production proof of external oMLX <-> Strata CUDA state transfer.
 
-P51 takeaway: exact SSD parking, tiered admission, and structured fits-later vs never-fits capacity are explicit fleet implementation requirements; maintain deterministic state identity, consumer epochs, fail closed and restore-by-commit-frontier, not just cache-hit counts.
+## NEW RTX5070Ti /64GB v0.1.43.1 quant class benchmark #2173
+https://github.com/Niko1221/Strata/pull/2173 (created 2026-10-12 21:38 UTC).
+RTX 5070Ti 16GB, Threadripper7960X 24-core AVX512, 64GB host, Windows11, NVMe, original Flash-Next native IQ2_XS/IQ3_XXS/IQ3_S, configured 65,536 context with 32,768 resident KV window, greedy/think OFF. Stock 3-run suite:
+- short-chat TG **123.6 /115.0 /96.3** (respective quants);
+- fresh16K PP **3287/3473/3448**;
+- fresh32K PP **3320/3474/3458**;
+- agent followup TG **130.0/126.3/102.2** with actual final-turn ~14.5K and ~68.7% cached.
+No correctness, no filled 65K/128K/262K, different CPU/storage/thermal, original rather than Swift, not xhigh. Best same GPU + host-capacity flash original class receipt this window; do not promote user's CoreUltra7-265F Swift throughput.
+RTX5060Ti 16GB +64GB report #2202 0.1.43.1 IQ3_S: short54.7 TG/16K1761 PP, 14.4K agent58.2 TG, speed-only different GPU/CPU. https://github.com/Niko1221/Strata/issues/2202
+Potential non-regression issue #2167 (created 20:59 UTC) plain 0.1.43 and hotfix 0.1.43.1 still slower/truncate some content vs 0.1.42 on RTX5090 Windows IQ3_S: exact tool-text boundary reported, no minimal machine-independent reproduction. Keep output integrity regression suite and **pin v0.1.42**. https://github.com/Niko1221/Strata/issues/2167
 
-## NEW: oMLX Flash quality/throughput and quantization changes
-- **#4476 created 18:26:56 UTC**: expose `preserve_ngram_table` through oQ streaming APIs/UI to leave Flash-Next PLE table **16-bit unquantized**; table file about **30GiB quantized->95GiB raw**. Proper quantization accounting now separates external ngram table from transformer `effective_bpw` and resident model bytes. **No BF16-quality/E2E experiment, no TG evidence**; upstream proposal open. On 64GB Mac such a raw table must be SSD streamed; poor page-density can reduce hot cache. P51 quant objective: separate actual resident transformer BPW, on-disk PLE quality and MTP/draft size, qualify quality differences with frozen xhigh tasks before adopting extra 65GiB disk footprint.
-  https://github.com/jundot/omlx/pull/4476
-- **#4475 created 17:33:06 UTC**: padded tails for shared large Q8 projection on MTP verification row counts; M5 Max single head micro 7-row **2.798->1.876 ms**; full model 8k decode 101.5->102.5 TG (within noise), and the author's extended suite was interrupted by host freeze. Do not promote full-model TG.
-  https://github.com/jundot/omlx/pull/4475
-- **#4474 created 17:02:04 UTC**: rebase of earlier ANE/prefill patches to DFlash target path, M4 Pro 64GB dense Qwen3.8-27B/oQ4e DFlash2: 16K cold prefill **75.2->110.8 PP**, TTFT **217->147 s**; decode **~10–11 TG unchanged**. Adds ANE verification guard and load-time cost (2.5s->31.5s); greedy output sometimes differs, so review the quality boundary. Weak M1 Max transfer and not Project51 Flash dual-host PP2 direct evidence.
-  https://github.com/jundot/omlx/pull/4474
+## NEW concurrency and cache-state reports
+- Strata #2234 (created 2026-10-13 05:49 UTC) opt-in `STRATA_BATCH_ATTN_ROWS=1` and `STRATA_BATCH_GDN_GROUPS=1` remove per-row GPU launch overhead for active slots. RTX PRO 6000 96GB all experts VRAM, four clients batch4 **268.4->311.7 aggregate TG**; eight clients batch8 **308.4->374.8**, with 4 greedy parity prompts. Single request neutral/possibly slower; KV-streaming path retains old kernels; no RTX5070Ti offload or M1 direct transfer. https://github.com/Niko1221/Strata/pull/2234
+- Strata #2228 (created 04:19 UTC): on 0.1.43.1 / RTX4090D48GB Windows/128GB, long screenshot agent with *pure append-only* prompts still restores 32768-token-grid coarse checkpoints and reprocesses 6.8K–47K input tokens; 13 occurrences over 3.5h and **4–17 sec TTFT**; deep turn checkpoints existed elsewhere. Warning: don't count session-cache presence as reliable next-turn retention; add exact append-only remote-agent replay with raw message hashes, cache logs, per-turn checkpoint frontier and full TTFT. https://github.com/Niko1221/Strata/issues/2228
+- Strata #2227 (created 04:05 UTC): 4090D sm89 48GB original IQ3_XXS with `--mtp-hnorm stream` versus pooled changed acceptance 82%->86% and TG ~220->228 at actual6K, 203->208 at70K; neutral at120K. Same token outputs greedy checks. Different GPU/model and uncertainty; include in MTP ablations only. https://github.com/Niko1221/Strata/issues/2227
+- vLLM #61309 new RecoverSSM Qwen3.5/Next; SGLang #43966 retains routed expert history on KV retraction; source artifacts reinforce recurrent-state/prefix/rollback accounting as cross-engine gates. No proof Relay is implemented.
+- mlx-serve #831 created 2026-10-12 20:34 UTC: lossy `--mtp-typical 0.2 --mtp-greedy-tail` Flash-Next agent sometimes loops as MTP accept ~95%, when unmodified exact version doesn't. Reporter saw 13 loop guard cuts /10163 lossy requests vs 0/12297 exact, but sessions/nonpaired samples; no proof causal quality without controls. **Do not enable approximate acceptance** solely for high TG; grade repeated tool calls, loops, answer pass rate and stuck budgets. https://github.com/ddalcu/mlx-serve/issues/831
 
-## NEW: 5070Ti-class adjacent actual-context community reports
-- **Strata #2156 created 19:11:04 UTC:** RTX4090 24GiB /63.9GiB Windows 0.1.43, **Swift1.5 IQ3_S**, configured 131K but short-chat **88.9 TG**, fresh 16K **2409.2 PP**, agent 14.5K **115.8 TG**, greedy/thinking off, speed-only. Same host Unsloth UD-IQ4_XS Flash reported 38.6 TG with 204.8K setting and 32.4 TG with 131K setting under *different cache policies*, so these are not controlled source-like quality comparisons.
-  https://github.com/Niko1221/Strata/pull/2156
-- **Strata #2163 created 20:10:00 UTC:** two RTX3080Ti 12GB, 76GB RAM, asymmetric second GPU PCIe x4 and abliterated Flash Q4_K_M with ~196K configured: tuned manual layer split K27 vs auto K41 increases expert residence 4694->6714 and source author reports +24% decode; stock suite short 104.5 TG /16K 1198 PP, agent 14.5K 104.1 TG. **No 196K filled-context measurement and no quality check**, non-Flash Swift quant, user lacks same topology.
-  https://github.com/Niko1221/Strata/pull/2163
-- **NEW Reddit report during sweep** (self-reported, not independently reproduced): RTX3090 24GB VRAM +32GB DDR5 i7-12700KF/Linux Strata original Flash IQ3_XXS, **actual 121,566-token fresh prompt** ~1,325 cold PP and ~59–62 TG, **actual 249K prompt** ~1,008 cold PP and **41.8 TG**, 90.5% expert-cache hits. 21GiB pinned host-resident experts +12.2GiB VRAM experts with `--mmap-experts --resident-cpu-experts --ple-io direct`; 2.45GB RAM free at 249K, no proof of sustained 262K output. On an 11.7K prompt native RAM residence improved 555.6->656.1 PP, 48.4->61.1 TG; P-core pinning combined with a second changed parameter so attribution is confounded. **Not exact owner 16GB 5070Ti, not Swift IQ3_S/xhigh and not agent-quality tested; do not extrapolate.**
-  https://www.reddit.com/r/LocalLLM/comments/1x3ohgh/iq3_xxs_qwen38flashnext_125b_at_full_262k_context/
-- **Strata v0.1.43.1 release** is now best physical baseline candidate; last run's shorter 0.1.43 speed tables are not hotfix results. No exact xhigh Swift at 262K with the user's 64GB host.
+## Current practical topology plan / no replacement
+- Primary: frozen P51 verifier exact-Q8 and quality gate; large Flash custom ~3.3–3.6 transformer BPW with oQ5e reference; on Lenovo Strata 0.1.42 pinned versus 0.1.43.1 experimentally, FS off, long xhigh correct-task scoring; no new hardware.
+- Per Mac: independent Qwen3.8-27B agent baseline with oMLX M1-specific DFlash/verify kernel opt-in after sandbox qualification, project-51 PP2 still research. No automatic promotion based on author speed numbers.
+- MiniCPM 4.7 separate vision-oriented VLM (screenshots/OCR/video where supported) on one machine or 1B fallback. Do **not** assume its advertised iPhone phone memory number is weight storage or that all backends serve video.
+- For all 3–5 agents: explicit parser/output length QA, memory-park semantics, cross-agent namespace/lease identity, end-to-end wall time and attention/KV capacity ledger.
 
-## NEW: speculative long-context drafter work / PP roadmap
-- **vLLM #61261 created 18:34:24 UTC:** opt-in `draft_context_window=32768` for DFlash/DSpark leaves target's KV and verification unchanged; Kimi K3 draft's accepted length had collapsed above ~128K; draft window restores acceptance **1.45->2.29 (128K–256K)**, **1.26->2.22 (256K+)** and output **+31%/+23%** respectively, mixed 16–300K c16 +9%. Self-reported Kimi K3 with two attention backends tested, 200-GSM8K check minimal, not Qwen3.8/Flash-MTP and not model quality improvement. Mechanism supports separate *draft effective window* and *target context capacity* in Project51, subject to output-distribution verification.
-  https://github.com/vllm-project/vllm/pull/61261
-- **vLLM #61255 created 17:11:40 UTC:** speculative scratch inflated physical convolution rows when exporting Kimi K3 recurrent checkpoint: 12/12 synthetic histories wrong on base, 0/12 wrong with logical history length. No full-weight quality validation. Add checkpoint 'logical history length != scratch capacity' to Relay recurrent-state fixtures.
-  https://github.com/vllm-project/vllm/pull/61255
-- **SGLang #43885 created 18:20:46 UTC:** Q4 pipeline-parallelism roadmap: PP prefill/PD mature but PP decode x DFlash/EAGLE3, PP CP, microbatch bubble instrumentation remain open. Reinforces PP2-first architecture on TB4 and *do not infer decode TG from PP prefill feasibility*.
-  https://github.com/sgl-project/sglang/issues/43885
-- **DS4 #1210 created 20:19:20 UTC:** Strix Halo ROCm10.1 compile/rounding fix for MXFP4 Q8_K scales; author reports one 1-ULP rounding-boundary quant error flipping one activation and downstream 0.041 output max-abs, fixed tests 1–512 tokens. Portability/precision provenance, no dual-M1 TG movement.
-  https://github.com/antirez/ds4/pull/1210
+## Negative checks
+- DS4 PR/issues during window: no newly created direct M1 PP2 speed changes; earlier ROCm10.1 Strix Halo PR #1210 already in previous watch.
+- Pi-vcc and RaymondHuang adaptive KV Streaming V2 latest Oct12/Oct11 repo code/PR status not materially advanced in this window; earlier audits continue to apply.
+- TencentDB-Agent-Memory's Pi support in October9 v2.0.2 is an existing alternative app-memory framework and not physical KV. No demonstrated direct CUDA->Metal state transfer or Project51 2-lane throughput from its release.
+- No independent benchmark proves MiniCPM 4.7 35B vision agent performance on M1 Max64 or RTX5070Ti16 at native full 16x/4x in this window.
+- Official Strata latest checked **v0.1.43.1**; all new performance PRs OPEN, not released tuning defaults.
 
-## Negative and existing sources
-- Strata optional Foresight race #2134 and Pi `thinking_budget_tokens` alias #2140 are **not listed** among v0.1.43.1 fixes; keep those safeguards.
-- pi-vcc and RaymondHuang adaptive KV fork: no new Oct12 PR/issue or recent code commit after cutoff, earlier audit stands.
-- A number of October 12 Reddit Flash-Next posts exist, but only reports with actual context, mode, quant and hardware deserve benchmark credit. No official Qwen successor weights or direct Project51 M1 Max PP2 after last boundary verified in this sweep.
-- No runtime testing on the user's hardware and no GitHub Actions experimental tuning was launched. Research watch and GitHub canonical state updates are **documentation only**.
-
-## Action priority
-
-1. Pin Strata v0.1.42 and trial v0.1.43.1 with strict QA. Keep Foresight off; test owner exact 16GB/64GB over context ladder, check effective overlap signal, PLE I/O, file-cache reads vs device reads, xhigh API budget, expert profile preserve, VRAM/host commit.
-2. oMLX memory-scheduling stack only after its dependencies merge; adversarial pause/resume with 3-5 agents and forced 64GB ceiling, unique decoder output hashes and model/GDN/MTP/parser state.
-3. Separate transformer quant, disk PLE and draft precision sizes/quality. No raw-PLE size penalty justified without source-like xhigh evaluation.
-4. Test draft attention window as a controlled separate setting for compatible draft models; never truncate target state.
-5. Keep active project 2xM1 Max PP2 and dense 27B independent-agent path; request direct physical data before moving targets.
-
-**New hard research boundary: 2026-10-12 20:27:25 UTC.**
+**Hard boundary advanced to 2026-10-13 06:13:56 UTC**.
