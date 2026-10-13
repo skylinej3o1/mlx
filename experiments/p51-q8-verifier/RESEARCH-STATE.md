@@ -4321,3 +4321,12 @@ Exact window: **2026-10-12 20:27:25 UTC -> 2026-10-13 06:13:56 UTC**. Full citat
 **Precision/fit:** oMLX #4493 M5 Max case reports smaller oQ4e-fp16 model only ~65K workable vs older larger oQ5e ~256K due to prefill transient guard; main fp16 PLE dtype path corrected 2026-10-13, so retest and don't blame nominal quant. **Resident weights < prefill peak, and an advertised context limit is not a runnable long context**.
 
 **Unchanged:** all certified P51 exact-Q8 champions, `CURRENT.md`/ `RESEARCH-TARGETS.md`/ `RUNTIME-STATE.md`, source-like mixed quant frontier/oQ5e comparator, technical requirements for CUDA->Metal state identity, speculative rewind and multiagent isolation. No new hardware purchase.
+
+
+## 2026-10-13 user chart addendum — MiniCPM full benchmark matrices; Relay PP/TG division
+
+Detailed user-supplied comparison transcription and planning evidence: `RESEARCH-ADDENDUM-2026-10-13-MINICPM-BENCHMARKS-RELAY.md`. **Do not omit the text/agent benchmark table:** MiniCPM-V4.7 35B-A3B scores τ²-Bench **84.65** versus Qwen3.8 27B **66.90** (+17.75 points), but BFCL-v4 **60.06 vs 63.72** and LiveCodeBench-v6 **56.57 vs 63.62** favor Qwen3.8. Vision table likewise includes strong OCR/OmniDoc versus weaker ScreenSpot point grounding (**86.99 MiniCPM 4x vs 93.31 Qwen3.8**). Vendor mixes public reports and own checkpoint evaluations; no exact-user runtime quality certification.
+
+**Architectural correction emphasized by user: RTX5070 Ti CUDA prefill is precisely the intended Relay first stage; the oMLX M1 Max dense27B and sparse35B-A3B decode benchmarks strengthen the separate Metal decoding stage.** The decisive unbuilt piece is compatible GGUF/CUDA->MLX state (KV + recurrent, indexer/conv, version/type/frontier, MTP) handoff on **the same model**; published Strata Flash-Next CUDA PP cannot be relabeled dense 27B or MiniCPM prefill. Measure cross-device export/transport/import TTFT and quality before claiming a speedup. Two independent Macs are independent continuation agents, not doubled one-stream TG.
+
+This user clarification is an addendum, **not a new upstream research scan**. Keep `RESEARCH-WATCH-LATEST.md` cutoff **2026-10-13 06:13:56 UTC** and `RESEARCH-TARGETS.md` unchanged.
