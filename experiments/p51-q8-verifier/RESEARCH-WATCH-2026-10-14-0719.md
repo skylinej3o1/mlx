@@ -1,0 +1,73 @@
+# Project 51 research watch — 2026-10-14 07:19 EDT
+
+**Previous strict boundary:** 2026-10-13 15:37:36 UTC.
+**New strict boundary:** 2026-10-14 11:19:19 UTC (user request).
+Methods: upstream GitHub releases, PR created/merged status and default-branch commits for Strata, Basalt, Strata-for-Mac, oMLX, Sushi, vLLM, SGLang, mlx-serve, TencentDB Agent Memory, DS4, pi-vcc and RaymondHuang adaptive-KV; contemporaneous web/Reddit niche result check. Sources cited below link to canonical upstream commits, release/PRs/issues. NEW = source event in window, UPDATE = newly merged or release of previously tracked proposal, RECOVERED = earlier evidence surfaced in this pass. No user-hardware test ran.
+
+## Decision / nonpromotion
+
+**No change** to certified Project 51 P58/P61/P69B3/P69B6/P69B11/P69B12 exact-Q8 verifier; physical two M1 Max 64GB / TB4 experimental PP2 decode 40 TG and 400 cold PP target; 5070Ti 16GB/Core Ultra7 265F/64GB original/Swift Flash IQ3_S xhigh actual long-context TG or fit expectations; custom ~3.3–3.6bpw sensitive-tensor plan and oQ5e quality reference. All numerical third-party claims are separate model/hardware/filled-context cohorts. **No new hardware purchase.**
+
+**Operational candidates change:** Strata v0.1.44.1 release for owner's Lenovo A/B, retain v0.1.42 control and v0.1.43.1 as regression diagnostic. Strata's new experimental Metal engine is a new **original GSQ-RCO IQ3_S GGUF** route on Mac; this is **not** a Swift M1 release or a qualified M1 Max 64GB deep-context performance baseline. oMLX main now includes batched DFlash and SSD requeue that were previously open, but is not yet proven on owner's Macs.
+
+## NEW releases: Strata 0.1.44 and hotfix 0.1.44.1
+https://github.com/Niko1221/Strata/releases/tag/v0.1.44
+https://github.com/Niko1221/Strata/releases/tag/v0.1.44.1
+
+- v0.1.44 published **2026-10-13 19:26:51 UTC**, v0.1.44.1 hotfix **2026-10-14 00:13:09 UTC**. The .1 release fixes CPUs without AVX2 crashing before main, CUDA 12.0/12.1 build, Mac GDN Metal threadgroup bugs, setup unexpectedly switching quant and Codex Responses `reasoning_effort` ignored from config. Do NOT deploy 0.1.44 when .1 available. Their release identity tests are not xhigh quality proof.
+- New setup supports wider **Unsloth UD-Q4_K_XL/Q5/Q6/Q8_0** formats, **NVFP4** experts on RTX50, and **Qwen3.6-35B-A3B**; NVFP4 has same-top1 **92.1% / KL 0.070** versus Q8_0 reference in 4,995 teacher-forced positions, compared IQ3_S 87.7% / KL 0.144 and UD-Q4_K_XL 93.1% / KL 0.056. Quant receipts are for **original Flash**, reference/tool conditions as author reports, NOT Swift1.5 or xhigh task pass rate. NVFP4 packed expert path benefits RTX50 FP4 compute, may be quality/size alternative, but cannot assume same total resident memory as DASLABS or same memory fit in 64GB.
+- **New RTX 5070 (not Ti) opt-ins:** `--adapt-async 1` arena mode ~+4–5% decode on author Windows Q2_0, `STRATA_PIN_BY_NEED=1` on Windows/WDDM ~+4.4% prompt, decode ~flat. Async tiers can alter output bitstream; neither is proven on owner's headless Linux, Swift1.5 IQ3_S or long xhigh. Foresight expert race #2134 now claimed repaired in 0.1.44; until adversarial concurrent routing checksum passes on exact box, keep `STRATA_FS_SLOTS=0`.
+- **IMPORTANT caveat**: prior #2281 0.1.43.1 regressed against v0.1.43 on 2x3090 layer split; v0.1.44/.1 has not automatically requalified heterogeneous multi-GPU. A/B by topology. `STRATA_ADAPT_OVERLAP` opt-in/off state to be recorded, not presumed.
+
+## NEW: official Strata Metal on Mac, with 64GB limitations
+https://github.com/Niko1221/Strata/blob/main/docs/MAC.md
+
+0.1.44 new experimental engine runs Apple M1–M5/macOS >=15, builds on-device, OpenAI/Anthropic/API and image support. **Tested by upstream release on only M5 Max 128GB and M4 mini 32GB** before new M1 Max community result. Release Mac limits: serial request only, up to **32K measured** in official release, and **Swift/Coder not available on Mac**, despite PC Swift pack support; no actual dual M1 PP2/Metal checkpoint bridge.
+
+Official Mac documentation distinguishes **resident clean file-backed experts** from **anonymous expert streaming arena**, which is kept below a **60% total-RAM anonymous footprint cap** on >=64GB Macs to protect macOS from compressor/watchdog panics. Its table has IQ3_S **54.8GB source model residency, ~63GB estimated steady footprint, recommends 96GB machine**. IQ3_XXS recommends 74GB machine, Q2_0 64GB. On *user 64GB M1 Max*, exact DASLABS IQ3_S could be attempted only under streaming/tight headroom, cannot assume high resident GPU expert fraction, MTP, 128K/262K fit or new TG. The earlier **liangxiwei/Strata-for-mac** 256K IQ3_S record was on **M2 Max 96GB** (61.6GB peak, 168.1 cold PP and 21.13 TG, one long 26-token completion). It is historical, not a new M1 Max 64GB record, and likely too tight for our 64GB host without streaming.
+- **New M1 Max exact chip community report** PR #2366, created 2026-10-14 03:32:32 UTC, model **Q2_0**, RAM only **32GiB**, expert SSD streaming: short decode **10.6 TG**, 4K fresh **223.7 PP**, 16K fresh **228.6 PP**, agent followup 9.2 TG, 68.7% cache hit; 3 runs/speed only, **not IQ3_S or owner's 64GB box**. https://github.com/Niko1221/Strata/pull/2366
+- **Separate M1 Max 64GB Sushi-3bpw** published README typical ~350 PP/~32 TG, not DASLABS IQ3_S nor actual full 262K filled test. https://github.com/beamivalice/sushi
+- **oMLX M1 kernel draft PR #4496** remains open, dense 27B oQ4e DFlash2 M1 Max 64GB measured **40.4 TG 17K / 33.7 at 67K / 24.2 at 133K**, hardware/model-specific and separate from Flash. https://github.com/jundot/omlx/pull/4496
+**Action:** if testing full Flash on either Mac, use single instance, monitor actual macOS free/wired/anonymous pages, raw SSD page IO, KV/GDN/PLE/MTP and throughput at filled context. Do not use the Mac's 64GB raw size as 64GB of available model residency.
+
+## UPDATE to production-upstream oMLX: DFlash batch, SSD resume, Qwen GDN correctness
+https://github.com/jundot/omlx/pull/4508
+https://github.com/jundot/omlx/pull/4509
+https://github.com/jundot/omlx/pull/4526
+
+- #4508 **merged 2026-10-14 05:03 UTC**: multi-family DFlash integrated into oMLX batched engine/scheduler, prompt prefix cache and hot/SSD state. Qwen3.5/3.6/3.8 rows may speculate concurrently. Some families only single-row speculative and batched normal decode; no exact M1 Max dense27B new benchmark. Earlier M3 Ultra multi-request improvements belong to prior author PR cohort and are *not* new M1 benchmarks. This changes trial status from **open** to **merged main**, not tagged release (latest oMLX release seen v0.7.1.dev1 Oct9).
+- #4509 **merged 2026-10-14 05:53 UTC**: scheduler can checkpoint/requeue select running requests when memory pressure arrives, preserving cancellation-progress prefixes on SSD. *Does not* support pausing DFlash, SpecPrefill, VLM MTP, lone running request, missing SSD cache or >two requeues; these exclusions are critical now #4508 also merged. Earlier M3 Ultra ~38K TTFT 102.8→34.1 or 32.5K resume 80.7→0.5 seconds are controlled developer demonstrations, **not M1 Max data**. Later main 07:40 UTC added admission progress-clock fix.
+- #4526 **merged 2026-10-14 05:40 UTC**: Qwen VLM/Flash-Next padded prefill could mutate GDN recurrent state with invalid right-padding tokens. Tiny random-weight 3/7-token test prior-state errors 0.006195/0.005253, exact parity after fix, including chunked cases. Need server-level 2-agent randomized prompt-length, padding, cold/cache/restore comparison to reference. This is correctness-critical for proposed B2/B4 batching.
+- #4518 **OPEN since Oct13 17:40 UTC**: optional `auth.cache_isolation="api_key"` scope per verified API key for reusable hot/SSD KV, speculative draft and GDN state. Default shared, does not isolate vision preprocessing and quota. Reject client-controlled tenant header; explicitly namespace tokens/images/identity and avoid cross-agent memory leaks. Relevant Pi multi-agent fleet; no physical GPU qualification. https://github.com/jundot/omlx/pull/4518
+- #4525 OPEN: newly batched DFlash treats DSpark drafter as vanilla DFlash, fails correct anchor/Markov head logic so proposals nearly always rejected. Qwen DSpark optional and separate from Qwen3.8 dense DFlash2; no full serving throughput measured. https://github.com/jundot/omlx/pull/4525
+- #4516 OPEN: nonfinite FP32 raw GDN checkpoints could bypass finiteness guard; upstream 41 focused checks only, no GPU run. Exact checkpoint validation needs both format and source-state finiteness, no trust of "FP32" label alone. https://github.com/jundot/omlx/pull/4516
+- #4517 (merged implementation) reduces GLM batch cache reassembly at long context. M3/GLM-specific improvement not transferable to M1/Qwen by itself. https://github.com/jundot/omlx/pull/4517
+
+## NEW exact 16GB/64GB original IQ3_S community performance, but NOT deep filled 192K
+https://github.com/Niko1221/Strata/pull/2404
+Created **2026-10-14 10:09:10 UTC**, before user's new cutoff, open community benchmark. RTX4080 SUPER 16GB, Ryzen7800X3D, 64GB RAM, Windows, Strata v0.1.44.1, **original GSQ-RCO IQ3_S**, 196,608 max context, q4_0 KV with grow, CPU vision, calibrated. Short chat **88.6 TG**, agent followup **98.1 TG** (short suite), fresh PP **2165/3456/3489** at 4/16/32K. A separately tracked real session got to **~90K**, reporter says ~97 TG around that point; not 192K filled and no xhigh/no quality/needle tests. RTX4080 16GB/DDR4 different from owner's 5070Ti 16GB and 265F/DDR5. **No legitimate 262K 90TG inference**. CPU vision relocation boosted suite by 35–62% on reporter's configuration, a single-parameter baseline issue if replicated; compare with/without vision *admission*, reserve and power.
+
+## NEW Basalt 64GB host safety, not new validated performance
+https://github.com/jesdga95/basalt/commit/41e38f340
+https://github.com/jesdga95/basalt/commit/2ef470c3d
+
+2026-10-13 20:44/21:02 UTC commits improve RAM expert-copy planning to reserve post-start buffers (conversation checkpoint, image, request) above RAM floor. Reduces OOM/unsafe admission risk on 64GB host, **may reduce expert residency**, no 5070Ti Swift1.5 IQ3_S benchmark or long-context quality proof. Basalt still Linux Blackwell sm120-only, serial before concurrency cert, prior conversation-cache Pi cross-session retained KV leak fixed 5b7eff1 but keep adversarial two-agent isolation and checkpoint ownership gates. Compare baseline Strata 0.1.44.1 at exact source pack/runtime and actual filled context.
+
+## NEW architectural research/other upstream
+- **Strata #2351 created Oct14 02:18 UTC, OPEN**: opt-in suffix-prefix mount and state checkpoint ladder for mid-history edits on 131K context/RTX3090 original IQ3_XXS; developer reports small average needle score 0.750→0.792 with +/-0.042 variability, no reliable outcome lift, 15.5% mean reuse in one test. Can reduce prompt recompute but carries checkpoint/edited-prefix correctness risk. Pi compaction and Claude Code edits benefit only if tests pass. https://github.com/Niko1221/Strata/pull/2351
+- **Strata #2384 created Oct14 06:48 UTC, OPEN**: fixes cache checkpoint loss when a two-agent layer-split request transitions batch→solo→batch. Instead of reusing private turn it rereads full history; test only on specific layer split. Relevant to low TTFT and state identity. https://github.com/Niko1221/Strata/pull/2384
+- **Strata #2399 created Oct14 09:14 UTC, OPEN**: combined `--vram-elastic` and `--kv-grow` allocation reclaim, HIP dependency #2398; not benchmarked on NVIDIA target. Dynamic coexistence important for other desktop apps, but user's headless GPU baseline favors deterministic reserve. https://github.com/Niko1221/Strata/pull/2399
+- **Sushi new since cutoff**: Oct13 16:34 UTC media-aware SSD prefix cache keyed by image chain, Oct14 01:29 UTC interrupted pull never marked complete. v1.2.3 release is **older than cutoff**, with f32 Qwen GDN gate and optional bf16 recurrence on tight Macs; not newly minted DASLABS IQ3_S physical test. https://github.com/beamivalice/sushi
+- **Strata-for-Mac fork** last main commit Oct11, no fresh actual M1 IQ3_S 64GB data. Official upstream 0.1.44.1 has new Metal support but different RAM guard/engine. Do not merge benchmark cohorts.
+- **TencentDB-Agent-Memory** Oct14 07:24/07:29 UTC boot/deploy fixes only, no new Pi task-completion/agent-memory benchmarking; memory scope remains optional derived layer, canonical Project 51 research notes live here in GitHub. https://github.com/TencentCloud/TencentDB-Agent-Memory
+- **DS4** last main default commit Oct7, **pi-vcc** last Oct12, **adaptive-KV fork** last Oct11; no new verified long-context dual M1 or owner RTX speed receipts through cutoff.
+
+## Next exact-machine gates (no target promotion)
+
+1. **Lenovo RTX5070Ti16GB/Core Ultra7 265F/64GB**: isolated Linux Strata0.1.42/0.1.43.1/0.1.44.1 versus Basalt under identical original & Swift1.5 **DASLABS IQ3_S** source file, near actual filled 16/64/128/192/262K, context formatting, exact QA. Monitor pinned expert bytes, VRAM expert slots, SSD, PLE IO, transparent CPU image budget, TTFT + TG plus Pi tool tasks, 2-stream interference, warm/cold startup. Test NVFP4 original only as separate precision/quality experiment with normalized quant sizes.
+2. **M1 Max 64GB x2**: oMLX dense27B + #4496 M1 kernel sandbox, newer main #4508 batched DFlash vs Lightning MTP, #4509 SSD resume (note DFlash exclusion), padding-state correctness #4526. Separately, original DASLABS GGUF IQ3_S Metal through official Strata v0.1.44.1, **expect expert SSD streaming on 64GB**, measure measured actual context and resident pages; Swift Mac support not shipped. Do not treat Sushi-3bpw rates or M2 Max 96GB 256K rates as our DASLABS benchmark.
+3. **Relay:** never send a cache page until host→device fill event complete; preserve model and quant tensor identity, FP32 GDN/decay, KV, indexer, logical conv length, MTP, prompt chronology, reference outputs. Explicit consumer lease and revocation on GPU/host/remote and per-agent scopes. Distinguish remote-layer staging from full CUDA→Metal state relocation.
+4. **Pi app compatibility:** late instruction roles, typed tool arguments, actual reasoning budget, prefix-cache salt, per-user/private namespace, compaction/replay, cancellation and multi-agent loop/test pass rate. Manual pi-vcc and TencentDB only after controlled correctness.
+5. **Quality:** no quant switching based solely on one WikiText KL: compare original/Swift IQ3_S vs oQ5e, Q8_0 and NVFP4 on frozen source-like 4+ hour agent audit, actual context, costs and failures.
+
+**NEW STRICT HARD RESEARCH BOUNDARY: 2026-10-14 11:19:19 UTC.**
