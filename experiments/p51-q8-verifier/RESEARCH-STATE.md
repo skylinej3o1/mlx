@@ -23,6 +23,21 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-16 18:32 EDT — exact RX6800 HIP repair, 5070 agent-prefill wins and M1 quant/spec gate
+
+Strict research window **2026-10-16 14:10:00 UTC → 22:32:17 UTC**; full provenance `RESEARCH-WATCH-2026-10-16-1832.md`.
+
+- **RX6800 gfx1030 exact hardware (#2788 OPEN):** async adaptive H2D path skipped `adapt_copy_h2d` and made `STRATA_HIP_ADAPT_KERNEL_COPY=1` ineffective. Contributor's two-line opt-in helper hook turns failing 72.7s/2-AQL run into 185.2s/0-AQL completion, 512-token decode near baseline 36–40 TG. This is a **correctness and availability candidate, not a production soak, full model 262K/PP proof, or performance forecast**. Verify source build, same pack, 1h+ soak and no side effect before considering AMD producer lane.
+- **RTX5070Ti exact hardware, different Q2_0 model (#2774/#2775 OPEN):** 5h coding-agent trace shows 74% prompt-read events under1K taking57% of read time; resident-compressed grouped-kernel cut 177-token read473→315ms, 500-token668→470ms, 900-token826→677ms, without measured long-task source fidelity. Per-client expert history restores 64.6→84% VRAM selected-expert hits and +21% return-to-agent TG on one 61–75K Q2_0 run. Isolate quality-changing prior, group-kernel parity and client-identity collisions; do not stack percentages or transfer to Swift IQ3_S.
+- **Critical parser bug (#2794 OPEN):** literal `</think>` inside a Python fenced string can end reasoning early and lose the intended later tool call. Reproducer and 503-turn replay with seven lost calls recovered by proposed parser fix, 4/4 patched task completions. Add to explicit native vs parser-assisted Pi agent gate, no claim merged.
+- **Quant caution (#2795 OPEN):** same RTX4090 128GB Strata0.1.44.1 Flash family calibrated speed-only: IQ3_XXS 109.2 TG/4622.9 PP16K vs IQ3_S 92.2/4161.7, with 262K configured, partial 258K needle only. Different configuration and 128GB RAM means no owner64GB admission or quality target move.
+- **Apple7 dense27B (#4496 STILL OPEN):** 24.2 TG at133K DFlash2/oQ4e M1Max64 remains source's leading directly relevant receipt, *not new during this window*. Its fast 5–16-row verifier is 4-bit, so a hypothetical mixed-3bit efficiency win still requires a new exact-kernel route and real task A/B. oMLX #4508 MERGED earlier already supports adaptive DFlash verify width; Agention 3.2× StrixHalo headline cannot be added.
+- **Strata Metal #2819 NEW OPEN:** resolves previously observed Mac YaRN/linear RoPE flag no-op in decode window, M5Max and CPU tests. Mac setup still drops the flags, native M1 and beyond-trained 262K fit untested; not an automatic context extension.
+- **MTP format correctness, mlx-vlm #2531 NEW OPEN:** `convert --mtp -q --q-mode mxfp4` produced MXFP4 target / affine draft without warning. Fix forwards quant mode under the `quantize` gate, but full real-model conversion still untested. M1/P51 must audit physical target+draft tensor/quant identities.
+- No verified release of Gyro Signal or source-quality mixed Swift/ByteShape model in-window; no actual M1 pair/TB4 Relay full-state transfer. **No numerical target or hardware-buy move.**
+
+
+
 ## 2026-10-16 10:10 ET — source-grade caution and adaptive draft accounting
 
 Strict watch: 2026-10-16 09:39:54 -> **2026-10-16 14:10:00 UTC**; details in `RESEARCH-WATCH-2026-10-16-1010.md`.
