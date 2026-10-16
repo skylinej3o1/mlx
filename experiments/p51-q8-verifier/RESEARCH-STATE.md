@@ -23,6 +23,17 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-16 10:10 ET — source-grade caution and adaptive draft accounting
+
+Strict watch: 2026-10-16 09:39:54 -> **2026-10-16 14:10:00 UTC**; details in `RESEARCH-WATCH-2026-10-16-1010.md`.
+- **Same-GPU-class does not mean same performance/configuration.** Strata #2772: RTX5070Ti16 +64GB Windows / Flash IQ3_S at configured262K but only up to16K *actually filled*: ~38 TG short, ~1200 PP at16K. No correctness, real200-262K fill, or sustained long-generation tested. Compare against earlier calibrated 96GB/Linux 5070 reports only with separate cells; actual 64GB admission/worker/PCIe/MTP baseline gets elevated test priority. No target or purchase move.
+- **MTP temporary-memory borrowing can regress full prompt.** #2761 OPEN loans ~675MiB of decode-only draft experts to prefill workspace and pays 3.4-4.0s per borrowed read on a different four-GPU setup; keep off unless a measured bottleneck justifies it. CPU expert barrier fusion #2751 has microbench gains on Zen2 but no uncontaminated owner-system throughput evidence.
+- **Mac correctness and cache identity:** #2767 reports Metal RoPE scaling flags silently ineffective in test; native262K unaffected, beyond-native scaling not yet certified. #4606 warns that byte-exact block-hash caches cannot restore a long prefix if volatile timestamps/tool metadata appear in an early block. Keep invariant root static, volatile suffix later, cache identity and committed frontier exact. Some issue log timestamps occur after strict cutoff; never promote those as contemporaneous measurements.
+- **Gyro / Signal / adaptive speculation** are separate transformations. Gyro's APR encoder/custom GGUF and kernels are experimental; Gyro Signal not yet released. Signal modifies target probabilities and requires independent quality/MTP validation. Aug24 adaptive speculation's 3.2x ratio is Strix Halo DFlash2 vs a weak fixed-n comparator, *not* a 5070 Strata or M1 gain. Judge **total task wall and correct tool execution**, draft/verify overhead, cohort and context length; do not add quoted gains arithmetically.
+- Source Swift1.5 IQ3_S remains baseline; no changes to `RESEARCH-TARGETS.md` or certified verifier.
+
+
+
 
 ## 2026-10-04 18:06 ET strict research pass — stability, AMD calibration, and agent-history hardening
 
