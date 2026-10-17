@@ -23,6 +23,21 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-17 15:05 EDT — exact RX6800 K16V8, headless-Linux cache hazards, oMLX queue fix
+
+**Strict delta 2026-10-17 16:08:29 → 19:05:57 UTC.** Source-qualified detail `RESEARCH-WATCH-2026-10-17-1505.md`.
+
+- **RX6800 gfx1030 exact device #2941 NEW OPEN:** FP16-key/INT8-value KV ("k16v8") on 13K IQ3_S yields 917.9PP/34.48TG vs int8 919.2/32.15, author explicitly says within run/draft noise. At96K/12QSA memory 1.71GiB host vs1.16GiB int8, VRAM32K-cell610 vs415MB (+195MB), possible expert-residency trade. One SVG output 37K(int8)/29K(k16v8)/25K(fp16) is **not validated task-quality benefit**; no >96K/owner 32GB long soak. Do not promote default before correctness/quality A/B and #2788 opt-in HIP async-copy stability gate.
+- **Linux 64GB parked-session bug #2934 NEW:** glibc dynamic mmap threshold keeps freed 16MiB conversation blocks inside process heap; engine evicts several conversations yet `MemAvailable` gate refuses parking, causing 214K re-prefill90s vs11s. Proposed `GLIBC_TUNABLES=glibc.malloc.mmap_threshold=4194304` (or malloc_trim #2253) may help but PP penalty2–9%, hardware/OS-specific. **#2930** separate boundary checkpoint rotated from prompt chain => superseded SUB copy unrecognized, MAIN dropped, Pi return 82K cold re-prefill. Prior #2923 RAM pressure is a third scenario. Exact native-headless Linux state-retention testing is high priority.
+- **Strata 0.1.45 quality gate #2940 NEW:** instruct `presence_penalty=1.5` unexpectedly applies to non-thinking and even temp0 unless explicitly overridden, measured ~25% slower on different 4×AMD setup; fixing config restores speed. #2936 separate sm86/RTX3090 Linux source-level ~20–27% decode regression persists with compiler/MMQ/CPU pool matched; #2932 gfx906 12/12 cross-version greedy mismatch. Avoid extrapolation to owner sm120, but require server + engine A/B and exact effective sampling state before 0.1.45 promotion.
+- **oMLX #4637 NEW MERGED** routes per-engine MLX streams through shared Metal command queue; M3Ultra512GB 7 models/14 requests: 5 resets/24 errors in75min before vs0/0 in151min, nominal ~1.2% two-engine synthetic slowdown; **not M1Max physical evidence** nor VLM external drafter coverage; relevant for two concurrently busy M1 agents/models.
+- **Splash #449–#468 NEW OPEN 20-PR stack** is a reviewable refactoring of *previous* #447 FlashNext model and #448 MTP work, not 20 shipped upgrades. #449 full-vocab logit/KL oracle; #467 teacher-forced same GGUF vs llama.cpp 1–32K top1 ~94.6–97.3% and mean KL0.0034–0.0115 depending quant/depth, not bit-identical; #468 SSD PLE row-memory for 36GB M5, not M1Max64 evidence. One-M1 family7 source quality and QSA/GDN state still unproved.
+- **TensorFold #1005 NEW OPEN on M5Ultra256GB** physical 1,032,827 prompt needle, TTFT417s, YaRN×4 1M, 203GiB wired, no 1M task-quality; dual-Mac pair expressly refuses >262K, owner M1Max64 not applicable. No target move.
+- **RX7900XTX +64GB Windows #2933 NEW** IQ2_XS/Coder 255K filled3.7/3.2min, HumanEval81/82 vs82/82; page-file commit ceiling fixes are Windows-specific. **Mac Metal #2931 NEW OPEN** loader for unusual HC quant types on M2Max96GB prevents NaN/invalid vocab and missing GEMV, not source-grade M1 speed.
+- No new Gyro Signal single checkpoint, exact Lenovo sm120 owner 262K long Pi, one-M1 mixed3bit at24.2TG133K, or M1×2 Relay complete-state handoff. **Numerical targets, weights, frozen verifier and experiment code unchanged.**
+
+
+
 ## 2026-10-17 12:08 EDT — Splash Flash-Next, owner platform, PLE-fidelity & resident-agent gates
 
 **Strict watch:** 2026-10-16 22:32:17 -> **2026-10-17 16:08:29 UTC**; full cited evidence `RESEARCH-WATCH-2026-10-17-1208.md`.
