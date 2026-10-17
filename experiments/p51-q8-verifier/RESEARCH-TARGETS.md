@@ -8,7 +8,7 @@ This is the canonical planning-target file for the recurring model/hardware lane
 
 1. Qwen3.8-Flash-Next on the planned **2x M1 Max 64 GB / Thunderbolt 4** cluster.
 2. Qwen3.8-27B on **one M1 Max 64 GB**, with the user's **RTX 5070 Ti 16 GB + 64 GB host** kept as a separate dense-CUDA lane.
-3. Qwen3.8-Flash-Next on the user's **RTX 5070 Ti 16 GB + 64 GB Windows host using Strata**.
+3. Qwen3.8-Flash-Next on the user's **RTX 5070 Ti 16 GB + 64 GB native headless Linux host using Strata**.
 4. DeepSeek-V4-Flash-0731 / DS4 on the same **2x M1 Max 64 GB / Thunderbolt 4** cluster.
 
 These probabilities are **engineering planning confidence**, not statistical confidence intervals.
@@ -656,8 +656,10 @@ A faster but prompt-fragile or behavior-changing build does not count.
 
 This is a separate runtime/model lane from the dense Qwen3.8-27B CUDA-v2 section above.
 
+**Platform-identity update (2026-10-17):** The owner explicitly confirmed native **headless Linux** for the RTX 5070 Ti + 64 GB machine (Intel Core Ultra 7 265F), rather than Windows/WSL2. This updates **deployment descriptors only**, not TG/PP values or confidence; Windows labels in historical receipts remain source hardware, and the calibration/probability ladder still needs exact-Linux validation.
+
 **Planning-confidence definition for this section:** the chance that a mature Strata build on the user's
-exact RTX 5070 Ti 16 GB / 64 GB Windows rig can sustain at least the stated number under the named
+exact RTX 5070 Ti 16 GB / 64 GB native headless Linux rig can sustain at least the stated number under the named
 context/quant regime **without reintroducing a known stability defect**. These are engineering planning
 probabilities, not statistical intervals.
 
