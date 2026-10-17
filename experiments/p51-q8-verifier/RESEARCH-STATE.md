@@ -23,6 +23,23 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-17 12:08 EDT — Splash Flash-Next, owner platform, PLE-fidelity & resident-agent gates
+
+**Strict watch:** 2026-10-16 22:32:17 -> **2026-10-17 16:08:29 UTC**; full cited evidence `RESEARCH-WATCH-2026-10-17-1208.md`.
+
+- **Splash #447/#448 NEW OPEN** Qwen3.8-FlashNext execution with real QSA sparse blocks, GDN/4-stream hyperconnection, expert/PLE SSD streaming; optional MTP via native GGUF head and adaptive drafts. #448 M5Max128GB short 72-prose rate ~114.7 TG vs33.1 undrafted and 64K cold TTFT ~41.5->31.0s. **Not M1Max64**, not merged, no 128K/262K owner quality/fit. M1 legacy #442 OPEN. Challenge oMLX/Strata engine costs only after real family7 B1/B2 context and agent completion.
+- **gfx1030 same GPU generation (#2871, #2920):** Windows RX6900XT16 +128GB DDR4 actually *filled255K* with 12288 HIP prefill chunks at 950–990PP. At150K IQ3_S 895 auto->1007 fixed PP; 45 starts 8K–16K stable. New #2920 0.1.45 six model short benches up to16K, Swift IQ3_XXS ~39TG/946 PP16K, not long-context certification. Owner RX6800 is **32GB RAM** and differs in ROCm/Linux; no replacement for exact #2788 stability patch soak.
+- **Strata v0.1.45 RELEASED Oct17:** big Qwen3.6 improvements, multi-user switches, smaller cross-hardware wins; Flash replies bit-identical vs0.1.44.1 on the reported sm60/86/gfx1201/A750/M4 machines, not exact sm120 owner. Old Linux headless baseline0.1.44.1 remains required comparison; 0.1.45 reports draft-head VRAM admission failure (#2897), Mac build repair #2895 OPEN.
+- **Critical quality split:** #2906 documents `reasoning_loop_recovery:recover` silently does nothing on default start-position low/medium effort. #2901 author 4.06M sampled output tokens and repetitive-loop suppression candidate biases sampled next tokens after 3 repeats, changing behavior (not free correctness). Need paired agent tasks without and with recovery, intentional repetition regression. #2903 reports M1-M4 Metal K-quant expert gate/up partial launch coverage **static audit only**, no Mac test: don't pronounce an empirically confirmed defect.
+- **Novel possible high-quality upgrade independent of trunk:** Oct17 Reddit one-person same-IQ3_S comparison suggests full FP8 `--ple-gguf` sidecar can improve 3D/code agent output versus GGUF IQ4_NL PLE, apparently no speed difference; no controlled task battery, memory/SSD cost (~47GB artifact), so qualify exact Swift model + PLE controlled long-context A/B before promotion.
+- **Model-choice calibration RECOVERED, not new Oct17:** Strata #1850 revised Oct14 RTX5070Ti/64GB quality battery: Swift IQ3_S low (157/164 code, all-five tool76.1%, math98, algebra85, hidden bugs20/25, tested260096 needle,75m03 total) vs Swift Q2_0 low (157/164, tool78.3%, math90/algebra72, hidden18/25,55m54 total). Low and xhigh need task-specific controls, neither 260K needle nor synthetic tool suite proves 260K resident multi-agent.
+- **Persistence/correctness:** #2915 OPEN optional disk-backed Strata session snapshots survive 1962-token restart on RTX4080S; #2923 Windows3090 RAM pressure turns 4 restored 310–372K prompts into233–285s refills despite parked snapshots. oMLX #4627 OPEN Claude Code tool-turn budget system note can break prefix hash/root and cost 15–33K re-prefill; live full-agent fix unverified. Flat rate TG without resident-state/TTFT and successful agent wall is misleading.
+- **New other runtime sources:** TensorFold #978 on CUDA RTX5090 +37–73% dense27B decode after kernel/draft work, NOT 5070/M1; #986 M5Ultra Flash warm first token cuts0.3->0.12s, not M1. oMLX #4626 standalone MTP head activation validated 32K on M5Max, no speed claim.
+- **Explicit owner platform decision:** single RTX5070Ti16 +64GB Intel Ultra7-265F runs **native headless Linux**, not Windows+WSL2; prior Windows calibrations are external reports and should not define platform identity. No artificial speed percentage credited.
+- **No owner full262K + 16+turn agent evidence, no two-M1 TB4 Flash 40TG/400PP measurement, no CUDA→Metal complete state import, no verified Gyro Signal combined release. Numeric planning ladders and verifier unchanged.**
+
+
+
 ## 2026-10-16 18:32 EDT — exact RX6800 HIP repair, 5070 agent-prefill wins and M1 quant/spec gate
 
 Strict research window **2026-10-16 14:10:00 UTC → 22:32:17 UTC**; full provenance `RESEARCH-WATCH-2026-10-16-1832.md`.
