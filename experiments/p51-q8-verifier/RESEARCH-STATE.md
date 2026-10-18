@@ -23,6 +23,22 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-17 20:40 EDT — NVIDIA QAD FP4-Local, consumer NVFP4-GPTQ, agent result ordering / cache resilience
+
+**Strict research delta 2026-10-17 19:05:57 → 2026-10-18 00:40:26 UTC.** Complete source and negative gates `RESEARCH-WATCH-2026-10-17-2040.md`.
+
+- **RECOVERED OLDER official NVIDIA `Qwen3.8-Flash-Next-FP4-Local`** released **Oct5**, discussed Oct15, *not* new Oct17: QAD NVFP4 routed experts, MXFP8 attention and vision parts, jointly refined n-gram table/MTP, 2,500+1,500 distillation updates with BF16 teacher and EOT/EOS losses. ~96GiB model; NVIDIA reports GPQA Diamond92.2 BF16→91.5, ToolEvalBench89.4→88.7. Tested RTX PRO6000 Blackwell96GB/DGX Spark with customized vLLM and losslessly compressed FP4 scales not yet supported by vanilla engine. **Blackwell 5070Ti ISA compatible but 16GB VRAM+64GB RAM owner memory inadequate for checkpoint natively**, no certified Strata/MLX conversion, source-like Swift1.5 comparison absent. **Do not conflate** prior non-QAD NVIDIA NVFP4 (133GB Aug31) or Maximilian community GPTQ Strata.
+- **NEW Strata #2956 exact 16GB GPU, not owner RAM:** community `Maximilian228/Qwen3.8-Flash-Next-NVFP4-GPTQ-Strata` on RTX5060Ti16 + **96GB** Windows ~26.1TG normal /635 PP32K, 3/3 needles @~32/128/261/518K with 520K TTFT862s, short agent suite68.8% reuse, **no solved tasks or long resumed agent proof**. Author says model63.3GiB + KV3.38GiB; hard64GB owner RAM admission not demonstrated. Faster same pack RTX5090 +128GB #2964 adaptive-fetch2 151.9→159.2TG and #2963 sliced pin fallback 32K9.93→6.74s are unmerged, different computer/Windows, not QAD benefit.
+- **NEW #2995 direct *2×* RTX5070Ti 16GB** opt-in peer prefill GPU expert scaling for GPTQ NVFP4 pack: ~4K cold **2718PP** on scaled host sums vs P2P1383; corrected missing expert scaling/NaN past20K; unmerged **not single5070 performance**. Source file signed at2026-10-18 00:27:29Z, within strict cutoff.
+- **NEW #2952** simultaneous tool-call result order may differ from call order: missing Chat Completions `tool_call_id` causes tool A/B responses to pair incorrectly. Unmerged Python-only remedy with tests. Add multi-tool same-function/out-of-order corpus to Pi auditing.
+- **NEW #2962** Strata RAM-pressure sweeper plus malloc_trim makes evicted snapshots actually release memory on Linux under glibc conditions; synthetic RTX5090+128GB memory pressure loses oldest two sessions by design while newest restores in133ms. **Not guarantee 3–5 resident agents**; pair #2934 allocator +#2930 prefix rotation +#2923 restore skips and disk snapshot tests.
+- **NEW #2989/#2985** hardware-separated multi-GPU concurrency: screenshot-prep stall 6→0.1s and 4×3090 pipelined MTP aggregate code203→270TG; both require layered systems and are not owner one5070/dual-M1 forecasts.
+- **NEW #2960** Windows RX7900XTX HIP KV-streaming bug: 2/10 starts have zero block reads and wrong >=resident long prompt despite normal prefill, author all-resident 6/6 passes. Demand nonzero stream-read/per-hop correctness on owner RX6800 (different gfx generation) before context certification.
+- **NEW Splash #469/#470** M5Pro64GB on stacked FlashNext YaRN ×4 reaches 450K 7/7 needles, 796–908PP step rates with SSD-streamed experts and PLE; **not physical M1Max64, not validated 1M, not merged**. Apple7 exact fit and tool-quality gates remain.
+- Source Swift1.5 IQ3_S low remains first daily driver on one RTX5070Ti16+64GB native headless Linux, Swift Q2_0 fast alternate. NVIDIA QAD FP4-Local an exciting **future quant-quality reference**, not a runnable drop-in for current owner64GB. No new 262K full solved Pi corpus, one-M1 mixed3bit DFlash133K >24.2TG, two-M1 TB4 40TG/400PP, or state-safe CUDA→Metal Relay. **No numerical targets or verifier/code touched**.
+
+
+
 ## 2026-10-17 15:05 EDT — exact RX6800 K16V8, headless-Linux cache hazards, oMLX queue fix
 
 **Strict delta 2026-10-17 16:08:29 → 19:05:57 UTC.** Source-qualified detail `RESEARCH-WATCH-2026-10-17-1505.md`.
