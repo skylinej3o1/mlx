@@ -23,6 +23,18 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-18 14:56 EDT — QAD FP4 now served on GB10; exact M1 Max64 Flash quant report
+
+**Strict cutoff:** 2026-10-18 13:24:10 → 18:56:22 UTC. Full evidence and limitations: `RESEARCH-WATCH-2026-10-18-1456.md`.
+
+- **NVIDIA FP4-Local QAD now demonstrably served** in MiaAI-Lab's patched TensorFold Zig CUDA engine on one DGX Spark128GB. Author reports all 512 routed experts, FP8 KV, PLE streaming, 1–5 streams, prose 46–55 TG solo /132.7 aggregate TG five, prefill ~2,665 at4K and~2,197 at131K, 194.7K needle. Loaded model **~81GiB** (~85GiB idle machine) and 108GiB startup headroom make this **not a fit** for owner RTX5070Ti16+64GB native headless Linux. TensorFold #1042 is docs-only OPEN; original NVIDIA vendor quality numbers still not independent source-like code quality.
+- **Exact M1Max64 Strata #3067 OPEN:** FlashNext Q2_0/ IQ3_XXS/ IQ3_S short-chat 35.1/32.0/23.1TG; 16K PP380/320/290. First two **resident**, IQ3S **streamed**; 6/6 short needles and context32K **only**. No 128K M1×2 Relay throughput or full quality proof.
+- **RTX5080 16GB #3068** native Linux UD-IQ4_XS with HC_Q8+FP8 PLE 72.9TG short/69.7 agent and variable PP, not Swift1.5 source proof. Two NVIDIA cards after calibration #3076 show 45.2→80.4TG but change multiple knobs and lack interleaved quality control. **RX6800 gfx1030** still lacks exact physical acceptance of #3064 GDN HIP optimization (primarily gfx1201 receipt).
+- **Agent correctness:** oMLX #4654 OPEN reproduces premature XML tool envelope end when literal closing tags appear in file-content parameters. MiaAI-Lab #70 OPEN on GB10 seven-image re-sent prompt caches 19,581/19,588 tokens, TTFT9.13→0.20s; standalone older #69 alternative structured grammar patch tests 86→88 tool score, both patches name slot0016 and aren't jointly merged. Terminal-RSI code/model still 'soon'.
+- **No target ladder changes.** Pin Swift1.5 IQ3_S on exact owner headless5070+64GB; physical multiagent 262K, M1×2 40TG@128K/400PP, and state-safe CUDA→Metal QSA/GDN/PLE transfer still unverified. Research docs only.
+
+
+
 ## 2026-10-18 09:24 EDT — Terminal-RSI Qwen3.8-27B post-training, NVIDIA mixed FP4, M1 exact failure gates
 
 **Strict watch:** 2026-10-18 00:40:26 → **2026-10-18 13:24:10 UTC**; complete source+limitations in `RESEARCH-WATCH-2026-10-18-0924.md`.
