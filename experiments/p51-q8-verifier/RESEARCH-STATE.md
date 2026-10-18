@@ -23,6 +23,20 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-18 17:44 EDT — retracted 5080 benchmark, exact M1 tuning, CUDA Flash prefill and multi-agent safety
+
+**Strict delta 2026-10-18 18:56:22 → 21:44:52 UTC**; full receipt and new/older classification in `RESEARCH-WATCH-2026-10-18-1744.md`.
+
+- **CRITICAL CORRECTION #3068**: Prior Oct18 RTX5080 UD-IQ4_XS / FP8 PLE 72.9TG chat /69.7TG agent / anecdotal HC_Q8 gain **RETRACTED at 20:08:50Z**, CLOSED unmerged. Peak-window result not sustained; **remove from reliable speed comparisons and target support**. Previous watch remains historical audit.
+- **NEW TensorFold #1046 OPEN** single GB10 FlashNext **MLX-derived affine 4-bit** (not NVIDIA QAD FP4-Local): 32K27.83→16.71s,64K56.66→32.81,128K121.71→68.81 cold prefill, **1.67–1.77x**, hashes unchanged; decode unchanged, **no 5070Ti or Metal measured**.
+- **NEW exact M1Max64 #3100 OPEN** Strata *streamed* FlashNext with 12,943/24,576 ranked experts in arena, skips0/7/10, k8v4 KV and prompt chunks2048/4096 all ~neutral; **~21TG and245–276PP @160/35.8K**, no128K success; earlier exact #3067 resident Q2_0 35.1, resident XXS32.0 and streamed IQ3S23.1TG at<=32K separate source.
+- **RECOVERED older than previous cutoff #3090 (created18:42Z)** Strata pins first16,384 grid checkpoint, not true >16K system-prompt root. Reporter 7/7 returns reread76–119K (21–35s); `--prompt-cache-spread` fixes some turn starts but not root identity. **#3088 older** saved-session file fingerprint first/last1MiB may miss same-size in-place expert edits; use immutable content hashes before restoring KV/GDN.
+- **NEW #3095 two RX6900XT gfx1030** solo pipeline-window with batch slots decode62.4→71.5TG (+14.2% paired production), but newcomer may stall/migrate existing solo and two-active not measured. **NEW #3103** split-batch MTP concurrent prefill +1–4% PP but lowers draft acceptance ~2pp and 4K/32K decode~3%; CUDA stream-k untested. **NEW #3102** gfx1201 QSA/ MMVQ bitwise optimize, no physical owner's RX6800 gfx1030. No additive performance assumptions.
+- **SAME-DAY RECOVERED SparkBench** official NVIDIA **QAD FP4-Local** on GB10 TensorFold fixed-depth PBM measured **45.4TG@4K→22.6@50K→13.8@100K**; different protocol from MiaAI short prompt and 132.7TG five-way aggregate. **NEW MiaAI #71** opt-in concurrent sliced prefill on locally patched GB10 poisons CUDA (all requests500, /health says OK), requires real inference health canary; no stock engine reproduction. **UPDATE #1045** persisted drafted/accepted and rounds per attempt; critical verification against "spec is enabled" false confidence.
+- **NEW #3105** CUDA prefill elastic VRAM loan supports only *solo unbatched one GPU*, larger prompt geometry on8GB SM75; old SM89 @36/72K PP ≤2.4% end-to-end and confounded; **not owner 5070Ti 3–5-agent path**.
+- Swift1.5 IQ3_S source/default for native headless 5070Ti16+64GB unchanged; NVIDIA QAD GB10 true serving needs81GiB loaded and not fit owner; Terminal-RSI27B author code/model still "soon". **No complete owner262K solved Pi, 3–5 resident agents, M1×2 TB4 128K40TG/400PP, complete CUDA→Metal context/state transfer. Numerical targets, code, frozen verifier and source models unchanged**.
+
+
 ## 2026-10-18 14:56 EDT — QAD FP4 now served on GB10; exact M1 Max64 Flash quant report
 
 **Strict cutoff:** 2026-10-18 13:24:10 → 18:56:22 UTC. Full evidence and limitations: `RESEARCH-WATCH-2026-10-18-1456.md`.
