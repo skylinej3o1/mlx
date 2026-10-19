@@ -23,6 +23,20 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-19 10:38 EDT — Volundr Engine1.3, adaptive QFN KV, Pi thinking and exact 5070Ti tool images, oMLX NVFP4
+
+**Strict research delta 2026-10-19 11:13:49 → 14:38:35 UTC.** Full source classifications, hardware qualifications: `RESEARCH-WATCH-2026-10-19-1038.md`.
+
+- **RECOVERED OLDER Volundr Agens Engine v1.3 released Oct19 09:19Z, missed in previous watch (strict cutoff11:13Z):** MTP+TP2/TP4 supported, vision+MTP enabled under 16GiB by scratch sharing, tested on 48GB GPU capped 16GiB, text MTP~237.6K context/images+MTP~217K (219K doc+images+follow-up), selective GPU KV residency only when budget fits. Previous physical 16GB card and sm120 tests still absent, 2.82bpw quality loss GPQA80.3→73.7 persists; one conversation 16gb. Research watch discusses as newly recovered release within wider Oct19 day; **strict timing note: the release commit at 09:19Z predates the 11:13Z previous cutoff; it was missed then, not created inside this watch interval**.
+- **NEW #3168 OPEN 13:37Z** Strata `STRATA_KV_RING_ADAPT` per-run QFN depth on gfx1100 RX7900XTX: decode at1K130.8→130.6,32K74.2→83.8(+12.9%),128K77→81.9(+6.4%). Pre-fill unchanged; `generate` only, `serve` must be separately wired; source #3166 shows naive bigger ring at1K causes −40% MTP. No exact RX6800 gfx1030 or RTX5070Ti.
+- **NEW #3167 13:17Z** Strata recognizes Pi thinking budget field aliases (thinking_token_budget, thinking_budget, thinking_budget_tokens); prior silent ignore distorts quality/latency. Mock-only 341 server tests, no physical GPU.
+- **NEW #3171/#3174 14:34/14:37Z** Strata elastic vision tool-image bug/fix reported **on physical RTX5070Ti16 Windows**: tool-returned screenshot fails 400 due unloaded encoder; opt-in vision elastic causes bug, disabling elastic prevents; author-tested two-line fix OPEN. Add literal screenshot after Read/MCP to Pi+Playwright tests on owner native headless.
+- **NEW+MERGED #4661 oMLX 13:06Z** NVIDIA ModelOpt NVFP4 scale loader and MTP expert mapping **GLM5.3-Flash-FP4-Local MLX repack** on **M5 Ultra256GB (~174.33GiB active)**, not Qwen FlashNext-FP4-Local on user's M1Max64. No unsupported QAD speed claim or instant fit.
+- **NEW oMLX #4663 OPEN 14:00Z** opt-in unload competing non-pinned local Mac models on structured memory-attributed rank activation failure; isn't resident-agent proof or speed win.
+- **NEW #3163/#3164** gfx1151 AMD WMMA selection scorer whole-engine +~1.8–1.9% not gfx1030; **NEW #3169** dual3090 262K configured but short-agent benchmark only, no quality; **NEW #3173** dual gfx906 MI50 1.6K decode49.2→66.9 with pipeline2, **not single RX6800 or active128K**, engine0.1.43.1.
+- **No qualifying exact owner Linux 128/262K solved agent, 3–5 simultaneously retained contexts, dual M1 40TG@128K/400PP, complete QSA/GDN/PLE CUDA→Metal import, or new hardware-buy case. Swift1.5 GSQ-RCO IQ3_S primary and frozen numerical targets/verifier unchanged**.
+
+
 ## 2026-10-19 07:13 EDT — KVMem DFlash2 merged, Mac compact KV, deterministic replay
 
 **Strict 2026-10-19 06:33:02 → 11:13:49 UTC.** Complete receipts and limitations in `RESEARCH-WATCH-2026-10-19-0713.md`.
