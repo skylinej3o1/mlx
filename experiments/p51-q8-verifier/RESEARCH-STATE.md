@@ -23,6 +23,17 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-19 02:33 EDT — 27B RAM-backed KV: full streaming versus retrieval, recovered older
+
+**Strict delta:** 2026-10-19 06:17:35 → 06:33:02 UTC. Full method/source receipts in `RESEARCH-WATCH-2026-10-19-0233.md`. **All sources RECOVERED OLDER (Sept/early October), not new releases.**
+
+- **Adaptive KV Streaming V2** (RaymondHuang) exact **RTX5070Ti16** chip, Qwen3.8-27B UD-IQ4_XS + Q8K/Q4V, all attention KV in CPU pinned RAM with GPU staging ring; at128Ki stock UVM unmanaged2.48TG→V2 target-only26.15TG, V2 MTP3 ~59.7TG; at256Ki target9.60/MTP3 22.27/DFlash7 21.80TG (256 generated-token corpus), not long solved agent or owner source quant. **Full history still attended**, unlike KVMem. Single CUDA GPU/request, not ROCm or Relay.
+- **KVMem** original llama.cpp #28894 + arXiv2609.04852, current canonical `kvmem/kvmem`: host/RAM+optional SSD original KV history, query-select ~32–36K GPU visible blocks. Author5060Ti16+32GB with IQ3_S/IQ4_XS 33 simulated tool-turn trace262,058 token decode30/33TG, host11–13GB; selected32K benchmark LongMem85.6 vs86.6 full, AgentLong60.9 vs59.5. Independent arczhi physical 261,699 needle56.8TG repetitive100% MTP acceptance; separate real agent100/100 in482s context<=54K, median50.3TG. Oct13 NInfer0.18 GSQ-RCO IQ3_S author33 simulated turns261,522 total53.24TG, **not protected task correctness**. Older ROCm Beta2 doesn't prove RX6800 gfx1030.
+- **TierKV** independent 5060Ti real coding-agent same-task success100/100 in398s, median62.1TG/72 tests at **65K configured**; separate **262K no-spec** 22.70TG/680PP. SSD stores snapshots, not per-token entire KV streaming.
+- **Decision:** owner 5070Ti16+64GB native headless Linux should compare full-history Adaptive V2 with query-selected KVMem/TierKV at64/128/200/262K, realized agent completion per wall, cache/resume fidelity and format/quality. RX6800 HIP end-to-end, M1 Metal memory tier and CUDA→Metal complete context handoff remain unproven. Performance targets/verifier unchanged.
+
+
+
 ## 2026-10-19 02:17 EDT — Volundr v1/Agens Engine 16GiB, RX6800-as-CUDA-helper proposal, Mac and cache gates
 
 **Strict research delta 2026-10-18 21:44:52 → 2026-10-19 06:17:35 UTC.** Complete dated watch `RESEARCH-WATCH-2026-10-19-0217.md`. User X link `chinese_xu/status/2111779660745060733` **text inaccessible**; ID dates to Oct18 11:21Z before prior cutoff. **No claim about post content, screenshot needed**.
