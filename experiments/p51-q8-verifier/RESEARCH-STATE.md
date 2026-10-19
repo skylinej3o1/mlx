@@ -23,6 +23,20 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-19 07:13 EDT — KVMem DFlash2 merged, Mac compact KV, deterministic replay
+
+**Strict 2026-10-19 06:33:02 → 11:13:49 UTC.** Complete receipts and limitations in `RESEARCH-WATCH-2026-10-19-0713.md`.
+
+- **NEW MERGED KVMem #154/#155/#157:** native llama.cpp DFlash2 shared draft up to4 lanes, but full 27B all-GPU C4 still exceeds5060Ti16; RTX5060Ti 58K recall transfer4.015→2.667s but request101.367→99.829s, 1–1.5% whole-request benefit; C8 API newly allows8 but hardware trials only with tiny synthetic fixture, not 27B eight agents. Packaged NInfer0.18 binaries do not automatically include these commits.
+- **NEW oMLX #4659 OPEN:** Affine4/8 attention KV for dense27B oQ4e; at32K full-attention memory BF16 2.00GiB→0.52/1.02GiB; M3Ultra decode28.7→25.7/26.1TG and M5Max26.1→25.5/25.6. Not physical M1Max64 and no 128K coding agent correctness. M1 memory budget prospect, not speed win.
+- **NEW Splash #497 OPEN:** deterministic batch/prefix/prefill identity M5Max FlashNext 48/48 tested short greedy answers across modes vs default17–22/48 warm/concurrent; limited dense QSA, no sparse/full-context or M1 parity. #496 M5Max per-lane adaptive MTP depth +14% 4-lane short aggregate, unmerged and not M1.
+- **NEW Strata #3146 OPEN** RX6700XT gfx1031 coerced to gfx1030 ROCm7.1.1 Swift1.5 IQ3_S FP16 prompt path 1.76–1.99x PP with no exact token/agent quality parity; owner RX6800 gfx1030 direct chip untested, #3145 gfx1031 fix not needed on native gfx1030. #3137 opt-in Swift Mac setup M5Max tested, no performance. MCP #3135/#3141/#3139 tool routing/retry/transport corrections OPEN; #3140 post-capture VRAM reserves need true final floor.
+- **NEW TensorFold #1061 OPEN** two M3Ultra256GB/TB5 DeepSeekV4.1 TP2 with 121 TCP collectives per forward slows to 2.78 vs 4.06 decode forwards/s TP1 (exact outputs). Negative for naive M1 TB4 token-level cross-host parallelism, not CUDA→Metal state-transfer success. #1062 Flash CUDA structured tools/schema GB10 passed6/6 cases plus24 concurrent checks, not sm120 or Metal tested.
+- **RECOVERED OLDER NInfer dense27B** Ryan-gsq RTX5070Ti16 Windows Swift S actual128K prompt ~91.9–97.8TG PP1356, 177MiB free; toddballinger RTX5080 16 v1.5 released Sep28 at118001 prompt 1374PP/112.2TG with full131K Q4 KV, not exact owner5070Ti16 Linux. No supported single 16GB QFN NInfer deployment better than Strata.
+- **Project51 remains:** Native headless Linux 5070Ti16/64GB Swift1.5 QFN default; separate dense27B KVMem/AdaptiveKV/NInfer trials. M1Max64×2 dense27B oMLX #4496 real~24.2TG@133K, RX6800 gfx1030 physical source-quality gate, 3–5 held long sessions and TB4 committed-state import still unverified. No numerical target, hardware purchase, experiments or verifier changes.
+
+
+
 ## 2026-10-19 02:33 EDT — 27B RAM-backed KV: full streaming versus retrieval, recovered older
 
 **Strict delta:** 2026-10-19 06:17:35 → 06:33:02 UTC. Full method/source receipts in `RESEARCH-WATCH-2026-10-19-0233.md`. **All sources RECOVERED OLDER (Sept/early October), not new releases.**
