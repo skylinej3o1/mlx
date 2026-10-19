@@ -41,6 +41,16 @@ Definitions:
   producer state is exported at a committed safe frontier. Qualify at **32K first, then 96K/128K**. Fast producer
   prefill earns no bridge credit if its numerical drift exceeds the consumer's own execution-plan tolerance.
 
+### 2026-10-19 18:58 EDT — NVIDIA FP4-QAD evaluation does NOT change target ladders
+
+**Decision from `RESEARCH-WATCH-2026-10-19-1858.md`: no target/confidence revision.** NVIDIA `Qwen3.8-Flash-Next-FP4-Local` (QAD, released Oct05) is a *different base-Flash-Next trained checkpoint*, not UkisAI Swift1.5 / GSQ-RCO. NVIDIA's BF16 GPQA92.2→91.5 and ToolEvalBench89.4→88.7 are encouraging model-card benchmarks but do not certify the source-like >=38 AA-class xhigh floor, multi-turn coding agent, long-state parity or owner's GPU execution quality. Train-time preservation of EOT/EOR, PLE and MXFP8 islands is a mechanism to study, not physical throughput credit.
+
+On Strata the ~102GB source download needs ~110GB extra prep disk, the converted ~63GiB expert pool needs roughly 80GB host RAM for full residency and a 26.8GiB SSD-served PLE table; a 5070Ti16+64GB owner system would need partial SSD-backed experts. A 72GB RTX PRO5000 all-experts-in-VRAM median159TG +151TG agent session and a community 32GB Blackwell+64GB host report 60–78TG at40–55K are **not owner 16GB/64GB results** and neither establishes a 128K/262K complete successful task on the owner. The official vLLM QAD native representation differs from Strata's repacked Q8_0/BF16 attention/shared and Q2_0 MTP. Unproven cross-checkpoint PLE swaps cannot be used as quant-quality proof. No native M1Max64 trained-NVFP4 path, no RX6800 gfx1030 HIP full model receipt, no complete CUDA→Metal QFN import.
+
+A separate **restore/concurrency qualification** is reinforced: Strata #3286 OPEN saves dual-CUDA stage sessions with 94K ~5.5s save /3.7s restore (same engine and split), but does not cross CUDA→Metal or support batch. #3284 OPEN confirms Metal simultaneous batch slots are missing. Count 3–5 **parked/restorable agent states** independently from 3–5 **actively decoding slots**. Neither a file-format v3 improvement nor two alternating short histories changes the headline 40TG@128K/400PP dual-M1 goal or the preserved dense27B target ladders.
+
+**Action gate:** retain owner native-Linux Swift1.5 GSQ-RCO IQ3_S control; optionally prepare a separate QAD offload arm only after available SSD, RAM floor and package build are confirmed, paired xhigh coding/tools + MTP acceptance + prompt/cold-cache/storage read + state restore checked. Dense27B NInfer/full-history AdaptiveKV and KVMem/TierKV remain competing 128–262K contexts. Do not alter the frozen verifier or assign a new TG/PP projection based on this evidence.
+
 ### 2026-09-23 first-principles floor / center recalibration
 
 This is a **derived engineering scenario model**, not a new benchmark and not a target change. It was rebuilt from the measured single-M1 long-context anchor instead of reasoning backward from the 40-TG goal.
