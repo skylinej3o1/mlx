@@ -23,6 +23,19 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-19 18:25 EDT — updated 2-agent Metal cache, Q8 PLE sidecar, LoRA, and Strata beta admission gates
+
+**Strict delta: 2026-10-19 20:30:10 → 22:25:45 UTC**. Complete source classification `RESEARCH-WATCH-2026-10-19-1825.md`.
+
+- **UPDATE Strata #3231 OPEN** four Metal checkpoint fixes now validate proper QSA tail/KV sizes and macOS available RAM. On *unspecified M-series128GB Mac*, 2 alternating agent histories A/B/A/B: 5.3K-token park45.9ms, restore4–10ms, next prompt17 new tokens211–224ms vs prior ~8s; temp0 cold/restore 106-token answer identical. Separate 61-request coding task95% reused, 7.4min. **Not owner's M1Max64 or 128K**, cache costs~82KB per token, ~37K agent3GiB, 3–5 histories residency unresolved. Previously logged #3231 partial fix at20:30; this is new updated evidence.
+- **NEW Strata #3280 OPEN + #3278 new two3090 benchmark**: allow **foreign table-only Q8_0 PLE GGUF** alongside GSQ-RCO IQ3_S / UD-Q4_K_XL experts, SSD direct. Source 2×3090 121GiB Linux test Q8 PLE vs IQ4_NL own PLE speed within noise on UD-Q4, no convincing standalone **quality improvement** demonstrated, no single5070Ti16 admission; don't treat file-set compatibility as GGUF weight or state identity. High-priority paired coding-task quality hypothesis, *not* upgraded daily driver yet.
+- **NEW submission, older code #3267 LoRA QFN CUDA**: GDN ssm_out + QSA attn_output adapters, request on/off and cache state identity, tested RTX5090, **no expert-MoE adapter or MTP training-quality gains**, no HIP/Metal. **#3281 reopens previous #3105 VRAM loans**: on 8GB SM75 geometry PP514→775, single serialized CUDA only, rejects batch/peer/HIP, so not owner agent concurrency speed promise.
+- **NEW #3262 CPU topology**: Intel CoreUltra7 255H mobile LP-E misidentified and 15 vs9 pool workers ~40 vs60TG on gfx1100 eGPU. Owner **265F desktop lacks same LP-E tier**, profile actual pool count/affinity rather than applying number. **#3274** RTX3080Ti sm86 0.2beta some IQ3 gains but auto resident budget 4/4 OOM on IQ4_XS; no sm120 version jump supported.
+- **RECOVERED OLDER #1075** think-loop detector in TensorFold on M5 Ultra with Qwen3.5-2B/DS-V4, not 27B QFN; **UPDATE #1076** helpful vision template error reporting. **NEW Splash #501** read-only /dashboard, no speed enhancement, stacked.
+- **No source-backed full-context owner agents, M1 TB4 complete handoff, official NVIDIA QAD 5070Ti16 fit or RX6800 gfx1030 new complete 27B run. Numeric targets, code, frozen verifier unchanged.**
+
+
+
 ## 2026-10-19 16:30 EDT — Strata beta, Mac parked-agent restoration, 27B host snapshots, Flash multiagent verify
 
 **Strict delta 2026-10-19 14:38:35 → 20:30:10 UTC**. Complete source/limitations: `RESEARCH-WATCH-2026-10-19-1630.md`.
