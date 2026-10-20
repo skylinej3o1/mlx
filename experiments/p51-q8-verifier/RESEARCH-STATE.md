@@ -23,6 +23,17 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-20 10:30 EDT — Coder revision, DFlash2 Q8 tuning, PARO and shared QSA
+
+Strict interval: 2026-10-20 11:09:11–14:30:02 UTC. Full sources and dates: `RESEARCH-WATCH-2026-10-20-1030.md`.
+
+- **RECOVERED OLDER improved Coder / NEW #3445:** ISTA-DASLab GSQ-RCO-Coder model card says October17 update; Strata PR identifies October19 first-shard revision `bba88856f8c3c0c9e40e45f82d05e228b814ac43`. Author-reported xhigh SWE-bench Verified **75.60→79.20**, LiveCodeBench v6 **86.28→87.43**; 29.6GB resident pruned transformer, unchanged 28.8GB disk-eligible PLE. Setup still pins earlier revision. **NEW issue #3448:** stale expert priority table matches only **2/12,288** pairs after RCO expert reindexing; learned heat can repair much of steady state. Specialized coding comparison only, Swift1.5 IQ3_S remains general baseline, no owner long-agent quality gate.
+- **UPDATE #3322 OPEN DRAFT:** tuned Q8 DFlash2 draft (not target quant) RTX4070TiSUPER16 NVFP4 target at8K: short code **50.86 vs38.46 TG MTP (+32.2%)**, longer fixture **56.77 vs55.31 (+2.6%)**. With realistic prefill512 matched expert slots, Q8 decode51.95 vs MTP50.35 TG but complete request **7.762 vs7.755 seconds (TIE)**. The older forced short-read4096 distorted prompt timing. Compare Q8 and prior Q4 draft against MTP on real Swift target/task 128K and strict sampler parity; no numerical target change.
+- **NEW #4685 OPEN:** oMLX batched DFlash2 ParoQuant 27B-PARO target matches ordinary greedy output on two 12-token prompts; no long agent, Mac M1 128K or throughput. **UPDATE #4679 MERGED** GGUF+Splash use in oMLX. **NEW #4687 OPEN** prevents benchmark tg1024 row mislabeling 21 generated tokens after EOS.
+- **NEW #4682 OPEN DRAFT:** Qwen4_exp only immutable shared QSA prefix/private suffix. At B8 common4096-token prefix retained cache -70.6% but one-layer attention +37.5% latency, no model-level throughput qualification, **not FlashNext QFN or two physical M1 machines**. Candidate mechanism for true multiagent prefix sharing, no resident-count credit.
+- **NEW #3426 OPEN:** 2×RX6900XT gfx1030 +128GB RAM measured actual119K QFN IQ3_S cold prompt ~1,893PP, 30K decode~66TG, two clients combined42.8TG, no quality tests. Does not transfer to one RX6800+32GB. **NEW #3422** RTX5060Ti16 WSL2 Swift IQ3_XXS pilot standard bench~1,333PP at16K and47TG, not owner5070Ti Linux. **NEW #3436** Windows RX7900XTX HIP bad start0/12 quality sanity despite high speed; require cold-boot correctness checks.
+- No actual exact-owner 128K source-quality or numerical target-changing benchmarks. Provisional model, hardware, frozen verifier, dual-M1 40TG/400PP projections and other planning ladders remain unchanged.
+
 ## 2026-10-20 07:09 EDT — Mirai QNS support, Gyro Metal, shipped 0.2.1 and cluster admission
 
 **Strict interval 2026-10-20 05:00:48 → 11:09:11 UTC**, details/classifications `RESEARCH-WATCH-2026-10-20-0709.md`.
