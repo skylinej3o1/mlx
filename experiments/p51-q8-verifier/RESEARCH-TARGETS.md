@@ -41,6 +41,18 @@ Definitions:
   producer state is exported at a committed safe frontier. Qualify at **32K first, then 96K/128K**. Fast producer
   prefill earns no bridge credit if its numerical drift exceeds the consumer's own execution-plan tolerance.
 
+### 2026-10-20 10:30 EDT — Coder refresh and DFlash2 Q8 gates (NO targets changed)
+
+**Evidence:** `RESEARCH-WATCH-2026-10-20-1030.md`, strict 11:09:11–14:30:02 UTC. **Zero numerical target or confidence changes.** The Oct17-announced/Oct19-revision Coder first-shard change (`ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF`) improves publisher xhigh SWE-bench75.6→79.2 and LCB86.28→87.43; this is a **pruned coding specialist** with 29.6GB resident transformer, not unpruned Swift1.5 IQ3_S source-equivalent general agent. Its Strata pin PR #3445 is OPEN, and expert priority profile #3448 is stale (2/12,288 correct after reindex). Any promotion requires SHA-pinned model and corrected profile, full code/tool agent and reasoning generality, independent benchmark, 64/128/200/262K retention and headless5070Ti16+64GB memory controls.
+
+**Speculative draft gate:** QFN DFlash2-Q8 PR #3322 on RTX4070TiSUPER16 plain NVFP4 target and configured8K gets **+32.2%** decode on 27-token code fixture and +2.6% on 2425-token fixture vs tuned MTP. A separate same-setup full client request at prefill512 is **7.762s vs7.755s** despite Q8 decode +3.18%; prior forced --short-read4096 numbers are not valid production TTFT improvements. Compare same NVFP4/Swift model, tuned MTP vs Q4 DFlash2 vs Q8, chosen output budget, cold PP, full request solved tasks, memory/VRAM, target sampler equivalence, at 32/64/~128K and200/262K *filled*. Do not multiply short TG percentages into long-context owner prediction.
+
+**Dense27B Mac**: new oMLX #4685 PARO4bit+DFlash2 batched compatibility has 2 short 12-token matched greedy canaries, not 128K resident quality on M1Max64 nor a TG benchmark. oMLX #4679 GGUF+Splash has merged. Benchmark #4687 fixes EOS-truncated tg1024 rows falsely reporting only21 generated tokens; preserve comparability by recording actual tokens emitted. **True prefix sharing** new Qwen4_exp-only #4682 default-off shares immutable QSA prefix and private tails, B8 4K-prefix cache tensor capacity -70.6% at +37.5% one-layer attention cost, *not an M1 QFN multiagent result*. Require all QFN QSA/GDN/indexer/PLE/draft state, rollback and 3–5 retained independent agents before counting shared memory.
+
+**RX6800 gfx1030**: new #3426 physically 2×RX6900XT16 +128GB host ran **119K real prompt** around 1893PP and 30K TG66; cannot attribute to one RX6800 16GB+32GB RAM, and no exact-owner speed or coding quality gate. Native Linux RTX5070Ti64 retains separate targets; #3422 similar 5060Ti WSL2 16K benchmark not exact rig. Strata #3436 wrong-output startup0/12 despite good throughput proves quality boot/admission gate needed.
+
+Frozen verifier, source model production baseline, dual-M1 Flash40TG@128K/400 cold PP experimental goals, dense27B target ladders and all planning confidences unchanged.
+
 ### 2026-10-20 07:09 EDT — Mirai QNS, release, Gyro Metal and safe sampling (no target change)
 
 Sources and strict timestamps: `RESEARCH-WATCH-2026-10-20-0709.md`. **No numerical revision** to >=38 AA-class floor, source-like xhigh desired behavior, dual-M1 Flash40TG@~128K/400 cold PP, 27B per-context ladders or prior confidence. New support is capability/mechanism, not an exact owner B1/B2 long-context receipt.
