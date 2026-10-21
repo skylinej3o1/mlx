@@ -7,6 +7,10 @@ DeepSeek-V4-Flash/DS4 external research pass. Dated `RESEARCH-WATCH-*` files are
 this file carries forward the facts and decisions that must not be rediscovered or silently
 dropped.
 
+### 2026-10-21 10:21 EDT — agent token controls, batching and SSD-row reuse; targets HELD
+
+Strict external review **2026-10-21 12:20:19–14:21:07 UTC**; full provenance and classification in `RESEARCH-WATCH-2026-10-21-1021.md`. NEW Splash #530 fixes quoted tool-call control tags (M5Pro QFN Q2_0 Pi parser-tag task 6/10→10/10 at temperature0) but its quoted-tag tokenizer path bypasses the prefix cache: demand correctness **and** exact prefix reuse. NEW #532 opt-in control vectors change output and refusals; namespace isolation good but never count speed-steering as source-preserving. NEW oMLX #4745 on **M5 Ultra 256GB DeepSeek V4.1** improves 131K synthetic true-prompt prefill 1,767→2,100 PP (+18.8%) and 262K 1,580→1,818 (+15.1%); neither is 2×M1 QFN. UPDATED TensorFold #1155 source after cutoff, but +12–16% aggregate B4 greedy batched MTP evidence predates cutoff (GB10 FP4-Local); #1147 source-only one-GB10 ~3–5% cold PP fewer clears, not sm120/M1. Strata #3535 added 0.2.2 2×2080Ti short test, and #3515 added isolated 2×3090 Swift Q6 16K test, none directly transferable. Splash #526 same-forward oracle improves verification truth, not runtime speed; #499 still has **no trained production 27B draft**. TRT-LLM #20752 NVFP4_AWQ scaling correctness in B200 synthetic tests, not owner QAD deployment. NO newly verified checkpoint, shipped release after 12:20Z, complete CUDA→Metal committed state import, Apple7 physical B4/262K, or RX6800 gfx1030 production run. Retain current numerical targets, agent-quality floor, confidence estimates, separate host topology and no-extra-hardware decision; next tests must pin tool-tag rendering and cache identities.
+
 ## Required research-pass protocol
 
 Before any new search:

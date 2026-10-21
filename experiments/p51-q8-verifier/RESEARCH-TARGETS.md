@@ -41,6 +41,10 @@ Definitions:
   producer state is exported at a committed safe frontier. Qualify at **32K first, then 96K/128K**. Fast producer
   prefill earns no bridge credit if its numerical drift exceeds the consumer's own execution-plan tolerance.
 
+### 2026-10-21 10:21 EDT — NEW tool-tag correctness and multiagent research, confidence unchanged
+
+Strict scan **12:20:19–14:21:07 UTC** in `RESEARCH-WATCH-2026-10-21-1021.md`. **No changes to any threshold or confidence values**. Splash #530 (new Qwen quoted-tag tokenizer fix, M5Pro Q2_0 Pi case 6/10→10/10 at greedy) materially expands the *agent correctness* gate, yet currently bypasses prefix cache for quoted-tag prompts; certify both emitted tool-call semantics and retained prefix/SHA. Splash #532 residual control vector is output-altering and excluded from source-equivalent xhigh/AA runs. TensorFold #1155 B4 greedy MTP batching GB10 recovered-old +12–16% is *not* dual-M1/filled128K evidence; oMLX #4745 M5Ultra256 DeepSeek-V4.1 synthetic 131/262K prefill +18.8/+15.1% is not Apple7 QFN, and does not change 425/400 cold PP probabilities. New Strata 2×2080Ti and 2×3090 Q6 community cases, GB10 ModelOpt prompt skip-clears, and Splash same-forward penalty-oracle CI do not certify owner 5070Ti/2×M1/RX6800. Keep all hardware-specific numerical rows and AA >=38, 3–5 actually resident agents, physical 128K/262K gates frozen. Require tokenizer quoted controls, cache namespace steering, actual tool calls and cold-vs-restored semantic equivalence in next experiment matrix.
+
 ### 2026-10-21 08:20 EDT — 20-minute watch; target and confidence frozen
 
 Strict **2026-10-21 11:59:47–12:20:19 UTC**. Source receipts `RESEARCH-WATCH-2026-10-21-0820.md`.
