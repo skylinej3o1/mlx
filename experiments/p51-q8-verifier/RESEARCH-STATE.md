@@ -23,6 +23,14 @@ Before any new search:
 The protocol exists because older project anchors were previously rediscovered after falling
 out of the formal watch-note chain.
 
+## 2026-10-21 08:20 EDT — new DeepSeek V4-Flash Strata draft, EXL3 CUDA graph negative control
+
+Strict research window **2026-10-21 11:59:47–12:20:19 UTC**. Full receipts in `RESEARCH-WATCH-2026-10-21-0820.md`. No new tagged releases or verified production quant, no numerical target/confidence/purchase changes.
+
+- **NEW Strata #3589 OPEN DRAFT** https://github.com/Niko1221/Strata/pull/3589, created **12:05:49Z**, one new commit12:04:50Z, implements **separate DeepSeek-V4-Flash-0731 (not V4.1) NVFP4 CUDA runtime** (new loader/hash-route/MLA+DSA/kernel/CPU reference), unlike Qwen3.8 Flash. **Two sm89 L20 cards totaling96GiB VRAM +125GiB RAM**, giant145.13GiB expert pool (~57.5% resident) yield author report **~30TG solo/~47TG six-row forward**, four reference outputs and R2–R6 verified, sanitizer0 errors. **Max context65536, no MTP/DSpark, no IQ2/4/v5 Hadamard, not tested on RTX5070Ti16/Apple M1**, ~11K lines unmerged. Genuine new family development, no owner placement or benchmark rationale to shift Project51 priorities.
+- **NEW report published 12:17:31Z on KNOWN TensorFold #1113** https://github.com/ashhart/TensorFold/pull/1113#issuecomment-6315696853, earlier QFN EXL3 3.05bpw + independent BF16 RAM-paged KV on **2xRTX5060Ti16GB sm120** (not owner single5070Ti16); exact tested older commit `ca2b13c8` authored06:51Z, no new source speedup. At **1024 and16384 actually occupied prompt lengths, configured context18432**, matching greedy output hashes18/18 and two ranks real graphs, but graphs **3.4–5.4% SLOWER** than eager on four cells: c1 short14.16→13.63TG, c1 16K11.93→11.52, c8 aggregate short11.05→10.45, c8 long9.19→8.83. One run/cell, not repeatable performance qualification; unverified actual200K×2 BF16-paged KV, agent correctness and cost. Pin to hardware/quant/source; graphs present ≠ speed. **KNOWN/RECOVERED older #3515** 2x3090 Swift1.5 Q6_K custom bench on Oct20 **21:57Z**, updated in this 20min but no post-cutoff new benchmark; 12/12 sanity not quality.
+- **No new packaged Splash/oMLX/Strata/M1 fork release, no verifiable new full QFN or dense27B quant, no exact dual-M1/TB4 state transfer** between 11:59:47–12:20:19 UTC; latest Strata v0.2.2, oMLX v0.7.2, Splash1.4, dstar1.1-beta2 and paperniuk/splash1.3.2-m1.2 remain last-watch items. **Owner lanes and numerical targets unchanged**, frozen verification remains source-like deterministic; KVMem and related agent state prior known.
+
 ## 2026-10-21 07:59 EDT — Splash 1.4.0, oMLX 0.7.2, Strata 0.2.2 RX6800 and Metal session caches
 
 Strict interval **2026-10-20 21:41:44–2026-10-21 11:59:47 UTC**; complete provenance and blockers in `RESEARCH-WATCH-2026-10-21-0759.md`. **NO Project51 production targets or confidence change.** Merged source / packaged Apple7 / filled 128K are distinct.
