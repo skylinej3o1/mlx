@@ -41,6 +41,15 @@ Definitions:
   producer state is exported at a committed safe frontier. Qualify at **32K first, then 96K/128K**. Fast producer
   prefill earns no bridge credit if its numerical drift exceeds the consumer's own execution-plan tolerance.
 
+### 2026-10-21 08:20 EDT — 20-minute watch; target and confidence frozen
+
+Strict **2026-10-21 11:59:47–12:20:19 UTC**. Source receipts `RESEARCH-WATCH-2026-10-21-0820.md`.
+
+- **NEW unmerged Strata #3589:** DeepSeek **V4-Flash-0731** as its own NVFP4 CUDA family, 2×L20 **96GiB total VRAM +125GiB RAM**, ~145.13GiB expert pool 57.5% resident, ~30TG B1 /~47TG six-row forward at up to **65,536 configured context** and without MTP/DSpark, CPU reference sanity matching. Not DeepSeek **V4.1** support, not owner's tiny16GB card nor 2×M1Max64, no long-context production agent quality; merely adds **future alternative ecosystem lane**, not a numeric target or confidence upgrade.
+- **Newly published TensorFold #1113 EXL3 benchmark comment at12:17:31Z** but source work before cutoff: QFN **3.05bpw EXL3**, BF16 paged KV, **two RTX5060Ti16** SM120 vs owner's one RTX5070Ti16; actual prompt lengths1K,16K, model window18432 configured, c1 code decode eager14.16/11.93TG versus graph13.63/11.52TG, c8 aggregate eag11.05/9.19 versus graph10.45/8.83. Graph mode **3.4–5.4% slower** in one matched run, even when graph/eager output hashes match; no repeat stats, source-like xhigh score, 200K×2 paged context or owner physical benchmark. CUDA Graph capture is not a reason to raise speed estimates by default.
+- No new Splash/oMLX/Strata tagged release after prior 07:59 watch; older benchmark Strata #3515 2x3090 SwiftQ6_K re-updated, **not new owner performance**. No verified novel QFN/dense27B full quant, Apple7 M1Max64 128/262K IQ3S rate, parallel valid3–5 agents, physical CUDA→Metal state handoff or AA>=38 xhigh.
+- **Decision: ZERO numerical or engineering confidence changes**: dual M1 IQ3S production 40TG@filled128K/425+ genuinely cold PP (native262K secondary35TG/400PP), independent IQ3_XXS worker alternative, 5070Ti16 native headless Linux Swift1.5 IQ3S general default, RX6800 gfx1030 v0.2.2 released package pending actual physical smoke, dense27B lane unchanged. No extra Mac/hardware purchase.
+
 ### 2026-10-21 07:59 EDT — packaged QFN Splash and gfx1030, unresolved exact M1/Relay, NO numerical changes
 
 Strict cutoff **2026-10-21 11:59:47 UTC**, previous Oct20 21:41:44Z; evidence `RESEARCH-WATCH-2026-10-21-0759.md`.
