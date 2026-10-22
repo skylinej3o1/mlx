@@ -1,17 +1,17 @@
-# Project 51 / Relay — LATEST research watch, 2026-10-22 13:12 EDT
+# Project 51 / Relay — latest watch 2026-10-22 15:36 EDT
 
-**PREVIOUS verified head:** f08c2a09e71a82db92093c3ef55c945d1bfe4a31, strict cutoff **2026-10-22 14:44:00 UTC (10:44 EDT)**.
-**NEW strict cutoff:** **2026-10-22 17:12:40 UTC (13:12:40 EDT)**. Begin next scan strictly after this time.
-**Full primary-source report:** [RESEARCH-WATCH-2026-10-22-1312.md](./RESEARCH-WATCH-2026-10-22-1312.md). Prior reports: [10:44](./RESEARCH-WATCH-2026-10-22-1044.md) and [09:20](./RESEARCH-WATCH-2026-10-22-0920.md).
+Previous verified HEAD `bb0f70a786350c754c7905e761e1ef14aeec4d88`; previous strict cutoff **2026-10-22 17:12:40 UTC**. **NEW strict cutoff: 2026-10-22 19:36:43 UTC**. Start next scan strictly after this moment.
 
-## New/updated evidence; no owner hardware tested
+**Complete new/updated source audit:** [RESEARCH-WATCH-2026-10-22-1536.md](./RESEARCH-WATCH-2026-10-22-1536.md). Prior [13:12](./RESEARCH-WATCH-2026-10-22-1312.md), [10:44](./RESEARCH-WATCH-2026-10-22-1044.md), [09:20](./RESEARCH-WATCH-2026-10-22-0920.md).
 
-- **NEW unscored model candidate Sage-A1.5**: paper submitted Oct20 and released/discussed Oct21 **before** this watch (RECOVERED, not post-cutoff invention). Qwen3.6-35B-A3B family; official 21.7GB Q4_K_M text GGUF, MLX oQ4e-MTP variants. Publisher SWE-Pro61.2 (base Qwen3.6 49.5); independent xhigh AA not established. M5Max128GB/oMLX community 64K PP2529/TG105.8 and128K1644/80.9, process peak24.9GB; NOT M1. One-M164GB coding/research worker trial is justified with full tool/final-output QA and retained contexts, not FlashNext target replacement.
-- **NEW Strata #3742 OPEN**: one box 4xRTX4090 QFN IQ3_XXS ~110K state stage-parallel capture **880→268ms per100K**, not token generation or two TB4 Macs, no CUDA→Metal layout evidence.
-- **NEW Strata #3747 OPEN**: RX6700XT12 gfx1031 +62GiB Linux IQ2_XS RX6000 package and source smoke at occupied90.3K ~591PP/34.5TG when aligned, with memory-clock/run-order confounds; owner's RX6800 gfx1030 16GB+32GB still unsupported physically.
-- **UPDATED old #3671/#3672 OPEN**: 2xRX7900XTX24 one host, QFN IQ3_S custom split/tuning 16K PP980→2392/TG53→78; 128K only configured, capped reasoning cases without final responses; not user RX6800.
-- **NEW Splash #556 OPEN** M5Pro real dense/MoE DFlash restored-state comparator: 24/24 same proposal/retained lengths but final-hidden L2 0.044-0.057 and selector can change verify row count; stronger Relay parity gate, not speed. **NEW #555** target-distribution numerical proposal reference (no runtime TG); #551-554 training DRAFT unserved.
-- Strata #3741 MCP final-answer round-cap correctness only; upstream ds4 #1252 ROCm test-link only. Older TensorFold #1200 updated without new credit. No owner GSQ-IQ3S native262K M1 / KVarN K4V3 / 3–5 long-agent / exact CUDA→Metal Relay demonstration; no verified significant new shipped pre-M5 Metal runtime.
-- **Frozen goals:** physical 2xM1Max64/32GPU each via TB4, Qwen3.8-Flash-Next original general DASLab GSQ IQ3_S at occupied128K >=40 TG/425 genuinely cold PP, occupied262K >=35TG/400PP, source-like AA xhigh>=38, 3–5 independent retained sessions; separate 5070Ti16+64GB Linux; separate RX6800 gfx1030 16GB+32GB DDR4. No numerical confidence or hardware buy update.
+## New evidence, not owner-system success
 
-**Next steps:** physical DS4 M1 buffer/memory map; physical M1 exact 27B verification+prefix A/B; Sage single-M1 Q4/oQ4e with solved-task+retained-state trial; exact CUDA quant challenger eval; RX6800 source/build/admission; native state-equivalence before Relay.
+- **NEW draft Strata #3757 physical M1Max64 QFN GSQ Q2_0 32K**: correct independent Metal multiagent slots with GDN/QSA/indexer/PLE/n-gram/turn state and short solo output parity; two slot **aggregate15.8–17.1TG vs solo speculative~22TG**, second HTTP agent TTFT~1.1s; extra per slot **0.55GiB32K,1.9GiB128K,3.6GiB256K** (latter memory geometry only); two 256K slots fail fit on 64GB. Concurrency/responsiveness improvement **not decode speed or 3–5 full long-agent proof**. No solo-slot MTP.
+- **NEW #3756** M1 Metal optional control vector modifies target behavior and costs ~3% short decode; exclude source-equivalent quality tests. **UPDATE OLD oMLX #3205 CLOSED UNMERGED** direct two-Mac TB4 link-local discovery, physical ping0.4ms nominal40Gb/s, not throughput or exact distributed model state. **NEW Strata #3760** four co-host Pascal GP100 speculative deeper pipeline +3.5% only fast drafter, not M1/Relay.
+- **UPDATE old Strata #3636** on R9700+StrixHalo124GB: one accelerator with host RAM beats OCuLink two-GPU layer split at64/200K, demonstrates transport/overhead bottleneck and long-run VRAM stall, no owner RX6800 performance. **NEW Splash #557** M5Max 27B/35B backend B4 aggregate and 14K cold PP, not M1 filled262K; Mirai uzu #1005 fixes tool-tag and cancel state; no new pre-M5 trellis speed.
+- **RECOVERED Oct20 MemTensor MemT-1.0-Nano** Qwen3.6 35B family with ~38MiB learned procedural memory; publisher66x 128K persistent-state reduction/1.86x vs own full-KV baseline. Official CUDA BF16 TP2 only (no Metal/MLX/quantized runtime), PolyForm Noncommercial software, lossiness, retrieved SWE Native69.73 vs text69.13. Separate long-term alternative to full text history, **not source-equivalent FlashNext KV codec and not deployable on owner rigs**.
+- No verified new general IQ3_S M1 source/quant full262K, KVarN K4V3, 3–5 true retained 128K coding agents, or a physical exact CUDA→Metal Relay frontier.
+
+**FROZEN:** two M1Max64/32GPU TB4, general QFN GSQ IQ3S >=40 sustained TG +425 genuinely cold PP at occupied128K, >=35TG/400PP at native occupied262K, source-like AA>=38 and 3–5 independent retained coding agents. Separate RTX5070Ti16+64GB Linux and RX6800 gfx1030 16GB+32GB; confidence and hardware purchase decisions unchanged.
+
+**Next:** physical DS4 M1 allocation geometry; source-like IQ3S long agent A/B serial speculative park/resume versus Metal slots; Sage M1 trial; MemT procedural-versus-text benchmark; CUDA/AMD quant exact-box and Relay parity.
