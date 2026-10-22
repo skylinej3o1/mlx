@@ -1,5 +1,12 @@
 # Canonical Runtime / Architecture Research State
 
+### 2026-10-22 13:12 EDT — Sage-A1.5 and post-10:44 stage/state evidence; targets held
+
+Strict delta 14:44:00–17:12:40 UTC, full linked receipts in RESEARCH-WATCH-2026-10-22-1312.md. **NEW unscored model arm:** InternScience Sage-A1.5 Qwen3.6-35B-A3B-family research/coding agent (paper Oct20, official Q4_K_M GGUF21.7GB + 899MB mmproj; publisher SWE-Pro61.2 vs base Qwen3.6 49.5, not AA-like target), community oQ4e-MTP physically M5Max128: 64K PP2529/TG105.8, 128K PP1644/TG80.9, reported24.9GB peak process. **No physical M1 Sage benchmark or xhigh quality**; first pursue single M1Max64 Q4/oQ4e sample parity, filled-context agent, useful solve time and retained sessions, not FlashNext replacement. Prior M1 35B family/Agents-A1 reports serve only as architecture reference.
+
+New **Strata #3742** on *one host 4x4090* physically reduced ~110K-state fresh capture880→268ms per100K via per-card workers, not TB4 or CUDA→Metal interoperability. New **#3747 RX6700XT gfx1031 12GB +62GiB RAM** Linux ROCm Strata RX6000 IQ2_XS packaged smoke at90K ~591PP/~34.5TG with launcher tuning, no matched as-shipped quality, no RX6800 gfx1030 16+32 source/fit transfer. Updated older **#3671/#3672** 2xRX7900XTX24 shows 16K PP980→2392 and TG53.3→77.9 custom split+WMMA multiple switches; both capped reasoning cases and no fully occupied 128K. New **Splash #556** M5Pro restored state 24/24 retained lengths match but final-hidden drift0.044–0.057 and verify rows sometimes6 vs5; strengthens exact-geometry cross-host state and sampler control gates. New #555 full-distribution draft-policy numerical reference, #551-554 draft-training-only proposals without served speed. #1252 upstream DS4 ROCm test-link only. No numeric TG/PP/AA/probability revisions, no hardware purchase, protect frozen 2xM1Max64 source-like DASLab IQ3S 40/425@128K and35/400@native262K and3–5 retained agents.
+
+
 Last consolidated: 2026-10-04 18:06 ET.
 
 Purpose: durable baseline for every future Qwen3.8-Flash-Next, Qwen3.8-27B, and

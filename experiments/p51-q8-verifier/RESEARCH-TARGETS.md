@@ -1,5 +1,10 @@
 # Runtime TG / PP Targets and Planning Confidence
 
+### 2026-10-22 13:12 EDT — add unscored Sage one-M1 specialist lane; Flash numerical targets unchanged
+
+New source and classification: RESEARCH-WATCH-2026-10-22-1312.md, strict 14:44:00–17:12:40 UTC. **Do not modify existing 2xM1Max64 FlashNext GSQ general IQ3S headline ≥40TG/425 genuinely coldPP at physically occupied128K, ≥35TG/400 coldPP at occupied native262K, xhigh AA-like≥38, 3–5 retained independent agents or existing probabilities**. InternScience **Sage-A1.5 (Qwen3.6-35B-A3B family)** adds a *separate unscored candidate* for one M1Max64 as resident research/coding worker: official21.7GB Q4_K_M GGUF, separate oQ4e-MTP; publisher SWE-Pro61.2 (different benchmark) and M5Max128 oMLX 128K PP1644/TG80.9 are **not M1 or AA performance**. For candidate acceptance measure source/quant relative quality, Pi/agent full valid tool+final answers, actual32/64/128/200K occupied states, cold PP/decode, resident/wired/checkpoint memory, multiple independent branches, wall-time per solved task and reasoning-token inflation. Do not mix community M5 benchmark or prior Agents-A1 M1 numbers with Sage. New Strata four-CUDA-GPU stage-parallel cache transfers and Splash M5Pro restored-state selector drift are mechanism/test gates, not Relay CUDA→Metal or two-M1 performance. Exact RX6800 gfx1030 machine has **32GB DDR4 host**; RX6700XT gfx1031 62GiB tests do not prove owner admission.
+
+
 Calibrated: **2026-09-04 06:40 ET**  
 Target-definition correction: **2026-09-10 ET**  
 Latest strategy true-up: **2026-10-04 18:06 ET**
