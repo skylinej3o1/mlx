@@ -1,5 +1,15 @@
 # Runtime TG / PP Targets and Planning Confidence
 
+### 2026-10-24 02:33 EDT — new RDNA2, Hipfire and agent fidelity evidence; ALL TARGETS HELD
+
+Strict watch [RESEARCH-WATCH-2026-10-24-0233.md](./RESEARCH-WATCH-2026-10-24-0233.md) (AFTER 2026-10-24 02:39:58Z THROUGH 2026-10-24 06:33:34Z). **CORRECT authoritative RX6800 non-XT gfx1030 inventory to 16GB VRAM + 16GB host DDR4**; all prior historical 32GB DDR4 assumptions were incorrect. **Do not buy 64GB DDR4 yet**; first validate Qwen3.8 dense27B GSQ-RCO IQ3_XXS MTP 9.73GiB on exact card in dedicated VRAM with full physical KV/scratch/OS/RSS and real coding task acceptance. QuarkStar generic Vulkan is conditional: issue #8 weight placement / ~10TG on RX6800XT remains OPEN (older issue, not a new result). HIP/RADV alternatives lack a measured exact RX6800 non-XT 16GB host 40+TG receipt.
+
+**Hipfire v0.4.3 released05:24Z** with MQ3/MQ2 FlashNext low-bit variants and gfx1201-optimized Qwen3.6 A3B/mq4rs and QFN kernels, **NOT native owner RX6800/M1 data**. **Strata new gfx1030 RX6900XT #3926** Qwen3.6 MoE dense-MMQ PP4K+67%, PP16K+47%/decode unchanged; **#3924 OPEN** 12–18% short QFN Coder IQ1_M GPU-timeline PP ROCm version table, 11/12 cross-kernel output parity; no owner or source xhigh promotion. **#3919 OPEN** RX7900XTX adaptive 128K KV ring+23.9% MTP decode vs small static ring (64K no-op), not original M1. **oMLX #4772 UPDATED OLD** M1Max64 Qwen3.6 MoE group64 protected oQ4e decode ~10% faster without higher KL, *wrong model/quant for main ruler*. **oMLX #4810 OPEN** batch-MTP cooldown improves M3Ultra/M5Max 8-client MTP-on aggregate but MTP-off wins; no M1. **TF #1228 OPEN** GB10 tiny2B exact cancellation prefill retention, no owner source or speed gates. **Strata #3922 CLOSED UNMERGED** 4090 constrained JSON/tools valid but MTP disabled; **Basalt #41 OPEN** nullable string path misparses tools. Agent solved-task correctness remains a separate gate.
+
+**NO changes to frozen goals or probabilities:** physical 2×M1Max64/32GPU original-general ISTA-DASLab FlashNext GSQ IQ3_S **genuinely occupied128K ≥40 B1 sustained decode / ≥425 genuinely cold prefill**, native actually262K **≥35/400**, source-like xhigh AA-like≥38, **3–5 independent resumable agents**; RTX5070Ti16+64DDR5 Linux separate; no native KVarN4 at262K and no complete source-correct CUDA→Metal Relay. All new open/closed-unmerged paths remain experiments.
+
+
+
 ### 2026-10-23 22:39 EDT — long-context sparse indexer and agent reuse qualification; ALL TARGETS HELD
 
 Strict source delta `RESEARCH-WATCH-2026-10-23-2239.md` (2026-10-23 **20:32:52Z**, 2026-10-24 **02:39:58Z**]. **No numerical TG/PP or probability upgrade, no hardware buy, no source quant/model promotion.** Two separate M1Max64/32GPU native general ISTA DASLab Qwen3.8 FlashNext GSQ IQ3S physically occupied128K ≥40 B1TG/425 genuine coldPP, native actually262K ≥35TG/400PP, source-like coding-agent xhigh AA-like≥38 and 3–5 independent durable/resumable coding agents. Independently owned RTX5070Ti16+64GB DDR5 Linux and RX6800 nonXT gfx1030 16+32DDR4 remain unchanged.

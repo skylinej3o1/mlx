@@ -1,5 +1,17 @@
 # Canonical Runtime / Architecture Research State
 
+### 2026-10-24 02:33 EDT — RX6800 16GB host correction, Hipfire v0.4.3 and agent/runtime quality gates
+
+Strict watch (2026-10-24 02:39:58Z, **2026-10-24 06:33:34Z**] in [RESEARCH-WATCH-2026-10-24-0233.md](./RESEARCH-WATCH-2026-10-24-0233.md). **Authoritative inventory correction: RX6800 non-XT gfx1030 has 16GB VRAM + only 16GB DDR4 host, not 32GB.** The 32GB references in previous historical watches are obsolete, not evidence for memory admission. Continue **NO DDR4 upgrade** absent owner's physical dense27B admission test. QuarkStar issue #8 remains open (discrete GPU weights/GTT slow, reported ~10TG on RX6800XT); generic Vulkan support does not equal resident VRAM. Dense Qwen3.8-27B GSQ IQ3_XXS MTP ~9.73GiB remains *unscored* single RX6800 candidate, start llama.cpp HIP gfx1030 with physically measured dedicated VRAM, host RSS and 8/32/64/128K occupancy; do not promise 40+TG or quality.
+
+**NEW Hipfire v0.4.3 RELEASED05:24Z** includes FlashNext MQ3/MQ2 low-bit split tiers; RDNA2 gfx1030 uses portable HIP, while giant prefill speedups (Qwen3.6 A3B mq4rs pp16K1957→18545 across release and quant, and QFN gfx1201 compact scratch) are **R9700-only** or different model/quant, not owner RX6800 or M1. **NEW Strata gfx1030 #3926** RX6900XT Qwen3.6 MoE `STRATA_DENSE_MMQ=1` 4KPP1379→2301/16K1091→1599, decode flat; **#3924 OPEN** version-specific ROCm7.2.4 tuning QFN Coder IQ1_M short GPU-prefill12–18%, 11/12 cross-kernel replies identical (one reasoning flip), RX6900XT+64GB host, no exact owner benefit. **NEW #3919 OPEN** adaptive KV ring at RX7900XTX128K tier 53.28→66.03TG with accepted-draft change, 64K no-op after removing a severe regression; not native Metal.
+
+**UPDATED OLD oMLX #4772** physical M1Max64 Qwen3.6 MoE oQ4e protected group64 vs group128 yields ~9.5–12% decode benefit, slightly better top1/KL, equal16KPP; different family/source quant from original FlashNext GSQ IQ3S and unmerged M1 #4496 route. **NEW oMLX #4810 OPEN** M3Ultra/M5Max batch-MTP cooldown fix improves MTP-on 8-client aggregate but still trails MTP-off; no M1, no original long contexts. **NEW TF #1228 OPEN** CUDA cancelled-prefill 6016/10752 tokens saved after retries on GB10 tiny2B; exact generated output but no task-time uplift or owner check. **NEW Strata #3922 CLOSED UNMERGED** grammar 50/50 schema and30/30 tool syntax valid on4090, disables drafting and 6-slot aggregate speed -18.6%; not shipping. **NEW Basalt issue #41** nullable-string `anyOf` grammar silently corrupts paths (2/5 vs5/5 equivalent syntax). **NEW llama.cpp #31075 OPEN** M3Ultra Metal dense27B Q4_0 +2.7% short TG, not M1. No native 262K KVarN4/Q4 control, no exact source-equivalent CUDA→M1 Relay.
+
+**HOLD all Project51 original-general DASLab Qwen3.8-Flash-Next GSQ IQ3_S numerical targets and confidence**: two separate M1Max64 32GPU via TB4 physically occupied128K ≥40 sustained B1TG/425 truly coldPP, actually occupied native262K≥35/400, xhigh AA-like≥38, 3–5 separately durable resumed agents. Other Linux CUDA host 5070Ti16+64DDR5 unchanged. No owner hardware bench, Qwen4 dense27B release, third Mac, or model/quant promotion.
+
+
+
 ### 2026-10-23 22:39 EDT — M5 Ultra indexer breakthroughs, QSA KVarN control and real agent suffix editing
 
 Strict new delta (2026-10-23 **20:32:52Z**, 2026-10-24 **02:39:58Z**], full evidence `RESEARCH-WATCH-2026-10-23-2239.md`.
