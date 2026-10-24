@@ -1,5 +1,18 @@
 # Canonical Runtime / Architecture Research State
 
+### 2026-10-23 22:39 EDT — M5 Ultra indexer breakthroughs, QSA KVarN control and real agent suffix editing
+
+Strict new delta (2026-10-23 **20:32:52Z**, 2026-10-24 **02:39:58Z**], full evidence `RESEARCH-WATCH-2026-10-23-2239.md`.
+**NEW upstream DS4 #1267 OPEN** physical **M5 Ultra256GB DeepSeek-V4.1-Flash** Metal 1,048,576 rows indexer scores **7.93→2.89ms (2.75× kernel)**, one true1M decode pair **12.54→13.38TG (+6.7%)**, short4K27.28→27.32; exact key-score memcmp ensured FMA contraction disabled. Local unreleased #1261+#1262+#1267 combo **1M27.14→31.55 genTG, 4K37.90→37.40**, not #1267 alone and **NOT original Qwen3.8-FlashNext QSA on M1Max64**. #1261/#1262 created *before* previous cutoff (Oct23 15:24Z); new report recovers them for context. **NEW oMLX #4801 DRAFT** M3 Ultra512 GLM5-next score-stage component near **262K 13.3036→1.6721ms (7.96×)**, **full 173.16GiB GLM model never finished loading**; absolutely no 8× model decode, wrong chip/architecture for Project51.
+
+**UPDATED older Strata #3584 OPEN** RTX3090/WSL2 QFN IQ3XXS 16-turn edits/replay with LCP-verified quant splices/checkpoint ladder **234.2→162.4s (-31%) total**, outputs identical16/16 to upstream, correctly solved14/16 both, partial edited reuse55–57%, exact replay99.9%/0.2s; full cold start cost14.8→20s; rebase tests pass but timing from old base, **Metal and 128K independent resumed coding agents NOT tested**. **UPDATED older llama.cpp #30594 OPEN** RTX4060Laptop8GB+88GB DDR3 Qwen3.5-35B Q6K with 4GB GPU expert-cache hybrid CPU compute missed experts in parallel decode22.5→37.7TG (1.68×), NEGATIVE nearly resident GPU and one 4070SUPER community test; no owner 5070Ti16+64/source IQ3S admission. **UPDATED #30792 OPEN** AMD ROCm gfx1151 q8 KV in-register dequant on tile kernel at63K31.19→50.51TG (+62%), FP16K/q8V27.88→49.38 (+77%), no gfx1030 owner or QFN sparse support.
+
+**NEW Basalt #39 OPEN** physical RTX5090 500W+62GB RAM IQ3S PP16K8859/64K9501 TG374.8 vs IQ3XXS 8784/9326 TG564.5 vs NVFP4 9289/10095 TG305.4, all distinct quality/weights and bank VRAM sharing; NOT user RTX5070Ti16+64. **UPDATED TF #1113 OPEN DRAFT** two16GB same-host CUDA FlashNext EXL3 NCCL and BF16 paged KV; ordinary snapshots pass, **200K×2 still unqualified** and per-rank shared arena not deduped. **No new KVarN versus Q4 direct original QFN source quality**; upstream Huawei K4V2/K4V4 default last code June20, Anbeeld BeeLlama last code Oct14, valujin last branch Sept3. Existing earlier matched 1024 precision-tail dense27B RTX3090 quality median KL KVarN4 0.000994/Q4 0.001057 and64K decode25/24.1TG **not a new benchmark nor source-like xhigh quality**, no native 262K M1 KVarN4 or K4V3.
+Other separate-model research: NEW oMLX #4806 M3Ultra MiniMax fused decode +14–23% exact outputs; #4808 M5Ultra DeepSeekV4 prefill +19% but one near-tie greedy flip; no original QFN M1 transfer.
+
+**HOLD planning unchanged:** 2×separate M1Max64/32GPU, original general ISTA-DASLab GSQ IQ3S physically occupied128K≥40 B1 sustained TG/425 genuinely cold PP, native262K≥35TG/400PP, source AA-like xhigh≥38 and 3–5 independent, legitimately stored and resumed long coding agents. Separate RTX5070Ti16+64GB DDR5 Linux and RX6800 nonXT gfx1030 16+32 DDR4. No third Mac, no confidence rise, no native CUDA→Metal exact committed QSA indexer/KV+GDN/conv+PLE+MTP/draft transfer. Next physical M1 DS4 memory/K4V2/Q4/FP16 fidelity at 128K/262K, agent edit splices and compressed checkpoint version, hardware-matched HIP and CUDA tests.
+
+
 ### 2026-10-23 16:32 EDT — Metal Gyro, durable agents, QSA memory, M1 DFlash
 
 Cutoff **2026-10-23 20:32:52 UTC**, detail: `RESEARCH-WATCH-2026-10-23-1632.md`.
