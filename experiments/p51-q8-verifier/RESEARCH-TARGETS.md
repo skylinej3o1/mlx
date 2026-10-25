@@ -1,5 +1,10 @@
 # Runtime TG / PP Targets and Planning Confidence
 
+### 2026-10-25 14:10 EDT — NO revised goals/confidence from KVarN adoption or CPU gains
+
+[Full watch](./RESEARCH-WATCH-2026-10-25-1410.md). Hard cutoff 2026-10-25 18:10:46Z. Basalt #65 RTX5080 original IQ3S optimized CPU pool +8.1% decode long sweep not owner 5070Ti/265F memory bandwidth; Strata #4110 5070Ti IQ3XXS fused prefill boost not source IQ3S. Original source DASLab IQ3_S M1Max64 physical occupied128/262K and full CUDA→Metal state transfer unverified. KVarN **Metal hardware path UNVERIFIED** in Bee, standalone MLX K4V2 had −29% decode vs FP16: require native attention and quality gate, not automatic target promotion. Strata K8V4 23% less cache original IQ3XXS (streamed host-copy bug fixed0.1.40.2), rotated Q4 approx50% smaller but long-doc PPL degrade8–12%, exact-window Q4 KL favorable only different Swift IQ3XXS RX9060XT. No third Mac or RAM/DDR4 purchase and no changed planning probabilities.
+
+
 ### 2026-10-25 10:23 EDT — revived KVarN implementation path, targets/confidence FROZEN
 
 Strict evidence [RESEARCH-WATCH-2026-10-25-1023.md](./RESEARCH-WATCH-2026-10-25-1023.md), cutoff 2026-10-25 14:23:55Z. **No new exact owner M1Max64 32GPU source-general original ISTA-DASLab Qwen3.8-FlashNext GSQ IQ3S truly occupied128K/262K success**, no real end-to-end CUDA5070Ti→MetalM1 state transfer, and no validated 3–5 independent resumed coding agent suite. Maintain **128K >=40 sustained B1 TG /425 truly cold PP, native262K>=35/400, source-like xhigh AA-like>=38** and unchanged confidence; no third M1 or DDR4 purchase. Owner RX6800 nonXT gfx1030 **16GB VRAM+16GB host DDR4**; Linux HIP no-detect issue on different RX6800 host newly cautions runtime admission.
