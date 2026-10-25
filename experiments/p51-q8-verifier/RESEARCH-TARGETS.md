@@ -1,5 +1,9 @@
 # Runtime TG / PP Targets and Planning Confidence
 
+### 2026-10-25 14:45 EDT — target and confidence freeze despite pipelined MTP + proposed Metal lab
+
+[New strict watch](./RESEARCH-WATCH-2026-10-25-1445.md), cutoff 2026-10-25T18:45:03Z. Strata #4121 4×RTX4090 *aggregate* fully-resident pipelined-MTP 366→510 tok/s is unmerged and not M1 or owner 5070Ti; vLLM #63602 P2P fault-handling issue is a Relay correctness design gate, not measured speed. No novel validated K4V3 Metal on owner's M1Max64 and no truly occupied original DASLab IQ3S128/262K success. **HOLD** original-general GSQ IQ3S M1Max64 128K>=40 sustained decode/425 coldPP; native262K>=35/400, xhigh AA-like>=38 and3–5 independently durable agent sessions, existing confidence/probabilities, and optimistic 5070Ti Basalt100–115 estimate as *projection only*. New [Metal lab plan](./AUTONOMOUS-METAL-OPTIMIZATION-PLAN.md) is **DESIGN ONLY**; no runner/scheduler/writes to execution code, no added machine/RAM purchase, RX6800 remains16GB VRAM+16GB system DDR4.
+
 ### 2026-10-25 14:10 EDT — NO revised goals/confidence from KVarN adoption or CPU gains
 
 [Full watch](./RESEARCH-WATCH-2026-10-25-1410.md). Hard cutoff 2026-10-25 18:10:46Z. Basalt #65 RTX5080 original IQ3S optimized CPU pool +8.1% decode long sweep not owner 5070Ti/265F memory bandwidth; Strata #4110 5070Ti IQ3XXS fused prefill boost not source IQ3S. Original source DASLab IQ3_S M1Max64 physical occupied128/262K and full CUDA→Metal state transfer unverified. KVarN **Metal hardware path UNVERIFIED** in Bee, standalone MLX K4V2 had −29% decode vs FP16: require native attention and quality gate, not automatic target promotion. Strata K8V4 23% less cache original IQ3XXS (streamed host-copy bug fixed0.1.40.2), rotated Q4 approx50% smaller but long-doc PPL degrade8–12%, exact-window Q4 KL favorable only different Swift IQ3XXS RX9060XT. No third Mac or RAM/DDR4 purchase and no changed planning probabilities.
