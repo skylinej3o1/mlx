@@ -1,5 +1,11 @@
 # Runtime TG / PP Targets and Planning Confidence
 
+### 2026-10-25 10:23 EDT — revived KVarN implementation path, targets/confidence FROZEN
+
+Strict evidence [RESEARCH-WATCH-2026-10-25-1023.md](./RESEARCH-WATCH-2026-10-25-1023.md), cutoff 2026-10-25 14:23:55Z. **No new exact owner M1Max64 32GPU source-general original ISTA-DASLab Qwen3.8-FlashNext GSQ IQ3S truly occupied128K/262K success**, no real end-to-end CUDA5070Ti→MetalM1 state transfer, and no validated 3–5 independent resumed coding agent suite. Maintain **128K >=40 sustained B1 TG /425 truly cold PP, native262K>=35/400, source-like xhigh AA-like>=38** and unchanged confidence; no third M1 or DDR4 purchase. Owner RX6800 nonXT gfx1030 **16GB VRAM+16GB host DDR4**; Linux HIP no-detect issue on different RX6800 host newly cautions runtime admission.
+**Action priority refined but NOT new target:** BeeLlama existing (pre-window) QFN QSA KVarN K4V3, precision tail, mirrored indexer, PLE/GDN/MTP checkpoint semantics are a stronger port/reference than building from Huawei vLLM alone; first validate exact Bee native-Metal route on user's M1, Paperniuk IQ3S fixed/context allocation measurements and numerical fidelity. oMLX #4496 MERGED boosts separate dense27B M1 route; #4772 group64 speed claim withdrawn. Strata #4068 recent/sink exact-window Q4 KL and memory is a **different model/card/quant** comparator, not licensed quality transfer or proof K4V3 fits. RTX3090/5090 huge configured contexts are not physically occupied at those depths.
+
+
 ### 2026-10-24 02:33 EDT — new RDNA2, Hipfire and agent fidelity evidence; ALL TARGETS HELD
 
 Strict watch [RESEARCH-WATCH-2026-10-24-0233.md](./RESEARCH-WATCH-2026-10-24-0233.md) (AFTER 2026-10-24 02:39:58Z THROUGH 2026-10-24 06:33:34Z). **CORRECT authoritative RX6800 non-XT gfx1030 inventory to 16GB VRAM + 16GB host DDR4**; all prior historical 32GB DDR4 assumptions were incorrect. **Do not buy 64GB DDR4 yet**; first validate Qwen3.8 dense27B GSQ-RCO IQ3_XXS MTP 9.73GiB on exact card in dedicated VRAM with full physical KV/scratch/OS/RSS and real coding task acceptance. QuarkStar generic Vulkan is conditional: issue #8 weight placement / ~10TG on RX6800XT remains OPEN (older issue, not a new result). HIP/RADV alternatives lack a measured exact RX6800 non-XT 16GB host 40+TG receipt.

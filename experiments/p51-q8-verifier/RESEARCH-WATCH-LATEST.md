@@ -1,20 +1,18 @@
-# Project 51 / Relay — LATEST research watch, October 24 2026, 02:33 EDT
+# Project 51 / Relay — LATEST research watch, October 25 2026, 10:23 EDT
 
-**Previous verified branch HEAD:** `c1f37c91ad092e9b64bf8b4155350e42e4de4649`.
-**Previous strict UTC cutoff:** **2026-10-24 02:39:58Z**.
-**NEW strict UTC cutoff:** **2026-10-24 06:33:34Z** (October 24, 02:33:34 EDT). Next scan starts strictly AFTER this instant.
-**Full report:** [RESEARCH-WATCH-2026-10-24-0233.md](./RESEARCH-WATCH-2026-10-24-0233.md); previous [RESEARCH-WATCH-2026-10-23-2239.md](./RESEARCH-WATCH-2026-10-23-2239.md).
+**Previous verified branch HEAD at scan start:** `b9fd2da6bef0f7d279f2d1dff87cb5d51c6205f9`. **Previous strict UTC cutoff:** 2026-10-24 06:33:34Z. **NEW strict UTC cutoff:** **2026-10-25 14:23:55Z** (Oct25 10:23:55 EDT). Next scan starts strictly AFTER this time.
+**Full dated report:** [RESEARCH-WATCH-2026-10-25-1023.md](./RESEARCH-WATCH-2026-10-25-1023.md).
 
-## High-signal strict delta
-- **AUTHORITATIVE HARDWARE CORRECTION:** RX6800 non-XT gfx1030 16GB dedicated VRAM plus **16GB DDR4 host**, not 32GB. Keep at16GB DDR4 for first dense27B GSQ IQ3_XXS (9.73GiB, embedded MTP) actual physical VRAM/host fit. QuarkStar #8 remains an OLD UNRESOLVED discrete-VRAM/GTT problem (RX6800XT ~10TG), no new q36 commit. Start llama.cpp ROCm/HIP gfx1030; no exact-owner 40+TG proof, no hardware purchase.
-- **NEW Hipfire v0.4.3 RELEASED05:24Z:** new split MQ3/MQ2 FlashNext tiers, gfx1201-only R9700 optimizations and new MoE quant; 16K prefill 1957→18545 Qwen3.6 A3B is mixed new engine/default and quant on R9700, **not RX6800 gfx1030**, not original DASLab model or Mac.
-- **NEW Strata #3926 issue** physical **RX6900XT gfx1030+64GB host** Qwen3.6 MoE opt-in dense MMQ PP4K1379→2301(+67%), PP16K1091→1599(+47%), decode unchanged; #3924 OPEN rocBLAS5.2.0 same card short QFN Coder IQ1_M prefill GPU-timeline +12–18%, **11/12** cross-configuration answers identical. Not owner RX6800 or dense27B.
-- **NEW Strata #3919 OPEN** RX7900XTX gfx1100 QFN IQ3_S adaptive KV ring 128K-tier decode53.28→66.03 (+23.9%), 64K controlled no-op, MTP acceptance dependent, no Metal effect.
-- **UPDATED OLD oMLX #4772** real M1Max64 oQ4e Qwen3.6 MoE protected group64 instead of128 plain decode85–86→94–95 (~10%), MTP up to101 and16K decode69.6→78, KL slight improvement, **not original DASLab FlashNext**. **NEW oMLX #4810 OPEN** M3Ultra/M5Max concurrency MTP backoff +2.8%/+11.3% at8 clients *MTP-on*, MTP-off still faster; no owner M1.
-- **NEW TF #1228 OPEN** GB10 small2B CUDA cancelled-prefill saved 6016/10752 tokens and exact replay; no repeat-run speed or original FlashNext on owner. **NEW llama.cpp #31075 OPEN** M3Ultra Metal dense27B Q4_0 34.05→34.97 (+2.7%) only.
-- **NEW Strata #3922 CLOSED UNMERGED** RTX4090 GBNF 50/50 valid JSON,30/30 parsed tools, grammar disables MTP and six-slot aggregate -18.6%. **NEW Basalt #41** nullable string schema anyOf paths only2/5 correctly delivered vs5/5 type-union control. Tool/task correctness gates matter more than syntactic success. No new native KVarN4/Q4_0 source-original parity.
-- No new physically verified original-general source QFN IQ3_S **actually occupied 128K/262K** meets primary goals, no **CUDA5070Ti→MetalM1** complete persistent frontier, no verified Qwen4 dense27B quant.
+## Main findings
+1. **RECOVERED older BeeLlama implementation, not a new release:** Qwen3.8 FlashNext QSA + KVarN K4V3 + 1024-token precision tails + mirrored index-cache and PLE/GDN/MTP checkpoints already implemented in a llama.cpp fork; native high-performance Metal and exact full262K IQ3S on M1Max64 NOT proved. Compare BeeLlama Metal vs Paperniuk DS4 before porting.
+2. **NEW oMLX #4496 MERGED Oct24 14:00Z:** physical M1Max64 dense Qwen3.8-27B DFlash2 long decode17K40.4/67K33.7/133K24.2TG on merged route, **not FlashNext**. **NEW #4830 OPEN:** physical M1Max dense27B 5-bit MMA verify +3% one stream/+4% three, no QFN source. **oMLX #4772 group64 ~10% claim WITHDRAWN**.
+3. **NEW RX6700XT gfx1031 12GB +64GB host Strata QFN IQ2_XS #3989:** short median46.5TG; 4K587PP/39.3TG; 16K705PP/43.1TG (draft protocol21/21); **not owner RX6800 nonXT16VRAM+16DDR4** or occupied128K rate. **NEW exact RX6800 gfx1030 Linux no ROCm detected Strata #4072**, Windows same machine reportedly works—check HIP setup before predictions.
+4. **NEW Strata #4068 opt-in exact recent/sink Q4 KV window:** RX9060XT Swift derivative bulk8.25→5.29 bit/cell, 128K1584→1016MiB, tail KL0.00959 int8 vs0.00663 precise-window vs0.01587 plain q4lm8v; not KVarN or M1 QFN.
+5. **NEW Strata #4039:** RTX2060SUPER8GB QFN IQ3XXS fresh prefill 336→395 4K,371→460 16K,380→460 32K from scratch buffer alias; 6 greedy probes same, not owner. **#3976** warm32K CUDA 2GPU staged TTFT65→33.1sec; not heterogeneous Relay.
+6. **NEW source results at CONFIGURED large contexts only:** Strata RTX3090 #4054 IQ3S 524K max, short87–99TG and 16KPP1675–1679; RTX5090 #4099 IQ3S262K max, short184TG/16KPP7008. No actually occupied512K or262K evidence or owner card equivalence. **Strata v0.2.6 Oct25 13:45Z** Qwen engine remains0.1.50, DeepSeek-only0.1.51.
+7. **NEW oMLX #4839:** QFN `qwen4_exp` still lacks ANE prefill backend, M3Ultra256 user observes ~1020 coldPP at55K (~55sec TTFT). **vLLM #62914** actual Qwen3.5 TP1↔TP2 exact GDN state restored but TP1 200-problem GSM8K60→54 if reused from TP2: byte-exact restore ≠ numerical output parity. **No CUDA5070Ti→M1 P/D exact verified frontier**.
+8. HF: **ThinkingCap GSQ-RCO IQ3S/XXS not verified**; existing standard IQ4_XS is too big for owner M1s. Existing Swift and original ISTA-GSQ RCO remain distinct.
 
-**Frozen targets/confidence:** 2 separate M1Max64/32GPU via TB4, ISTA-DASLab Qwen3.8-Flash-Next general GSQ IQ3_S actually occupied128K ≥40 sustained B1TG/425 truly coldPP and native262K ≥35/400; xhigh AA-like≥38 and 3–5 independently durable/resumable agents. RTX5070Ti16+64GB DDR5 Linux separate; Radeon RX6800 nonXT16 VRAM + **16GB DDR4 host** separate. No numerical/probability changes or third M1.
+**Frozen targets/confidence:** two M1Max64/32GPU independent via TB4; source-general ISTA QFN IQ3_S truly occupied128K >=40 B1 TG/425 truly coldPP and native262K>=35TG/400 coldPP, xhigh AA-like>=38, 3–5 separately durable resumable agents. Separate RTX5070Ti16+64 DDR5 Linux and RX6800 NONXT gfx1030 16VRAM+16DDR4. No revised probabilities, hardware purchase or promoted quant.
 
-**Next:** physical owner-card RAM/VRAM admission and full agent solve rate; M1 source-matched KVarN/Q4/FP16 indexer+MTP at true occupied128/262K; independent stored agents under compaction/cancellation; complete full QSA/GDN/PLE/MTP CUDA→Metal Relay with measured TB4 bytes and semantics.
+**Next:** memory census and true native Metal KVarN K4V3 QSA-indexer / PLE-GDN / MTP+tail safety and task solve-rate; verify RX6800 HIP gfx1030 driver and host admission; real full Relay committed-state transport and wall-time vs local.
