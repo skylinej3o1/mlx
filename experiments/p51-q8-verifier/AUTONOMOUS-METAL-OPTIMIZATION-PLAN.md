@@ -3,6 +3,14 @@
 Date: 2026-10-25. Canonical research cutoff at initial proposal: 2026-10-25T18:45:03Z.
 State: `DESIGN-ONLY`. No runner, workflows, schedule, orchestration endpoint, Claude key or hardware benchmark has been installed or verified by this document.
 
+## Evidence gates added October 25, 18:33 EDT (DESIGN-ONLY)
+
+- **Strata #4144** Mac parking defect means the runner's first acceptance test must alternate 2 independent long tool-using agent threads through real backend state, inspect explicit macOS free-memory samples, and compare restored GDN/PLE/QSA/indexer/MTP hashes, actual reused tokens and wall time; do **not** assume the bug occurs in separate paperniuk ds4 without checking.
+- **Strata #4141** M4 K-quant tile-grid bug demonstrates wrong-but-fast prefill: compare Metal against reference logits/KL and top1 at actual source-GGUF layer quant types, and flag every missing output tile even if a speed result looks better. UD-Q4_K_XL evidence does not automatically apply to original DASLab IQ3_S.
+- **Basalt multi-slot refactor** serves global context divided among `--parallel` slots by default: qualifying independent 128/262K-agent tests require explicit actual per-slot allowance, backed physical allocation and cache reuse counters, plus successful tool-final outputs. No scheduling throughput accepted from truncated reasoning-only requests.
+- **KVarN memory accounting** includes metadata/tail/temporary FP16 fallback overhead and actual resident/wired bytes. Fail before kernel work when planner savings cannot close 262K fit safely with OS headroom.
+- **Relay** require per-worker KV group ownership and reserved pad/scratch for recurrent state; reject stale transfers and null-page writes before running long agents.
+
 ## Purpose and trust boundary
 
 Build a *measured* native Metal QVarN/KVarN + sparse-QSA experiment platform on one **M1 Max 64GiB / 32GPU** while leaving the other Mac available for independent work. Original ISTA-DASLab Qwen3.8-Flash-Next GSQ-RCO **IQ3_S** is canonical quality ruler; IQ3_XXS is an independent capacity/speed comparator, not a substitute. No untrusted forks/PRs to execute on the runner. Keep all original verifier/runtime promoted-stack invariants in README.md, RUNTIME-STATE.md, CURRENT.md and P51J_CERTIFICATION.md.
