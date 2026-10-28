@@ -10,7 +10,9 @@ Before searching, updating, benchmarking, or changing a Project 51 conclusion, r
 2. `RESEARCH-STATE.md`
 3. `RESEARCH-TARGETS.md`
 4. `RESEARCH-WATCH-LATEST.md`
-5. Any newer dated watch/addendum needed for continuity
+5. `RESEARCH-DISCOVERY-METHOD.md` — mandatory seeded deep-research/verification protocol
+6. `RESEARCH-DISCOVERY-SCRATCHPAD.md` — ranked next discoveries, counterchecks and dead ends (compact, mutable)
+7. Any newer dated watch/addendum needed for continuity
 
 The repository is the durable source of truth. Do not reconstruct project state from chat memory when the repo can be read.
 
@@ -29,6 +31,17 @@ The repository is the durable source of truth. Do not reconstruct project state 
 2. **Update / true up GitHub**: write the dated research watch, replace `RESEARCH-WATCH-LATEST.md`, update `RESEARCH-STATE.md` and/or `RESEARCH-TARGETS.md` whenever durable conclusions or planning state changed, commit on `project51-q8-verifier`, then read back and verify the final canonical state.
 
 A chat-only research summary does **not** satisfy "search and update." Do not wait for a second request such as "update GitHub." If the search produces no durable change, still advance the dated watch / `LATEST` freshness boundary and record that targets/state are unchanged.
+
+### Discovery-depth upgrade adopted October 28, 2026 (manual, evidence-first)
+
+[RESEARCH-DISCOVERY-METHOD.md](./RESEARCH-DISCOVERY-METHOD.md) and [RESEARCH-DISCOVERY-SCRATCHPAD.md](./RESEARCH-DISCOVERY-SCRATCHPAD.md) are **mandatory** on every future "search and update". This is the version-controlled Project 51 adaptation of the user's [seeded/self-editing heartbeat methodology](https://docs.google.com/document/d/14qXSLPBZENOTmYJMJPQ7xFRtMzm00qCF9foTKqque70/mobilebasic).
+
+**Two required lanes:** (A) complete the existing comprehensive strict dated commit/PR/issue/HF/community delta check; (B) pursue the **1–3 highest-value verifiable discovery leads** using bespoke 2–3-hop source tracing, model/quant/benchmark artifact inspection, and a disconfirming comparison. Use the lead score and validity rules in the method file, not link popularity or model-card hype. New-to-us old material is labeled **REDISCOVERED** and never masquerades as newly published evidence. Freshness cutoff is still taken only from RESEARCH-WATCH-LATEST.md.
+
+**Durability:** each strict update creates dated+byte-identical LATEST watch and rewrites the compact ranked scratchpad, verifying commits/blob identity and cutoff. Update the 700KB+ canonical research state and numeric targets **only on material changes**, not routine duplication. Maintain concrete source seeds, failed leads and independent counterchecks in the scratchpad. This process change **does not** itself advance the current hard research-watch boundary, create a one-minute automation, run models, spend unattended credits, or relax explicit HIGH experiment approval. A separate one-off model or methodology question does not imply full strict-watch rescan unless requested.
+
+**Success metric:** verified owner-actionable new findings per bounded research effort, independent corroboration, missed-source detection, later false-positive/retraction rate and actual approved eval outcomes. Treat the source author's examples as illustrative, not proof the method is causally superior.
+
 
 
 For every external research update:
