@@ -1,52 +1,57 @@
-# Project 51 — Research Discovery Scratchpad (ranked, replace rather than append)
+# Project 51 — Research Discovery Scratchpad (ranked, compact working state)
 
-Purpose: high-information, evidence-first exploration queue for future **user-requested** strict watches; companion [RESEARCH-DISCOVERY-METHOD.md](./RESEARCH-DISCOVERY-METHOD.md). Compact working memory, NOT an accepted finding list, target register, scheduler, executable plan or benchmark result.
-Initialized in research-method adoption requested **2026-10-28T17:11:57Z**. **Last verified strict watch cutoff stays 2026-10-28T14:12:42Z**, per [RESEARCH-WATCH-LATEST.md](./RESEARCH-WATCH-LATEST.md). Initial entries are PRIOR-WATCH seeds and current unanswered questions, not a new freshness scan. New session must inspect source updates after that cutoff before calling anything FRESH.
+Companion [Seeded Discovery v1.0](./RESEARCH-DISCOVERY-METHOD.md). Last maintained for strict watch request **2026-10-28T17:16:35Z**. Latest hard freshness boundary lives ONLY in [RESEARCH-WATCH-LATEST.md](./RESEARCH-WATCH-LATEST.md), now **2026-10-28T17:16:35Z**. Evidence receipts and counterchecks: [new dated watch](./RESEARCH-WATCH-2026-10-28-1316.md). Updates to this file are RESEARCH QUEUE edits, not authorizations to run model software or update numeric targets.
 
-## Objective and invariants
+## Objective, scope and scoring
 
-Discover low-circulation, high-information, **verifiable** source model/quant/runtime/agent evidence that improves actual owner performance or correctness: two independent M1 Max32GPU/64GiB source QFN original GSQ IQ3S Metal KVarN+Relay and RTX5070Ti16/Ultra7265F64GiB Linux Basalt; Q8 PLE/MLX mixed compression/quant quality and 3–5 correct persistent xhigh agents. Quality reference oQ5e/BF16 and speed baseline oQ4e; genuine 128/262K occupancy, cold prefill, end-to-end agent tool correctness. A separate broad "new models/quants" lane can compare AREX2 and similar candidates but does not silently redefine the QFN source owner target.
+High-information source evidence to improve performance and correctness of two independent M1 Max64 original ISTA QFN GSQ IQ3S Metal KVarN/Relay agents, exact long128/262K cold PP and quality, and RTX5070Ti16/CoreUltra7265F64GB Linux + RX6800 nonXT16VRAM/ONLY16GB host worker. Source original model/quant/hardware/revision MUST match before owner quality speed promotion. PLE/ngram compression and MTP precision different from transformer bpw. Read the strict source watch BEFORE scoring a new claim.
 
-Scores are preliminary triage only: F owner fit (0–3), N novelty (0–3), E evidence (0–3), A actionability (0–3), I independent verification (0–3). Total 3F+2N+3E+2A+I; evidence is NOT certification. Risk/correctness incidents override scores.
+Lead heuristic: **3F + 2N + 3E + 2A + I** (each F owner fit, N novelty, E evidence, A actionability, I independent corroboration 0–3), not probabilities. Critically dangerous correctness incidents always surface first regardless of score. Most new data here from primary authors, not independently reproduced on owner hardware.
 
-## Ranked active leads — maximum 12, replace stale items
+## Ranked active leads — maximum 12
 
-| ID / priority | Score | Seed (existing evidence, not newly scanned) | Specific question / next bespoke action |
+| Lead / rank | Triage | Primary seed and evidence class | Next falsifiable question / countercheck |
 | --- | ---: | --- | --- |
-| RS-04 HIGH correctness override | 18 (F1 N3 E1 A3 I0) | [Strata cross-client SSE reasoning leak #4451](https://github.com/Niko1221/Strata/issues/4451), old watch Oct28 11:50Z | Trace stream/request ID routing and isolation fixes and reproducible two-client overlap/cancel/long-context test; find whether this architecture exists in our Relay path. Counterpass: non-owner server bug must not be asserted as a Mac defect without code evidence. |
-| RS-01 HIGH | 24 (F2 N3 E2 A3 I0) | [TensorFold QFN CUDA complete state](https://github.com/ashhart/TensorFold/commit/4dddda8557f94bdeb057b0089bd703d9515fd7ab), last watch evidence 2026-10-28 03:38Z | Reverse engineer exact FlashNext GDN/QSA indexer/PLE/ngram/MTP serialized fields and owner native Metal mapping; find independent save→restart→resume correctness checks and **what CUDA state cannot restore on M1**. Counterpass: only single-rank, may exclude GPU-independent state. |
-| RS-02 HIGH | 22 (F2 N2 E2 A3 I0) | [Basalt elastic-KV expert homes #114](https://github.com/jesdga95/basalt/pull/114), opened13:48Z | Inspect material new tests after cutoff; see whether #108 regression 8d94e805 is actually retested on source current main at ~139K, including SSD reads and pressure; separate reduced resident RAM from throughput and multi-slot fit. Counterpass: on-admission DMA and conditional RAM-home retention worsen PP or pressure. |
-| RS-03 HIGH | 22 (F2 N2 E2 A3 I0) | [oMLX MTP multi-stream memory #4916](https://github.com/jundot/omlx/pull/4916), old watch Oct28 10:08Z | Follow state restoration/correctness receipts and true resident buffers across QFN models, Q4e vs original IQ3S; explore whether recurrent-state in-place MTP strategy ports to native M1 without peak memory spikes. Counterpass: M3Ultra 248→161GiB at 8 streams does NOT fit or certify 64GiB M1. |
-| RS-05 MED/HIGH | 20 (F2 N2 E2 A2 I0) | [TensorFold M3Ultra QFN Metal sampled two-pass topK](https://github.com/ashhart/TensorFold/commit/fd058f579d631b10691e618964c8a4288b1c887), old watch09:52Z | Inspect actual kernel implementation and RNG parity tests; ask if source M1/older Metal supports subgroup design and whether topK overhead is big enough. Counterpass: 698→29µs kernel-only and ~+5% served different M3 Ultra, not 24× owner runtime. |
-| RS-09 MED | 20 (F2 N1 E2 A3 I0) | [Strata #4474](https://github.com/Niko1221/Strata/issues/4474), created14:12:03Z, 16GB source IQ3S VRAM reserve problem | Find code-level auto expert-cache sizing regression cause, corrected test and fixed release; require repeated cold boot post-load accounting MTP/indexer/cache/PLE. Counterpass: different WSL2 RTX5080/engine0.1.53 may not reproduce on owner Linux5070Ti. |
-| RS-06 MED | 16 (F1 N3 E1 A2 I0) | [BAAI AREX-2](https://huggingface.co/BAAI/AREX-2) + [NapYang 3.80bpw candidate](https://huggingface.co/NapYang/AREX2-27B-3.80bpw-fp16), model discussion earlier this session, not strict watch | Verify source architecture dense vs claimed MoE, actual tensor index and per-layer quant recipe, whether calibration/sensitivity-mapped, true context, missing MTP and eval fidelity. Search DASLab/ByteShape for exact AREX2 optimized artifacts with primary file tree—not mere model-card copy. Counterpass: unvalidated ~13.7GB does not imply source-like coding quality. |
-| RS-07 MED | 16 (F2 N2 E0 A3 I0) | [ByteShape Qwen3.8-27B report](https://byteshape.com/blogs/Qwen3.8-27B/) and ISTA source family, no verified original QFN ShapeLearn quant | Follow quantization authors, calibration recipe, per-tensor sensitivity and linked repos/HF commits; look for original QFN model PLE/MTP hybrid precisions and owner-compatible conversion backend. **Negative until artifact verified:** absence in our watch is not proof nobody is working on it. |
-| RS-08 MED | 16 (F2 N2 E0 A3 I0) | Source QFN PLE precision Q8_0 vs IQ4NL is a project hypothesis, NOT published test | Seek independent PLE/ngram quality-ablation and compression evidence, inspect actual tensor precision and lookup handling; define smallest blinded xhigh coding/repair eval. Counterpass: better headroom may worsen bandwidth and task time; cannot assert quality improvement without controlled comparison. |
+| RS-04 SECURITY OVERRIDE | 18 F1 N3 E1 A3 I0 | [Strata cross-client SSE leak #4451](https://github.com/Niko1221/Strata/issues/4451), prior watch | Locate actual stream-ID routing isolation fix and overlap/cancel/long-agent reproducibility; DO NOT assume user's native Metal is vulnerable merely because other server was. |
+| RS-10 HIGH owner hardware | 25 F2 N2 E3 A3 I0 | [Strata M1 Max64 Q2_0 fresh repeat #4457](https://github.com/Niko1221/Strata/pull/4457), run16:49Z | Compare Q2_0 vs exact source IQ3_S after human HIGH with genuine 128/262K occupancy, sufficiently long successful xhigh coding/tool output and cold PP; Q2 shallow~36–39 TG and PP369–373 do not prove/refute IQ3S targets. |
+| RS-11 HIGH agent-fit | 24 F2 N3 E2 A3 I0 | [Strata original QFN IQ3S PLE pin disables cache #4518](https://github.com/Niko1221/Strata/issues/4518), created16:52Z | In unified64GB RAM budget full PLE 26.8GiB vs 8GiB parked conversations, MTP, expert headroom; full agent 2+ session park/restore task wall. Countercheck: 2–3% cold PP gain can erase all conversation caching. Distinguish PLE RAM residence from PLE Q8 precision. |
+| RS-01 HIGH source state | 24 F2 N3 E2 A3 I0 | [Prior source QFN CUDA disk state 4dddda8](https://github.com/ashhart/TensorFold/commit/4dddda8557f94bdeb057b0089bd703d9515fd7ab), NEW complementary shared state save bug | Exact GDN/QSA indexer/PLE/ngram/MTP snapshot fields mapped to M1 Metal owner; verify published latest state and replay output + TTFT when writes overlap. Countercheck storage skip/failed writer #1538/#1548 on OTHER model. |
+| RS-02 HIGH Basalt | 22 F2 N2 E2 A3 I0 | [Basalt #114](https://github.com/jesdga95/basalt/pull/114), prior watch + NO new controlled deep139K in this window | Main with8d94e805 vs PR114 actual139K original source IQ3S, paired A/B SSD IO, CPU refills, PP and actual multiagent. Do not infer prior−2.67% fixed from old neutral branch experiment. |
+| RS-09 HIGH VRAM headroom | 22 F2 N2 E2 A3 I0 | [new Strata 12GB WDDM IQ3S UC #4516](https://github.com/Niko1221/Strata/issues/4516), [prior RTX5080 16GB #4474](https://github.com/Niko1221/Strata/issues/4474) | Locate backend cache bound enforcement and actual on-owner free VRAM throughout agent session. Countercheck reserve0 vs1024 fresh-server 843 vs1289PP not direct proof of driver paging or Linux owner. |
+| RS-12 HIGH durability | 21 F1 N3 E2 A3 I0 | [TensorFold save skipping #1538](https://github.com/ashhart/TensorFold/issues/1538), [proposed fix #1548](https://github.com/ashhart/TensorFold/pull/1548), created within watch | Show QFN same shared rows-store path; add published-block completeness, long overlapping checkpoints and invalid scatter one-time eviction. GLM TP2 TTFT2.6→0.96s does NOT prove original M1 QFN Relay fixed. |
+| RS-03 MED/HIGH | 22 F2 N2 E2 A3 I0 | [oMLX QFN MTP multi-stream memory merged #4916](https://github.com/jundot/omlx/pull/4916), PRIOR watch | Source QFN actual in-place MTP verify memory on M1 with shared exact state, true occupied length and parked agent correctness. Different M3Ultra 8×81K throughput is not 64GB owner result. |
+| RS-14 MED RX RDNA2 | 20 F2 N2 E2 A2 I0 | [Strata RX6900XT gfx1030 opt-in HC persist #4475](https://github.com/Niko1221/Strata/pull/4475), fresh14:17Z | Source backend supports RX6800 nonXT gfx1030 with only16GB host? Evaluate minimal one-variable proposal, PP/TG, exact semantics; not directly transferable 6900XT+64GB. |
+| RS-13 MED MTP budget | 19 F1 N3 E2 A2 I0 | [oMLX #4926](https://github.com/jundot/omlx/pull/4926), fresh15:38Z | On owner source model, is inert thinking-budget GPU readback blocking MTP chain? Need xhigh emitted-count parity and same token states; M3Ultra Qwen27 +11% is cross-model, and original greedy near-tie divergence exists. |
+| RS-07 LOW open quant | 16 F2 N2 E0 A3 I0 | [ByteShape Qwen3.8-27B](https://byteshape.com/blogs/Qwen3.8-27B/) | Check exact source QFN ShapeLearn calibration/sensitivity per tensor, PLE/MTP quant/head artifacts and source-tested fidelity. No verified new pack this window; do not claim globally absent. |
+| RS-06 LOW AREX alt | 16 F1 N3 E1 A2 I0 | [BAAI AREX2](https://huggingface.co/BAAI/AREX-2), [NapYang quant](https://huggingface.co/NapYang/AREX2-27B-3.80bpw-fp16) | Verify tensor index, actual dense architecture, sensitivity-aware quant, missing MTP, BF16/8bit agent task fidelity. Search exact source official optimized artefact; existing advertised bpw alone unvalidated. |
 
-RS-04 is a critical correctness override and should not be buried behind higher weighted speed candidates.
+Priority order is **correctness override then research impact**, not strictly numeric. Scores are coarse researcher choices; open PRs and author evidence are not owner results.
 
-## Next requested-watch deep dives (select 1–3 only)
+## Next deep-dive selections — max three on next "search and update"
 
-1. RS-02: Basalt current-main plus #114 exact original IQ3S deep-context regression mitigation: look for fresh comments/commits with **paired actual139K** and synchronized SSD/host transfer, and a versioned owner testable flag.
-2. RS-01: complete CUDA QFN state serialization with QSA indexer/PLE/ngram and what a native Mac Relay implementation needs for lossless 128K+ agent resume; include counterexamples (not-restored MTP/per-shard state).
-3. RS-06 or RS-07: whichever newly adds primary provenance for an actual optimized AREX2 or original QFN ShapeLearn pack, prioritize HF file tree/tensor index against social claims. If no fresh sources, deprioritize and avoid repeating the same negative search.
+1. **RS-12 + RS-01 linked:** new latest-write proof in QFN shared rows store, source Metal GDN/PLE/QSA replay and actual recent checkpoint/hash, vs GLM-only rows writer fix; independent failure+recovery oracle.
+2. **RS-11 + RS-10 linked:** physical M1 Max source IQ3S PLE pinned vs 2+ real parked agents and cold/deep PP, using the 16K Q2_0 repeat only as one-chip-generation baseline (not performance target).
+3. **RS-02 or RS-09 as events warrant:** prioritize physical original IQ3S current-main+114 139K A/B or real engine fix for expert cache overshoot. Otherwise sample RS-07 publisher revisions but stop quickly if no dated artifact.
 
-Mandatory broad source lane A continues regardless of the above choices.
+## Newly identified primary source map
 
-## Deprioritized or blocked, with reopening gates
+- [TensorFold row writer PR #1548](https://github.com/ashhart/TensorFold/pull/1548) with staged-block and publish-order tests; different GLM5.3 physical TP2 receipts.
+- [Strata M1 Max actual repeat #4457](https://github.com/Niko1221/Strata/pull/4457), verified SHA/model quant/report, only shallow Q2_0; previously missing source-family physical exact GPU-generation data.
+- [Strata original IQ3S PLE vs parked cache #4518](https://github.com/Niko1221/Strata/issues/4518), unusually strong paired operational tradeoff source.
+- [Strata 12GB reserve sweep #4516](https://github.com/Niko1221/Strata/issues/4516), same prompt and unchanged flags other than reserve.
+- [TensorFold two-M4 Mac Qwen27 pair #1436](https://github.com/ashhart/TensorFold/pull/1436) REDISCOVERED older than strict window, pair output5/5 but warm cached=0 FAIL; **not** source M1 Relay.
 
-- Claims that M3 Ultra source-family 8-stream 81K throughput prove **3–5 simultaneous** M1 Max64 agents: blocked; reopen only on actual 64GB owner peak-memory/live-agent logs.
-- Project 51 owner RTX5070Ti16 short TG 100–115 optimistic projection: not a measurement; reopen with physical original source quant benchmark, correct topology, context, and workload.
-- Pure “smallest BPW wins” quant ranking: blocked; reopen with frozen output/logit/task-quality cross-check against oQ5e/BF16 and per-tensor map.
-- Strata mixed 5080+4060Ti IQ1_M reported ~10× PP vs tuned fork: not directly portable; reopen with one-variable, exact owner source quant and runtime profile.
-- Automatic self-rewriting minute-heartbeat researcher: not enabled; reopen ONLY on explicit user request with budget, stop condition and approval separation.
+## Closed, blocked or downgraded (with reopening conditions)
 
-## Missing discovery areas and seed-map extensions
+- Fusing/tuning every available model because kernel µs looks impressive: BLOCKED until source quant, whole-task end-to-end PP/TG, quality and exact hardware measured.
+- Treating TensorFold two-M4 Pro Qwen27 pair as durable 2×M1 source FlashNext: FALSE; different model+GPU generation, one greedy stream, no caching, follow-up cached=0. Reopen on source owner 2 Mac pair with real parked prompt reuse and full agent output.
+- Assuming the original QFN PLE Q8 precision benefits from new PLE RAM residency issue: WRONG MEASURE. Reopen with *precision-controlled* xhigh task eval.
+- Declaring ByteShape/DASLab AREX2 or QFN optimized quants nonexistent: UNSUPPORTED; search found no qualifying new artifact in this strict window. Reopen with direct HF revision + files + quality.
+- RTX5070Ti short100–115TG optimistic projection remains unmeasured; only exact owner source IQ3S benchmark moves confidence.
+- One-minute self-editing automated research heartbeat stays disabled; a human research request does not approve continuous operations.
 
-- Original-source QFN calibration/ShapeLearn code/data, native source PLE Q8 impact, explicit tensor index/metadata for model variants.
-- M1 Max GPU-family native metal-QSA K4V3, padded scratch and true 262K per-worker retained state.
-- Non-English specialized GPU quant/kernel source notes only when primary provenance and dated receipts are obtainable.
-- Comparison of per-request full-job agent completion quality and cache traffic vs attractive single-kernel benchmarks.
-- Source-matched independent reproductions and contradictory/negative tests.
+## Discovery debt / quality improvements
 
-Maintenance protocol: each completed full strict search-and-update rewrites the active queue, closes dead leads, adds at most the highest-signal sources, and records a new scratchpad maintenance date separately from the hard watch cutoff. This adoption creates **no new time-window evidence** and leaves previous cutoff intact. Any performance, fit or correctness claim here is a lead to test, not promoted canonical target truth.
+Need original QFN source IQ3S real128/262K physical M1 memory/TTFT/PP, Apple scheduler thermal samples, saved-shard and runtime exact hashes, PLE operator Q8 vs IQ4NL task ablation, MTP head existence/precision, source ShapeLearn map, baseline same-agent semantics/long tool calls, on-owner 5070Ti GPU actual reserve, RX6800 16GB host RAM feasibility. Retain hard age-classification: Jan/Oct27 source newly discovered on Oct28 is **REDISCOVERED**, not FRESH. Source browse/discussion does not justify new numeric targets.
+
+No scheduled search, autonomous tuning, model installation or benchmark executed. Explicit HIGH approval gate remains untouched.
