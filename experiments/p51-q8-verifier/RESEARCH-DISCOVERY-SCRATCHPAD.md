@@ -1,5 +1,9 @@
 # Project 51 — Seeded Discovery Scratchpad — 2026-10-30 09:48 EDT
 
+## 2026-10-30 16:16 EDT
+
+Cutoff **2026-10-30T20:16:33Z**. Full [watch](./RESEARCH-WATCH-2026-10-30-1616.md). New priority order: Strata #4736 startup canary, #4730 Metal snapshot, oMLX #4984/#4985 rank SSD settings on mixed M1Max/M5Max, TensorFold #1688 and vLLM #64807 tool safety, Strata #4737 same-model GB10 speed, Strata #4738 queue race, Windows storage path. Older ranking below is archived; targets HOLD.
+
 ## 2026-10-30 13:53 EDT — new ranked lead refresh
 **Strict cutoff 2026-10-30T17:53:18Z.** New full [watch](./RESEARCH-WATCH-2026-10-30-1353.md); numeric targets HOLD. Rank: (1) Metal IQ3S checkpoint failure [Strata #4730](https://github.com/Niko1221/Strata/issues/4730), QSA ring serialization 4 rows versus shared CUDA 3; (2) cross-request state isolation [vLLM #64758](https://github.com/vllm-project/vllm/issues/64758); (3) RX6000 gfx1030 release validation [Strata #4723](https://github.com/Niko1221/Strata/pull/4723), same ISA family but user has only16GB host RAM; (4) M3 Ultra dense27B Metal merged unroll [TensorFold #1686](https://github.com/ashhart/TensorFold/pull/1686), NOT original FlashNext; (5) oMLX wired-memory anomalies [#4981](https://github.com/jundot/omlx/issues/4981); (6) Anthropic partial-prefill [#4982](https://github.com/jundot/omlx/issues/4982); (7) CUDA stream correctness [Strata #4715](https://github.com/Niko1221/Strata/pull/4715). Previous lead table is HISTORICAL as of 13:48:41Z; use these newer priorities first. HIGH approval still required for experiments. Negative: no target-device source IQ3S full128/262K and no verified new optimized source quant.
 
