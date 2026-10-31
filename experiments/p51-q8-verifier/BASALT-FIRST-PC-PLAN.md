@@ -1,5 +1,9 @@
 # Project 51 — Basalt-first RTX 5070 Ti PC plan
 
+## AUTHORITATIVE USER CHOICE — October 31, 2026, 22:53:39 UTC
+
+**ONLY GSQ-RCO IQ3_S on the Linux RTX 5070 Ti PC.** Basalt's `Qwen3.8-FN-GSQ-RCO-IQ3_S.basalt` (~86.9GB download) is the **first startup, semantic smoke, quality baseline and intended long-context deployment**. Do **not** select IQ3_XXS, Q2_0 or NVFP4 as a functional smoke or fallback. Historical performance and size references below remain useful for research comparisons, not deployment alternatives. If the actual working set, CPU/CUDA numeric math or user experience doesn't meet requirements, STOP and investigate memory tiers, SSD-mapped PLE, draft and expert pool rather than silently decreasing quant precision. Use one GPU0, one slot, initial32K context, int8 KV, conservative spec1. No model run or test result is claimed by this update. **Research freshness cutoff stays 2026-10-31T22:12:24Z**; this is a decision correction, not a new scan.
+
 **Decision:** On October 31, 2026, the user chose to **try Basalt on the Linux PC first**, while retaining the two 64GB M1 Max Macs as the separate distributed Metal/quality research lane. **Documentation and user-executable instructions only; nothing installed, downloaded, run or tested by ChatGPT.** Any assistant-controlled hardware/model/CI experiment remains blocked by the Project 51 **HIGH** human-approval process. Last direct-source research cutoff **2026-10-31T18:08:01Z**, [dated strict watch](./RESEARCH-WATCH-2026-10-31-1408.md).
 
 ## Owner hardware, goals, important difference from Basalt's README example
@@ -8,16 +12,16 @@
 
 Primary first-PC objective: **trusted working local API + successful xhigh-like long coding/tool tasks**, with exact model/quant/provenance, correct output, safe memory and repeatable throughput; performance optimization comes after numerical parity. Mac original IQ3_S 128/262K long-context targets remain separate and UNMEASURED.
 
-### Official preconverted Basalt packs — choose ONE to start, not README's NVFP4 by default
+### Official preconverted Basalt packs — only IQ3_S is selected; other rows are historical reference
 
 Existing (not new Oct31 releases) official [Basalt HF pack tree](https://huggingface.co/jesdga/Qwen3.8-Flash-Next-Basalt/tree/a229744b82e18c3e12057ab944062c0c713c7006) and [source ISTA GGUF card](https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF), sizes in decimal GB:
 
 | Pack | Basalt file download | Original GGUF transformer + separate ngram | Intended first-PC role |
 |---|---:|---:|---|
-| **Qwen3.8-FN-GSQ-RCO-Q2_0.basalt** | **69.7GB** | 37.6GB +28.8GB SSD-map | **Safest first boot/sanity given 16VRAM+64RAM**, less quality |
-| **Qwen3.8-FN-GSQ-RCO-IQ3_XXS.basalt** | **79.9GB** | 47.0GB +28.8GB SSD-map | Best first significant quality baseline if user only wants one download; test IQ3_S/IQ2_S mixed-format CUDA parity |
-| **Qwen3.8-FN-GSQ-RCO-IQ3_S.basalt** | **86.9GB** | 54.8GB +28.8GB SSD-map | Higher-quality target; less RAM/OS/KV headroom, Q6_K head width7–8 bug #175 |
-| **Qwen3.8-FN-NVFP4.basalt** | **131GB** | Different NVIDIA source; ~122GiB Basalt pack | Not first choice for this 16VRAM+64RAM PC without measured paging/offload plan |
+| **Qwen3.8-FN-GSQ-RCO-Q2_0.basalt** | **69.7GB** | 37.6GB +28.8GB SSD-map | Rejected by user, even as initial smoke |
+| **Qwen3.8-FN-GSQ-RCO-IQ3_XXS.basalt** | **79.9GB** | 47.0GB +28.8GB SSD-map | Rejected by user, not a fallback |
+| **Qwen3.8-FN-GSQ-RCO-IQ3_S.basalt** | **86.9GB** | 54.8GB +28.8GB SSD-map | Sole PC target including first smoke; tight memory headroom and Q6_K head width7–8 bug #175 |
+| **Qwen3.8-FN-NVFP4.basalt** | **131GB** | Different NVIDIA source; ~122GiB Basalt pack | Rejected by user, not a fallback |
 
 The .basalt pack is ONE self-contained model file including tokenizer, draft, expert profile, optional vision. Source shards are not directly usable as .basalt without the converter; an independent convert without published drafter/profile may be slower. A **69.7–86.9GB file does NOT imply 69.7–86.9GB fully resident RAM**: ngram lookup is file-backed and experts move across tiers. It DOES require disk download space and sufficient verified system free RAM + VRAM for the resident expert plan. Do not count 64+16GB as 80GB freely available (OS/graphics, pinned memory, KV, draft, page cache, transient buffers). Q2_0 is easiest to fit, IQ3_XXS is first serious quality run, IQ3_S is a second-stage option.
 
@@ -51,12 +55,12 @@ ctest --test-dir build -L cpu --output-on-failure
 ```
 If exact platform/toolchain dependencies fail, capture CMake/compiler logs; don't silently switch forks, apply unreviewed patches, suppress failed tests or declare a model run passed. Git default-branch HEAD is moving quickly, so freeze SHA after build before comparing speed to another version.
 
-### C. Download ONE official pack (example smallest initial functional gate)
+### C. Download ONLY IQ3_S after user initiates the manual setup
 
 ```sh
-hf download jesdga/Qwen3.8-Flash-Next-Basalt Qwen3.8-FN-GSQ-RCO-Q2_0.basalt --local-dir models
+hf download jesdga/Qwen3.8-Flash-Next-Basalt Qwen3.8-FN-GSQ-RCO-IQ3_S.basalt --local-dir models
 ```
-**Alternative if targeting immediate real quality:** replace filename with `Qwen3.8-FN-GSQ-RCO-IQ3_XXS.basalt`, subject to extra MMQ/MMVQ IQ3_S/IQ2_S parity requirements. Check free disk and hash/section validations rather than assuming incomplete Xet download is a working model. Use only one large file at first.
+No lower-precision alternative. Check free disk and pack/section hashes, and validate IQ3_S/IQ2_S mixed submatrices plus Q6_K output head numerical parity. On failure, diagnose or stop rather than downgrading.
 
 ### D. Single GPU, single slot, conservative context/verification settings
 
@@ -64,7 +68,7 @@ Suggested **starter example**, NOT a claim these settings have already passed on
 ```json
 {
   "server": {
-    "model": "models/Qwen3.8-FN-GSQ-RCO-Q2_0.basalt",
+    "model": "models/Qwen3.8-FN-GSQ-RCO-IQ3_S.basalt",
     "gpu": "0",
     "port": 8080,
     "parallel": 1
@@ -85,7 +89,7 @@ Store as `basalt_config.json` in repository root, model path relative to file. S
 | Failure/symptom | Source and response |
 |---|---|
 | **`DirectFile: unaligned request`, profile fill fails on startup** | [Basalt #179](https://github.com/jesdga95/basalt/pull/179) FRESH OPEN; host pinned stage alignment under O_DIRECT, proposed aligned interior+mapped fallback; pack can be fine. Record SHA/driver/offset; wait for approved upstream fix rather than randomly altering filesystem. |
-| **IQ3_XXS incoherent or endless reasoning, IQ CPU-double wrong** | [#121](https://github.com/jesdga95/basalt/issues/121) OPEN Windows5070Ti optimized IQ3S/IQ2S byte alias corruption; Linux not demonstrated. Check MMQ+MMVQ independent parity, not only speed or token endpoint. |
+| **IQ3_S incoherent or endless reasoning, mixed IQ CPU-double wrong** | [#121](https://github.com/jesdga95/basalt/issues/121) OPEN Windows5070Ti optimized IQ3S/IQ2S byte alias corruption; Linux not demonstrated. Check MMQ+MMVQ independent parity, not only speed or token endpoint. |
 | **IQ3_S spec7/8 first token changes / flat head row** | [#175](https://github.com/jesdga95/basalt/pull/175) FRESH OPEN Q6_K head 65,536-candidate shared cap, approximate argmax wrong vs exact. Test spec1 before higher widths; #178 depends on #175. |
 | **Short live chat continuation rereads older checkpoint** | [#176](https://github.com/jesdga95/basalt/pull/176) FRESH OPEN drafted rows beyond actually emitted final token wrongly committed; 12/36 fallback vs proposed0/36, check `reused/read` logs. |
 | **GPU illegal instruction/Xid, nvidia-smi unresponsive** | [#161](https://github.com/jesdga95/basalt/issues/161) OPEN RTX5060 Linux Swift1.5 under different flags. Stop load, inspect logs and NVIDIA Xid, do not torture GPU unattended. Not evidence owner5070Ti reproduces. |
@@ -98,7 +102,7 @@ Store as `basalt_config.json` in repository root, model path relative to file. S
 - **Reference parity** for actual quant mix: IQ3_S, IQ2_S and every relevant output/head quant used, Q6_K vhead candidate edge; compare CPU double/FP32 for prefill (MMQ), decode (MMVQ), speculative T1/4/8 under fixed expert placement and with/without draft. Fail on NaNs, invalid reference dumps, skipped parity test cases. Running built-in CTest is necessary but not sufficient.
 - **Physical prompt/coding tasks**: exact new cold 4K/16K/32K prompt content, 512+ completion budget, meaningful coding+tool outputs, no only 512-token truncated reasoning disguised as success, record sustained TG, *truly cold* PP, TTFT, peak GPU+CPU+swap, resident/expert cache and SSD reads. First run only spec1; compare higher width only after #175 merged/independently verified.
 - **Long/parked** (later human-approved stage): true occupied40K→128K→262K only if per-slot KV and free RAM permit; chat turns with 2/8 token replies followed by next tool message; check exact reused tokens and no speculative overcommit, question repeated after eviction/restore, 1/2/4 active with fair scheduling and independently correct semantic results. Default `--parallel N` divides `--max-context` by N; do not accidentally call 4 agents each 262K with total262K configured.
-- **Optional Basalt probe only after clean startup**: documented `bin/basalt-probe --model models/Qwen3.8-FN-GSQ-RCO-Q2_0.basalt -- --kv int8 --spec 1`, measures **cold** conv/struct/prose 400-token decode plus copy/CPU tiers; suggested values are just text and do not edit engine config. It is NOT a deep 128K/262K benchmark or xhigh evaluation.
+- **Optional Basalt probe only after clean startup**: documented `bin/basalt-probe --model models/Qwen3.8-FN-GSQ-RCO-IQ3_S.basalt -- --kv int8 --spec 1`, measures **cold** conv/struct/prose 400-token decode plus copy/CPU tiers; suggested values are just text and do not edit engine config. It is NOT a deep 128K/262K benchmark or xhigh evaluation.
 - Preserve reproducible reference manifests with SHA, engine build and git branch, memory, OS/driver/CUDA, profile and flags, actual occupied per-run context, raw response/tool traces, parity outcomes and negative startup arms. One knob at a time, fixed reference source, no changing source model/quant between labeled A/B.
 
 ## New source evidence and research promotion state
@@ -120,7 +124,7 @@ Store as `basalt_config.json` in repository root, model path relative to file. S
 
 **[OPEN #184](https://github.com/jesdga95/basalt/pull/184)** overlay fine-tune adapters avoid duplicate multi-GB checkpoint copies, but switching the loaded variant **flushes all live/prefix/parked states**, so a coding agent must capture/acknowledge tool results before any adapter switch. Cannot serve several adapter variants concurrently yet.
 
-**[MERGED #180](https://github.com/jesdga95/basalt/pull/180)** two RTX5060Ti16 community benchmark uses 128GB host, custom BF16PLE fork and +2500MHz VRAM overclock; cannot predict **single owner 5070Ti** speed. [Open #175](https://github.com/jesdga95/basalt/pull/175) speculative high-width Q6 head overflow, [#179](https://github.com/jesdga95/basalt/pull/179) direct-I/O alignment abort, [#176](https://github.com/jesdga95/basalt/pull/176) short-reply checkpoint overcommit and [#121](https://github.com/jesdga95/basalt/issues/121) Windows same-card low-bit numerical parity remain correctness gates. Starter **one GPU0, 1 slot, 32K context, spec1, Q2_0 smoke or IQ3XXS first serious coding-quality trial** unchanged.
+**[MERGED #180](https://github.com/jesdga95/basalt/pull/180)** two RTX5060Ti16 community benchmark uses 128GB host, custom BF16PLE fork and +2500MHz VRAM overclock; cannot predict **single owner 5070Ti** speed. [Open #175](https://github.com/jesdga95/basalt/pull/175) speculative high-width Q6 head overflow, [#179](https://github.com/jesdga95/basalt/pull/179) direct-I/O alignment abort, [#176](https://github.com/jesdga95/basalt/pull/176) short-reply checkpoint overcommit and [#121](https://github.com/jesdga95/basalt/issues/121) Windows same-card low-bit numerical parity remain correctness gates. Starter **one GPU0, 1 slot, 32K context, spec1, IQ3_S only**. Earlier Q2/XXS recommendations are superseded.
 
 **New agent-tool correctness canary:** [oMLX #4999](https://github.com/jundot/omlx/issues/4999) shows Claude Code returns parallel Read/Grep results in completion order with correct IDs but Qwen template reassigns values by position. Basalt merged call-ID sorting #168 already; confirm with synthetic parallel 2/3 tool results reversed, each file value must be attributed to its named call even under streaming. Assert no phantom file operations, incorrect path or hidden tool error. This is a reusable low-risk parser-only test, not a GPU benchmark.
 
