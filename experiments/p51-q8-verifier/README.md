@@ -1,5 +1,11 @@
 # Project 51 — Read First
 
+## CURRENT USER DECISION — Basalt-first on the Linux PC (October 31, 2026)
+
+**First practical local Qwen3.8-Flash-Next runtime to try is [Basalt](https://github.com/jesdga95/basalt) on the owner's single Linux RTX5070Ti16GB/CoreUltra7 265F/64GB DDR5 PC**, before more M1 distributed/quant experiments. This is a **research and planning priority**, not permission to run/change the owner's machine. Read [BASALT-FIRST-PC-PLAN.md](./BASALT-FIRST-PC-PLAN.md) for upstream build and ONE-pack setup, official file sizes, sm120 CUDA correctness issues, source-verified startup/agent stop conditions and staged acceptance. Read [Oct31 14:08 strict watch](./RESEARCH-WATCH-2026-10-31-1408.md) for evidence. Last user-request cutoff **2026-10-31T18:08:01Z**.
+
+**First-pass research emphasis:** #121 same-card Windows CUDA IQ3S/IQ2S optimized unpack risk (not yet shown on Linux); **fresh OPEN #175 Q6_K vhead candidate overflow**, **#179 pinned direct-file stage alignment startup failure**, **#176 spec end-of-reply extra state**; check **merged #125** elastic KV release and **#168** parallel tool result order. Basalt supports **Blackwell sm120 CUDA13 on Linux**, peer GPU is optional and the user's AMD RX6800 is **NOT** a supported second Basalt Blackwell peer. Prefer existing official GSQ-RCO Q2_0 ~69.7GB for quick functional smoke then IQ3_XXS ~79.9GB for real quality, IQ3_S ~86.9GB after memory/parity gates; README's NVFP4 ~131GB is not a single-PC default. **All M1 Max64 two-machine source IQ3S 128K/262K and 3–5 quality agent numerical goals HOLD as distinct longer-term targets.** No model download, benchmark, hardware action, CI work or scheduled agent started by this preference change.
+
 This file is the entry point for **every new conversation/session** that continues Project 51 research or tuning.
 
 ## Required read order
