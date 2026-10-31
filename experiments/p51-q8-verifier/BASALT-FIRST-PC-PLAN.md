@@ -108,3 +108,20 @@ Store as `basalt_config.json` in repository root, model path relative to file. S
 **Research statuses:** Basalt first-PC runbook now prioritized, **but no actual user physical runs initiated or results claimed**. Original M1 source IQ3S real128K/262K and3–5 agents goals remain unchanged; one day may compare Basalt source to distributed Macs on frozen evals, keeping operating-system quant and PLE differences honest. No spontaneous background monitoring, purchases or autonomous model execution.
 
 **Last strict cutoff:** 2026-10-31T18:08:01Z.
+
+
+## Halloween 2026 18:12 EDT — newly verified Basalt enhancements and safe follow-ups
+
+[Full strict watch](./RESEARCH-WATCH-2026-10-31-1812.md), cutoff **2026-10-31T22:12:24Z**. Research/plan only; user remains in charge of installing/running on PC; all model/CI/hardware actions by assistant require explicit HIGH.
+
+**[OPEN #182](https://github.com/jesdga95/basalt/pull/182)** Intel ArrowLake AVX-VNNI-INT8 optimization applies to **NVFP4 CPU-tier expert rows**, NOT the default user's GSQ IQ3XXS or IQ3S expert row format. Intel Ultra9 285K+RTX5090 source NVFP4 whole decode improved +5.6–7.5% while 16K PP +0.5% with 1024 identical tokens. User CoreUltra7 265F is same generation but instructions/actual clocks/host RAM pressure must be independently checked if NVFP4 becomes feasible. **Do NOT download the huge 131GB NVFP4 pack merely because this PR is new**; 16GB VRAM and64GB RAM remain first-run limits.
+
+**[OPEN #183](https://github.com/jesdga95/basalt/pull/183)** BF16 PLE table vs Q8_0 and optional RAM quantization is a **separate** question. BF16 table of original family is ~95.4GB and not 64GB-host-resident. Primitive-ai's old 200-task tool-call comparison BF16 79.2 vs NVFP4 78.7/INT4 78.2 is small and may not transfer to owner's xhigh coding tasks. On RTX PRO6000 Windows BF16 structured/prose/16K PP faster, Q8 conversation faster; PLE format should be an independent frozen-eval switch after basic numerical certification, with SSD page-cache/cold TTFT tracked.
+
+**[OPEN #184](https://github.com/jesdga95/basalt/pull/184)** overlay fine-tune adapters avoid duplicate multi-GB checkpoint copies, but switching the loaded variant **flushes all live/prefix/parked states**, so a coding agent must capture/acknowledge tool results before any adapter switch. Cannot serve several adapter variants concurrently yet.
+
+**[MERGED #180](https://github.com/jesdga95/basalt/pull/180)** two RTX5060Ti16 community benchmark uses 128GB host, custom BF16PLE fork and +2500MHz VRAM overclock; cannot predict **single owner 5070Ti** speed. [Open #175](https://github.com/jesdga95/basalt/pull/175) speculative high-width Q6 head overflow, [#179](https://github.com/jesdga95/basalt/pull/179) direct-I/O alignment abort, [#176](https://github.com/jesdga95/basalt/pull/176) short-reply checkpoint overcommit and [#121](https://github.com/jesdga95/basalt/issues/121) Windows same-card low-bit numerical parity remain correctness gates. Starter **one GPU0, 1 slot, 32K context, spec1, Q2_0 smoke or IQ3XXS first serious coding-quality trial** unchanged.
+
+**New agent-tool correctness canary:** [oMLX #4999](https://github.com/jundot/omlx/issues/4999) shows Claude Code returns parallel Read/Grep results in completion order with correct IDs but Qwen template reassigns values by position. Basalt merged call-ID sorting #168 already; confirm with synthetic parallel 2/3 tool results reversed, each file value must be attributed to its named call even under streaming. Assert no phantom file operations, incorrect path or hidden tool error. This is a reusable low-risk parser-only test, not a GPU benchmark.
+
+No first-run commands executed by assistant, no model files installed, and no automatic monitoring initiated.
