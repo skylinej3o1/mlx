@@ -1,5 +1,9 @@
 # Project 51 — Read First
 
+## November 1, 2026 — Basalt 0.2.0 first-PC compatibility gate
+
+**Latest strict cutoff 2026-11-01T21:15:58Z.** [Dated watch](./RESEARCH-WATCH-2026-11-01-1615.md), [current first-PC runbook](./BASALT-FIRST-PC-PLAN.md). The user's authoritative PC model decision remains **official GSQ-RCO IQ3_S ONLY**, including initial smoke; Q2_0, IQ3_XXS, NVFP4 and nonofficial changed-PLE packs are NOT fallback options. Basalt 0.2.0 requires a **version 2 .basalt pack**; download the official matching version2 IQ3_S or migrate an already downloaded IQ3_S v1 file with the upstream migration helper, requiring enough disk space for a second copy. In 0.2.0 the aligned pinned-file startup fix is in main; IQ3_S-specific Q6_K high-spec head overflow #175 remains OPEN, since the release's new Q8_0 head algorithm is different. Do not enable lossy route-prior, route-tail-skip or relaxed drafting. Actual owner sm120 CUDA mixed IQ3_S/IQ2_S numeric parity, exact tool answers, agent continuity and real occupied-context PP/TG still require human-controlled experiments. All two-M1Max research targets HOLD; HIGH execution gate unchanged.
+
 ## AUTHORITATIVE PC QUANT DECISION — 2026-10-31T22:53:39Z
 
 **On the RTX 5070 Ti Linux PC, QFN GSQ-RCO IQ3_S or stop.** Do not offer Q2_0, IQ3_XXS or NVFP4 as a first-run fallback, quality baseline, or deployment alternative. Download/configure/probe only `Qwen3.8-FN-GSQ-RCO-IQ3_S.basalt` after the user chooses to run it. If memory, startup, numerical correctness or speed fails, diagnose and report the obstacle instead of substituting a lower-quality quant. This decision **supersedes older Basalt pack-selection text** in dated research watches; **research freshness cutoff remains 2026-10-31T22:12:24Z** (no new scan).
