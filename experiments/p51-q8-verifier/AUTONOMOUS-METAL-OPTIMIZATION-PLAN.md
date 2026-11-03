@@ -1,5 +1,15 @@
 # Project 51 — Isolated M1 Max Metal Optimization Lab (PROPOSED, not deployed)
 
+## November 3, 2026 13:50 EST — evidence correction and new Apple7/8 quality-first test plan (DESIGN ONLY)
+
+**Strict watch [Nov3 13:50](./RESEARCH-WATCH-2026-11-03-1350.md)** cutoff2026-11-03T18:50:28Z. User's single M1Max32GPU64GB quality hierarchy: **official pristine GSQ IQ3_XXS is minimum acceptable, pristine GSQ IQ3_S is quality stretch**. No Q2_0 user daily-driver fallback. **Actual older Splash 1.5.0-m1** QFN IQ3_XXS on 2021 **M1Max32GPU64GB** ~**36–42 TG** under unspecified context ([#40](https://github.com/paperniuk/splash/pull/40)), disconfirms prior optimistic 50–65TG baseline at4K, not proof at128/262K. DS4 actual original GSQ IQ3XXS physical128K **278PP/34.2TG**, 259K **258PP/31.7TG** and ~57GiB occupied; do not conflate. New [Splash #45](https://github.com/paperniuk/splash/pull/45) OPEN fused gate/up M2Max 38-core Unsloth UD-IQ3XXS verify fixed row -2.0% but adaptive row +1.4%; any improved quality-preserving GSQ benchmark must compare same source model, context, reasoning+sampler, matched draft acceptance, entire agent correctness and OS wired/swap, not Q2 model short speed. Earlier [Splash #40](https://github.com/paperniuk/splash/pull/40) video/Flint demonstration not benchmark of long QFN IQ3XXS context.
+
+**Dual M1 split stays separate:** [oMLX #5062](https://github.com/jundot/omlx/pull/5062) merged cluster prompt reuse across tool turns (743→9266 fifth-turn reuse M3Ultra Qwen3.6, useful architecture warning); [#5065](https://github.com/jundot/omlx/pull/5065) OPEN prefill helper 2.8× 64K QFN M3Ultra512GB+M5Max128GB **REQUIRES** primary owns entire weights—cannot make QFN UD-Q4_K_XL fully resident on either 64GB M1. Older #5033 QFN oQ5 heterogeneous pipeline other Macs remains OPEN; [TensorFold #2005](https://github.com/ashhart/TensorFold/issues/2005) 2-stage ring RFC hidden row 20/40KiB and localhost 27B parity not a cross-M1 result. 2× M1Max64 original GSQ IQ3S real128/262K 425/40 and400/35 remains stretch physical gate with full tool outcomes; Q4XL quality branch no measured full pipeline.
+
+**Quant quality:** [Strata #5136](https://github.com/Niko1221/Strata/issues/5136) conditional DEFAULT rank7 route-tail skipping on CUDA/some HIP modifies answers; any Strata reference MUST force STRATA_ROUTE_TAIL_SKIP=0 and inspect enabled-state logs (not a global Basalt claim). [Strata #5135](https://github.com/Niko1221/Strata/pull/5135) other gfx1030 RX6800 **XT** Swift1.5 same setup IQ3S -9–11% TG vs IQ3XXS at4/16K, no source QFN original M1 transfer. No claim Unsloth QFN v3.1 or MIT weight editing generated a validated quality-matched 3.0bpw quant. No local owner Mac run, downloads, CI, schedules, or HIGH permission. Design-only status remains.
+
+
+
 Date: 2026-10-25. Canonical research cutoff at initial proposal: 2026-10-25T18:45:03Z.
 State: `DESIGN-ONLY`. No runner, workflows, schedule, orchestration endpoint, Claude key or hardware benchmark has been installed or verified by this document.
 
