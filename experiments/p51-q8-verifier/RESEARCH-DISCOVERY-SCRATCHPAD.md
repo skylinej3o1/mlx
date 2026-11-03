@@ -1,4 +1,22 @@
-# Project 51 — Ranked Discovery Scratchpad — November 3, 2026 13:50 EST
+# Project 51 — Ranked Discovery Scratchpad — November 3, 2026 15:57 EST
+
+## November 3, 2026 15:57 EST — latest source watch, newly ranked discoveries
+
+**Strict cutoff 2026-11-03T20:57:41Z**; [dated watch](./RESEARCH-WATCH-2026-11-03-1557.md), [LATEST](./RESEARCH-WATCH-LATEST.md). Continue preceding rankings with explicit new/updated/old scope. User: on one M1Max32GPU64GB **pristine original ISTA GSQ IQ3_XXS minimum acceptable quality; IQ3_S stretch**, DS4 original GGUF physical128K278PP/34.2TG;259K258PP/31.7TG. Splash exact M1 short IQ3XXS 36–42TG older source, actual 128/262K Splash TG/PP unknown. Two equal M1 source IQ3S + Q4XL PP/TG agents remain unmeasured.
+
+**FRESH P0 RS-150 quant quality** [vLLM #62750](https://github.com/vllm-project/vllm/pull/62750) MERGED 20:47:40Z: 32-wide Hadamard rotation before MXFP4 on three **GDN linear projections** in Qwen3.8-**2.4T-A95B**, TP8 **MI355X**, **not QFN original**. GSM8K rotated vs RTN MXFP4 **140 fixed/98 broken p=.0077, output 4.7% shorter**; GPQA ~9.6% shorter, accuracy improvement not significant; vs BF16 approximate accuracy and 2.6% extra reasoning within margin. Unfused PyTorch rotation costs 6–12% throughput, separate unmerged #63272 fused arm claims within1%. No model-level 3bpw QFN improvement or Metal kernel, but high-signal structured quantization-design candidate for later offline, heldout study.
+
+**FRESH P0 RS-151 multi-Mac** [mlx-serve #1070](https://github.com/ddalcu/mlx-serve/pull/1070) MERGED 19:20Z: DeepSeek-V4.1 exact 2×M3Ultra512 TB5 RDMA TP **DSpark decode56.2→88.4, no-MTP41.2→54, PP8.8K1018→1608**, correct SSD session and 64-request stress, an early not-reproduced hang. NOT TB4 M1Max64/QFN layer split. Distinguish new TP from prior oMLX prefill helper and #5033 pipeline.
+
+**FRESH P1 RS-152 AMD** [Strata #5146](https://github.com/Niko1221/Strata/pull/5146) OPEN 19:09Z, gfx1030 DFlash2 opt-in Q4_0 GEMM micro -21.1%, entire expected TG +.7%, DFlash2 1-card ~4.4% better MTP but layer-split 10–14% worse due pipeline lost. Tested RX6900XT +128GB host, NOT user RX6800 nonXT+ONLY16GB host. [#5147](https://github.com/Niko1221/Strata/issues/5147) 19:12Z HIP RX9070+RX6800 stage0 MTP+pipeline2 0-token 60s deadlock; [#5149](https://github.com/Niko1221/Strata/pull/5149) 20:31Z OPEN fixes first prompt, ~420PP/62.6TG one short run only on that rig, configured131K. [#5151](https://github.com/Niko1221/Strata/issues/5151) 20:41Z OPEN gfx103x prompt nonfinite with some ROCm; explicit STRATA_HIP_PROMPT_F16=1 gives finite and ~4x PP but changes output rounding; proposal to flip default NOT merged. Prior #5136 conditional default route-tail skip changes answers; reference set ROUTE_TAIL_SKIP=0.
+
+**FRESH P2 RS-153 Basalt** [main 97ff0618](https://github.com/jesdga95/basalt/commit/97ff0618487625eaf39c9449c29282c35f0ae4ad) 19:01Z removes uncallable remote-expert tier and kernels, no default speed/quality effect, real peer-expert path intact; previous CUDA packed IQ3S/IQ2S fix still ancestor, no owner 5070Ti test. Official IQ3S v2 pack ONLY, Linux first-run 32K/int8/spec1, high gate.
+
+**FRESH P2 RS-154 research reproducibility** [TensorFold #1985](https://github.com/ashhart/TensorFold/pull/1985) merged20:56Z multi-node benchmark receipts 1–8 truly loaded ranks, checked hardware, not new inference perf; [#2017](https://github.com/ashhart/TensorFold/pull/2017) / [#2038](https://github.com/ashhart/TensorFold/pull/2038) OPEN newly updated to20:54Z Apple **base M1 16GB on Linux Honeykrisp Vulkan**, Qwen3.5-2B 4-bit (NOT M1Max macOS Metal/QFN), row-sharing dequant full run ~6–38% faster and hazard-barrier selective another 3–7%, same logits, cannot stack/transfer speed. No Qwen4 official new weights nor QFN Unsloth Dynamic3.1 quality-matched original release. No device tests, installs or auto-action.
+
+---
+
+
 
 ## November 3, 2026 13:50 EST — new rank-ordered evidence, prior list retained
 
