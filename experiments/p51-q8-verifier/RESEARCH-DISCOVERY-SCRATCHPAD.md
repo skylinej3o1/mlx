@@ -1,4 +1,18 @@
-# Project 51 — Ranked Discovery Scratchpad — November 3, 2026 00:37 EST
+# Project 51 — Ranked Discovery Scratchpad — November 3, 2026 13:50 EST
+
+## November 3, 2026 13:50 EST — new rank-ordered evidence, prior list retained
+
+**LATEST cutoff 2026-11-03T18:50:28Z**; [strict research watch](./RESEARCH-WATCH-2026-11-03-1350.md) and [LATEST](./RESEARCH-WATCH-LATEST.md). **Highest-value correction:** Splash 1.5.0-m1 actual M1Max32GPU64GB QFN IQ3_XXS ~36–42TG **unspecified occupied context** in [#40](https://github.com/paperniuk/splash/pull/40) (older evidence rediscovered now). Previous 50–65 TG extrapolation from Q2_0 unqualified; do not quote as observed or likely baseline. Original GSQ IQ3_XXS DS4 physical 4K241PP/35.2TG, 128K278PP/34.2TG, 259K258PP/31.7TG. Minimum acceptable single Mac quant GSQ IQ3_XXS; GSQ IQ3_S quality stretch with memory cap, never speed-first Q2 as user baseline. No Splash real deep128K/262K PP/TG.
+
+**FRESH P0 [Splash #45](https://github.com/paperniuk/splash/pull/45)** OPEN since15:33Z: Apple7/8 fused one-pass MoE; on **M2Max38** 8-row Unsloth UD-IQ3XXS cycle69.90→68.50ms; under adaptive window cycle58.41→59.22ms (+1.4%) so not proven faster actual TG; GSQ source and owner's M1 not tested. [Strata #5136](https://github.com/Niko1221/Strata/issues/5136) 16:45Z OPEN source: conditional default ROUTE_TAIL_SKIP=7 changes model output. Always STRATA_ROUTE_TAIL_SKIP=0 for source-preserving quality runs, check effective log. [oMLX #5062](https://github.com/jundot/omlx/pull/5062) MERGED fixes tool-turn cache 743→9266 reused tokens fifth of12101 in M3Ultra Qwen3.6 rank test; [#5065](https://github.com/jundot/omlx/pull/5065) OPEN 64K QFN prefill1309→3666 on M3Ultra512 + M5Max128, helper fast-Mac accelerator **requires full model resident on primary**, not 2×M1Max64 two-way split.
+
+**FRESH P0 PC [Basalt #226](https://github.com/jesdga95/basalt/issues/226)** Nov3 17:03Z other RTX5060Ti16 sm120 +60GB host IQ3S q4_0KV MTPspec6: short77–78TG, physical134K 57.9–66.1TG, real cold91/162K 2030–2130PP (max262K merely configured); MTP ~786MiB, not Strata's5.2GiB, DFlash2 switch unimplemented. **Basalt new main [6e67f90c](https://github.com/jesdga95/basalt/commit/6e67f90cd303eb1230a001cfe13ed683ded0781b)** through17:21Z; broader IQ byte-shift fixes, profile portability, RAM floor guard. Proposed source pin only, no Linux owner check and no change to first-run official ISTA IQ3S .basalt v2 pack and high approval gate. [Strata #5135](https://github.com/Niko1221/Strata/pull/5135) OPEN RX6800 **XT** +60.7GiB host Swift IQ3XXS vs IQ3S 4K TG47.8→43.5 (-9%), 16K49.4→43.9 (-11%), PP~equal; not owner RX6800 nonXT with16GB host. [Strata #5140](https://github.com/Niko1221/Strata/pull/5140) 4080SUPER16 +64GB host IQ3XXS configured256K chat98.7/agent116.3, IQ3S configured128K chat91.9/agent108.9; short4/16K PP, only six-code recall; not owner 5070Ti or full deep agent end-to-end.
+
+**FRESH architecture:** [TensorFold #2005](https://github.com/ashhart/TensorFold/issues/2005) OPEN hybrid pipeline RFC exact QFN hidden state row20/40KiB, localhost dense27B128/128 outputs, no dual-M1 model. llama.cpp MTP state save/restore merged; no QFN Unsloth Dynamic v3.1 original new weights; MIT weight edits were Nov2 small Qwen repair not demonstrated QFN quant. **No physical user hardware or software changed.**
+
+---
+
+
 
 **STRICT source window** `2026-11-02T19:02:00Z`→**`2026-11-03T05:37:47Z`**, [immutable dated watch](./RESEARCH-WATCH-2026-11-03-0037.md), [LATEST](./RESEARCH-WATCH-LATEST.md). Score heuristic 3F+2N+3E+2A+I (0–3 each: exact owner fit, novelty, evidence, actionable gate, independent confirmation), not probability. Safety/semantic regressions outrank scores. New merges vs old physical measurements, branches vs main, rediscovered Oct results, adjacent hardware and negative evidence remain explicit.
 
