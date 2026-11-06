@@ -1,5 +1,19 @@
 # Project 51 — Model & Quant Candidate Radar
 
+## November 6 2026 12:40 EST — Flint native M1 confirmed, new-model source triage
+
+[Strict watch](./RESEARCH-WATCH-2026-11-06-1240.md) cutoff **2026-11-06T17:40:53Z**. Priority is true owner32GPU64GB fit, correct xHigh coding agent and source fidelity, NOT publisher charts.
+
+- **Existing model, NEW M1 native runtime:** [Recursive Flint40B-A2.5B](https://huggingface.co/RecursiveSI/flint) October release, [Paperniuk Splash M1 release](https://github.com/paperniuk/splash/releases/tag/1.6.0-m1) new today 14:39Z, exact M1Max64 **Unsloth flint UD-Q4_K_XL+DFlash2 77TG single,94TG AGGREGATE2 lanes, PP822 at16K**; advertised support256K is not physically filled benchmark. PRIOR official ggml-org Q4K_M23.4GB and mixed IQ3S16.5GiB separate candidate. **High-value SECONDARY coder**, not tested to source BF16/eval/tool completeness; current [Splash #51](https://github.com/paperniuk/splash/issues/51) short-tail MoE hang blocks release adoption until fixed.
+- **Original QFN GSQ IQ3_S real precedent, M1Ultra NOT owner M1Max:** [Paperniuk Splash #47](https://github.com/paperniuk/splash/issues/47) published Nov4 original source IQ3S physical true131K35.7TG and192K34.0TG on M1Ultra48core/128GB with SSD PLE, 262K startup Metal timeout. REDISCOVERED older evidence, not new quant/source M1Max capability.
+- **No native GSQ QFN IQ3_S/XXS Kapitsa Flash-Next import** newly landed through cutoff. [Kapitsa #986](https://github.com/nace-ai/kapitsa/pull/986) merged optional precision-changing fast on QFN **Q2_0** M5Pro, not new source quant; prior specialized source only Q2_0 routed kernels. Quality floor original IQ3XXS unchanged.
+- **Baidu ERNIE-5.5-Flash-Base** [primary model card](https://huggingface.co/baidu/ERNIE-5.5-Flash-Base): **released Nov5 prior last cutoff**. FP8 and BF16 pretrained-only,280B total/14B active,37 heavily compressed attention and6 MLA sparse,128K trained/1M advertised, custom Baidu license; NOT instruction-tuned coding worker and not local64GB fit, architecture watch only.
+- **Thinking Machines Inkling2 Small** [official post Nov5](https://thinkingmachines.ai/news/inkling-2-small/):594B total17B active, xHigh coding aspirations, initially Tinker **closed weights**, promised future Apache2.0 only, not available local and too large even4bit. REDISCOVERED earlier announcement, not freshly opened weights.
+- **ByteDance Cola2 approx9B continuous-latent base** [primary model page](https://huggingface.co/ByteDance-Seed/Cola2): observed on Hugging Face Nov6, index claims 32K context and first released Nov6; **exact UTC artifact creation relative request cutoff not confirmed**, model quality/code tools/license/support unverified. Mark **lead, unverified timing**, research novelty only not QA candidate.
+- Prior [Unsloth QFN Dynamic3.1 GGUF](https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF) no new independently quality validated source GSQ replacement. [Basalt #264](https://github.com/jesdga95/basalt/issues/264) demonstrates larger UDQ5XL misses all48 fused MoE glue layers on other GPUs; [Strata #5416](https://github.com/Niko1221/Strata/issues/5416) UD-Q2_0 streaming M4Pro garbage, so never infer nominal format works without exact runtime checks.
+- **Official Qwen4** source weight not newly verified. Ripple65B, KimiK3.1Pro, DeepSeekV4.1 huge earlier radar retain excluded or intellectual reference classification.
+
+
 ## November 6, 2026 08:07 EST — fresh engine/quant-format support, not a new model release
 
 [Strict watch](./RESEARCH-WATCH-2026-11-06-0807.md) cutoff **2026-11-06T13:07:04Z**. **No new official Qwen4 open weights nor independently validated best new QFN quality quant discovered in this interval.** Prior model weights (Flint40B, Ripple65B, KimiK3.1, QFN Unsloth3.1) remain prior releases; source event != new model launch.

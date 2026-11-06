@@ -1,5 +1,11 @@
 # Kapitsa × 2021 M1 Max — original QFN GSQ IQ3XXS/IQ3S feasibility (research-only)
 
+## November 6 2026 12:40 EST — fresh fast-mode result and M1 Ultra source comparator
+
+[Watch](./RESEARCH-WATCH-2026-11-06-1240.md) cutoff 2026-11-06T17:40:53Z. Kapitsa optional [fast profile #986](https://github.com/nace-ai/kapitsa/pull/986) merged15:46Z and [M5Pro source Q2 test #1021](https://github.com/nace-ai/kapitsa/pull/1021) new17:32Z: QFN **Q2_0**, 32K precise43.7sec→fast39.5s prefill and64K93.3→87.2s, 64K draft cycle59.4→57.5ms, 32K near tied. Teacher-forced fast changed4 of72 top1 /KL.008845 against precise; **not BF16 source xHigh quality**, heavy64K memory pressure, not user M1 Max. Keep precise default for fidelity. Native generic IQ3_XXS/IQ3_S kernels still not wired to original source QFN specialized Flash-Next GGUF/SSD expert path: no verified new source port.
+
+Useful REDISCOVERED physical [Paperniuk Splash #47](https://github.com/paperniuk/splash/issues/47) originally Nov4 source original GSQ IQ3S on **M1 Ultra48GPU128GB** true192K decode34TG/PP625; **262K startup self-test timed out120sec**. Its 55–64GB measured footprint incl KV on 128GB host does NOT imply safe nearly full64GB M1Max residency. [Splash new M1 fork release](https://github.com/paperniuk/splash/releases/tag/1.6.0-m1) has QFN Q2 one M1Max78.7TG and Flint Q4 on M1Max77TG, but no original source IQ3S M1Max; [#51](https://github.com/paperniuk/splash/issues/51) exact other M1Max 17–32 small-tail hangs must be fixed. One M1 source IQ3S128K remains engineering stretch with correctness-first partial expert storage, not proven full resident. Dual over TB4 unmeasured. No device authorization.
+
 **Snapshot:** November 6, 2026 08:07 EST, cutoff 2026-11-06T13:07:04Z. Main [strict dated watch](./RESEARCH-WATCH-2026-11-06-0807.md). **No hardware execution or permission for model downloads/CI/builds.**
 
 ## 1. Baseline and what is ACTUALLY implemented
