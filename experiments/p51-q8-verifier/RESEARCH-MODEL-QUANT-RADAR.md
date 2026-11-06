@@ -1,5 +1,19 @@
 # Project 51 — Model & Quant Candidate Radar
 
+## November 6 2026 17:39 EST — quant tensor-admission radar and model discovery checkpoint
+
+[Strict watch](./RESEARCH-WATCH-2026-11-06-1739.md) cutoff 2026-11-06T22:39:45Z. New technical evidence is **format sensitivity**, not an independently proven new GGUF weight breakthrough. [Dedicated fidelity note](./QUANT-TENSOR-FIDELITY-2026-11-06.md).
+
+- **Original GSQ pristine IQ3_S / IQ3_XXS remains the acceptance floor/quality stretch**, no new original source quant under3S beating independent full xHigh agent quality on single M1 established. [Basalt #266](https://github.com/jesdga95/basalt/pull/266) confirms same original IQ3S one5090 575W decode486.7 vs old431.1 at actual489W, source performance analogue only.
+- **Unsloth Dynamic3.1 UD-IQ2_XS** original creator Nov4, transformer ~47GB/full package75.8GB including28.8 PLE. [Basalt #267](https://github.com/jesdga95/basalt/issues/267) user finds unsupported one-layer Q5_0 down disables all48-layer route optimization. One-tensor modified UD pack PPL3.293 vs official GSQ IQ3XXS3.472 on small WikiText2, ~84TG vs original~94 on other5060Ti; **modified source pack, unverified heldout QA and cannot be promoted**. Official Unsloth benchmark +15% claimed on256K still publisher-only [discussion91](https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/discussions/91).
+- **UD-IQ4_XS/v3.1 low-bit input embedding** compressed to322MiB IQ4XS vs BF16 1212MiB. [Strata #5433](https://github.com/Niko1221/Strata/pull/5433) 244/4995 top1 flips, KL.026 from embedding-only substitution on Radeon R9700, +890MiB pinned host and zero incremental resident VRAM in that implementation. Not automatically source GSQ / M1 memory neutral. High-value independent tensor-specific quant research, not new model release.
+- **AgentionAI Gyro S/M/L** [source card](https://huggingface.co/agentionai/Qwen3.8-Flash-Next-Gyro-GGUF) shows **Oct10–12 earlier artifact updates**, S~27.64GiB/M~34.98GiB/L~50.21GiB weights excluding PLE, trellis-type TQK6/TQK7/TQ2_T/TQP support requires custom Strata/AMD/llama.cpp fork; author reports KL GyroM.291 vs GSQ XXS.311 and 30/30 tiny LiveCodeBench subset, **not independent source hard-agent, no native M1**. Do not mislabel "HF updated ~13h ago" as fresh release.
+- **Community Unsloth MLX conversion lead** [austindixson](https://huggingface.co/austindixson/Qwen3.8-Flash-Next-Unsloth-V3.1-MLX), file existence surfaced search but exact HF revision/source parity and 2021 M1 backend not independently verified, **unverified**, do not infer an M1 accepted alternative.
+- **Flint 40B-A2.5B** October model native newly earlier today in Splash M1. Release physical M1Max UD-Q4XL 77TG single/94 aggregate2 lanes, PP82216K, **configured**256K only. Secondary-agent Q4 competitor, not main QFN family or hard xHigh demonstrated; Splash1.6 M1 hang still open.
+- [Baidu ERNIE5.5 Base](https://huggingface.co/baidu/ERNIE-5.5-Flash-Base) and [Inkling2 Small](https://thinkingmachines.ai/news/inkling-2-small/) Nov5 earlier, huge / closed, [Cola2](https://huggingface.co/ByteDance-Seed/Cola2) created timestamp uncertain and short-context base; no new local-worthy quality-proven release. KimiK3.1Pro vLLM loader progress not small enough to fit owner64GB.
+- **No verified new official Qwen4 open weights**; `qwen4exp` is old QFN loader architecture, not a weight release.
+
+
 ## November 6 2026 12:40 EST — Flint native M1 confirmed, new-model source triage
 
 [Strict watch](./RESEARCH-WATCH-2026-11-06-1240.md) cutoff **2026-11-06T17:40:53Z**. Priority is true owner32GPU64GB fit, correct xHigh coding agent and source fidelity, NOT publisher charts.

@@ -1,5 +1,25 @@
 # Splash 1.6.0-m1 — 2021 M1 Max adoption safety and new Flint alternative
 
+# Splash 1.6.0-m1 — 2021 M1 Max adoption blocker progress
+
+**New checkpoint 2026-11-06T22:39:45Z**. [Strict watch](./RESEARCH-WATCH-2026-11-06-1739.md). All test cases below are **proposed** for owner, NOT authorized or run.
+
+## Updated status, November 6 17:39 EST
+
+- Original [Splash unofficial M1/M2 1.6.0-m1](https://github.com/paperniuk/splash/releases/tag/1.6.0-m1) release published **14:39Z**, source first report [#51](https://github.com/paperniuk/splash/issues/51) created16:22Z and **independent M1Max24GPU actual 23 new-row hang** already recorded in prior watch. New [#52](https://github.com/paperniuk/splash/pull/52) **created17:47:25Z, OPEN at cutoff**, patch restores per-segment instead of one fused `gguf_decode_mma_fused_m32` dispatch on Apple GPU family7/8 at prefill <=32 rows; specifically **17–32 final chunk problematic**.
+- Fresh evidence **M2 Max** original **ISTA GSQ Q2_0** incremental new1052 tail28 hangs on stock 1.6.0-m1, succeeds2.3s patched. Both GSQ Q2_0 and **Unsloth UD-IQ1_S** 30/30 warm sequence pass at patched PR head, `gguf-projection` and `linear-plan` Metal tests with/without shader validation passed. PR author's confirmed UD IQ1S run20:19Z; proposed fix not merged/published as of request.
+- Fresh [#51 21:49Z comment](https://github.com/paperniuk/splash/issues/51#issuecomment-6696652020) reports different **M1 Max64 Qwen3.8-27B Q8** using oMLX/Splash1.6.0-m1 first turn succeeds, next hangs, while native oMLX MTP succeeds. No evidence that this different bug is definitely same dispatch defect; independent release safety blocker.
+- Earlier release **M1Max64 QFN Q2 78.7 tok/s one-lane, 97.6 two-lane AGGREGATE,16.7KPP428** still not source original GSQXXS/S. Earlier Flint40B UD-Q4_K_XL M1Max **77TG single,94TG two-lane AGGREGATE, PP82216K**, 256K context support **NOT actually occupied**. Flint remains optional SECONDARY after quality proof.
+- Existing [Paperniuk Splash #47](https://github.com/paperniuk/splash/issues/47) original GSQ IQ3S 2022 **M1Ultra48GPU128GB** actually192KPP625/34TG and 262K boot selftest TIMEOUT is PRIOR REDISCOVERED evidence, **not owner32GPU64GB fit proof**.
+
+## Blocker exit criteria (only proposed)
+
+1. Fix merged to specific tagged M1 1.6 revision and binary SHA, independent **24/32GPU M1Max** as well as M2Max confirmation.
+2. Cold and warm new added rows 1/7/16/17/23/28/31/32/33/64/128 and mixed quant and homogeneous MLX/Original source; no hung HTTP503 or silent failure; verify complete API tool JSON responses.
+3. Native original **ISTA GSQ IQ3_XXS acceptance floor** hard xHigh agent tasks actual128/259K, compare previous physical Paperniuk DS4 **278/34.2** and**258/31.7**; before source IQ3_S high quality test, confirm 64GB memory swap and KV cache.
+4. With two independent Macs, compare 2 agent lanes vs split one model; no x2 memory illusion or per-lane vs AGGREGATE throughput mistake.
+5. No downloads/installs/builds/CI/hardware until separate HIGH approval. **Adoption blocked at cutoff, despite promising PR**.
+
 Source update at 2026-11-06T17:40:53Z; [strict watch](./RESEARCH-WATCH-2026-11-06-1240.md). Documentation ONLY: no approval for install/run/download/model replacement.
 
 ## Official release and physical numbers

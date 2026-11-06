@@ -1,5 +1,13 @@
 # Kapitsa × 2021 M1 Max — original QFN GSQ IQ3XXS/IQ3S feasibility (research-only)
 
+## November 6 2026 17:39 EST — latest Kapitsa gates, no source GSQ IQ3_S Flash-Next breakthrough
+
+[Strict watch](./RESEARCH-WATCH-2026-11-06-1739.md) cutoff 2026-11-06T22:39:45Z. No verified merged original GSQ IQ3_XXS/IQ3_S Qwen3.8-Flash-Next-specific expert converter/SSD cache despite older generic IQ3 kernels ([#311](https://github.com/nace-ai/kapitsa/pull/311), specialized Q2-only [#720](https://github.com/nace-ai/kapitsa/pull/720)). IQ3S source ~54.8GB transformer +128K KV~4.1GB or262K~8.1GB before macOS/scratch remains single64GB serious problem; physical M1Ultra128GB source original IQ3S true192K TG34 from old [Splash #47](https://github.com/paperniuk/splash/issues/47) is NOT single32GPU M1Max or262K proof.
+
+[Kapitsa new PR #1024](https://github.com/nace-ai/kapitsa/pull/1024) created18:57Z, `--idle-unload` default auto after10minutes **only when OS memory pressure**; on M5 Pro48GB other dense27B4bit idle footprint ~16GB→34–101MB and internalSSD reload1.7s, no decode change on 3×6 request sets. No source Flash-Next streamed-expert test, no paired 2Mac test (paired engine explicitly never auto unloads), PR OPEN. Its observed compressor 1.05–1.06x and RAM pressure explains why explicit safe OS memory headroom matters, not a way to run whole IQ3S resident. Older [issue947](https://github.com/nace-ai/kapitsa/issues/947) reports M3Max48 Q2 preset reaches budget38.6GB and fails even70 tokens while Splash handles80K; source publishedNov4 **REDISCOVERED older failure**, only comment within new window "ok thanks" not a resolved fix.
+
+Optional fast profile M5Pro48 QFNQ2 from PRIOR watch faster cold prefill7–10% and4/72 flipped top1, keep **precise** for xHigh source QA. 17:39 window had no new original source QFN M1 pass, no physical two M1 TB4 split, no proven IQ3S memory fit. Keep projected estimates low-confidence, targets unmeasured. No owner execution.
+
 ## November 6 2026 12:40 EST — fresh fast-mode result and M1 Ultra source comparator
 
 [Watch](./RESEARCH-WATCH-2026-11-06-1240.md) cutoff 2026-11-06T17:40:53Z. Kapitsa optional [fast profile #986](https://github.com/nace-ai/kapitsa/pull/986) merged15:46Z and [M5Pro source Q2 test #1021](https://github.com/nace-ai/kapitsa/pull/1021) new17:32Z: QFN **Q2_0**, 32K precise43.7sec→fast39.5s prefill and64K93.3→87.2s, 64K draft cycle59.4→57.5ms, 32K near tied. Teacher-forced fast changed4 of72 top1 /KL.008845 against precise; **not BF16 source xHigh quality**, heavy64K memory pressure, not user M1 Max. Keep precise default for fidelity. Native generic IQ3_XXS/IQ3_S kernels still not wired to original source QFN specialized Flash-Next GGUF/SSD expert path: no verified new source port.
