@@ -1,5 +1,16 @@
 # Project 51 — Model & Quant Candidate Radar
 
+## November 6, 2026 08:07 EST — fresh engine/quant-format support, not a new model release
+
+[Strict watch](./RESEARCH-WATCH-2026-11-06-0807.md) cutoff **2026-11-06T13:07:04Z**. **No new official Qwen4 open weights nor independently validated best new QFN quality quant discovered in this interval.** Prior model weights (Flint40B, Ripple65B, KimiK3.1, QFN Unsloth3.1) remain prior releases; source event != new model launch.
+
+- **Original pristine GSQ QFN variants:** [ISTA shard1](https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF) 47.0GB IQ3XXS /54.8GB IQ3S, plus SSD ngram28.8GB each. In [Kapitsa generic GGUF](https://github.com/nace-ai/kapitsa/blob/main/docs/usage.md) IQ expert kernels exist but **Flash-Next converter refuses these source expert types** ([#720](https://github.com/nace-ai/kapitsa/pull/720)); port feasibility [here](./KAPITSA-M1-MAX-QFN-FEASIBILITY.md). No source single-M1 IQ3S128/262K speed proof.
+- **Same-box source quant *performance* comparison** (not novel weights): [Basalt Nov6 commit](https://github.com/jesdga95/basalt/commit/bbc041852cf0cc02c7a48a01fdc83f7c5dfe619f) one other RTX5090 125GiB host: decode original GSQ IQ3S **431.1TG**, NVFP4 **369.3**, Q4_K_XL **219.6**, Q5_K_XL **162.4**, 64K PP respectively 9181/9866/8411/8215. No source task-grade quality comparison or owner GPU inference.
+- **Swift-1.5 Qwen3.8-27B imported GGUF fine-tunes**: [Kapitsa #987](https://github.com/nace-ai/kapitsa/pull/987) now attach catalog-shape DFlash2 drafter on import. Fine-tune model is older, new runtime functionality only; smaller coding-agent candidate, not QFN source replacement.
+- **Flint40B Q4K_M23.4GB + custom mixed IQ3S16.5GiB** remains plausible M1 secondary coder, but newly merged [Splash1.6](https://github.com/incoai/splash/releases/tag/1.6.0) adds broader memory-ledger/family portability, not validated new Flint source quality or changed model weights.
+- **New architecture research only:** [llama.cpp ClassLRU MoE cache](https://github.com/ggml-org/llama.cpp/commit/c4fb57969) and [Kapitsa M1 Ultra #993](https://github.com/nace-ai/kapitsa/pull/993) expert cap; neither implements user M1Max source IQ3S Flash-Next expert storage.
+
+
 **Research snapshot and cutoff:** 2026-11-05T21:29:03Z. [Strict source watch](./RESEARCH-WATCH-2026-11-05-1629.md). This catalog is research-only; it does NOT change accepted models or authorize downloads, installs, benchmarks, CI, spending or owner hardware.
 
 **Frozen targets:** One 2021 M1Max64 pristine ISTA GSQ QFN IQ3_XXS minimum quality, IQ3S original higher-quality stretch; actually filled128K278PP/34.2TG,259K258PP/31.7TG on original DS4 XXS. Two separate M1Max64 original IQ3S 128/262K and 3–5 correct durable xHigh agents remain unmeasured targets. PC first **ONLY pristine source GSQ IQ3_S official .basalt v2** on Linux one RTX5070Ti16 +64GB RAM/one slot32K/int8KV/spec1 under HIGH. RX6800 nonXT16GB VRAM ONLY16GB host.
