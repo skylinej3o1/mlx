@@ -1,5 +1,11 @@
 # Splash 1.6.0-m1 — 2021 M1 Max adoption safety and new Flint alternative
 
+## November 6 2026 23:34 EST — source patch endurance and upstream 1.6 prefix cache loss
+
+[Strict watch](./RESEARCH-WATCH-2026-11-06-2334.md) cutoff 2026-11-07T04:34:41Z. Splash fork [PR #52](https://github.com/paperniuk/splash/pull/52) updated **22:54:35Z** with an extended real agent session on contributor's **Unsloth UD-IQ1_S** patched branch: **2.5h,200 requests, ACTUAL up to236K context**, main+two subagents, **27 requests with 17–32 final prefill rows**, zero engine failures or restarts. On prior M2Max source Q2_0/UDIQ1S thirty-request regression each passed, a stock release hung with28-tail; **PR OPEN, no new packaged tag** as of cutoff. Hardware for new extended run not explicitly exact owner2021M1Max32GPU, and successful finished coding tasks not externally audited. No owner install/test authorization; release adoption remains blocked for pristine original GSQXXS/3S until published patched M1 binary and owner HIGH-gated acceptance.
+
+Separate [upstream Splash #706](https://github.com/incoai/splash/issues/706) **FRESH03:24Z** M5Max ohmypi 1.6.0 QFN agent input180830 cached179360 followed by input181614 cached **only14528** -> **164832 fewer prefix tokens reused**, repeated memory claims; downgrade1.5 report appears better. Author reports symptom, no confirmed root cause or independent repro, and not proof the M1 fork same path. **Add explicit prefix retention parity in 128/262K multiagent tests** and memory pressure/SSD read context. The upstream 1.6 broad 1.27× throughput M5 case is prior, not a guarantee of warm-turn reliability.
+
 # Splash 1.6.0-m1 — 2021 M1 Max adoption blocker progress
 
 **New checkpoint 2026-11-06T22:39:45Z**. [Strict watch](./RESEARCH-WATCH-2026-11-06-1739.md). All test cases below are **proposed** for owner, NOT authorized or run.

@@ -1,5 +1,9 @@
 # Source QFN tensor-level quant fidelity — new Nov 6 research gate
 
+## November 6 2026 23:34 EST — SAME-SIZE UD v3.1 versus pristine GSQ BF16 proximity data
+
+[Strict watch](./RESEARCH-WATCH-2026-11-06-2334.md) · [Basalt first-PC provenance and quality gate](./BASALT-UNSLOTH-V31-SOURCE-GATE.md) cutoff 2026-11-07T04:34:41Z. Source [maintainer #240](https://github.com/jesdga95/basalt/issues/240) newly scores 100×512 WikiText2 teacher-forced BF16 KL; **Wikitext2 scoring is not the imatrix/calibration dataset**. At **same total distribution size**, UD-IQ2_XS74.4GiB KL0.183/top1 86.21% versus original GSQ IQ3_XXS74.4GiB KL0.240/top1 84.03%; UD-IQ3_XXS81.6GiB KL0.119/top1 88.67% versus GSQ IQ3_S81.6GiB KL0.150/top1 87.56%. This is **vendor/source alignment proxy**, not finished-task superiority, and changes actual accepted quant/runtime source if promoted. Before user model switch require exact input `token_embd.weight` and IQ4NL PLE comparisons to understand where improvement comes from, BF16 heldout long coding, tool correctness and Apple7 resident cost. Original GSQ first PC pack dropped from Basalt publisher; source GGUF still separate. [native Basalt Q5_0 fix](https://github.com/jesdga95/basalt/commit/201e37e1a329d36bcfcaa6148a7adc6c2bb5bdd2) removes one-layer Unsloth tail blocker with no requant; no fresh post-fix TG speed claimed. Low-bit BF16 input embedding idea from [Strata #5433](https://github.com/Niko1221/Strata/pull/5433) is distinct, **unproven** for original pristine GSQ M1 memory.
+
 Snapshot 2026-11-06T22:39:45Z. [Strict watch](./RESEARCH-WATCH-2026-11-06-1739.md). **Proposal / research only. Does not authorize creating quant packs or running owner hardware.**
 
 ## Two apparently independent precision/performance bottlenecks
