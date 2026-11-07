@@ -1,0 +1,11 @@
+# M1 Max 64GB original GSQ IQ3_XXS — direct daily-driver evidence
+
+Snapshot 2026-11-07T13:52:05Z; [strict watch](./RESEARCH-WATCH-2026-11-07-0852.md). Source quant IS NOT custom Q4, Q2, AtomicChat or generic QFN.
+
+[JasonOSX exact user](https://github.com/paperniuk/ds4/issues/3): initial Oct29 web developer tested14 engines on M1Max64 and selected Paperniuk fork running pristine original GSQ IQ3_XXS for C/JS/HTML, calls intelligence/memory sweet spot. Different tasks/settings 22–24 or30–31TG. **Fresh Nov7 13:01Z** [follow-up](https://github.com/paperniuk/ds4/issues/3#issuecomment-6707271793) confirms 32GPU M1Max MacBook Pro, after update works pretty good, peaks29.8–29.9TG, task-dependent MTP changes decode. Exact positive independent practitioner, no audited task scores or weeks/months unattended.
+
+[Paperniuk exact device author field](https://paperniuk.github.io/blog/flash-next-on-m1-max/) Oct4 original GSQ XXS M1Max32GPU64 actually occupied128K278PP/34.2TG,259K258PP/31.7TG; OpenCode original XXS medians33.8TG0–64K,34.7TG64–128K,33.8TG128–192K,31.4TG192–256K, prefill282→260; 5min sustained35.1→35.0TG GPU~74–75C. Memory~57GiB at262K, minimal macOS spare. Report's total162 requests/max371K also includes Q2_0, not all source XXS. Sustained real OpenCode use but no externally audited hard coding completion.
+
+[Reddit M1Max64](https://www.reddit.com/r/oMLX/comments/1wij7wz/is_qwen_38_flash_next_usable_on_m1_ultra_64gb/) around20TG/200PP but quant unspecified; same thread another64GB Mac daily weeks 17–35TG Q4/Q8/F16 custom and unspecified chip. [M1Max24GPU64](https://www.reddit.com/r/oMLX/comments/1w2iu7o/qwen38flashnext_for_64gb_ram_mac_owners/) AtomicChat mixed~195PP/18TG64K. These confirm general model take-up but not extra exact GSQ XXS daily-driver owners.
+
+**Judgment:** YES independent owner plus author exact source quant device. Hardware true128–259K usability high; real satisfied owner moderate; widespread independent weeks-long 3–5 autonomous correct xHigh agents low/not measured. Mac long 262K resident~57GiB needs safe macOS wired/swap and single model. After separate HIGH, run real 1h xHigh coding edit,10+ tools/cancel/restart, actual16–259K, TTFT, TG, memory swap, completed tests; NOT authorized now.
