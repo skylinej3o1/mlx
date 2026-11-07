@@ -1,5 +1,9 @@
 # Kapitsa × 2021 M1 Max — original QFN GSQ IQ3XXS/IQ3S feasibility (research-only)
 
+## November 7 2026 12:45 EST — merged cancellation recovery, M4-only ANE quality counterexample
+
+[Watch](./RESEARCH-WATCH-2026-11-07-1245.md) cutoff 2026-11-07T17:45:29Z. [Kapitsa #1051](https://github.com/nace-ai/kapitsa/pull/1051) merged16:07Z other M3Ultra96 Qwen3.5-4B/35B, cancelled 15K prefill retry cached0→2051, client4B7.77→6.87 and35B6.56→5.83s, 584 bitwise matching output rows per model, not M1 original QFN. [Kapitsa #775](https://github.com/nace-ai/kapitsa/pull/775) merged14:33Z M4Pro 9B4bit ANE loaded4135 TTFT8.598→3.272s -61.94%, W8A8 changes logits, M3Ultra KL gate failed and **M1/M2/M3 explicitly excluded**. No old M1 uplift projection. [Kapitsa #1055](https://github.com/nace-ai/kapitsa/pull/1055) merged17:17Z CPU expert handshake ordering only. Original GSQ IQ3_S/XXS Flash-Next GGUF expert loader still not available, physical dual M1 TB4 original source split unmeasured. No owner execution.
+
 ## November 7 2026 08:52 EST — Kapitsa cancel/SSD prefix candidates, NO original GSQ IQ3 QFN loader
 
 [Watch](./RESEARCH-WATCH-2026-11-07-0852.md) cutoff 2026-11-07T13:52:05Z. FRESH DRAFT [#1051](https://github.com/nace-ai/kapitsa/pull/1051) other M3Ultra4B cancelled continuation 0→2051 prefix reused, unverified old M1 QFN and retaining KV allocation can pressure64GB. FRESH DRAFT [#1050](https://github.com/nace-ai/kapitsa/pull/1050) SSD DFlash2 shared prefix kPrefix, preliminary older M5Pro 17K restored but GPU integration not actually run. [#1041](https://github.com/nace-ai/kapitsa/pull/1041) malformed affine MTP sidecar validation, not source original PLE. Specialized source GSQ QFN IQ3_XXS and IQ3_S GGUF expert kernels NOT wired despite generic MoE IQ3 Metal; still no dualTB4 actual128/262K source. Single64GB GSQ IQ3S54.8GB transformer plusKV4.1GB128K/8.1GB262K before macOS and Metal, stretch. No owner device changes.

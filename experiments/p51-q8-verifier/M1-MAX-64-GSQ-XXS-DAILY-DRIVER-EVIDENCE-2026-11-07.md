@@ -1,5 +1,9 @@
 # M1 Max 64GB original GSQ IQ3_XXS — direct daily-driver evidence
 
+## November 7 2026 12:45 EST — no fresh exact M1 GSQ XXS happy user, current adoption caution
+
+[Watch](./RESEARCH-WATCH-2026-11-07-1245.md) cutoff 2026-11-07T17:45:29Z. Earlier [JasonOSX user](https://github.com/paperniuk/ds4/issues/3#issuecomment-6707271793) tested14 engines and prefers pristine GSQ XXS exact M1Max32GPU64, peak29.9TG and works pretty good; [Paperniuk physical field](https://paperniuk.github.io/blog/flash-next-on-m1-max/) original XXS true128K278PP34.2TG /259K258PP31.7TG and real OpenCode31-35TG, approx57GiB working set at262K. Still most credible single-M1 daily-use foundation, but no NEW independent multiweek exact xHigh cohort in this window. New Splash [#713](https://github.com/incoai/splash/issues/713) other64GB Apple GSQ XXS expert-memory auto KV exhaustion both1.5 and1.6 at certain startup conditions is NOT direct DS4 regression; [M1 dense27B Q5 cached thinking hang #54](https://github.com/paperniuk/splash/issues/54) is different quant/model. Before replacing DS4 XXS require same physical original source long filled and full executed tool workflow, memory/resident and session integrity.
+
 Snapshot 2026-11-07T13:52:05Z; [strict watch](./RESEARCH-WATCH-2026-11-07-0852.md). Source quant IS NOT custom Q4, Q2, AtomicChat or generic QFN.
 
 [JasonOSX exact user](https://github.com/paperniuk/ds4/issues/3): initial Oct29 web developer tested14 engines on M1Max64 and selected Paperniuk fork running pristine original GSQ IQ3_XXS for C/JS/HTML, calls intelligence/memory sweet spot. Different tasks/settings 22–24 or30–31TG. **Fresh Nov7 13:01Z** [follow-up](https://github.com/paperniuk/ds4/issues/3#issuecomment-6707271793) confirms 32GPU M1Max MacBook Pro, after update works pretty good, peaks29.8–29.9TG, task-dependent MTP changes decode. Exact positive independent practitioner, no audited task scores or weeks/months unattended.
