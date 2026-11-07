@@ -1,5 +1,9 @@
 # Project 51 — Basalt Unsloth Dynamic3.1 versus source GSQ: quality, distribution & owner-first PC blocker
 
+## November 7 2026 07:18 EST — 28.8GB common PLE controls quality comparisons
+
+[PLE artifact note](./QFN-CROSS-QUANT-PLE-SHARING-2026-11-07.md) · [strict watch](./RESEARCH-WATCH-2026-11-07-0718.md) cutoff 2026-11-07T12:18:52Z. FRESH [Strata #5479](https://github.com/Niko1221/Strata/pull/5479) original ISTA 2-shard source `per_layer_token_embd.weight` PLE shard2 and Unsloth v3.1 4-shard PLE shard4 IQ4NL payload have matching SHA; split.count/no metadata differs, draft loader exemption enables hardlink same28.8GB tensor across 2/3/4 model splits; one on-hardware Strata0.2.11 generation reported. This is **source PLE payload immutability**, not equal transformer/model quality, not an independently verified Apple Metal loader, and no saving of active KV or source IQ3S 64GB safe RAM; saves **disk and download bytes** per extra quant if loader supports. Original pristine GSQ IQ3S formerly official .basalt v2 still supply blocked absent older verified copy, unchanged user frozen first-PC requirement. Prior Basalt-source 100×512 WikiText2 BF16 KL (UD2XS .183 vs GSQXXS .240, UD3XXS .119 vs GSQS .150) not xHigh task success; compare exact common PLE, source BF16 oracle and long tool outcomes after HIGH, no auto Unsloth substitution. No source pack changes executed.
+
 **Cutoff:** 2026-11-07T04:34:41Z. [Strict watch](./RESEARCH-WATCH-2026-11-06-2334.md) · [tensor fidelity](./QUANT-TENSOR-FIDELITY-2026-11-06.md) · [Basalt first PC](./BASALT-FIRST-PC-PLAN.md). **Research only. No authorization to download, convert, bench, install, CI or change owner model.**
 
 ## 1. Critical provenance: Basalt publisher has removed frozen official original-GSQ packs

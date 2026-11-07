@@ -1,5 +1,11 @@
 # Splash 1.6.0-m1 — 2021 M1 Max adoption safety and new Flint alternative
 
+## November 7 2026 07:18 EST — independent M1 patch success and separate upstream 180K cache-loss repro
+
+[Strict watch](./RESEARCH-WATCH-2026-11-07-0718.md) cutoff 2026-11-07T12:18:52Z. [M1 fork issue#51](https://github.com/paperniuk/splash/issues/51) fresh11:33Z independent user compiling Apple7/8 PR#52 says it works again; fresh11:56Z different M1 Max32GB user says STOCK1.6.0-m1 unusable and rollback1.5.0. [PR#52](https://github.com/paperniuk/splash/pull/52) still OPEN, no new tagged M1 build; previous author patched daily UD-IQ1S 200requests actual236K/27 small17–32 row tails/0 crashes. No pristine source GSQXXS/S physical owner M1Max32GPU or finished agent quality proof. Adoption still BLOCKED.
+
+[Upstream #706](https://github.com/incoai/splash/issues/706) second independent M5Ultra96GB Q3KXL MoE real179K agent shows warm cached178944→next cached0, TTFT147.7sec; no expert memory claim lines, entire model in memory, 172K plain HTTP controlled repeat cached172512 and TTFT0.4–0.8sec, downgrade1.5 solved agent. Real cancellation/tool/session flow implicated but root cause not proven; M1 fork transfer unverified. Add honest warm-prefix retained fraction, canceled output, slot wait, true long input and completed tool work to future HIGH acceptance. No owner action.
+
 ## November 6 2026 23:34 EST — source patch endurance and upstream 1.6 prefix cache loss
 
 [Strict watch](./RESEARCH-WATCH-2026-11-06-2334.md) cutoff 2026-11-07T04:34:41Z. Splash fork [PR #52](https://github.com/paperniuk/splash/pull/52) updated **22:54:35Z** with an extended real agent session on contributor's **Unsloth UD-IQ1_S** patched branch: **2.5h,200 requests, ACTUAL up to236K context**, main+two subagents, **27 requests with 17–32 final prefill rows**, zero engine failures or restarts. On prior M2Max source Q2_0/UDIQ1S thirty-request regression each passed, a stock release hung with28-tail; **PR OPEN, no new packaged tag** as of cutoff. Hardware for new extended run not explicitly exact owner2021M1Max32GPU, and successful finished coding tasks not externally audited. No owner install/test authorization; release adoption remains blocked for pristine original GSQXXS/3S until published patched M1 binary and owner HIGH-gated acceptance.
