@@ -1,0 +1,39 @@
+# Project 51 — Strict research watch — November 8, 2026, 9:38 p.m. EST
+
+**Previous cutoff:** 2026-11-08T21:35:14Z. **New user request and NEXT STRICT cutoff:** 2026-11-09T02:38:09Z. FRESH=source issue/PR/release newly created during (2026-11-08T21:35:14Z,2026-11-09T02:38:09Z]; UPDATED OLD=new comment/status on older artifact; ANALOGUE=other hardware/model/quant; REDISCOVERED=older source first noticed now; NEGATIVE=not established in checked sources. Primary GitHub REST issue, PR, comment, commit and release sources checked for Basalt, Strata, TensorFold, Paperniuk and upstream Splash, Kapitsa, other Metal/MLX backends, plus official Qwen/HF model catalog. No owner hardware, model download, build, CI, inference or automation.
+
+**Owner frozen:** TWO independent 2021 M1 Max 32GPU/64GB (not coherent128GB), ISTA original GSQ-RCO QFN IQ3_XXS minimum coding quality, IQ3_S desired/stretch; published physical Paperniuk DS4 exact original XXS ACTUALLY128K PP278/TG34.2 and259K PP258/TG31.7. DUAL M1 pristine IQ3S actual128K PP>=425/TG>=40 and262K PP>=400/TG>=35 plus3–5 independently correct xHigh code agents remain UNMEASURED. Owner main Linux CoreUltra7 265F RTX5070Ti16GB/64GB DDR5 first HIGH-gated pristine original IQ3_S official Basalt v2 one32K/int8KV/spec1 CPU-double and finished Codex tools; historical HF pack indexed with SHA but full current bytes/untuned-v-tuned MTP NOT verified. RX6800 NON-XT has only16GB HOST.
+
+## FRESH QFN full coding task reliability counters fast microbenchmark
+
+[Strata#5615](https://github.com/Niko1221/Strata/issues/5615) created Nov8 22:18Z. OTHER RX7900XTX24GB via OCuLink4x NAS+64GB HOST, QFN native IQ3_XXS pack (exact HF source revision not pinned), Strata0.2.12, tuned Q4 DFlash2 conf0.7 vs MTP. On short three-prompt quiet test, decode92.6 vs83.0 tok/s (+11.6%). On FULL114-task natural length suite (102 graded): MTP vs DFlash2 decode75.6 vs76.1 tok/s, output72,321 vs92,268 (+27.6%), wall1,430 vs1,660 sec (+16.1%), graded pass98/102 vs96/102 and only51/114 identical greedy answers; German story slower with DFlash. Seven needle tests at actually32K/128K/250K pass, unrelated to full tasks. HIP verification/window differences could explain changes, so DO NOT claim drafter intrinsically harms target correctness; BUT no short TG promotion without real executed agent task quality and wall time. No owner M1 inference.
+
+## FRESH multiagent long parent cache destruction and proposed opt-in borrow
+
+[Strata#5612](https://github.com/Niko1221/Strata/issues/5612) created Nov8 21:37:33Z just after previous cutoff. OTHER four RTX3090 Linux layer split, QFN Unsloth UD-IQ4XS, main137,090 tokens actual, subagent29,890 matches only8,192 shared-tool checkpoint. Stock staged cache takes donor instead of borrowing and throws away main's deep checkpoints; next parent A2 actual137,629 tokens reuses only8192 (5.9%), TTFT23.6 sec. Proposed STRATA_PARK_BORROW=1 preserves donor, parent reuses137,292 (99.8%), TTFT0.67 sec; borrow disabled on same revised branch TTFT23.0. Only one A/B per arm, reply hashes differ even before borrow, so output numerical/task identity NOT demonstrated; 4960 unit +2 server logging tests, no Apple M1. This is relevant to 3–5 long subagents, but not a ready Metal optimization.
+
+## FRESH immutable host K/V pooling differs from full recurrent state
+
+[Strata PR#5623](https://github.com/Niko1221/Strata/pull/5623) created Nov9 02:33:33Z, CUDA/HIP opt-in sharing refcounted completed4096-token pinned HOST K/V prefix chunks between sessions/snapshots with COW. Partial tails, GDN recurrent state, sparse indexer and MTP draft remain private, so no full agent checkpoint or cross-Mac shared unified memory. CUDA RTX4060 10 native,119 protocol,20 windows and4 co-prefill cases; HIP build, NO real fully occupied262K agent test/old Apple Metal port. Pool must hold at least one context and can 503 on resource limit. Cache correctness before RAM reduction.
+
+## UPDATED OLD exact 2021 M1Max32GPU64 Splash1.6 cold shader compilation root cause
+
+[Paperniuk Splash#51](https://github.com/paperniuk/splash/issues/51) NEW firsthand comment Nov9 00:30Z, actual 2021 M1 Max32GPU64 QFN FlashNext Swift1.5 GSQ-RCO IQ3XXS variant and DFlash2. Repeated 17–32-row prefill-tail native stall sampled in MTLCompilerScheduler: uncached gguf_decode_mma_fused_m32 takes **217.6 sec** to compile while engine watchdog restarts at **30 sec**, so failed tail retries never warm shader. Two sets of8 tiny coding/edit/test tasks:
+| Stock/patch | Cold m32? | Requests | Tails | Native fails | Tasks completed |
+|---|---|---:|---:|---:|---:|
+| Stock Splash1.6.0-m1 | cold |42|8|4|6/16|
+| Stock Splash1.6.0-m1 | precompiled once 218sec |113|30|0|16/16|
+| Stock + [PR#52](https://github.com/paperniuk/splash/pull/52) | already warm |100|35|0|15/16|
+One patch-run failed model file write, not crash. PR52 row already warm, so NOT independent cold-cache M1 patch success; prior M2Max cold patch testing exists. Swift1.5 exact weight SHA not given, short task decode ~57–61 tok/s is NOT physically full128/262K or weeks-long xHigh. This identifies a compiler/watchdog pathology, not an intrinsic GSQXXS capacity limit. Stock Splash1.6 remains BLOCKED for unattended owner use. [Upstream Splash#715](https://github.com/incoai/splash/issues/715) UPDATED OLD new Nov9 02:12/02:30Z comments on DIFFERENT M4Pro16GPU dense27B: tiny prompt hangs in MTLCompilerScheduler even with ANE disabled, not same m32 but supports compiler/pipeline diagnosis.
+
+## FRESH dense27B DSpine native Metal draft is currently inferior to DFlash2 on sample
+
+[TensorFold Metal DSpine#2634](https://github.com/ashhart/TensorFold/pull/2634) created Nov9 01:22Z, DRAFT, M3Pro DENSE Qwen3.8-27B 4bit, not sparse QFN source. Per-target-step acceptance DFlash2 vs DSpine: agent4.92 vs3.88, code13.38 vs12.59, primes10.75 both, poem2.75 vs1.83; 4 prompts, one stream, served dispatch NOT yet complete, no T1/xHigh agent outcome. [CUDA#2633](https://github.com/ashhart/TensorFold/pull/2633) on GB10 real served draft decode: agent T0 DSpine64.3 vs DFlash2 54.8 (+17%), T1 57.1 vs51.6 (+11%), but chat63.8 vs68.3 (-7%), code55.0 vs57.9 (-5%) at T0. Earlier Python acceptance +51–59% was different estimated model/verification cost, not final GPU speed. No old M1 qualified and NOT QFN drafter.
+
+## FRESH tagged release and external benchmark context
+
+[Kapitsa v0.2.32](https://github.com/nace-ai/kapitsa/releases/tag/v0.2.32) published Nov8 23:13Z, Ollama API/cancellation recovery/selected CPU Q4 conversion and M5 changes; no native pristine original GSQ IQ3XXS/S on 2021 M1Max at occupied128/262K. [Kapitsa#1086](https://github.com/nace-ai/kapitsa/pull/1086) Q4 CPU row PACKING routine faster 89–92% on M3Ultra/M4Pro, no overall model decode gain; [#1087](https://github.com/nace-ai/kapitsa/pull/1087) CPU Q4 decode −69–88% DRAFT no GPU qualification. [Basalt#295](https://github.com/jesdga95/basalt/pull/295) two RTX5080 16GB/247GiB HOST QFN NVFP4 355 tok/s decode, fresh16KPP5725/64KPP8763, completely different from one user5070Ti16/64GB original IQ3S. [Strata#5618](https://github.com/Niko1221/Strata/pull/5618) V100/P40 original IQ3S 262K CONFIGURED but only16K occupied standard performance, no hard coding xHigh. No official new downloadable Qwen4 weights substantiated, Qwen3.8 FlashNext is an architecture preview, not Qwen4 weight release.
+
+**Decision:** user two M1 Max pristine source GSQXXS DS4 true128/259K still strongest deep real baseline; stock Splash1.6 unsafe when cold shader. Prefer agent task and cache correctness over raw TG or draft acceptance. Dual original IQ3S128/262K and3–5 correct xHigh goals remain UNMEASURED. First PC IQ3S frozen source/full tool HIGH only, historical pack bytes still unverified; no owner machine changes.
+
+**Next strict cutoff 2026-11-09T02:38:09Z.**
