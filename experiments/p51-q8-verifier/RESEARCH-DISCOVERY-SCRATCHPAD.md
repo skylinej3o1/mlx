@@ -1,3 +1,22 @@
+# Ranked Project51 discovery seeds — November 9 13:05 EST
+
+## November 9, 2026 13:05 EST — first measured dense27B CUDA→Mac Relay analogue and new draft ecosystem
+
+[Strict watch](./RESEARCH-WATCH-2026-11-09-1305.md) · [Relay deep dive](./RELAY-DENSE27B-GB10-M5-2026-11-09.md) · [model radar](./RESEARCH-MODEL-QUANT-RADAR.md). Previous verified cutoff 2026-11-09T02:38:09Z; new strict cutoff 2026-11-09T18:05:38Z. FRESH [TensorFold#2648](https://github.com/ashhart/TensorFold/pull/2648) actual dense27B GB10→M5Max ConnectX prefill handoff,120832 tokens TTFT385.3→136.4sec, seven turns468.7→208.7sec, but GB10 alone faster and teacher-forced correctness1/5 FAIL. NOT owner CUDA5070Ti→M1 QFN Relay. FRESH [llama.cpp#31941](https://github.com/ggml-org/llama.cpp/pull/31941) DSpine draft port OPEN, CPU/CUDA/HIP/Vulkan parity, no M1 Metal. FRESH [Kapitsa#1107](https://github.com/nace-ai/kapitsa/pull/1107) dense27B retrained16-row DFlash2 M5Pro ~8% TG in2/3 rounds, M3Pro~3%, no M1. FRESH [Strata#5675](https://github.com/Niko1221/Strata/issues/5675) M5Ultra sourceGSQIQ3S short/4K/16K146.2/135.8/124.9TG and UD-IQ4XS residency stream 65→127 at16K, not owner. FRESH [Strata#5674](https://github.com/Niko1221/Strata/issues/5674) Metal two-request batch-MTP crash. FRESH [TensorFold#2686](https://github.com/ashhart/TensorFold/pull/2686) warm prompt chunk/tool-result/reasoning parity, unproven served loop. FRESH [Basalt#303](https://github.com/jesdga95/basalt/issues/303) OTHER 4x5070Ti OpenCode concurrent title request PP3402→520-897, not owner source quant. FRESH [Basalt#306](https://github.com/jesdga95/basalt/pull/306) OTHER 5070Ti i1-IQ3S142.9TG/PP4427 at16K NOT original ISTA. NEGATIVE no independently verified official downloadable Qwen4 weights in checked primary artifacts. Owner exact M1Max source GSQXXS physically128K278PP34.2TG and259K258PP31.7TG holds, two separate64GB Macs, dual original IQ3S and3–5 correct xHigh not measured. Frozen owner first-PC original IQ3S official historic pack byte proof still unverified. No owner device/CI/download actions.
+
+
+|Rank|Lead|Next gate|
+|---|---|---|
+|1|TensorFold #2648 dense27B GB10→M5 Relay TTFT 385.3→136.4s|Fix 1/5 failed parity, inventory state, test Apple7+TB4 feasibility|
+|2|llama.cpp #31941 DSpine 27B new draft PR|Metal implementation and held-out code-task performance|
+|3|Strata #5674 M5Ultra batched MTP crash|Don't enable multiagent batch MTP until corrected|
+|4|TensorFold #2686 warm-next-turn prompt parity|Multi-turn real tool-use replay|
+|5|Kapitsa #1107 dense27B retrained DFlash2|M1 exact task baseline and fidelity|
+|6|Official Qwen4 weights NOT verified|Actual model source manifest, architecture, fit|
+
+## Prior scratchpad
+
+
 # Ranked Project51 discovery seeds — November 8 21:38 EST
 
 [Watch](./RESEARCH-WATCH-2026-11-08-2138.md). Previous 2026-11-08T21:35:14Z, next strict 2026-11-09T02:38:09Z. Frozen two independent M1Max32GPU64 source GSQ IQ3XXS min/IQ3S stretch, true source XXS DS4 128K278PP34.2TG,259K258PP31.7TG, dual IQ3S128/262K and3–5 correct xHigh UNMEASURED; owner Linux 5070Ti16/64GB source GSQIQ3S first32K full tools HIGH.
