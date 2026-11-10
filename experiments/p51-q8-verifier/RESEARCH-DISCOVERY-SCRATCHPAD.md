@@ -1,3 +1,20 @@
+# Active research leads November 10 14:19 EST
+
+## Nov 10 2026 14:19 EST — M1–M4 FlashNext kernels, oMLX DFlash2, GSQ quant A/B, KQuant catalog and Relay mixers
+
+[Strict watch](./RESEARCH-WATCH-2026-11-10-1419.md) · [Apple7 Metal focus](./QFN-APPLE7-METAL-2026-11-10.md) · [GSQ/KQuant/Relay detailed](./GSQ-KQUANT-RELAY-2026-11-10.md). Prior 2026-11-10T14:55:03Z; NEW STRICT CUTOFF **2026-11-10T19:19:15Z**. FRESH [TensorFold#2784](https://github.com/ashhart/TensorFold/pull/2784) QFN MLX4 group32 M3Ultra grouped expert decode window≥5 copy256.6→276.3TG +7.7%, code/prose flat, hashed exact; applies in theory M1–M4 but **NO M1 SOURCE GSQ experiment**. FRESH [TensorFold#2760](https://github.com/ashhart/TensorFold/pull/2760) scale index16bit M3Ultra code192.6→197 (+2.3%), but +7.3GiB RAM and+4s load before original arrays freed; no source GGUF. FRESH [oMLX#5158](https://github.com/jundot/omlx/pull/5158) adds QFN paired DFlash2 and PLE rollback, M4Max screenshot not controlled; [oMLX#5160](https://github.com/jundot/omlx/pull/5160) better short request chunk fairness on M5Pro, not owner. FRESH [Strata#5728](https://github.com/Niko1221/Strata/pull/5728) and [#5732](https://github.com/Niko1221/Strata/pull/5732) SAME RTX508016/127GB host source ISTA GSQ IQ3S short78.7/4K72.6/16K70.8TG vs XXS89.6/79.9/79.1TG; PPXXS slower and wide/noisy, configured262K not physically tested, not original .basalt spec1. FRESH [Kapitsa#1153](https://github.com/nace-ai/kapitsa/pull/1153) MERGED17:59Z opt-in dense27B 4bit KQuant with KL0.0349 vs0.0544, sampled TG72.5 vs80.0 slower, greedy91 vs82.8 faster on M5Pro, DFlash2 mismatched post-catalog. FRESH [TensorFold#2791](https://github.com/ashhart/TensorFold/issues/2791) stripped reasoning on client 34K cache resume collapses34.3K→7.4K TTFT0.2→84–86s, model dense27B M3Ultra; agent serialized history correctness. FRESH [vLLM#66870](https://github.com/vllm-project/vllm/pull/66870) QFN GDN/QSA whole mixer replication inter-node RTX PRO6000 25GbE TP2 conc32 +33% throughput, TP4+49% but QSA rank ordering not deterministic and no cross-rank parity; NOT CUDA5070Ti→M1 Relay. FRESH [TensorFold#2761](https://github.com/ashhart/TensorFold/issues/2761) dense27B M5Max128 swapping 262K startup reserves67.3GB and panic, memory admission critical. NEGATIVE no official Qwen4 true downloadable checkpoint, original Gosset gated decode unverified, no M1 old original GSQ new actual owner device. Owner two M1Max32GPU64 sourceGSQXXS minimum, DS4 physically128K PP278/TG34.2 &259K PP258/TG31.7 unchanged, dualGSQIQ3S targets and3–5 correct xHigh remain UNMEASURED. Owner PC pristine GSQ IQ3S Basalt spec1 INT8KV actual32K full tool parity HIGH only; secondary RX6800 nonXT host16GB. No hardware actions.
+
+|Rank|Seed|Next evidence gate|
+|---|---|---|
+|1|M1–M4 TensorFold #2784 grouped decode|Apple7 source original GSQ XXS port and true128/259K hard tasks|
+|2|KQuant dense27B now catalog|same DFlash2, M1 Q4/Q5 versus KQuant coding success +wall|
+|3|QFN original GSQ XXS vs S controlled Strata|PC Basalt first original IQ3S spec1 full tools, don't conflate engine|
+|4|Multiagent lost reasoning cache #2791|End last user prompt state and sample serializations with tool calls|
+|5|vLLM QFN mixer replication |Cross-rank canonical order and actual QSA/GDN numeric parity, not old Relay|
+|6|Qwen4 official / Gosset runtime|True official weight manifest and independently loadable model|
+
+## Previously ranked leads and earlier scans
+
 # Active ranked leads — Nov10 09:55 EST
 
 ## Nov 10 2026 09:55 EST — new NVFP4 KV, KQuant quality, QFN indexed Metal, agent KV prefix sharing
