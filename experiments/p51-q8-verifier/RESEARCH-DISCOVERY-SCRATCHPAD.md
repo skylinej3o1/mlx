@@ -1,3 +1,20 @@
+# Active ranked leads — Nov10 09:55 EST
+
+## Nov 10 2026 09:55 EST — new NVFP4 KV, KQuant quality, QFN indexed Metal, agent KV prefix sharing
+
+[Strict watch](./RESEARCH-WATCH-2026-11-10-0955.md) · [Basalt fidelity detail](./BASALT-NVFP4-KV-2026-11-10.md) · [Metal quant/cache detail](./METAL-KQUANT-KV-SHARE-2026-11-10.md). Previous 2026-11-10T11:47:57Z; new strict cutoff **2026-11-10T14:55:03Z**. FRESH [Basalt#314](https://github.com/jesdga95/basalt/pull/314) OPEN other 2×RTX5080 NVFP4 KV QSA saves262K elastic memory3.30→1.98GiB but vs INT8 PP64K8051→6389 and conv TG205→174, BF16-KLD 0.0667→0.0844, top1 91.71→90.77%, do NOT change frozen source GSQ IQ3S first-PC INT8/spec1. FRESH [Kapitsa#1151](https://github.com/nace-ai/kapitsa/pull/1151) OPEN dense27B KQuant KL0.0544→0.0349, top1 91.2→92.9%, GSM8K not significant, **speed held due missing MTP config**; new 35B-A3B separate KQuant record [#1148](https://github.com/nace-ai/kapitsa/pull/1148) MERGED and catalog [#1149](https://github.com/nace-ai/kapitsa/pull/1149) OPEN/private repo. FRESH [TensorFold#2751](https://github.com/ashhart/TensorFold/issues/2751) QFN MLX4/32 16bit scales+bias indices 10% fewer weight bytes, M3Ultra drafted +3.2% but prototype +7.3GiB resident (not old M1 feasible yet). FRESH [TensorFold#2756](https://github.com/ashhart/TensorFold/pull/2756) OPEN dense27B complete immutable KV prefix pages shared between agent checkpoints; host tests only, device M3/M5 pending. UPDATED OLD [TensorFold#2725](https://github.com/ashhart/TensorFold/pull/2725) M5Ultra cache-filled prefill TTFT−3.5%/−5.9% with 360 token hashes equal, READY-TO-LAND comment but still OPEN. UPDATED OLD [Basalt#282](https://github.com/jesdga95/basalt/pull/282) older Windows 5070Ti source GSQIQ3S true120K spec4 staging72→76.9TG, FRESH Nov10 quality comment KLD 0.21948→0.22074, top1 87.90→87.82%; never first frozen 32K/spec1. FRESH [Basalt#313](https://github.com/jesdga95/basalt/issues/313) OTHER 5090 183GiB host high Q6/Q8 864K needle retrieval (not xHigh); cgroup caps can collapse TG95→6. [antirez DS4#1340](https://github.com/antirez/ds4/pull/1340) OPEN chunk-aligned continued checkpoint cuts redo5307→1211 tokens on OTHER DeepSeek V4, not old M1 source QFN. NEGATIVE no verified official Qwen4 weights; third-party Qwen4-named placeholders not releases. Gosset decoder/physical load unverified, no new qualifying model. Owner 2×separate M1Max32GPU64 source originalGSQXXS physical128K278PP34.2TG and259K258PP31.7TG historical; dual sourceIQ3S and 3–5 correct xHigh agent UNMEASURED, AMD RX6800 nonXT host16GB. No owner machine action or benchmark, HIGH approval remains enforced.
+
+|Rank|Discovery|Evidence/next necessary check|
+|---|---|---|
+|1|KQuant dense27B fidelity|Need complete runtime/MTP config and M1 difficult agent outcomes|
+|2|Basalt NVFP4 KV|Savings verified on dual5080 but KLD/top1 and TG worse; first PC unchanged|
+|3|TensorFold 27B immutable KV-prefix pages|M3/M5 device test and cross-agent state correctness unrun|
+|4|TensorFold QFN MLX scale index|Preliminary +3.2% TG but +7.3GiB until prompt-index frees originals; not source GSQ|
+|5|Basalt source GSQ expert staging|Older 72→76.9TG true120K spec4, newly smaller sample top1/KLD slight worse|
+|6|Qwen4 official / Gosset|No source verified released Qwen4 or loadable Gosset M1/PC checkpoint|
+
+## Archived prior discovery seeds
+
 # Active ranked leads — Nov 10 06:47 EST
 
 ## Nov 10 2026 06:47 EST — Splash1.6.1 proposal, concurrent agent cache, dense27B drafts & quant residency

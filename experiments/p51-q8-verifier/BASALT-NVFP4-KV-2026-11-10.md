@@ -1,0 +1,13 @@
+# Basalt QFN NVFP4 KV versus original GSQ first-PC and staged experts — Nov 10 09:55 EST
+
+[New PR#314](https://github.com/jesdga95/basalt/pull/314) created Nov10 13:42Z OPEN; [older PR#282](https://github.com/jesdga95/basalt/pull/282) Nov10 12:16Z comment; [issue#313](https://github.com/jesdga95/basalt/issues/313) Nov10 12:01Z. Last source cutoff 2026-11-10T11:47:57Z, new 2026-11-10T14:55:03Z.
+
+**NOT owner equivalence:** NVFP4 KV results obtained on KVM dual RTX5080 300W / EPYC 184GiB host, 123.3GiB NVIDIA NVFP4-DQ8 QFN, 262144 ctx CONFIGURED/spec8. Exact source original ISTA GSQIQ3S PC on Linux Core Ultra7 265F/5070Ti16/64GB has NOT run in owner environment; frozen first run spec1 disables all draft.
+
+**NVFP4 vs INT8**: native K/V E2M1 with E4M3 scale per16, QSA attention only, q4_0 equal row byte footprint; measured whole-cache int8 12672 B/pos and nvfp4 6912 B/pos, 262K elastic tail 3.30 vs1.98GiB. Prompt at64K int8 8051 vs nvfp4-mode5 6389t/s. mode5 improves only fp4 fallback5134t/s, not int8. Conversation TG int8 205 vs fp4 174; spec draft acceptance reduced (struct98.2→91.2%, conv74.5→70.8%, prose68.3→66.9%). BF16 reference 100x500 WikiText2 scored chunks KLD int8 0.0667 vs q4_0 0.0782 vs nvfp4 0.0844, top1 91.71 vs90.92 vs90.77. This is a credible measured speed/quality loss for memory savings, not a new high-performance default.
+
+**Original source staging**, different Windows box i7 12700K/RTX5070Ti16/64GB: historical [#282](https://github.com/jesdga95/basalt/pull/282) adapt-swaps12, spec4, true~120K 72.0→76.9tok/s if GPU stages CPU misses, quality source base different path. New Nov10 12:16 comment reports 20chunk 5100 row KLD mean0.21948→0.22074, top1 87.90→87.82%, *Q8 reference not BF16*, slight numerical change, not no-loss. Don't add gains from unrelated independently optimized PRs, source pack or user CPU, or generalize spec4 to spec1.
+
+**New high RAM long context** [Basalt#313](https://github.com/jesdga95/basalt/issues/313): RTX5090/183GiB RAM Q6_K_XL and Q8 physically 864224 input token needle found; not source GSQ, not 16GB RAM. cgroup4GiB clamp can disable resident experts, 6t/s vs95t/s despite high free memory; valuable owner checklist for Docker/cgroups and page-lock limits. YaRN×2 penalized unrelated short exam, so don't turn it on by default.
+
+Preserve exact approved plan: pristine official historical GSQIQ3_S Basalt file revision pinned and hash verified, no quantization or PLE edit, one 32K actually occupied, INT8 KV spec1/no draft, CPU double numerical and executed coding-tool tests; subsequent A/B spec4 and all KV compression separate HIGH approvals.
