@@ -1,3 +1,20 @@
+# Active ranked leads — Nov 10 06:47 EST
+
+## Nov 10 2026 06:47 EST — Splash1.6.1 proposal, concurrent agent cache, dense27B drafts & quant residency
+
+[Strict watch](./RESEARCH-WATCH-2026-11-10-0647.md) · [Splash/M1 note](./SPLASH-161-M1-RESIDENCY-2026-11-10.md) · [Dense27B DSpine+Relay](./DENSE27B-DSPINE-RELAY-2026-11-10.md). Prior 2026-11-09T18:05:38Z; next strict cutoff **2026-11-10T11:47:57Z**. FRESH [Splash#733](https://github.com/incoai/splash/pull/733) 1.6.1 ENGINE OPEN/unreleased, cold shader warmup, long-context memory-wall/SSD watchdog and prompt-cache fixes, optional PLE streams28.8GB through≤237MiB (M5 Pro TTFT +0.6s at6K); NO Apple7 exact M1 qualification. FRESH [TensorFold#2699](https://github.com/ashhart/TensorFold/pull/2699) MERGED Nov10 09:00Z fixes multiagent cache state eviction, M3Ultra dense27B 8-agent follow-up TTFT50→1.4s,16-agent546→16.5s, output tokens match; no M1 QFN result. FRESH [Basalt#311](https://github.com/jesdga95/basalt/pull/311) OTHER NVFP4 PLE Q8→IQ4NL save23.2GiB, KLD NOT RUN and greedy changes first token, original GSQ first PC remains frozen. FRESH [Splash#731](https://github.com/incoai/splash/pull/731) DSpine dense27B M5Pro opt-in 8-row worse−5.8% solo vs DFlash, research16-row long native +6–7% but HTTP unqualified/experimental; NOT QFN, not M1. FRESH [Kapitsa#1122](https://github.com/nace-ai/kapitsa/pull/1122) M5Pro dense27B MLX3bit 4K prefill446→769/8bit443→739/ GGUF Q4KM444→751, unchanged Q4g64, no M1 matrix units. FRESH [TensorFold#2718](https://github.com/ashhart/TensorFold/pull/2718) TCP host collective USB4 two AMD Linux boxes tests, NO inference TP2/Relay engine. FRESH [Strata#5709](https://github.com/Niko1221/Strata/pull/5709) OTHER RTX4080Super16 source GSQXXS short95/agent113.6 vs GSQIQ3S91.4/108.9, not full context coding. [mlx-serve#1153](https://github.com/ddalcu/mlx-serve/issues/1153) malformed required QFN tool name, real agent correctness gate. NEGATIVE no official Qwen4 downloadable weights. REDISCOVERED Gosset3.65BPW custom gated dense27B Nov9 not independently verified. Exact owner two M1Max32GPU64 originalGSQXXS floor DS4 physically128K278PP34.2TG/259K258PP31.7; dual sourceIQ3S true128/262K and3–5 correct xHigh NOT achieved. Owner first original GSQIQ3S Basalt historical source bytes unverified,32K INT8KV **spec1 OFF**, double precision and fully executed tool correctness HIGH only; RX6800 nonXT host16GB. No owner actions.
+
+|Rank|Lead|F/N/E/A/I (0–3 each); triage only|Next acceptance gate|
+|---|---|---|---|
+|1|Splash 1.6.1 M1 PLE streaming and cold precompile|3/3/2/3/0|2021 M1 verified cold, full 128/259K task correct|
+|2|TensorFold merged multiagent cache protection|1/3/3/3/0|QFN state-aware M1 agent persistence|
+|3|Dense27B DSpine Metal 16-row research|1/3/2/2/0|HTTP correctness, Apple7 exact and hard agent tasks|
+|4|Basalt PLE IQ4NL −23.2GiB|1/3/2/2/0|BF16 KL and coding outcome; NOT frozen first PC|
+|5|TensorFold TCP host USB4 transport|1/2/3/2/0|Integrated TP=2 and cross-platform checkpoint parity|
+|6|Qwen4 official weights, Gosset reproducibility|1/1/1/2/0|Official model manifest / loader / full coding trials|
+
+## Archived earlier scratchpad
+
 # Ranked Project51 discovery seeds — November 9 13:05 EST
 
 ## November 9, 2026 13:05 EST — first measured dense27B CUDA→Mac Relay analogue and new draft ecosystem
