@@ -1,3 +1,21 @@
+# Active ranked leads — November 11 2026 13:25 EST
+
+## Nov 11 2026 13:25 EST — actual Qwen4-Max API preview, merged CUDA→Metal prefill, Splash1.6.1, old M1 compiler diagnosis
+
+[Strict watch](./RESEARCH-WATCH-2026-11-11-1325.md) · [CUDA-to-Metal Relay research](./RELAY-OMLX-CUDA-METAL-2026-11-11.md) · [Old M1 compatibility](./M1MAX-SPLASH-161-2026-11-11.md) · [Qwen4 & quant radar](./QWEN4-KQUANT-2026-11-11.md). Previous 2026-11-10T19:19:15Z; NEW STRICT CUTOFF **2026-11-11T18:25:32Z**. FRESH official [Qwen4-Max preview](https://www.alibabacloud.com/help/en/model-studio/newly-released-models) Nov11 `qwen4-max-preview` 1M context TokenPlan-only through Nov25, **NO open weights**. FRESH [oMLX#5163](https://github.com/jundot/omlx/pull/5163) MERGED Nov11 06:27Z CUDA NVIDIA Docker prefill helper, OTHER M3Ultra512GB + 2×A600048GB 2.5GbE PP dense27B405→2079 and QFN1388→3574; approximate CUDA/Metal rather than byte parity, lookup tests only, NOT owner 5070Ti→M1 source GSQ Relay. FRESH [Splash1.6.1](https://github.com/incoai/splash/releases/tag/1.6.1) tagged 11:50Z, 28.8GB PLE streamed by default, M5 optimizations **NOT** exact 2021 M1; [Paperniuk M1Max issue#62](https://github.com/paperniuk/splash/issues/62) finds cold Metal JIT blocking engine55–77s, off-loop prototype167 requests no timeouts with dense27B FP16 but full tests outstanding and long20K PP120. FRESH Paperniuk M1 Apple7 [PR#58](https://github.com/paperniuk/splash/pull/58) dense27B MLX4 1-row GPU step−2.77%, [#60](https://github.com/paperniuk/splash/pull/60) −1.61%, source GSQ XXS untested. FRESH [Kapitsa#1188](https://github.com/nace-ai/kapitsa/pull/1188) MERGED15:48Z `flash-next:kquant` QFN MLX4 pack **105.86GB > 64GB**, cannot single-M1; no GPU catalog benchmark, not pristine GSQ. FRESH [Splash#737](https://github.com/incoai/splash/pull/737) compile-validated multi-turn coding runner 25/48 vs29/48 passed, 4.5% speed diff within 6.3% noise; [#738](https://github.com/incoai/splash/pull/738) branch tokenizer reuse micro14.74→0.38ms, combined stack end2end not isolated; [#741](https://github.com/incoai/splash/pull/741) foreground first-burst TTFT regresses395→536ms, DON'T deploy. FRESH [oMLX#5161](https://github.com/jundot/omlx/issues/5161) Qwen3.6 tool choice expected24/40→10/40 in 0.7.3 despite faster decode, cause unknown, underscores agent tooling. FRESH [Basalt#317](https://github.com/jesdga95/basalt/pull/317) OTHER RTX5060Ti16 +126GiB RAM NVFP4 short preset91.6 TG, NOT owner 5070Ti64 originalGSQ IQ3S first spec1. Kapitsa0.2.34 and0.2.35-rc1 released, still no source Apple7 GGUF IQ3XXS validated. Original baseline two M1Max32GPU64 EACH, sourceGSQXXS DS4 128K PP278/TG34.2 and259K PP258/TG31.7 historical; dualIQ3S /3–5 xHigh correct agents UNMEASURED. Owner RTX5070Ti16/CoreUltra7/64GB original .basalt GSQIQ3S TRUE32K INT8KV spec1=NO DRAFT CPU-double/full tool gates HIGH. RX6800 nonXT host16GB. Gosset private packed13.8GB independent loader/code still absent. No owner hardware/model/CI actions.
+
+|Rank|Lead|Proof missing before promotion|
+|---|---|---|
+|1|Merged oMLX CUDA Prefill Accelerator|RTX5070Ti16 single + old M1Max64, pristine GSQXXS source compatibility, QSA/GDN/PLE logit and completed coding tools|
+|2|Paperniuk off-loop Metal compiler fix|PR and full check, source original QFN IQ3XXS true128/259K old M1 no hang|
+|3|Splash1.6.1 PLE streaming|Actual old M1 Apple7 source GSQXXS full state and SSD latency, tool/agent correctness|
+|4|Dense27B MLX KQuant existing20GB|Same owner M1 Q4/Q5 coding-agent tasks and full wall, proper drafter|
+|5|Qwen4-Max Preview remote eval|Only user authorized Token Plan, remote privacy/expense, no local weights|
+|6|QFN MLX KQuant105.86GB|Not owner M1 64GB resident; quality/source A/B only on other hardware|
+|7|Real multi-turn coding validators and session tool fidelity|All validators pass, tool names & booleans, agent cache exact state, no overclaim from synthetic TPS|
+
+## Previously ranked leads and historical research
+
 # Active research leads November 10 14:19 EST
 
 ## Nov 10 2026 14:19 EST — M1–M4 FlashNext kernels, oMLX DFlash2, GSQ quant A/B, KQuant catalog and Relay mixers
