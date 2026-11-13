@@ -1,26 +1,26 @@
-# Project 51 strict research watch — 2026-11-13 06:39 EST
+# Project 51 strict research watch — November 13, 2026 12:44 EST
 
-Previous cutoff 2026-11-13T02:55:44Z; new strict cutoff 2026-11-13T11:39:08Z. Primary GitHub issue sweep Kapitsa, Basalt, Splash, oMLX, Strata. FRESH and UPDATED distinctions. No hardware experiments, model downloads, code/CI/config changes. No exhaustive Hugging Face quant inventory or Qwen4 release verification in this pass.
+Previous cutoff 2026-11-13T11:39:08Z. New cutoff 2026-11-13T17:44:04Z. GitHub issue/commit scan for paperniuk DS4/Splash, Strata, Kapitsa, oMLX, Basalt, Splash. FRESH vs UPDATED distinguish; no hardware work, downloads, CI or inference code changes.
 
-## HIGH FRESH — Strata dual RTX5060Ti GSQ IQ3S at 200K configured
-[Strata #5909](https://github.com/Niko1221/Strata/issues/5909), created 2026-11-13T07:52Z. Two RTX5060Ti16, ~63GB RAM, Strata engine0.1.59, original GSQ QFN IQ3S, DFlash2 spec6, KV INT8, configured204800, one slot. Short decode median79.5 TG; 4K PP838.4, TG66.4, TTFT4.92s; 16K PP1599.7, TG72.8, TTFT10.27s. 12/12 sanity checks passed including tools, but 6/9 performance requests hit 512-token reasoning+answer cap. Context 200K configured, NOT tested 200K actual. Different two-GPU topology from owner 5070Ti single GPU; no Relay measured.
+## HIGH UPDATED — Strata M1 Max tile calibration
+[Strata #4025](https://github.com/Niko1221/Strata/issues/4025), updated 2026-11-13T14:21Z. M1Max24GPU64GB, QFN Q2_0. Default M4/M5 tiles dense GEMV 33.1ms vs best 20.7ms on two-token window; opt-in PR #4019 --calibrate improves short decode +30–32%, 6K-context +26%, 4995/4995 quant_quality rows match with opt-out; perplexity 4.439→4.431. Not original GSQ XXS/S nor owner's M1Max32GPU; don't extrapolate.
 
-## HIGH FRESH — Strata RTX5090 GSQ IQ3S 173.6 short / 222.9 agent decode
-[Strata #5906](https://github.com/Niko1221/Strata/issues/5906), created 07:44Z. RTX5090 32GB, 64GB RAM, 262K configured, single slot, engine0.1.59, T=0 thinking off. Short decode173.6, agent followup decode222.9 tok/s; fresh16K PP6674.1, TTFT2.42s. Agent test only ~13.6K last turn, 64 output cap, 69.7% cache hit, no correctness test. Not a long-context agent quality proof or apples-to-apples 5070Ti.
+## HIGH UPDATED — oMLX fused attention M1 fallback
+[oMLX #5087](https://github.com/jundot/omlx/issues/5087), updated 2026-11-13T17:22Z. M1Ultra QFN Qwen4_exp fused attention attempts 1024 threads >896 M1 max; falls back to MLX, output works but loses fused optimization. Fix proposal cap group size, not validated speed gain.
 
-## HIGH FRESH — M1 Ultra 35B concurrency activation precision tradeoff
-[oMLX #5227](https://github.com/jundot/omlx/issues/5227), created 06:52Z. M1Ultra128GB Qwen3.6-35B-A3B, oMLX0.8.0rc1, MTP/draft off. Two concurrent requests vs solo sequential: 6-bit FP16 activations -4 to -9% short, 6-bit BF16 +11 to+18%, 4-bit BF16 +30 to+37%; long contexts worsen. But FP16 absolute solo 105–111 TG vs BF16 71–78 TG; FP16 concurrent aggregate ~100 vs BF16 ~85. BF16 concurrent greedy differs from solo, FP16 matched. Not M1Max, not QFN. Supports per-node scheduling tests and two independent nodes.
+## HIGH FRESH — Kapitsa M1 Ultra 35B DFlash2 acceptance
+[Kapitsa #1254](https://github.com/nace-ai/kapitsa/issues/1254), updated 2026-11-13T15:48Z. M1Ultra128, 32K prompt, Kapitsa default 35B pack+DFlash2 ~139 tok/s vs mlx-community plain 4bit same drafter ~152; same cycle time ~25ms but accepted tok/cycle 3.48 vs3.78. Model/quant affects acceptance. Not QFN or M1Max; no general engine ranking.
 
-## MEDIUM FRESH — Basalt parallel scaling limited when experts in RAM
-[Basalt #347](https://github.com/jesdga95/basalt/issues/347), created 07:29Z. RTX PRO6000 Blackwell96GB+253GB RAM QFN Q8_0 experts 70% VRAM/30% RAM. Concurrent 1=206.3 aggregate TG, 4=347.4, 8=434.4 (2.11x), per-request at8=54.3. GPU-window-only estimates overstated end-to-end. Not owner topology; useful for HaikuSwarm worker throughput vs latency.
+## HIGH FRESH — Strata 5070Ti long-agent repetition/context clamp
+[Strata #5924](https://github.com/Niko1221/Strata/issues/5924), updated 2026-11-13T15:05Z. Windows RTX5070Ti16, Flash-Next abliterated IQ2XS, 204800 configured but 65536 observed context in logs. fit_max_tokens clamps output room to ~221 at 65.3K input, answer budget exhausted, repetitive no-tool-call loops; app overrides config on restart. A user report, not original GSQ IQ3S; reinforces Molt context-headroom and tool-finish checks.
 
-## MEDIUM UPDATED — Splash Muse-style experiments did NOT translate
-[Splash #759](https://github.com/incoai/splash/issues/759) and [#760](https://github.com/incoai/splash/issues/760) updated Nov13: real dense27B B1 whole-cycle GPU66.20ms, preparation0.034ms (~0.05%), gate/up38.7%. Previously -4.86% component prep time translated only +0.14% request tok/s. Synthetic static 3-dispatch -43–46% component time but production 27B/35B 12-variant screen no merge-ready gain; 18/56 non-regression,38 failures. No M1 throughput upgrade; draft PRs remain drafts.
+## Paperniuk fork check
+[DS4 m1-flash-next](https://github.com/paperniuk/ds4/tree/m1-flash-next) last visible commit 2026-11-12T21:28:48Z, 9da1288 (mixed IQ3/Q2 SSD streaming). Prior Nov12 DFlash2 port and bit-exact batched verification remain key; no newer commits confirmed by midday cutoff. [paperniuk/splash](https://github.com/paperniuk/splash) most recent commit Nov12 11:20Z docs 1.6.1-m1. No new M1Max64 DFlash2 vs MTP benchmark observed. Prior upstream antirez/ds4 last Nov3.
 
-## MEDIUM UPDATED — oMLX M1 Ultra/old Apple kernels
-[oMLX #5087](https://github.com/jundot/omlx/issues/5087) describes Qwen4-named fused attention kernels falling back on M1 due 1024 threadgroup >896. Naming does not prove open Qwen4 release. [#5143](https://github.com/jundot/omlx/issues/5143) M1 Ultra MTP verify threadgroup limits. No confirmed fix in this scan.
+## Other
+[Splash #759](https://github.com/incoai/splash/issues/759), [#760](https://github.com/incoai/splash/issues/760) updated but production-shaped experiments still no qualified throughput gain. [Basalt #351](https://github.com/jesdga95/basalt/issues/351) ZRAM resident budget request, no impact on owner 64GB baseline.
 
-## Retained Project 51
-Two independent M1Max64, RTX5070Ti16+64GB desktop, secondary RX6800. GSQ IQ3XXS minimum, IQ3S preferred. Basalt first PC test frozen pristine original GSQ IQ3S, true32K, INT8KV, one slot, spec1 NO DRAFT, PLE numerical parity and agent task acceptance. Owner approval HIGH before tests. Relay CUDA prefill→Metal decode state format and recurrent-state parity unproven. No verified new official Qwen4/4.5 Flash-Next checkpoint in this scan; do not claim comprehensive release audit.
+## Retained
+Owner two independent M1Max64 32GPU, desktop RTX5070Ti16+64GB, secondary RX6800. Original GSQ IQ3XXS quality floor, IQ3S preferred; 128K-262K context; frozen Basalt first test original GSQ IQ3S true32K INT8KV 1 slot spec1 no draft, PLE parity/agent quality. Relay CUDA→Metal KV/recurrent state handoff still unproven. Qwen4/4.5 Flash-Next refresh speculative; this scan not exhaustive model-release/quant inventory. No inference or hardware changes.
 
-NEXT STRICT CUTOFF 2026-11-13T11:39:08Z.
+NEXT STRICT CUTOFF: 2026-11-13T17:44:04Z.
