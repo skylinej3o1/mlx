@@ -45,3 +45,6 @@ A model from architecture Qwen4 may be newly pretrained, further post-trained or
 6. Preserve original GSQ XXS quality floor, SOURCE controls, actual128/259K occupancy, completed coding tools, no unauthorized installs/model downloads.
 
 **New documentation cutoff 2026-11-15T14:32:00Z (minute resolution). Research-only.**
+
+## Follow-up check — November 15, ~10:49 EST
+Strict window 2026-11-15T14:32:00Z to 2026-11-15T15:49:00Z minute-resolution. [Full watch](./RESEARCH-WATCH-2026-11-15-1049.md). Checked Qwen official HF organization model listing and QwenCloud model-release changelog, plus English/Chinese/Japanese coverage. No newly verified Qwen4-Flash, Qwen4-27B or Qwen4-35B-A3B official weights, model config, sizes or official dates; only Nov11 Max Preview API remains confirmed. New Qwen Code commit traffic in this narrow window concerns agent infrastructure, not new Qwen4 weight manifests. Original 09:32 analysis of Qwen4 family and speculative 35B holds unchanged. No conversion of community guessing into parameter facts.
