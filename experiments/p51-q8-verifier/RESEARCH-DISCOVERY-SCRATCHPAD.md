@@ -1,3 +1,19 @@
+## Nov 15 2026 12:52 EST — ranked discovery checkpoint
+
+[Watch](./RESEARCH-WATCH-2026-11-15-1252.md) and [M1 note](./SPLASH-M1-1611-AND-AGENT-2026-11-15.md). New strict cutoff **2026-11-15T17:52:37Z**. Active verification seeds (rank indicative, F/N/E/A/I all 0–3, heuristic =3F+2N+3E+2A+I):
+1. SPLASH-24H F3N2E3A2I1 score27: [1.6.1-m1.1](https://github.com/paperniuk/splash/releases/tag/1.6.1-m1.1) streamed GSQXXS startup fixed but [#63](https://github.com/paperniuk/splash/issues/63) 24h resident speed degradation unresolved. Source causal analysis then HIGH for owner soak.
+2. SPLASH-ANEPAIR F3N2E2A2I1 score24: [#64](https://github.com/paperniuk/splash/pull/64) M1Max64 dense27B MLX4 +19% PP at16.7K, -5% at560, different output path. Next model/quant and BF16-quality parity on actual user M1.
+3. QWEN4-OFFICIAL high: [Qwen HF](https://huggingface.co/Qwen) and [QwenCloud](https://docs.qwencloud.com/changelog/models), no new Flash/27B/35B official weights or Flash size; verify real manifest.
+4. MOLT-CAUSALITY F3N2E2A2I1 score21: [Qwen Code#15959](https://github.com/QwenLM/qwen-code/pull/15959) interrupted original user instruction + paired tool records, excluding cancelled turns.
+5. AGENT-SLOT F2N3E2A2I0 score22: [Strata#6044](https://github.com/Niko1221/Strata/pull/6044) other 2080Ti QFN idle VRAM recycle, HIP and DFlash2 veto, no owner source benchmark.
+6. DENSE27B-CONCEPT F2N2E1A2I0 score17: [Nov8 author paper](https://concept.country/research/weight-space-programming), claimed +13pp LiveCodeBench, Q4 not evaluated; seek independent reproduction and tool checks before downloading.
+7. RELAY-STATE: [oMLX#5163](https://github.com/jundot/omlx/pull/5163) other dualA6000 CUDA helper; single5070Ti QSA/GDN/PLE state not established.
+8. AGENT-TOOL-PARITY: [Kapitsa#1277](https://github.com/nace-ai/kapitsa/issues/1277), [llama.cpp#32348](https://github.com/ggml-org/llama.cpp/issues/32348) and [oMLX#5305](https://github.com/jundot/omlx/issues/5305) for no-silent-tool-drop, cache and retry idempotence.
+9. 27B DSPINE: [Tencent card](https://huggingface.co/tencent/Qwen3.8-27B-DSpine-b16), [Basalt#360](https://github.com/jesdga95/basalt/issues/360) CLOSED no conversion.
+10. QUANT-BUDGET: previously examined [llama.cpp#15550](https://github.com/ggml-org/llama.cpp/pull/15550) imatrix target bpw, no QFN model comparison.
+
+Deprioritized: KimiK3 ~28 seconds per decode step/800GiB SSD; M5Pro/M6 numerical gain predictions for M1; other dual5090/cross quant; Strata RX9070XT report has issue dated Nov15 but text says measured Nov16, provenance inconsistent. Next source actions: official Qwen4 manifest; Splash #63 24h state and GSQ provenance; independent edited 27B Q4 quality. All owner device experiments, weights or repacking require HIGH.
+
 ## Nov 15 2026 ~10:49 EST — discovery checkpoint (strict research window)
 [Watch](./RESEARCH-WATCH-2026-11-15-1049.md) · [focused mechanism note](./M1-VERIFY-QUANT-QUALITY-2026-11-15.md). New cutoff **2026-11-15T15:49:00Z minute-resolution**; earlier cutoff14:32. Ranked active verification seeds (triage F/N/E/A/I 0–3, score =3F+2N+3E+2A+I; judgment not empirical performance):
 1. **Q4OFFICIAL / ~20:** [official Qwen HF](https://huggingface.co/Qwen) and [QwenCloud](https://docs.qwencloud.com/changelog/models). Need real weights/config and Flash body/PLE/MTP/active specs; no Flash/27B weight release verified. Trigger: new Qwen-controlled model card and manifests.

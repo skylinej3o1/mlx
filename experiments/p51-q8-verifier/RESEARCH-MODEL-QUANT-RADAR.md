@@ -1,3 +1,16 @@
+## Nov 15 2026 12:52 EST — quant/model radar delta
+
+[Full watch](./RESEARCH-WATCH-2026-11-15-1252.md).
+- Qwen4-Flash/27B/35B: no verified Qwen official weights, configurations or parameter count since previous cutoff, Max Preview Nov11 API only. Whittle 35B-A3B third-party-only; qwen4_exp code names not weights.
+- QFN GSQXXS pristine owner baseline: DS4 physical128K PP278/TG34.2,259K PP258/TG31.7 on 2021M1Max64 unchanged. Splash1.6.1-m1.1 #65 streamer fixed startup on another mixed-source GSQXXS with only short test, not new owner long-context result. #63 24h slowdown unresolved.
+- Dense27B MLX4: Paperniuk #64 on M1Max64 opt-in dual-chunk Neural Engine/GPU 7K215→255PP,16.7K203→241PP, small 560-token regression. Not yet same-source Q5/KQuant or completed agent performance. M5Pro #1276 and M6 #1275 merged but silicon not comparable.
+- Qwen3.6-35B-A3B UD-IQ2XXS: Kapitsa#1277 sampled missing tool-call opener, parser#1279 OPEN; no Qwen4 significance or QFN GSQ equivalence.
+- Qwen3.8-27B DSpine: Tencent five-layer16-block8K window, Basalt#360 CLOSED no converter, no owner speed.
+- ConceptCountry qwen-concept-27b (Nov8 rediscovery): author BF16/Q8 experimental weight edit reports LiveCodeBench +13pp, thinking tokens -29%; Q4_K_M 16GB exists but **effect NOT evaluated at Q4**; no independent long-agent quality. Do not promote.
+- Quant methods KQuant Q4/Q5, MACaQ IQ4XS, Unsloth Dynamic, original GSQ, MFQ, SINQ/A-SINQ, target-bpw: no new matched original-QFN BF16 KL plus coding-agent win at XXS bytes proven.
+- Strata RX9070XT16 128GiB host IQ3S issue #6040 filed Nov15 but says measured Nov16; date inconsistent and not user RX6800 nonXT host16GiB.
+- Basalt dual5090 NVFP4 #375 511TG no-spill vs191 with SSD spill is OTHER provenance; frozen owner pristine original GSQIQ3S PC test untouched.
+
 ## Nov 15 2026 ~10:49 EST — quant/model radar delta
 [Full watch](./RESEARCH-WATCH-2026-11-15-1049.md) · [focused mechanism note](./M1-VERIFY-QUANT-QUALITY-2026-11-15.md).
 - **Qwen4-Flash / 27B / purported35B-A3B:** no new verified Qwen official open weight; Max Preview API Nov11 unchanged, parameter counts and Flash post-train-vs-new-train unresolved. `qwen4_exp` and HF placeholders do NOT establish release. Official current Qwen HF listing checked; keep Whittle 35B third-party-only.

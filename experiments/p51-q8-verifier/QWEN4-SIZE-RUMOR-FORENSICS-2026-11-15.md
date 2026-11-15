@@ -48,3 +48,7 @@ A model from architecture Qwen4 may be newly pretrained, further post-trained or
 
 ## Follow-up check — November 15, ~10:49 EST
 Strict window 2026-11-15T14:32:00Z to 2026-11-15T15:49:00Z minute-resolution. [Full watch](./RESEARCH-WATCH-2026-11-15-1049.md). Checked Qwen official HF organization model listing and QwenCloud model-release changelog, plus English/Chinese/Japanese coverage. No newly verified Qwen4-Flash, Qwen4-27B or Qwen4-35B-A3B official weights, model config, sizes or official dates; only Nov11 Max Preview API remains confirmed. New Qwen Code commit traffic in this narrow window concerns agent infrastructure, not new Qwen4 weight manifests. Original 09:32 analysis of Qwen4 family and speculative 35B holds unchanged. No conversion of community guessing into parameter facts.
+
+## Follow-up November 15, 12:52 EST
+
+[New strict watch](./RESEARCH-WATCH-2026-11-15-1252.md), prior cutoff15:49Z, new cutoff17:52:37Z. Official QwenCloud release log remains Nov11 qwen4-max-preview API only; new Qwen HF and targeted non-English searches did not establish genuine Qwen4-Flash or 27B open-weight model cards/configs, Flash parameter count, 35B-A3B first-party product or model lineage. Qwen Code commits during the window are orchestration/client fixes, not weights. Existing Whittle is independent Qwen3.8 35B-A3B. Nothing changes sizes, timeline or posttrained-vs-from-scratch hypothesis.
