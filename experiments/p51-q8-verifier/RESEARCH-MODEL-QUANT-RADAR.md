@@ -1,3 +1,17 @@
+## Nov 16 2026 08:48 EST — model, quant and hardware radar
+
+[Watch](./RESEARCH-WATCH-2026-11-16-0848.md).
+- **Qwen4:** official Qwen4-Max production API **2.4T / 71B active, 1M**, non-open weights. Official Alibaba promises smaller open-weight Qwen4 models later, no announced Flash/27B/35B-A3B exact sizes or release dates. Flash-Next precursor model's 125B+51B+4B architecture size cannot be assigned to unreleased Qwen4 Flash.
+- **Original FlashNext pristine GSQ-RCO IQ3_XXS:** owner M1Max64 physically128K PP278/TG34.2,259K PP258/TG31.7 DS4 historical unchanged. No new matched source full-context M1 performance. Two Macs separate64GB; Relay unverified. Source minimum XXS unchanged.
+- **M1 native dense27B:** Paperniuk Splash#66 OPEN auto-pair ANE/GPU prefill on M1Max32 dense MLX4 −13–17% TTFT 1–2K and −15.6% 14K; previous #64 shipped manual share; no proven Q5 tool quality or FlashNext port. 1.6.1-m1.1 >12h stable anecdote but not certified24h.
+- **Dense27B new-to-watch older quant:** [sady GPTQ MLX 4bit](https://huggingface.co/mlx-community/Qwen3.8-27B-GPTQ-4bit), originally October, same layout/size (~15GB) as round-to-nearest, BF16 chat KL0.1002 vs0.1906, M2Max agent replay Q8-call equality44% vs31%. Unsloth UD-Q4KM 16.5GB has chat KL0.0831 but slower on same Splash windows; not equal to completed coding task scores. KQuant 27B and Q5 are separate methods without this exact A/B.
+- **DSpine:** existing Tencent dense27B five-layer b16: vLLM#67094 OPEN real H100 BF16 conc8 xhigh acceptance; no Basalt 5070Ti or M1 compatible conversion result.
+- **Qwen3.6 35B-A3B:** Kapitsa #1285 M6 32GB Q4 146.4 sampled/155.9 greedy TG, PP4K1859, peak23.4GB; NOT rumored Qwen4-35B.
+- **CPU quant regression:** Strata#6085 VBMI IQ3_S/XXS row optimization can SIGILL on AVX2 CPU even off; reject until fixed, no owner speed claim.
+- **PC source:** RTX5070Ti16 +64GB first Basalt pristine GSQ IQ3S v2 real32K INT8KV slot1 spec1 OFF unchanged; RX6800 nonXT 16GB host16GB, other system analogues not transferable. 
+- **Relay:** oMLX helper0.1.5 fixed prefix-cache, 3bit route and freed-buffer growth on M3Ultra/GB10, not exact owner. Splash#778 QFN RAM-only continuation synthetic not real cross-platform.
+- **Quant methods surveillance:** no new independently validated equal-quality smaller original GSQ XXS pack; original KQuant / MACaQ / Unsloth Dynamic / GSQ / SINQ / MFQ checks unchanged.
+
 ## Nov 15 2026 12:52 EST — quant/model radar delta
 
 [Full watch](./RESEARCH-WATCH-2026-11-15-1252.md).

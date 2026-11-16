@@ -1,3 +1,18 @@
+## Nov 16 2026 08:48 EST — discovery checkpoint
+
+[Watch](./RESEARCH-WATCH-2026-11-16-0848.md) · [deep note](./QWEN4-RELAY-M1-QUANT-2026-11-16.md). New strict cutoff **2026-11-16T13:48:42Z**.
+1. **Q4-WEIGHTS / priority highest (official-source)**: [Alibaba Nov16](https://www.alibabacloud.com/en/press-room/alibaba-unveils-qwen4-max) promises smaller open Qwen4; Max2.4T/71B API-only; next model-card/tensor index Flash/27B/35B first-party; no sizes/dates yet.
+2. **RELAY-HELPER-015 / F3N2E2A3I0 = 21**: [oMLX#5316](https://github.com/jundot/omlx/pull/5316) merged M3Ultra DGXSpark helper prefix+3bit/memory fixes; inspect full QFN QSA/GDN/PLE state and layer-budget RTX5070Ti16; not yet owner proof.
+3. **M1-ANE-AUTO / F3N2E2A2I0 = 19**: [Paperniuk#66](https://github.com/paperniuk/splash/pull/66) open, dense27B MLX4 M1Max32 TTFT improvement with 769-row threshold; need high-quality quant and correct tools.
+4. **M1-SOAK / F3N1E1A3I1 = 21**: [Paperniuk#63](https://github.com/paperniuk/splash/issues/63) >12h clean on1.6.1-m1.1, earlier24h decline remains open; quantify full day reliability.
+5. **DENSE27-GPTQ / F2N1E3A3I2 = 22**: [older Oct26 GPTQ MLX4](https://huggingface.co/mlx-community/Qwen3.8-27B-GPTQ-4bit) matched BF16 KL and independent 78 turn replay, same15GB. Need full completed coding tasks, KV long context, vision and Q5 comparator; REDISCOVERED old, not fresh Nov16.
+6. **AGENT-PARK / F2N2E2A2I1 = 21**: [Strata#6034](https://github.com/Niko1221/Strata/pull/6034) parked conversations disk tier, independent corruption accounting failure; optional Molt integration after repair.
+7. **DENSE27-DSPINE / F1N2E2A2I0 = 16**: [vLLM#67094](https://github.com/vllm-project/vllm/pull/67094) H100 BF16 C8 acceptance real checkpoint, no owner backend.
+8. **CPU-AVX512-QUANT / SAFETY HOLD**: [Strata#6085](https://github.com/Niko1221/Strata/pull/6085) VBMI IQ3 accelerate with SIGILL on AVX2 before main even OFF; block until fixed and independent tested.
+9. **AGENT-EXACTNESS**: [oMLX#5312](https://github.com/jundot/omlx/pull/5312) benchmark queue waves overreport, [Splash#776](https://github.com/incoai/splash/pull/776) relaxed token drift optional not for exact agent, [Splash#778](https://github.com/incoai/splash/pull/778) QFN synthetic recurrent-state continuation.
+10. **FIRSTPC-FROZEN**: original pristine GSQIQ3S v2 .basalt true32K INT8KV one slot spec1=OFF RTX5070Ti16 host64, CPU double/tool gate; no change.
+Deprioritize generic Qwen4 size speculation, M5Pro/M6/Ultra extrapolation to 2021 M1Max, dual5090 and RTX5080 example results, untested low-bit QFN substitutions. Next desk actions: official weights; QSA helper0.1.5 state cost + Paperniuk soak; GPTQ real agent parity and KQuant comparison. HIGH separate approval for device work/weights.
+
 ## Nov 15 2026 12:52 EST — ranked discovery checkpoint
 
 [Watch](./RESEARCH-WATCH-2026-11-15-1252.md) and [M1 note](./SPLASH-M1-1611-AND-AGENT-2026-11-15.md). New strict cutoff **2026-11-15T17:52:37Z**. Active verification seeds (rank indicative, F/N/E/A/I all 0–3, heuristic =3F+2N+3E+2A+I):
