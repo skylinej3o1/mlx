@@ -1,3 +1,14 @@
+## 2026-11-16 10:58 EST — strict model/quant radar
+
+[Watch](./RESEARCH-WATCH-2026-11-16-1058.md). Qwen4 Max GA official2.4T/71B and future small open-weights commitment from prior watch, **no newer Qwen4 Flash/27B/35B size**. Old Intel XPU dense27B kernel evidence no weights; no first-party model card to determine Flash actual size or PLE lineage.
+- **QFN original GSQXXS** M1Max64 physically128K PP278/TG34.2,259K PP258/TG31.7 unchanged; no Paperniuk DS4/Splash commit fresh. No quality-equivalent smaller pack demonstrated; floor IQ3_XXS.
+- **Dense27B MLX** new-to-this-watch updated [oMLX#5292](https://github.com/jundot/omlx/pull/5292) correlated rounding at same oQe bytes improves BF16 code KL proxy (Qwen27B oQ4e−18.6%, top1 93.2→93.7%, no task outcomes) and former sady GPTQ MLX4 same-size 78-agent-turn quality evidence from previous watch. Compare per model/test/quant, not percentage as absolute task success.
+- **oQh** [#5317](https://github.com/jundot/omlx/pull/5317) rotated scale: 0.5 bpw scale savings redistributed to codes at same size, Qwen35 MoE KL0.034→0.023 own proxy, **no original QFN real build and explicitly incompatible with Splash/ANE/prefill helper/offload**. Not a deployment candidate.
+- **RX6800 relevance** original GSQ IQ3S #6093 one card RX6800 **XT**16GB+62GBhost PP16K782/decode16K34.4, dual PP16K961/decode16K48.5; owner **nonXT RX6800 16GB+16GBhost** mismatch and reliability issue #5892; not forecast. 
+- **Quad Intel Xe2 XPU** #3587 user-independent 4×32GB B70 FlashNext affine Q4g32 physically full262K memory/PP/TG; not M1 or CUDA→Metal Relay. 
+- **Basalt single5070Ti first frozen** original pristine ISTA GSQ-RCO IQ3_S historical v2 `.basalt`, full PLE/SHA, real32K INT8KV one slot `spec=1` no draft, no altered hardware; separate other Strata#5751 poweroff engine graph warmup warning not owner result.
+- **No verified new Qwen4 weights or new QFN original GSQ optimized quant in window.**
+
 ## Nov 16 2026 08:48 EST — model, quant and hardware radar
 
 [Watch](./RESEARCH-WATCH-2026-11-16-0848.md).

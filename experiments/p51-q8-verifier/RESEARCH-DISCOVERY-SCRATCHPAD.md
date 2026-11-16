@@ -1,3 +1,16 @@
+## 2026-11-16 10:58 EST — strict discovery checkpoint
+
+[Watch](./RESEARCH-WATCH-2026-11-16-1058.md) · [detail](./RX6800-OMLX-BASALT-2026-11-16-1058.md), cutoff **2026-11-16T15:58:46Z**.
+- **Qwen4 Flash/27B weights**: zero new verified official models/sizes in last130m, monitor source manifests not Chinese echoes; 27B dense from older Intel XPU code, Flash ~125B only hypothesis, 35B-A3B desires not official.
+- **RX6800 XT (other host62GB) / HIGH owner adjacency**: Strata#6093 one/dual-card standard GSQ IQ3S bench; CPU_SHARE feature can outrun PCIe expert movement; one nonXT+host16GB *not* validated. Investigate host RAM minimum and stability #5892 before planning any owner run.
+- **oMLX deep agent**: #5321 batch join-leave partial copy + #5253 needed for successful real 2×245K M5Pro64 test, #5322 scheduler finite requeue or fail; new exact memory budget and Molt retention tests.
+- **quant quality**: #5292 oQe correlation refinements dense27B code-KL−18.6% at oQ4e and QFN oQ4e FLORES−8.9% no tool test, #5317 rotated oQh no QFN checkpoint, no offload support, compare against old same-byte GPTQ/Unsloth UD.
+- **Basalt**: version commit0.4.1 no verified release/tag, host planner, prompt-id cached state, streaming #382 open, `dl` metric wrong on parallel #387, #352 prompt split off returns RAM when planned but unavailable on OTHER hardware; do not alter frozen test.
+- **cross-chip TP**: TensorFold#3587 XPU 4×B70 QFN Q4@262K physically, not owner M1 or Relay.
+- **warnings**: Strata#5751 NVIDIA5070Ti other user power-off and Radeon780M warm-up first replay on Windows; both engine-specific, not owner Basalt. Strata#6085 CPU VBMI earlier SIGILL still hold.
+- **Molt**: Splash#779 unified replay/RAM parking design, vLLM#67965 hidden-state connector, Qwen Code host hooks asynchronous; no complete token+tool correct owner experiment.
+- **Auth**: docs only; HIGH for downloading models, running benchmarks, changing owner runtime/hardware.
+
 ## Nov 16 2026 08:48 EST — discovery checkpoint
 
 [Watch](./RESEARCH-WATCH-2026-11-16-0848.md) · [deep note](./QWEN4-RELAY-M1-QUANT-2026-11-16.md). New strict cutoff **2026-11-16T13:48:42Z**.
