@@ -1,3 +1,15 @@
+## 2026-11-17 08:50 EST — actionable research leads
+
+[Watch](./RESEARCH-WATCH-2026-11-17-0850.md), strict cutoff **2026-11-17T13:50:06Z**.
+1. **FRESH upstream Splash 1.7.0 official GitHub tag/release12:42Z**: inspect old M1 compatibility, port status Paperniuk fork (no changes), difference between lossy INT8 cached states and exact; M5Pro64 27B agent1.23× completion and1.46× TG vs 1.6.2 dev not owner source M1 benchmark. No installs.
+2. **Basalt QFN clock-free window selection** removes wall-clock variation in draft shape and adaptive expert-tier toggles, greedy/seeded same session reproducible; arrived parallel slots still non-deterministic. Important later quality tests, not frozen first no-draft.
+3. **Basalt 8gram suffix** other5090 dense27B 33K file edits TG518→595 &555→626, greedy13 requests same; possible high benefit for coding sessions, needs real long-context replay/correctness and owner HW HIGH.
+4. **oMLX 128K code repeated question** #5357 optional live KV saves~200ms rebuild with 4GB resident per session; #5359 first token emitted before DFlash init, ~80–140ms TTFT saved M5Pro64. Observe combined correctness and long-ctx memory demand.
+5. **AMD HIP field report Strata#6147** Navi32 16GB host64 near40TG 25h self-report, unverified full log, **not owner RX6800 nonXT host16**; 59.6GB system memory used.
+6. **Strata L2 cache #5500 and gateway #6142** OPEN and old 3-week retrospective data high reuse on AMD48, disk restore ~1.6–2.4s vs cold56–66s145K; fail-closed, byte budget, exact session keys and lease necessary for Molt.
+7. **vLLM #61051** merged direct Triton KV CoW copy near memory limit, GB200 83.7→3.03ms and async wave1383→1148ms; not QFN M1/owner PC.
+8. **Qwen4 actual open weights** no first-party Flash/27B/35B model card/size; Chinese Qwen Max posts repeat old conference hints, not primary leak.
+9. **Owner unchanged:** M1Max64 original GSQXXS physically128K PP278/TG34.2,259K PP258/TG31.7; first Basalt pristine original GSQ IQ3S v2 .basalt real32K int8KV slot1 spec1 OFF; Relay not proven; all hardware actions require HIGH.
 ## Nov17 2026 06:51 EST strict checkpoint
 
 [Research watch](./RESEARCH-WATCH-2026-11-17-0651.md); cutoff 2026-11-17T11:51:16Z.

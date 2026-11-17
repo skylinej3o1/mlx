@@ -1,3 +1,14 @@
+## November 17 2026 08:50 EST — model/quant/runtime radar
+
+[Watch](./RESEARCH-WATCH-2026-11-17-0850.md), interval 2026-11-17T11:51:16Z→2026-11-17T13:50:06Z.
+- Qwen4 Max cloud GA previous Nov16 2.4T/71B activated and smaller Qwen4 open-weights commitment, but **no official downloadable Flash/27B/35B-A3B model or parameter sizes** in strict window; Chinese wish list not weights. First party HF Qwen, official QwenCloud/Qianwen changelog negative result qualified.
+- Upstream Splash 1.7.0 **ACTUAL RELEASE** Nov17 12:42Z, 1.6.2+1.7.0 merged. 27B M5Pro64 coding-agent 1.23× median request and1.46× decode vs dev baseline, QFN M5Pro short 1.14× solo/1.28× 4 streams from PR; cache GDN int8 in32+bf16 152.6→46.9MiB *not exact*, choose exact mode when quality-first. No M1Max Paperniuk port or source IQ3XXS benchmark.
+- Basalt QFN clock-free speculative selection FRESH same session greedy/seeded more repeatable, but parallel arrival order can differ; 8gram suffix index dense27B other5090 33K file coding edits 518→595 and555→626, not first user no-draft run.
+- Dense27B previous quant oQh open KL Q3/4 quality and GPTQ replay unchanged, no new tested equal-source agent quality. No new GSQXXS compact source original.
+- oMLX M5Pro64 128K dense27B DFlash first-token earlier~0.1s and single-lane KV retention saves~0.2s restore at ~4GB host memory; both OPEN prototypes, M1/Relay not tested.
+- AMD Navi32 16GB+host64 HIP QFN IQ3S ~40TG developer 25h unverified, owner RX6800 nonXT16VRAM+host16GB not comparable.
+- vLLM GB200 direct CoW cache no multiGiB extra gather, 17% 35B wave faster, not physical M1 128/259K. Two M1Max64 (not shared 128GB) owner original GSQ XXS true128K PP278/TG34.2 and259K PP258/TG31.7 remains.
+- Frozen owner first PC RTX5070Ti16+CoreUltra7 265F+64GB host pristine original ISTA GSQ-RCO IQ3S v2 .basalt real32K INT8KV slot1 spec1 NO DRAFT, source/PLE SHA gates; new draft policy not to change baseline. Relay 5070Ti→M1 full QFN state remains unvalidated.
 ## November 17 2026 06:51 EST — model and quant radar
 
 [Strict watch](./RESEARCH-WATCH-2026-11-17-0651.md), cutoff 2026-11-17T11:51:16Z.
