@@ -1,3 +1,17 @@
+## Nov17 2026 06:51 EST strict checkpoint
+
+[Research watch](./RESEARCH-WATCH-2026-11-17-0651.md); cutoff 2026-11-17T11:51:16Z.
+- First-party Qwen4-Flash/27B/35B actual configs/weights/sizes **NONE** new, Chinese community still speculates; do not confuse Max2.4T/71B with Flash.
+- Actual single5070Ti community source #394/#401 new IQ3XXS weighted100.4TG against NVFP4 78.4, but hardware host96GB, draft, max66661, not owner first Basalt original GSQIQ3S v2 real32K no draft.
+- TensorFold#3688 OPEN two M5 Ultra256GiB replicated whole decode + split PP 115.3TG vs earlier paired51.1, 49/49 exact. Evaluate TB4, residency and GGUF quality before any M1 expectations.
+- Paperniuk#63 new SSD-spilled KV150–220K + idle hypothesis; M1 m1.1 long soak not verified, #66 ANE still OPEN, DS4 no commits.
+- Upstream Splash1.7 #780 OPEN, M5Pro only, QFN2K 1.14–1.28×, 27B GDN cache 152.6→46.9 MiB via lossy INT8, exact opt-in, default auto verify output variability, non-equivalent M1.
+- oMLX#5317 oQh dense27B Q3/Q4 BF16 KL lower at same-size, QFN oQ2 min70.8GiB and no Splash/ANE/Helper support. Real coding agent task comparisons missing.
+- Strata#6136 old vs new append-tail 6.4× slower at67K even when cold PP faster; mandatory cached follow-up test for agents.
+- Basalt#391 masked schema H2D ordering bug patched; HaikuSwarm tool/schema accuracy; vLLM#65186 GDN checkpoint design, still no QSA/PLE MTP full Relay.
+- Two M1Max64 old pristine XXS128K/259K TG34.2/31.7 unchanged. RX6800 nonXT host16GB mismatch vs RX6800XT host62 benchmarks.
+- Separate HIGH explicit consent needed owner device benchmark/model downloads, docs-only action allowed.
+
 ## 2026-11-16 10:58 EST — strict discovery checkpoint
 
 [Watch](./RESEARCH-WATCH-2026-11-16-1058.md) · [detail](./RX6800-OMLX-BASALT-2026-11-16-1058.md), cutoff **2026-11-16T15:58:46Z**.

@@ -1,3 +1,15 @@
+## November 17 2026 06:51 EST — model and quant radar
+
+[Strict watch](./RESEARCH-WATCH-2026-11-17-0651.md), cutoff 2026-11-17T11:51:16Z.
+- Official Qwen4-Max GA cloud API 2.4T total/71B active, smaller open-weight versions promised, NO new Flash/27B/35B-A3B released checkpoint or supported size/date/license. 27B dense Intel code prior; third-party fake/edits not official.
+- Owner 2021 M1Max64 pristine original ISTA GSQ-RCO IQ3XXS true128K PP278/TG34.2 and true259K PP258/TG31.7 near57GiB; 2 independent Macs, not TB5 M5 Ultras. No new DS4 M1 improvement.
+- 27B dense same-size oMLX oQh Q3 12.2GiB FLORES KL0.040 vs refined oQe0.059 vs baseline0.066, Q4 15.2GiB KL0.011 vs0.014 vs0.016; task success not measured and no cross-suite rank vs GPTQ, KQuant or Unsloth.
+- QFN oQh at oQ2/3/4 **70.8/84.9/98.9GiB** > single64GB, unsupported Splash/helper, cannot drop into Relay or preserve original GSQ floor. Dense GPTQ vs oQh may be actionable after independent agent test.
+- New single RTX5070Ti IQ3XXS Basalt 100.4 community weighted TG at configured66661/draft and96GB RAM, not user's CoreUltra7/64GB original GSQIQ3S historical v2 .basalt physically32K INT8KV slot1 spec1 NO DRAFT. First PC plan frozen.
+- Splash1.7 upstream OPEN new spec trees, M5Pro QoL speed, cached state lossy by default, exact option; Paperniuk old M1 m1.1 long SSD-KV stability still unknown.
+- Secondary RX6800 **non-XT** VRAM16GB systemRAM16GB, no matched fresh benchmark/quality.
+- No full QFN CUDA5070Ti→Metal M1 physical128/259K Relay handoff demonstrated.
+
 ## 2026-11-16 10:58 EST — strict model/quant radar
 
 [Watch](./RESEARCH-WATCH-2026-11-16-1058.md). Qwen4 Max GA official2.4T/71B and future small open-weights commitment from prior watch, **no newer Qwen4 Flash/27B/35B size**. Old Intel XPU dense27B kernel evidence no weights; no first-party model card to determine Flash actual size or PLE lineage.
