@@ -1,35 +1,33 @@
-# Project 51 Research Discovery Scratchpad — 2026-11-18 05:01 EST
+# Project 51 — ranked research leads (Nov18 2026 10:11 EST)
 
-**Strict watch cutoff:** 2026-11-18T10:01:41Z, [dated watch](./RESEARCH-WATCH-2026-11-18-0501.md). Scores F owner fit, N novelty, E evidence, A action, I independent, each 0–3; 3F+2N+3E+2A+I (max33), not statistical probabilities. No machine/model/CI/software authorization.
+Last hard cutoff 2026-11-18T15:11:40Z; [latest dated watch](./RESEARCH-WATCH-2026-11-18-1011.md). Score F owner exactness, N novelty, E evidence, A action, I independent, each0–3; weighted total 3F+2N+3E+2A+I. Scores are not probabilities.
 
-## Ranked active leads (12 maximum)
-1. **Basalt thinking-budget / correctness (F2 N3 E2 A3 I0=24).** [#420](https://github.com/jesdga95/basalt/pull/420) Python first-pass reply cap bug, author repro, OPEN. Track budget/max/finish/tools on owner frozen baseline; *desk-only* until HIGH.
-2. **oMLX 0.8.0 external Splash cached TTFT regression (F2 N3 E2 A3 I1=25).** [#5398](https://github.com/jundot/omlx/issues/5398) M5Ultra UDQ5, outside Splash 246K0.45→0.90s; bf16 explanation refuted. Inspect source bridge extra prompt pass, cache hashes and model compatibility.
-3. **Basalt 5070Ti+host64 expert SSD pressure + silent exits (F2 N2 E2 A3 I0=22).** [#422](https://github.com/jesdga95/basalt/issues/422) 2GPU NVFP4 spec8 262K not owner singleGSQ32K; constrain expert hot set, peer head link hypothesis unverified.
-4. **Strata hidden parallel default & DF2 crash (F2 N3 E2 A3 I0=24).** [#6160](https://github.com/Niko1221/Strata/issues/6160) 09:52 local four-of-four SIGSEGV with piped MTP/DF2, contributor only; track merged fail-closed gates, never swap into owner test.
-5. **Qwen4 Flash official first-party weights (F3 N1 E1 A3 I0=20).** [official Chinese API feed](https://docs.bailian.console.aliyun.com/zh/model-studio/newly-released-models), [Qwen HF](https://huggingface.co/Qwen). No Flash config/params/PLE license, old Chinese/US speculation is not new.
-6. **TensorFold tool_call_id ordering (F2 N3 E3 A3 I1=28).** Prior [#3775](https://github.com/ashhart/TensorFold/issues/3775) reversed result bodies; no merged fix yet, real HaikuSwarm correctness fixture.
-7. **Native CUDA/Metal partial-layer bridge (F3 N2 E2 A3 I0=25).** prior oMLX0.8.0 + open #5396 buffer fix, **NOT** source external GGUF Splash or full Relay state. Genuine source residency and helper integration evidence needed.
-8. **M1 Metal memory budget bug (F2 N2 E2 A3 I0=22).** [#3778](https://github.com/ashhart/TensorFold/issues/3778) stale wired cache, [#3770](https://github.com/ashhart/TensorFold/issues/3770) zero-known budget still says fits. Ensure live per-Mac metal capacity, two independent models.
-9. **oMLX MTP under pressure (F2 N2 E2 A2 I0=20).** [#5397](https://github.com/jundot/omlx/issues/5397) RC1 M4 Pro memory pressure decode silent death, unknown cause; correct reserve and logs needed.
-10. **RDNA2 IQ4_XS expert path (F1 N3 E3 A2 I0=22).** [Strata #6197](https://github.com/Niko1221/Strata/pull/6197) other RX6900 XT gfx1030 Qwen3.6 model 1.65x PP; original GSQIQ3S downs **different**, user host ONLY16, no promotion.
-11. **Quant CUDA nonfinite model issue (F1 N2 E2 A2 I1=20).** [Strata#6121](https://github.com/Niko1221/Strata/issues/6121) UDQ4KXL NaN deterministic, PLE mmap fails, Q5 control clean; quality can fail at267 tokens.
-12. **Paperniuk GSQ mixed quant kernel/long soak (F3 N1 E1 A3 I0=20).** Prior dense MLX4 speed vs original GSQ IQ3XXS slower output, no new commits. M1 long-context source and spill proof pending.
+## Ranked active leads
+1. **Tool-call result ordering (28/33 F2N3E3A3I1)** [TensorFold #3832](https://github.com/ashhart/TensorFold/pull/3832) OPEN upstream patch fixes prior #3775, verify merge and ordered `tool_call_id` before template hash.
+2. **Strata GSQ IQ3S source expert-cache regression (25/33 F2N3E2A3I1)** [#6208](https://github.com/Niko1221/Strata/issues/6208) two 3060 hosts ~55→34/40TG at same IQ3S as cache hit drops; needs profile routing bisect and independent original quant control, no owner run.
+3. **Real GSQ coding agent + subagent choice (25/33 F2N3E2A3I1)** [#6213](https://github.com/Niko1221/Strata/issues/6213) two 34min offline Codex patch sessions QFN IQ3S on 2×4060Ti125GB; test human-verified tasks/hour and competent no-delegation.
+4. **QFN original GSQ IQ3S long context AMD (22/33 F2N3E2A2I0)** [#6202](https://github.com/Niko1221/Strata/issues/6202) dual RX7800XT16+64GB host true127784 PP2494 TG56.4 drafted, no owner RX6800 nonXT+host16 equivalence.
+5. **Basalt streamed KV SSD (22/33 F2N2E2A3I0)** [#382](https://github.com/jesdga95/basalt/pull/382) OPEN old PR updated Nov18, eight long session cache returns 10/16→16/16, other model/dualGPU, need exact restore+error gates.
+6. **Strata persistent expert routing heat (24/33 F2N3E2A3I0)** [#6201](https://github.com/Niko1221/Strata/pull/6201) new open opt-in cross-task route memory and old multi-run speed, not neural/agent memory nor original GSQ fit.
+7. **Qwen4 authentic Flash config (20/33 F3N1E1A3I0)** official Alibaba and Qwen model lists, exact main/PLE/MTP weights+active/total absent, old China/US rumors only.
+8. **oMLX original GSQ external Splash CUDA bridge (25/33 F3N2E2A3I0)** oMLX0.8.0 native MLX partial layers, external original GGUF state handoff not demonstrated; avoid conflating.
+9. **Paperniuk old M1 original GSQ (20/33 F3N1E1A3I0)** no new Paperniuk DS4/Splash commit; source128/259K exact and long soak resume unmeasured.
+10. **Basalt body read/tool recovery (22/33 F2N2E2A3I0)** [#425](https://github.com/jesdga95/basalt/pull/425) 408 instead of permanently leaked thread, [#426](https://github.com/jesdga95/basalt/issues/426) not wired `tool_call_recovery`, agent correctness.
+11. **M5 verifier tensor ops (17/33 F0N3E3A1I0)** [oMLX #5403](https://github.com/jundot/omlx/pull/5403) 128K ~185→157–164ms/step, excludes M1–M4, valuable architecture only.
+12. **Dual M1 independent residency and TB4 (17/33 F2N2E1A2I1)** true source 259K ~57GiB each, must not treat as one128GB pool or extrapolate dualV100 NVLink.
 
-## Deprioritized / corrected (max8)
-- New RX6900XT IQ4_XS down format does not apply original GSQIQ3S down Q2_0 / IQ4_NL (explicit new source check).
-- Tencent Hy4 224B or DeepSeek Flash552B not a Qwen4 size leak.
-- oMLX 0.8.0 M3Ultra 512GB native oQ4e prefill benchmark cannot fit original M1 GSQ external Splash.
-- Strata 2GPU 4060Ti four-agent burst not a single5070Ti throughput claim; first proposed patch crashes with DF2.
-- QFN oQh minimum70.8GiB weight file too large for one M1Max64 and below minimum GSQ quality floor.
-- TensorFold Python exact-float benchmark fixture clock origin #3779 no production TTFT improvement.
-- Basalt status of0.4.1 release correction already recorded prior window, not new.
-- Omitted old Paperniuk M1 1.7.0 port speculation: no source event this interval.
-
-## Next research turn (3 maximum)
-1. New first-party Qwen4-Flash model manifest and genuine Chinese source, distinguish from older Linux.do wishes and fake release-date pages.
-2. oMLX #5398 cause/fix in external Splash path, compare source and prompt hashing; Basalt #420 merged status and regression coverage for bounded agent replies.
-3. Basalt #422 peer link/SSD stall causal log evidence plus Strata#6160 safe fail-closed merged status; only owner exact setup if approved HIGH.
-
-## Source-map growth and discovery debt
-New source map #5398 (0.8 external Splash cached regression), #420 (thinking budget vs cap), #422 (5070Ti64 host SSD spill 2GPU), #6160 (parallel defaults & DF2 process crash), #6197 (RDNA2 original-quant non-transfer), #5397 MTP silent death, #3778/#3770 stale/zero Metal budget. Discovery debt: correct tool id mapping and requester image history; exact ISTA GSQ M1Max128/259K before/after on real owner machine; CUDA/Splash full state bridge; source model pack numerical identity; owner 5070Ti16+host64 physical32K spec1 no draft first completion gate; Qwen4 actual weights and open license.
+## Deprioritized/closed
+- **Qwen4-35B from Reddit on Nov18:** source linked Shuai Bai's **Nov16** social statement, not fresh model weights, no Flash parameters. Reopen on official manifests only.
+- **Dual V100 UD IQ2_XS #6210:** below GSQXXS quality floor and different interconnect; cannot promote owner throughput.
+- **M5-only oMLX #5401/#5403:** not old M1 path even when long-context benchmarks good.
+- **RX7800XT x2 GSQ IQ3S:** original quant but two RDNA3 GPUs, larger RAM and draft; user RX6800 single host16 cannot infer performance.
+- **Basalt #89** closed without GitHub merged flag this window; only source main commit can establish branch integration.
+- **Basalt #382** authored Nov16, updated Nov18 not fresh whole measurement; watch future merge and independent ablation.
+- **Direct source GSQxxs vs Unsloth UD-Q4KXL quality:** no same task benchmark; performance/resource comparisons are not preference proof.
+- **oMLX0.8.0 native QFN oQh min70.8GiB:** cannot reside in 64GB M1 and below GSQ quality floor.
+## Next exploration turn (max3)
+1. Verify actual primary Qwen4 Flash manifests and Chinese release rumors vs recycled media; Paperniuk old M1.
+2. Trace #6208 expert profile parsing/regression and #6201 proposed gated fix; compare with Basalt IQ3S cache and frozen owner conditions.
+3. Follow #3832 tool-ID merge and #382 streaming-GDN/KV checkpoint restore correctness, real coding agents with exact task pass.
+## Research debt
+One-card owner RTX5070Ti16+64 host pristine historical GSQ IQ3S v2 32K INT8KV spec1 no draft not yet physically run; actual 2 M1Max64 original GSQXXS 128/259K speed gain not seen; source full CUDA prefill→M1 GDN+QSA+PLE state transfer not proven; trained Qwen4 Flash weights/spec absent. All owner downloads/tests require HIGH approval.
