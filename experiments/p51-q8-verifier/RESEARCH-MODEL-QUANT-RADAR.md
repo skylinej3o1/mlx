@@ -1,3 +1,7 @@
+## Nov 17 2026 19:54 EST — model and quant radar
+
+[Watch](./RESEARCH-WATCH-2026-11-17-1954.md) 2026-11-17T13:50:06Z→2026-11-18T00:54:00Z. Official Nov16 Qwen4-Max cloud was prior; no first-party Flash/27B/35B-A3B open weights/count/date verified. qwen4exp llama.cpp code denotes QFN architecture, not official Qwen4. Original ISTA GSQ-RCO IQ3_XXS 2021 M1Max64 physically128K 278PP/34.2TG,259K 258PP/31.7TG near57GiB unchanged. Paperniuk dense27B MLX4 #70 M1 B1 GPU step -4.74% but 5/8 greedy drift and reviewer GGUF IQ3_XXS output 2% slower; not a source-GSQ speedup. Basalt other5070Ti IQ3_S default drafted135.9TG with112GiB host, not owner64GB historic pristine .basalt v2 spec1 first test. NVIDIA trained QFN QAD122.6GiB PPL improves4.5%, BF16 KL worsens34% and top1 -1.06pp, no completed coding-agent proof/source fidelity nor M164 fit. Dense27B oMLX M5Pro MLX8 INT8 attention cold128K TTFT -6.1%, not original source M1. oMLX helper native layer split and external GGUF/Splash incompatible; NVFP4 SSD PLE path explicitly rejects helper. Splash #781 foreground fairness improves TTFT but coding checks unchanged, #706 client prompt mutation can cause cache miss; Strata #6171 warm+route prior premature EOS quality caution. Dual separate64GB M1Max64, 5070Ti16+CoreUltra7+64GB host, RX6800 NON-XT16GB VRAM and ONLY16GB system RAM unchanged. No owner hardware actions.
+
 ## November 17 2026 08:50 EST — model/quant/runtime radar
 
 [Watch](./RESEARCH-WATCH-2026-11-17-0850.md), interval 2026-11-17T11:51:16Z→2026-11-17T13:50:06Z.

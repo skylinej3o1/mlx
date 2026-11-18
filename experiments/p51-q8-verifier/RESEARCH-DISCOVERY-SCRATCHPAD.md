@@ -1,3 +1,15 @@
+## 2026-11-17 19:54 EST — research discovery leads
+
+[Strict watch](./RESEARCH-WATCH-2026-11-17-1954.md) cutoff 2026-11-18T00:54:00Z. Lead score F/N/V/A each 0–3 (owner fit, novelty, verifiability, actionability).
+1. **Paperniuk #70 M1 quant negative control F2/N3/V3/A3:** MLX4 B1 -4.74% but GGUF IQ3_XXS output B1 +2.0% slower reviewer M2, greedy drift; isolate affine-only path, original GSQ parity.
+2. **Basalt #412 exact GPU class F2/N2/V3/A3:** 5070Ti IQ3_S self-quant, 112GiB host and drafting vs owner64GB spec1 and historic source; study memory expert split + provenance, no substitution.
+3. **NVIDIA QAD distillation F1/N3/V3/A2:** 122.6GiB pack PPL-4.5% vs BF16 KL+34%, lower likelihood not same original distribution; full coding tasks and memory reject needed.
+4. **Molt cache hash/fairness F2/N3/V3/A3:** Splash #706 image/pruned client prompt explains false cache loss ~15K in180K, #781 p95 TTFT improves but trusted coding checks flat17/24. Validate immutable rendered prompt/tool/image and restore.
+5. **Strata warm+route-prior EOS F2/N2/V2/A3:** other patched 3090 test10/137 short, independent replication pending; preserve conservative exact expert routing default.
+6. **oMLX native CUDA/GGUF bridge F3/N2/V3/A3:** native early layers not external Splash, #5384 SSD NVFP4 PLE rejects helper, 98GiB native model >64GB.
+7. **TensorFold streamed state F1/N3/V2/A1:** different DeepSeekV4.1 #3729, body edited after cutoff; architectural only.
+Negative: no new first-party Qwen4 compact weights or Paperniuk old-M1 upstream1.7 port or owner occupied128/259K gain; RDNA4 KV result does not support RX6800 NON-XT with only16GB host.
+
 ## 2026-11-17 08:50 EST — actionable research leads
 
 [Watch](./RESEARCH-WATCH-2026-11-17-0850.md), strict cutoff **2026-11-17T13:50:06Z**.
