@@ -1,3 +1,23 @@
+# Project 51 discovery scratchpad — Nov19 18:44 EST
+
+**Cutoff 2026-11-19T23:44Z** (user request minute precision), [strict watch](./RESEARCH-WATCH-2026-11-19-1844.md). F=owner fit, N=novelty, E=evidence, A=action, I=independence (0–3 each; 3F+2N+3E+2A+I out of33 is a triage heuristic, not a probability).
+
+## Highest-value active leads
+1. **True agent cache budget and /compact  F3N3E3A3I1=31.** [Strata#6327](https://github.com/Niko1221/Strata/issues/6327), actual snapshot5.7–6.9GiB exceeds 3.84GiB cache; reuse282077/282474→3.8s vs five 19.5–20.1min rereads. Need M1 GDN+KV+PLE snapshot byte math and client template parity.
+2. **Agent tool/answer fidelity F3N3E3A3I1=31.** [Splash#788](https://github.com/incoai/splash/issues/788) M4 other MoE fabricated write_file, [Basalt#429](https://github.com/jesdga95/basalt/issues/429) literal closing delimiters, [Strata#6316](https://github.com/Niko1221/Strata/issues/6316) lost first-after-crash nonce, [#6315](https://github.com/Niko1221/Strata/pull/6315) OPEN schema repair. Use exact task completion and hashes.
+3. **M1 idle cache SSD reclaim F3N3E2A3I0=27.** [Splash#787](https://github.com/incoai/splash/pull/787) M5 3.1→0.1GB cache RAM, next turn 4.7s including weights. Old M1 source GSQ compatibility untested.
+4. **Classifier stable checkpoint F2N3E3A3I1=28.** [Strata#6214](https://github.com/Niko1221/Strata/issues/6214) 2-Spark 21.31s→0.84s; separately RTX3090~5.85→1.37s for non-mutating prefix. Need actual Molt/Claude client format, no unsafe adaptation.
+5. **Dense prefix first-question tail F2N3E2A3I0=24.** [oMLX#5430](https://github.com/jundot/omlx/pull/5430) M5 native27B ~8.4–9.7→2.7–3.1s, cold answers varied; apply only with parity.
+6. **Strata prior causal mistake correction F2N3E3A3I2=29.** [#6248](https://github.com/Niko1221/Strata/issues/6248) retracted uptime, boot pciefraction0.15 from bench harness; per-request overrides uncertain, 328/328 independent control stable.
+7. **Qwen4 Flash authenticated weight manifest F3N2E1A3I0=22.** [Chinese feed](https://platform.qianwenai.com/docs/changelog/models) no Flash, [Qwen HF](https://huggingface.co/Qwen) no owner checkpoint. Check official tensor manifests before hypothesizing 64GB feasibility.
+8. **Preserve exact owner PC first run F3N2E2A3I0=25.** Frozen original ISTA GSQ IQ3_S historical v2 one5070Ti16 host64 CoreUltra7 physically32K spec1 no draft, requires HIGH.
+9. **Relay full state versus native oMLX F3N2E1A2I0=20.** External Splash GGUF still separate from native CUDA layer helper; no QFN QSA/GDN/PLE/MTP parity.
+10. **Two separate old M1 agent economics F3N2E1A3I0=22.** #784/#785/#787 and #5430 need old M1 IQ3XXS 128/259K exact testing; no commits Paperniuk this window.
+11. **Strata cache observability F2N3E3A2I0=25.** [TensorFold#3706](https://github.com/ashhart/TensorFold/pull/3706) merged 18 miss causes; useful diagnostic schema even if not same engine.
+12. **Unexpected public Tencent model F1N3E3A1I0=20.** Basalt0.5 Hy4flash158.7GB too large for owner60ishGB Mac; DFly2 index/KV reuse architecture may inform long-term relay reasoning, not actual transferable implementation.
+
+## Prior lead history through previous cutoff
+
 # Project 51 discovery scratchpad — Nov19 12:47 EST
 
 **Cutoff 2026-11-19T17:47:41Z.** [Full watch](./RESEARCH-WATCH-2026-11-19-1247.md). F=owner hardware fit, N=novelty, E=evidence, A=action, I=independence 0–3, weighted 3F+2N+3E+2A+I max33 heuristic, not probability.
