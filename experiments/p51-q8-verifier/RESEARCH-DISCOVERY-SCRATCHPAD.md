@@ -1,3 +1,19 @@
+# Project 51 discovery scratchpad — Nov20 16:56 EST
+
+**Cutoff 2026-11-20T21:56:17Z; previous 2026-11-20T21:00:28Z.** [Strict watch](./RESEARCH-WATCH-2026-11-20-1656.md). Existing priority heuristic F owner match N novelty E evidence A actionable I independent, each0–3, weighted3F+2N+3E+2A+I max33; not probability. Continue earlier historical scratchpad below.
+
+1. **Higher confidence exact-chip low-Q M8 gain: F3N3E3A3I0=30.** [Strata#6434](https://github.com/Niko1221/Strata/pull/6434) updated full-model M1Max other source Q2 with shared host weight releases in all arms, PP239.66→255.27/255.60 2K, n1:n2 warm. Quality floor IQ3XXS untested at128/259K. Compare numerical hashes/full agent finish.
+2. **M1 duplicate host weights memory gate: F3N3E2A3I0=27.** [Strata#6440](https://github.com/Niko1221/Strata/issues/6440) new READY process5.909→2.992GB Q2+PLE, only both released completed MTP request; no full paired MTP quality, not easy add to workspace gain.
+3. **QSA scratch live/slice: F3N3E3A3I0=30.** [Strata#6441](https://github.com/Niko1221/Strata/pull/6441) new owned part1337.55→966.28MB at512 rows, same128 outputs; 16K prompt time changes both chunk and flags, causal speed UNKNOWN.
+4. **Reuse same backing alloc: F3N2E3A3I0=28.** [Strata#6432](https://github.com/Niko1221/Strata/pull/6432) three growing source Q2 turns with common host releases; 184–204MB smaller final process, peak similar; need actual long-context peak.
+5. **Streaming selector topK CPU: F3N3E2A3I0=27.** [Strata#6443](https://github.com/Niko1221/Strata/pull/6443) new21:54Z M1 streamed prefetch work −37–38% but end-to-end TG only+2–3%, SSD wait dominant, no IQ3 accepted.
+6. **Agent logprob drift and exact finish: F3N3E2A3I0=27.** [vLLM#69042](https://github.com/vllm-project/vllm/pull/69042) new21:54Z record/compare next-token KL/NLL/top1; author RTX5090 Qwen2.5-1.5B not source. Need full tool/file-hash and original GSQ IQ3S 139K normal-stop truncation from previous [Strata#6437](https://github.com/Niko1221/Strata/issues/6437).
+7. **Negative N1X cuda unified prefill: F1N2E2A1I1=16.** [Strata#5678](https://github.com/Niko1221/Strata/issues/5678) new independent reporter comment21:24Z different pack N1X stalls and GPU NVRM OOM; no causal transfer to M1.
+8. **Qwen4 first-party size: F3N2E1A3I0=22.** [Chinese model list](https://platform.qianwenai.com/docs/changelog/models), [Qwen HF](https://huggingface.co/Qwen) no authenticated model record/manifest, Tencent Hy4 irrelevant.
+9. **Frozen first PC: F3N2E1A3I0=22.** No runs, original source pristine GSQ IQ3S v2 pack phys32K1slot INT8KV spec1 NO DRAFT, CPU-double on single RTX5070Ti16 host64. Two M1 separate, RX6800 NONXT host16.
+
+## Prior scratchpad history
+
 # Project 51 discovery scratchpad — Nov20 16:00 EST
 
 **Cutoff 2026-11-20T21:00:28Z; previous 2026-11-20T19:04:42Z.** [Strict watch](./RESEARCH-WATCH-2026-11-20-1600.md). Priority heuristic F owner-fit, N novelty, E evidence, A action, I independence each0–3; weighted 3F+2N+3E+2A+I max33, not probability.
