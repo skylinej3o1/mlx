@@ -1,3 +1,24 @@
+# Project 51 discovery scratchpad — Nov20 14:04 EST
+
+**Cutoff 2026-11-20T19:04:42Z; prior 2026-11-19T23:44:00Z.** [Strict watch](./RESEARCH-WATCH-2026-11-20-1404.md). Heuristic score owner fit(F), novelty(N), evidence(E), action(A), independence(I), each0–3; 3F+2N+3E+2A+I maximum33. This is prioritization, not probability.
+
+## Top actionable leads
+
+1. **Apple7/8 narrow Split-K for accepted GSQXXS F3N3E2A3I0=27.** [Paperniuk#73](https://github.com/paperniuk/splash/pull/73) M2Max QFN Q2_0 cached162 append+7.4%, 128-row −14.1% fused; top1 only97.2%. Critical M1 pristine source quant full agent correctness gate, and no M1 number. [#72](https://github.com/paperniuk/splash/pull/72) IQ2 deliberately excludes accepted IQ3XXS/S.
+2. **Coder pruning quality/memory test F3N3E2A3I0=27.** [ISTA Coder official](https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF) older Oct revision newly rediscovered: transformer29.6GB+PLE28.8GB streamed, half experts at3.5bpw, first-party SWE79.2 vs BF16 82.8, LiveCodeBench87.43 equal. Needs same-engine complete tasks versus pristine unpruned GSQXXS and true128/259K, no quality floor change.
+3. **Warm agent fairness and tail TTFT F3N3E2A3I0=27.** [Splash#789](https://github.com/incoai/splash/pull/789) p95 warm TTFT109→11.34s other M5Studio128, aggregate TG flat and coding10/12 same. Others #784/#785/#787 remain OPEN.
+4. **Transient KV RAM for multiagent F3N3E3A3I0=30.** [oMLX#5321](https://github.com/jundot/omlx/pull/5321) and [#5253](https://github.com/jundot/omlx/pull/5253) MERGED Nov20 on M5Pro64 dense27B; join peak +2.06S→+.13S; rollback extra 4.4→.38GB. Need equivalent M1 external GGUF verified or independent serving.
+5. **Correctness and low-level perf choice F3N2E3A3I1=29.** [Strata0.2.17](https://github.com/Niko1221/Strata/releases/tag/v0.2.17) rank7 skip OFF now, Blackwell small-card adapt-fetch on but new semantics nonbitexact; other regressions [#6423](https://github.com/Niko1221/Strata/issues/6423)/[#6431](https://github.com/Niko1221/Strata/issues/6431); protect original frozen first Basalt spec1 source.
+6. **SSD checkpoint stream / restart F3N3E2A3I0=27.** [Basalt#382](https://github.com/jesdga95/basalt/pull/382) direct restore without ~2GB whole checkpoint RAM, OPEN. [Strata#6288](https://github.com/Niko1221/Strata/pull/6288) other 2GPU layer split 165K cold66→SSD restored8.4s, OPEN. Need exact QSA/GDN/PLE/SSD state and multiple concurrent agent RAM budgets.
+7. **Basalt loader corrected causal record F3N3E3A2I1=29.** [#430](https://github.com/jesdga95/basalt/issues/430) independent same-other-host retest 12.5GiB GPU,65 RAM, desktop clean, mean62.6TG; not equivalent owner source test.
+8. **Agent stream/corrupt tools F3N2E3A3I1=29.** [Splash#790](https://github.com/incoai/splash/issues/790) ~1% reasoning-off JSON stream failure other QFN Q8; old [#788](https://github.com/incoai/splash/issues/788) different model fabricated write_file; [Basalt#429](https://github.com/jesdga95/basalt/issues/429) literal delimiter truncation OPEN; strict file hashes+finish reason on restores.
+9. **Older Apple native batch kernel potential F2N3E2A2I0=22.** [oMLX#5276](https://github.com/jundot/omlx/pull/5276)/[#5304](https://github.com/jundot/omlx/pull/5304) other M1Ultra small dense model+6bit 2–5 streams, not pristine GSQ on M1Max.
+10. **Qwen4 Flash manifest surveillance F3N2E1A3I0=22.** [Chinese official](https://platform.qianwenai.com/docs/changelog/models), [Qwen HF](https://huggingface.co/Qwen) no authenticated Qwen4Flash weights/size/license as of cutoff. Rumors no boost.
+11. **Relay exact cross-runtime state F3N2E1A2I0=20.** oMLX native helper is not external Splash original GGUF state continuation; retain QSA/GDN/PLE/MTP exactness gate.
+12. **Secondary RX6800 NONXT host16 feasibility F2N2E1A2I0=17.** No directly comparable source GSQ fit/quality, do not extrapolate gfx1031/1032+host62.
+
+## Prior research leads and history
+
 # Project 51 discovery scratchpad — Nov19 18:44 EST
 
 **Cutoff 2026-11-19T23:44Z** (user request minute precision), [strict watch](./RESEARCH-WATCH-2026-11-19-1844.md). F=owner fit, N=novelty, E=evidence, A=action, I=independence (0–3 each; 3F+2N+3E+2A+I out of33 is a triage heuristic, not a probability).
