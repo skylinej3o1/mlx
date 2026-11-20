@@ -1,3 +1,22 @@
+# Project 51 discovery scratchpad — Nov20 16:00 EST
+
+**Cutoff 2026-11-20T21:00:28Z; previous 2026-11-20T19:04:42Z.** [Strict watch](./RESEARCH-WATCH-2026-11-20-1600.md). Priority heuristic F owner-fit, N novelty, E evidence, A action, I independence each0–3; weighted 3F+2N+3E+2A+I max33, not probability.
+
+## Current highest priority seeds
+
+1. **M1Max v2 resident 8-row MoE tail F3N3E2A3I0=27.** [Strata#6434](https://github.com/Niko1221/Strata/pull/6434) exact old M1Max32GPU64, *source GSQ Q2_0* 4K PP+6.21 earlier local, synthetic−15.9% expert layer; upstream whole model stopped memory guard and GSQ IQ3XXS physically128/259K untested. Disconfirming path: memory headroom, operator format and RCO+PLE same bits.
+2. **Original GSQ quality long task stop F3N3E2A3I0=27.** [Strata#6437](https://github.com/Niko1221/Strata/issues/6437) original IQ3S int8KV+MTP 139.6K input 3/27 truncated normal-stop; isolating KV, MTP, template and stop rules requires draft-off and large samples; complete answer hash gate.
+3. **Durable SSD across restart F3N3E2A3I0=27.** [Strata#6439](https://github.com/Niko1221/Strata/pull/6439) 74 entries/85,794MiB adopted after restart, output correctness unproven, depends #6305. Compare #6288, Basalt#382, Splash#787; old M1 external GGUF state unsupported.
+4. **GPU park without re-prefill F2N3E2A2I0=22.** [Strata#6436](https://github.com/Niko1221/Strata/issues/6436) CUDA proof RTX3090Ti device VRAM23,180→836MiB at host+22.3GiB, 2–5sec after warm, no deterministic answer parity or native integration, no Metal / Relay.
+5. **Keep quality while accelerating dual GPUs F2N2E2A2I0=20.** [Basalt#501](https://github.com/jesdga95/basalt/pull/501) long 232K prompt split TTFT −45.8% only 8K chunks, 244/255 picks match, 32K control flat; [#509](https://github.com/jesdga95/basalt/pull/509) peer+CPU miss staging ~−15% window but differing output.
+6. **Schema tool fidelity F3N3E2A3I0=27.** [DS4#1363](https://github.com/antirez/ds4/pull/1363) declared boolean True/False QFN parser fixes client rejection; maintain literal closer #429, JSON stream #790, new original-GSQ #6437 alongside synthetic/code agent task replays.
+7. **Guardrail quant/hardware fit F3N2E2A3I0=25.** [Strata#6435](https://github.com/Niko1221/Strata/issues/6435) RX9070/host32 other Gyro quant, no source IQ3S RX6800 nonXT host16 feasibility. [Strata#2427](https://github.com/Niko1221/Strata/pull/2427) dual CUDA HC Q8 different output.
+8. **Qwen4 model card authentication F3N2E1A3I0=22.** [Chinese Alibaba updates](https://platform.qianwenai.com/docs/changelog/models) Qwen4 Max only, [Qwen HF](https://huggingface.co/Qwen) no official Flash manifest. Ignore unsigned parameter rumor.
+9. **Exact Relay state F3N2E1A2I0=20.** [vLLM #68347](https://github.com/vllm-project/vllm/pull/68347) other model P/D draft-KV-only helper and [#69024](https://github.com/vllm-project/vllm/issues/69024) hybrid CPU offload missing prompt-tail followup, not original GSQ CUDA→M1 exact GDN/QSA/PLE/MTP. No full integration.
+10. **Two true separate M1s F3N2E1A3I0=22.** Independent warm full-model agent baseline before split distributed. Original GSQ XXS physical128K PP278/TG34.2 and259K PP258/TG31.7 remain historic; six-month futures forecast not achieved.
+
+## Previous research scratchpad history
+
 # Project 51 discovery scratchpad — Nov20 14:04 EST
 
 **Cutoff 2026-11-20T19:04:42Z; prior 2026-11-19T23:44:00Z.** [Strict watch](./RESEARCH-WATCH-2026-11-20-1404.md). Heuristic score owner fit(F), novelty(N), evidence(E), action(A), independence(I), each0–3; 3F+2N+3E+2A+I maximum33. This is prioritization, not probability.
