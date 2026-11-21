@@ -1,3 +1,21 @@
+# Project 51 discovery scratchpad — Nov21 04:28 EST
+
+Strict fresh cutoff `2026-11-21T09:28:25Z`, previous `2026-11-21T03:36:49Z`; [dated watch](./RESEARCH-WATCH-2026-11-21-0428.md). Priority heuristic 3F+2N+3E+2A+I, F/N/E/A/I each0–3, max33; subjective rank not probability or measured benefit.
+
+1. **VLM K/V semantic compatibility F3N3E3A3I1=31.** [oMLX 0.8.2](https://github.com/jundot/omlx/releases/tag/v0.8.2) and maintainer [#5474](https://github.com/jundot/omlx/issues/5474) fixed Qwen4 image MRoPE macro misuse, salt old-cache keys, new3/12→12/12 GUI; full132 target revalidation still needed. Protect computer-use agent clicks from silent visual errors.
+2. **Original GSQ engine regression F3N3E3A3I0=30.** [Strata #6478](https://github.com/Niko1221/Strata/issues/6478) other dual Turing 2080Ti11 GSQ IQ3XXS v0.1.52→0.1.63 TG62.9→35.3, expert hit96.8→64.6%, ABBA; preserve strict hardware provenance, locate expert-cache bisect.
+3. **Agent cache-aware slot retention F3N2E3A3I0=28.** [Strata #2527](https://github.com/Niko1221/Strata/pull/2527), [#2528](https://github.com/Niko1221/Strata/pull/2528) new 0.2.17 3×RTXA4000 source IQ3S6-lane cache validation at200/262K, reused27K and TTFT~0.6s; not single M1/5070Ti.
+4. **MCP alias correctness F3N3E2A3I0=27.** [Strata #6486](https://github.com/Niko1221/Strata/pull/6486) new just before cutoff, alias bare vs `mcp__` only unambiguous, tests20, no exact live. Preserve schema `function` from prior [#6461](https://github.com/Niko1221/Strata/issues/6461).
+5. **ANE pipeline overlap F2N3E3A2I0=25.** [Splash #795](https://github.com/incoai/splash/pull/795) M5Max36 dense27B UDXXS PP+13–16%, compile−95.6%; new scheduling direction but M1Max original GSQ/QSA not tested and ANE surface RAM cost.
+6. **M1 row batch F2N2E2A2I0=20.** [oMLX #5276](https://github.com/jundot/omlx/pull/5276) updated M1Ultra128 dense4B 2–5 aggregate, noisy current run and nonbitexact, not one-stream source 128/259K.
+7. **Scratch and serve correctness F3N3E2A3I0=27.** [Strata #6471](https://github.com/Niko1221/Strata/pull/6471), [#6474](https://github.com/Niko1221/Strata/pull/6474) Python early-closed batch should STOP, old cleanup not damage new engine slot after restart; tests pass no GPU A/B.
+8. **Persistence artifact lifecycle F3N2E3A2I1=27.** [Strata #3957](https://github.com/Niko1221/Strata/pull/3957) comment06:56Z unsaved entries can disappear on graceful park without manifest, proposed guard not transactional; no proven spill restore. Exact file hash and reload after crash.
+9. **RX tool improvement caution F1N2E3A1I0=18.** [Strata #5476](https://github.com/Niko1221/Strata/pull/5476) 2×6900XT128 host source IQ3S window −7% but end-to-end TG−3% with different MTP acceptance; do not extrapolate RX6800 NONXT ONLY16host.
+10. **Qwen4 firstparty F3N2E1A3I0=22.** [Chinese official model log](https://platform.qianwenai.com/docs/changelog/models), [Qwen HF](https://huggingface.co/Qwen) still no downloadable authenticated Flash/27B architecture/size. No promotion.
+11. **Frozen owner guard:** original GSQ IQ3XXS minimum 2 separate M1Max32GPU64 each, physical128K PP278 TG34.2,259K PP258 TG31.7; future40–44/37–40 speculative; one5070Ti16 host64 original GSQ IQ3S Basalt v2 phys32K one slot int8KV spec1 NO DRAFT unrun; secondary RX6800 NONXT16VRAM ONLY16RAM; no full CUDA→M1 Relay.
+
+## Prior research leads (history retained)
+
 # Project 51 discovery scratchpad — Nov20 22:36 EST
 
 **Hard cutoff `2026-11-21T03:36:49Z`, previous `2026-11-20T21:56:17Z`.** [Strict watch](./RESEARCH-WATCH-2026-11-20-2236.md). Existing scoring F owner fit, N novelty, E source evidence, A actionable, I independent each0–3 with weighted3F+2N+3E+2A+I max33 (heuristic, not probability).

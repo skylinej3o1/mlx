@@ -1,0 +1,25 @@
+# Project 51 focus — Nov 21, 2026 04:28 EST: M1 prospects vs ANE, engine quality and agent resilience
+
+[Strict dated source watch](./RESEARCH-WATCH-2026-11-21-0428.md) · incremental `2026-11-21T03:36:49Z→2026-11-21T09:28:25Z`. Docs only. Preserve quant, first Basalt configuration and old M1 forecast.
+
+## Architecture signals without false extrapolation
+
+| Fresh source | Exact test/hardware/quant | New evidence | Old M1 owner interpretation |
+| --- | --- | --- | --- |
+| [Splash #795](https://github.com/incoai/splash/pull/795) created08:30Z | **M5 Max 32/36**, dense 27B **Unsloth UD-IQ3_XXS**, DFlash2 | Cold8K PP~1,030→1,190 (+16%);32K~926→1,050 (+13%), compiler18.2→0.8s, four-chunk ANE/GPU pipeline | NO old M1 validation, different architecture and extra ANE surfaces reduce memory headroom, no original QFN GSQ accepted-quant 128/259K result |
+| [oMLX #5276](https://github.com/jundot/omlx/pull/5276) updated08:44Z | **M1 Ultra 128GB**, dense Qwen3-4B 4-bit 2–5 concurrent | More efficient multirow qmv, author says new-run medians confounded; best-round +5–29% aggregate | Does not give single-stream decode or old M1Max source QFN MoE benefit; kernel not bit-exact |
+| [Strata #6478](https://github.com/Niko1221/Strata/issues/6478) created07:06Z | 2×RTX2080Ti11 CUDA, host61, **original GSQ-RCO IQ3_XXS** | v0.1.52→0.1.63 TG62.9→35.3 (−44%), expert hit96.8→64.6%, reproduced ABBA | engine expert-placement regression can dominate kernels; not singleRTX5070Ti or M1, causality unknown |
+| [Strata #5476](https://github.com/Niko1221/Strata/pull/5476) updated05:53Z | 2×RX6900XT gfx1030 host128 **GSQ IQ3_S** | rebased32K cheaper decode windows −7.1%, but actual TG **−3.0%** when drafts accepted less | not user's RX6800 NONXT host16; don't equate kernel time to end-to-end quality/performance |
+
+## Agent correctness and state
+
+- **New released fix [oMLX0.8.2](https://github.com/jundot/omlx/releases/tag/v0.8.2) 04:20Z:** prior [#5474](https://github.com/jundot/omlx/issues/5474) 0.8.0/0.8.1 screenshot 96→14% accuracy, maintainer 03:55Z identified `#if POS_NDIM==3` macro misuse of template arg, fixed MRoPE, added Qwen4 image-cache salt preventing bad-VLM KV reuse, his separate12-click test3→12 correct. Not a new independent 132-task rerun, not old Mac GSQ.
+- **[Strata #2527](https://github.com/Niko1221/Strata/pull/2527)/[#2528](https://github.com/Niko1221/Strata/pull/2528) 04:18Z revalidated on 0.2.17:** pipelined group 3×RTX A4000 with source GSQ IQ3_S, six slots at 200K/262K, ~27K tokens preserved on repeated side-request turns, ~0.58–0.73s TTFT. Proper policy for cache importance, not identical default on owner.
+- **[Strata #6486](https://github.com/Niko1221/Strata/pull/6486) created09:27:54Z just before user cutoff:** exact MCP tool `mcp__` aliases safely resolved only if unambiguous, 20 parser tests; no live exact-PR end-to-end test. Together with prior [#6461](https://github.com/Niko1221/Strata/issues/6461) lost `browser_evaluate.function` informs tool parser acceptance gate.
+- **[Strata #6474](https://github.com/Niko1221/Strata/pull/6474)** restarted engine old-request cleanup must not clobber new batch slot, and **[#6471](https://github.com/Niko1221/Strata/pull/6471)** abandoned batch admission must STOP instead of consuming entire prompt; source Python tests, still OPEN.
+- **[Strata #6481](https://github.com/Niko1221/Strata/pull/6481)** unrelated Qwen3.6 baked template breaks prefix reuse, 70K old TTFT~200s, fixed only short 52-token repro and 70K speed prediction explicitly an estimate. **[#6469](https://github.com/Niko1221/Strata/issues/6469)** other Gyro TQ1 hybrid summary reuse root6311 vs spread35936, TTFT~15→~2.8s; not source QFN.
+- **[Strata #3957](https://github.com/Niko1221/Strata/pull/3957)** newly dated contributor 06:56Z finds graceful-stop unsaved parked entry can be evicted before manifest write; prototype guard not transactional (supersession/live-loss risk), no validated mid-run spill restore. Do not claim persistence works simply because logs say “spilled.”
+
+## Basalt/RX and first-party model status
+
+[Basalt #445](https://github.com/jesdga95/basalt/pull/445) comment07:01Z fixes checker-only stage-shared device pointers; maintainers didn't rerun dual GPU checker; two-pass scoring only >64K, frozen firstPC32K unchanged. [Qianwen official model changelog](https://platform.qianwenai.com/docs/changelog/models)/[Qwen HF](https://huggingface.co/Qwen) Nov21 cutoff no authenticated Alibaba **Qwen4 Flash** open weight, exact size or release; Nov16 Qwen4-Max API distinct. Two independent **M1Max32GPU64GB**, historical pristine source GSQ IQ3XXS physically128K PP278/TG34.2 and259K PP258/TG31.7, quality floor XXS, IQ3S preferred if fits. Previous speculative good-case 40–44/37–40 TG not newly validated. Frozen owner single RTX5070Ti16 Linux + IntelCoreUltra7 265F +64GB DDR5-4800, pristine ISTA GSQ-RCO **IQ3_S original Basalt .basalt v2/PLE** physically32K one-slot INT8KV spec1 NO DRAFT CPU-double+correct tool/files, UNRUN; secondary RX6800 NON-XT16GB VRAM+ONLY16GB host, no proof fit. Full CUDA→M1 Metal GGUF Relay remains unproven.
