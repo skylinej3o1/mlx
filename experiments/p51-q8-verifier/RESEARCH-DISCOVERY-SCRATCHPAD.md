@@ -1,3 +1,21 @@
+# Project 51 discovery scratchpad — Nov21 09:59 EST
+
+Verified new cutoff `2026-11-21T14:59:10Z` from `2026-11-21T09:28:25Z`. [Source-dated watch](./RESEARCH-WATCH-2026-11-21-0959.md). F/N/E/A/I are owner fit, novelty, evidence, actionability, independence each0–3, weighted3F+2N+3E+2A+I max33; priority score not probability.
+
+1. **Original old M1 shipped version F3N3E3A3I0=30:** [Paperniuk1.7.0-m1](https://github.com/paperniuk/splash/releases/tag/1.7.0-m1) M1Max64 actual FlashNext Q2_0 single TG81.1→81.4, 4aggregate113.3→124, dense27B MLX4 4aggregate65.4→80; NO accepted GSQ IQ3XXS physical128/259K. [#72](https://github.com/paperniuk/splash/pull/72) deliberately excludes IQ3, [#73](https://github.com/paperniuk/splash/pull/73) short append Split-K but nonbit-identical, [#63](https://github.com/paperniuk/splash/issues/63) 24h slowdown unfixed.
+2. **Layer-major Metal streamed prefill F3N3E3A3I0=30:** [Strata #6495](https://github.com/Niko1221/Strata/issues/6495) other same M1Max32GPU64 source GSQ Q2 12GB stream, one paired16K PP160→242.9,32K199→271.1; extra210MB scratch, STOP delayed11.1s, not IQ3XXS/long proven.
+3. **Basalt duplicate bool F3N3E3A3I0=30:** [Basalt #523](https://github.com/jesdga95/basalt/issues/523) parser duplicate `replace_all=false` merges to string on self-converted source IQ3S, 146 vs1 rejected calls across36-run task battery; exact typed tools + actual file mutations quality gate indispensable, no owner Basalt run.
+4. **Old-M1 always-on stability F3N2E2A3I0=27:** [Paperniuk #63](https://github.com/paperniuk/splash/issues/63) prior M1Max mixed uncensored IQ3XXS auto expert memory no READY and 24h growth-paused slower, explicit release says unfixed; must wait for independent new release retest, don't copy workaround as universal.
+5. **Basalt new version F2N3E3A2I0=25:** [0.5.5](https://github.com/jesdga95/basalt/releases/tag/v0.5.5) newly Inkling2Mini, v2 pack format, QFN baseline no speed; typed tool issue refers0.5.0, not verified repaired0.5.5.
+6. **Source GSQ version-shape regression F2N3E3A2I0=25:** [Strata #6489](https://github.com/Niko1221/Strata/issues/6489) other RTX4090D original GSQ IQ3S cold16K PP4603→3688 (−20%) despite TG best0.1.63, chunk/config arms no fix, not 5070Ti direct.
+7. **Metal pack staging F3N2E3A1I0=25:** [Strata #6490](https://github.com/Niko1221/Strata/pull/6490) actual M1 Q2 16MB temp copied removed, output parity, ordering/file cache confounds READY time.
+8. **Model provenance F2N3E3A2I0=25:** [Strata #6503](https://github.com/Niko1221/Strata/issues/6503) Swift IQ3_S_G8 RTX5090Laptop token soup, alternate engine files okay, non-pristine pack not user IQ3S.
+9. **RX6000 host constraint F2N2E2A1I0=18:** [Strata #6496](https://github.com/Niko1221/Strata/issues/6496) real RX6900XT gfx1030 Windows192GB host QFN IQ3S TG~34, not owner's RX6800 nonXT gfx1030 with **ONLY16GB HOST**.
+10. **Qwen4 negative F3N2E1A3I0=22:** [Qianwen Chinese changelog](https://platform.qianwenai.com/docs/changelog/models) [official Qwen HF](https://huggingface.co/Qwen) no authenticated downloadable Qwen4 Flash open model size/active count, Nov16 Max API ≠ Flash.
+11. **Hardware baseline unchanged:** 2 independent M1Max32GPU64, acceptable original GSQ IQ3XXS min/IQ3S preferred, real physical128K PP278 TG34.2/259K PP258 TG31.7, future 40–44/37–40 speculation. Frozen UNRUN single RTX5070Ti16 Linux CoreUltra7 265F/host64 original pristine GSQ IQ3S Basalt official v2 two shard/PLE source, physical32K one slot INT8KV spec1 NO DRAFT CPU-double typed API+exact file outcomes; no source/CI/benchmark/config changes. Relay not yet demonstrated.
+
+## Earlier scratchpad, preserved
+
 # Project 51 discovery scratchpad — Nov21 04:28 EST
 
 Strict fresh cutoff `2026-11-21T09:28:25Z`, previous `2026-11-21T03:36:49Z`; [dated watch](./RESEARCH-WATCH-2026-11-21-0428.md). Priority heuristic 3F+2N+3E+2A+I, F/N/E/A/I each0–3, max33; subjective rank not probability or measured benefit.
