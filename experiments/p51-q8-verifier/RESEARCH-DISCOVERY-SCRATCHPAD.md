@@ -1,3 +1,20 @@
+# Project 51 discovery scratchpad — Nov20 22:36 EST
+
+**Hard cutoff `2026-11-21T03:36:49Z`, previous `2026-11-20T21:56:17Z`.** [Strict watch](./RESEARCH-WATCH-2026-11-20-2236.md). Existing scoring F owner fit, N novelty, E source evidence, A actionable, I independent each0–3 with weighted3F+2N+3E+2A+I max33 (heuristic, not probability).
+
+1. **Playwright MCP literal `function` tool argument loss F3N3E3A3I0=30:** [Strata #6461](https://github.com/Niko1221/Strata/issues/6461) 0/29 on external CUDA GSQ IQ3S, parser drops required declared name; patch offered, not merged; test streaming and nonstream, exact JS side effect.
+2. **Compaction at 250K F3N3E3A3I0=30:** [Strata #6460](https://github.com/Niko1221/Strata/issues/6460) empty Claude Code summary and [#6459](https://github.com/Niko1221/Strata/issues/6459) Codex remote trigger HTTP400 are distinct APIs. Validate nonempty Molt summary, token budget, restored goals and artifacts, not just exit success.
+3. **Auxiliary tiny requests blow away main agent cache F3N3E2A3I0=27:** [Strata #6463](https://github.com/Niko1221/Strata/issues/6463) 29% wall time re-prefill external; verify main-context protection with varying cache policies and realistically constrained 64GB owner host.
+4. **SSD durable sessions F3N3E3A3I0=30:** [Basalt #382](https://github.com/jesdga95/basalt/pull/382) updated two-GPU UDXXS eight120K multi-agent rows, busy cached11/16→16/16 wall18.5→11.3min. Different original source GSQ IQ3S single GPU needs no changes to first test; compare [Strata #6439](https://github.com/Niko1221/Strata/pull/6439).
+5. **Versioned cached image KV F3N3E3A3I0=30:** [oMLX #5474](https://github.com/jundot/omlx/issues/5474) same model same prompt accuracy96→14% fused attention and old paged SSD KV persists after disabling path, 132 synthetic click tasks. Need visual grounding benchmark and semantic-cache invalidation.
+6. **Existing old M1 Q2 resource fix F3N2E3A2I0=26:** [Strata #6446](https://github.com/Niko1221/Strata/pull/6446) streaming anonymous mapping/expert fd leak and [#6447](https://github.com/Niko1221/Strata/pull/6447) one rejected batch extra350MB state; no full user GSQ accepted IQ3XXS128/259K performance.
+7. **Analogous cross-device MoE prefill F2N3E3A1I0=23:** [oMLX #5472](https://github.com/jundot/omlx/pull/5472) 2.01× genuine uncached38.8K Qwen3.6-35B MoE M3Ultra+GB10; NOT RTX5070Ti CUDA→old M1 QFN GGUF Metal transfer, [#5473](https://github.com/jundot/omlx/issues/5473) two M5Ultra pair failure caution.
+8. **Long Basalt QSA exact selection F2N2E3A1I0=21:** [Basalt #445](https://github.com/jesdga95/basalt/pull/445) 232K PP +3.7–4.6 other huge GPUs, first frozen PC physical32K threshold no relevance. Other high-quality [Strata #6462](https://github.com/Niko1221/Strata/issues/6462) source GSQ IQ3S 3K followup TTFT2.00→1.86s with CPU share (4090/host128), not direct user rig.
+9. **Qwen4-Flash artifact F3N2E1A3I0=22:** [official Chinese changelog](https://platform.qianwenai.com/docs/changelog/models) and [Qwen HF](https://huggingface.co/Qwen) no authentic open weight manifest, active/total size, release; rumors remain unverified.
+10. **Baseline invariant:** original source GSQ IQ3_XXS minimum for dual separate 2021 M1Max64, IQ3S preferred if feasible; physical128K PP278/TG34.2,259K PP258/TG31.7; subjective future40–44/37–40 TG NOT measured; frozen owner single RTX5070Ti16 Linux Basalt original GSQ IQ3S v2 physical32K int8kv spec1/no draft, first run not authorized, secondary RX6800 nonXT16VRAM ONLY16GB host.
+
+## Prior evolving research history
+
 # Project 51 discovery scratchpad — Nov20 16:56 EST
 
 **Cutoff 2026-11-20T21:56:17Z; previous 2026-11-20T21:00:28Z.** [Strict watch](./RESEARCH-WATCH-2026-11-20-1656.md). Existing priority heuristic F owner match N novelty E evidence A actionable I independent, each0–3, weighted3F+2N+3E+2A+I max33; not probability. Continue earlier historical scratchpad below.
