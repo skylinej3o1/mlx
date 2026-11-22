@@ -1,3 +1,7 @@
+# Nov21 22:56 EST discovery journal
+
+[Watch](./RESEARCH-WATCH-2026-11-21-2256.md). Priority (fit/novelty/evidence/actionability each0–3, independence0–3; not probability): dstar Coder actual M1 F3N3E3A3I0=30; packed helper F3N3E3A3I0=30; Basalt merged same-session affinity F3N3E3A3I0=30; Inkling native CPU spill F3N3E3A3I0=30; independently reproduced FP16 Inkling failure F3N3E3A3I2=32; ring cache F3N3E2A3I0=27; Strata branch and persistent state F3N3E2A3I0=27. FrontierReplay older abstract F3N2E1A2I0=20. Next: original Coder vs XXS real agent tasks, quant provenance and occupied long‑context tests, Inkling BF16 canaries, source GGUF Relay state parity, durable slots, typed tools. Negative: scoped Qwen4 official no downloadable weights, no original M1 128/259K A/B, no independent GSQ vs UD normalized coding test. Full historical scratchpad retained below.
+
 # Project 51 discovery scratchpad — Nov21 09:59 EST
 
 Verified new cutoff `2026-11-21T14:59:10Z` from `2026-11-21T09:28:25Z`. [Source-dated watch](./RESEARCH-WATCH-2026-11-21-0959.md). F/N/E/A/I are owner fit, novelty, evidence, actionability, independence each0–3, weighted3F+2N+3E+2A+I max33; priority score not probability.
