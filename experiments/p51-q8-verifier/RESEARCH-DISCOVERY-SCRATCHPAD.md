@@ -1,3 +1,7 @@
+# Nov24 10:37 EST — seeded discovery and priorities
+
+[Watch](./RESEARCH-WATCH-2026-11-24-1037.md). 3F+2N+3E+2A+I heuristic (0–3 each). #86 F3N3E2A3I0=27 old-M1 short actual result; #93 F3N3E3A3I0=30 includes negative-control actual agent gains tiny; #667 F3N3E2A3I0=27 atomic split state, #7037/#7034 F3N3E2A3I0=27 cache lifecycle. Independent older FrontierReplay F3N2E2A3I2=27 exact structural checkpoint anchors/recurrent replay, no owner deployment; HiState older abstract followup. PolyStrata old repo/new author redirection F2N2E1A2I1=18 track concrete commits, not dispute narrative. Maintain source GSQ and strict windows, no autonomous tuning.
+
 # Nov24 09:06 EST — independent lane and priority register
 
 [Watch](./RESEARCH-WATCH-2026-11-24-0906.md). 3F+2N+3E+2A+I heuristic (each0–3). P0 Basalt #658 F3N3E3A3I0=30 cancel/retry poisoned cache; Strata #7024 F3N3E2A3I0=27 SWA ring, #7020/#7021 F3N3E3A3I0=30 slot numerical isolation; Splash #818 F3N3E3A3I0=30 reply state budget. #86 F3N3E2A3I0=27 real M1 port, #84 F3N3E2A3I0=27 three-lane microbench. Independent older NInfer #334 + ninfer-all Oct18 field report F2N2E2A3I2=24 content-addressed KV and recurrent snapshots vs catalog, test cancellation atomicity/tool-turn endpoint pinning; SenseNova Loop9B old Nov17 + fresh Splash #820 F2N2E1A2I2=19 15GiB claimed long-context, task evidence missing. NariQ #3 F1N3E2A2I1=20 RDNA3 prototype, not gfx1030. Follow exact-release M1/GSQ/Relay, no promotion or deployment. Heuristic not calibrated probability.

@@ -1,3 +1,7 @@
+## Nov24 10:37 EST — actual M1 Inkling and realistic parallel gains
+
+[Watch](./RESEARCH-WATCH-2026-11-24-1037.md). #86 OPEN M1Max32 UD-Q4KM DFlash2 short57.29 vs llama.cpp20.70TG, prefill280 vs943ms, unknown matched draft, no long occupied context. #93 OPEN M2Max wide register split cycle gains10–35% time; actual served coding per-request +1.7–3.5% only, teacher logits nonbit-identical. Source GSQ XXS/S M1 long-context result absent; old forecast unchanged. Strata #7037 snapshot supersession, #7034 RTX3090 elastic cache deadlock and #7044 RAM cap add agent gates, not owner-confirmed bugs. No full Relay, no owner runs.
+
 ## Nov24 09:06 EST — Apple7/8 port and multi-agent kernel/restore gates
 
 [Watch](./RESEARCH-WATCH-2026-11-24-0906.md). #86 Paperniuk open actual M1Max32 Inkling DFlash2 chat port, #84 M2Max projection microbench 3-lane predicted +27.5% dense Q4_0 +10% QFN Q2_0, #89 bounds old-Apple deep attention dispatch 489.5→64.4ms on M2Pro, not throughput win. Strata #7024 reported SWA ring corruption at chunk>=1024 on M3Max; #7026 same-device local RFC promising long-context/cache numbers not accepted before correctness; #6608 M1 compiler open. Splash #818 even1.7.2 reply capture denied at KV pressure; oMLX #5588/#5602 merged no release. Source GSQ 128/259K historical results and spring forecast unchanged. No full Relay, no owner tuning or test authorized.

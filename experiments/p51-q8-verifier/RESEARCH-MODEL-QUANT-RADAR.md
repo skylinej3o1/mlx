@@ -1,3 +1,7 @@
+## Nov24 10:37 EST — quant quality remains ahead of speed
+
+[Watch](./RESEARCH-WATCH-2026-11-24-1037.md). Actual old-M1 Inkling UD-Q4KM DFlash2 short57.29TG, unmerged #86, no matched coding comparison. Mixed Nov22/23 Reddit task experiences (dense27B stronger for one tester, homelab60% for another), not fresh matched evidence. Native MX8 PC candidate with major guide stack landed main, not DQ8 exact pack or owner performance. Unsloth beta context bug fix 2–3x vendor claim not verified owner. Strata #6823 closure cites release Q8 trunk and author move to PolyStrata; no independent new fork result. NariQ no new qualifying evidence. No authenticated Qwen4 Flash/27B release. Source GSQ XXS min/IQ3S preferred.
+
 ## Nov24 09:06 EST — native Inkling and independent candidates
 
 [Watch](./RESEARCH-WATCH-2026-11-24-0906.md). DQ8 19.7GB NVFP4 plus Q8_0 converted MXFP8, MX8 native experts 19.6GB current HF pack; high fidelity to official quantized release, not proven superior coding to QFN. 5080 guide not same owner, no automatic pack substitution. IQ3_QT 3.46bpw 10.5GB 5070Ti179TG short KLD .028, separate runtime and quality gate. NariQ HIP #3 OPEN RDNA3 7900XTX24 dense27B3bit Q8 KV physical261632 PP165.82/TG5.18 over5 tokens, synthetic trellis test fails. SenseNova Loop9B official Nov17 older source, 4bit Q8KV 256K claimed15GiB; Splash #820 fresh support request only. Nemotron3.5 Super Basalt #661 OPEN 120B/12B active59GiB expert RAM, owner64GB fit unproven. No official Qwen4 Flash/27B weights. Original source GSQ XXS/S floor unchanged.
