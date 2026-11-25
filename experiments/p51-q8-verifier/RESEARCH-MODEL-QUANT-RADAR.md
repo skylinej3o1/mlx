@@ -1,3 +1,7 @@
+## Nov25 03:40 EST — Inkling quality-vs-speed, NariQ CUDA and HIP
+
+[Watch](./RESEARCH-WATCH-2026-11-25-0340.md). #95 real M1 old Apple Inkling MLX4/GGUF gains, no matched task win; LoopCD #5640 merged oMLX experimental HumanEval152→155/164, ARC69.62→71.93, MTP85.1→77.1TG on M5-class, not owner. NariQ #5 5060Ti3bit pp8192 674.8→1423.5 opt-in INT8 activations, PPL2.4655→2.4678, #6 RDNA4 8.95→25.74TG, bits5/6 truncation fix, not RDNA2/M1. Basalt #675/#702 4bit KV loss gates, PolyStrata #336 approximate ZHA 1M single needle not long coding quality. No authenticated Qwen4 Flash release. Source pristine GSQ XXS min/IQ3S preferred.
+
 ## Nov24 10:37 EST — quant quality remains ahead of speed
 
 [Watch](./RESEARCH-WATCH-2026-11-24-1037.md). Actual old-M1 Inkling UD-Q4KM DFlash2 short57.29TG, unmerged #86, no matched coding comparison. Mixed Nov22/23 Reddit task experiences (dense27B stronger for one tester, homelab60% for another), not fresh matched evidence. Native MX8 PC candidate with major guide stack landed main, not DQ8 exact pack or owner performance. Unsloth beta context bug fix 2–3x vendor claim not verified owner. Strata #6823 closure cites release Q8 trunk and author move to PolyStrata; no independent new fork result. NariQ no new qualifying evidence. No authenticated Qwen4 Flash/27B release. Source GSQ XXS min/IQ3S preferred.

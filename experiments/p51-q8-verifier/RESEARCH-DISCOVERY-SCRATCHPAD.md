@@ -1,3 +1,7 @@
+# Nov25 03:40 EST — discovery priority and independent lane
+
+[Watch](./RESEARCH-WATCH-2026-11-25-0340.md). 3F+2N+3E+2A+I (0–3 each). #95 F3N3E3A3I0=30 actual M1 paired port; #5624 F3N3E2A3I0=27 measured M1 bottleneck, proposed kernel; #696 F3N3E2A3I1=28 source-quant analogue with mixed drafters; #5631 F3N3E3A3I0=30 many turns real cache benefit; #5628 F3N3E2A3I0=27 GDN snapshot thinning; #5 NariQ F2N3E2A2I1=23 CUDA INT8 prefill; #332 F2N3E1A2I1=20 proxy RDNA2. REDISCOVERED hybrid cache translation arxiv2611.12062 F3N2E2A3I2=27 segment-wise replay/state schema; learned cross-model transfer NOT exact Relay. GateSight older loss compression lead. No owner deployment or change floor. Scores heuristic not probability.
+
 # Nov24 10:37 EST — seeded discovery and priorities
 
 [Watch](./RESEARCH-WATCH-2026-11-24-1037.md). 3F+2N+3E+2A+I heuristic (0–3 each). #86 F3N3E2A3I0=27 old-M1 short actual result; #93 F3N3E3A3I0=30 includes negative-control actual agent gains tiny; #667 F3N3E2A3I0=27 atomic split state, #7037/#7034 F3N3E2A3I0=27 cache lifecycle. Independent older FrontierReplay F3N2E2A3I2=27 exact structural checkpoint anchors/recurrent replay, no owner deployment; HiState older abstract followup. PolyStrata old repo/new author redirection F2N2E1A2I1=18 track concrete commits, not dispute narrative. Maintain source GSQ and strict windows, no autonomous tuning.

@@ -1,3 +1,7 @@
+## Nov25 03:40 EST — exact M1 Inkling speed and long-context bottleneck
+
+[Watch](./RESEARCH-WATCH-2026-11-25-0340.md). #95 OPEN native Apple7/8 same M1Max32 MLX4 DFlash2 geo57.5→73.1TG/code69.8→90.5 and GGUF UDQ4KM geo57.1→68.5, no physical128/259K; #86 1.7.3 port open, prior M1Pro14 batch4 works but slower than Qwen35B. #5624 exact M1Max64 oQ4e-mtp attention7.9/29ms at32K, proposal ~13% step reduction untested. #96 M2Max large-K batch minor gain, nonbit-identical. Splash1.7.3 upstream fixes old SWA tails, oMLX #5631 M4Pro69-turn TTFT10.3→2.8s, #5628 GDN snapshot thinning, #5642 missing GDN state under load. No M1 source GSQ new long-context measurement, no full Relay, forecast unchanged. No owner run.
+
 ## Nov24 10:37 EST — actual M1 Inkling and realistic parallel gains
 
 [Watch](./RESEARCH-WATCH-2026-11-24-1037.md). #86 OPEN M1Max32 UD-Q4KM DFlash2 short57.29 vs llama.cpp20.70TG, prefill280 vs943ms, unknown matched draft, no long occupied context. #93 OPEN M2Max wide register split cycle gains10–35% time; actual served coding per-request +1.7–3.5% only, teacher logits nonbit-identical. Source GSQ XXS/S M1 long-context result absent; old forecast unchanged. Strata #7037 snapshot supersession, #7034 RTX3090 elastic cache deadlock and #7044 RAM cap add agent gates, not owner-confirmed bugs. No full Relay, no owner runs.
