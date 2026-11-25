@@ -1,3 +1,7 @@
+## Nov25 06:40 EST — NariQ and shipped Inkling
+
+[Watch](./RESEARCH-WATCH-2026-11-25-0640.md). NariQ #7 open RDNA4 3bit PP700.6→828.3/TG19.9→29.6 short, #3 RDNA3 fused FWHT and55/55 across3 levels; #6 author corrected truncation attribution to own loader. No gfx1030/M1 result. Inkling #86 released 1.7.3-m1, #95 kernel PR split requested. Xylolabs Nov24 additions older, no matched quality. Qwen4-Max-preview retired Nov25 02Z, no authenticated Flash/27B weights. Pristine GSQ XXS floor/IQ3S preferred.
+
 ## Nov25 03:40 EST — Inkling quality-vs-speed, NariQ CUDA and HIP
 
 [Watch](./RESEARCH-WATCH-2026-11-25-0340.md). #95 real M1 old Apple Inkling MLX4/GGUF gains, no matched task win; LoopCD #5640 merged oMLX experimental HumanEval152→155/164, ARC69.62→71.93, MTP85.1→77.1TG on M5-class, not owner. NariQ #5 5060Ti3bit pp8192 674.8→1423.5 opt-in INT8 activations, PPL2.4655→2.4678, #6 RDNA4 8.95→25.74TG, bits5/6 truncation fix, not RDNA2/M1. Basalt #675/#702 4bit KV loss gates, PolyStrata #336 approximate ZHA 1M single needle not long coding quality. No authenticated Qwen4 Flash release. Source pristine GSQ XXS min/IQ3S preferred.

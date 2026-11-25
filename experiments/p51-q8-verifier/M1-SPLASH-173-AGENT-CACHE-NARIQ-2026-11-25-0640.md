@@ -1,0 +1,5 @@
+# Splash1.7.3-m1 release, agent memory and NariQ — Nov25 06:40 EST
+
+[Full watch](./RESEARCH-WATCH-2026-11-25-0640.md) has exact sources/cutoff. Actual M1Max64 released #86 UD-Q4KM DFlash2 short1/2/4 aggregate51/69/88TG; 4 lanes across two Macs 2+2 theoretical138TG not measured. Maintainer #95 comment explicitly chooses single upstream target and asks for separate optimized kernels; no expectation whole alternate engine merges. Prior 90.5TG MLX4 not released. 
+oMLX #5631 update M4Pro64 108 turns100K, hot14.7→5.33GB same TTFT3.3→3.2s, earlier edits1.26–1.32x re-prefill; opt-in, no real SSD, MTP on or multi100K. #5424 merged shared system GDN-tail fallback, not proof #5642 fixed. Basalt #709/#713/#706 open wrong-state/race/slot checkpoint fixes; #708 older-version RSS slope report. 
+NariQ #7 RDNA4 short TG19.9→29.6 and PP700.6→828.3 3bit; #3 RDNA3 fused FWHT 55/55 all quant levels; #6 author retracts upstream defect attribution (their own staged loader). Preserve original GSQ floor and frozen no-draft trial. Independent preprints 2611.22238 and2611.13412 motivate cache-aware Molt economics and active working-set admission, not deployment.

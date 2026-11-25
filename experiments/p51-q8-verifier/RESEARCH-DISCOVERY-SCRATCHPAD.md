@@ -1,3 +1,7 @@
+# Nov25 06:40 EST — discovery and priorities
+
+[Watch](./RESEARCH-WATCH-2026-11-25-0640.md). 3F+2N+3E+2A+I heuristic. Splash1.7.3-m1 F3N3E3A3I0=30 shipped exact hardware analogue; #95 split request F3N3E2A3I0=27; #5631 F3N3E3A3I0=30 actual100K cache; #709/#713 F3N3E2A3I0=27 P0 isolation; Nari #7 F2N3E2A2I1=23 actual RDNA4 not RDNA2. Independent older Context Has a Price 2611.22238 and Bursts 2611.13412 F3N2E2A3I2=27 cache-aware cost/task accounting and admission by resident working set, not implementation. No autonomous actions.
+
 # Nov25 03:40 EST — discovery priority and independent lane
 
 [Watch](./RESEARCH-WATCH-2026-11-25-0340.md). 3F+2N+3E+2A+I (0–3 each). #95 F3N3E3A3I0=30 actual M1 paired port; #5624 F3N3E2A3I0=27 measured M1 bottleneck, proposed kernel; #696 F3N3E2A3I1=28 source-quant analogue with mixed drafters; #5631 F3N3E3A3I0=30 many turns real cache benefit; #5628 F3N3E2A3I0=27 GDN snapshot thinning; #5 NariQ F2N3E2A2I1=23 CUDA INT8 prefill; #332 F2N3E1A2I1=20 proxy RDNA2. REDISCOVERED hybrid cache translation arxiv2611.12062 F3N2E2A3I2=27 segment-wise replay/state schema; learned cross-model transfer NOT exact Relay. GateSight older loss compression lead. No owner deployment or change floor. Scores heuristic not probability.

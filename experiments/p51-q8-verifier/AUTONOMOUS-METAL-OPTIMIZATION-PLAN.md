@@ -1,3 +1,7 @@
+## Nov25 06:40 EST — released old-Apple baseline
+
+[Watch](./RESEARCH-WATCH-2026-11-25-0640.md). 1.7.3-m1 shipped #86 M1Max64 short Inkling aggregate51/69/88TG 1/2/4; #95 alternate implementation not selected as whole, maintainer requests independent kernel PRs; track vs new release. #5631 M4Pro100K hot cache14.7→5.33GB, edits cost more, no real SSD/multisession/MTP-on. #5424 fallback merged, #5570 reporter HEAD fixes M1 startup not shipped0.8.3. No source GSQ 128/259K new result, no full Relay. Keep forecast and quality floor.
+
 ## Nov25 03:40 EST — exact M1 Inkling speed and long-context bottleneck
 
 [Watch](./RESEARCH-WATCH-2026-11-25-0340.md). #95 OPEN native Apple7/8 same M1Max32 MLX4 DFlash2 geo57.5→73.1TG/code69.8→90.5 and GGUF UDQ4KM geo57.1→68.5, no physical128/259K; #86 1.7.3 port open, prior M1Pro14 batch4 works but slower than Qwen35B. #5624 exact M1Max64 oQ4e-mtp attention7.9/29ms at32K, proposal ~13% step reduction untested. #96 M2Max large-K batch minor gain, nonbit-identical. Splash1.7.3 upstream fixes old SWA tails, oMLX #5631 M4Pro69-turn TTFT10.3→2.8s, #5628 GDN snapshot thinning, #5642 missing GDN state under load. No M1 source GSQ new long-context measurement, no full Relay, forecast unchanged. No owner run.
