@@ -1,3 +1,7 @@
+## Nov25 12:26 EST — #98 incremental old-Apple expert kernels
+
+[Watch](./RESEARCH-WATCH-2026-11-25-1226.md). Actual M1Max32-core UDQ4KM 4K DFlash2 fixed-step ABBA -7.9–8.5% time, expert layer -55–64%, unchanged PP. #95 closed, two tile improvements already1.7.3; remaining separate PRs. #856 host pressure tail fix gap, #7167 per-conversation Metal checkpoints rebased real model not run. #850/#855 synthetic newer Apple results not M1. No exact GSQ occupied128/259K or full Relay evidence; targets unchanged.
+
 ## Nov25 06:40 EST — released old-Apple baseline
 
 [Watch](./RESEARCH-WATCH-2026-11-25-0640.md). 1.7.3-m1 shipped #86 M1Max64 short Inkling aggregate51/69/88TG 1/2/4; #95 alternate implementation not selected as whole, maintainer requests independent kernel PRs; track vs new release. #5631 M4Pro100K hot cache14.7→5.33GB, edits cost more, no real SSD/multisession/MTP-on. #5424 fallback merged, #5570 reporter HEAD fixes M1 startup not shipped0.8.3. No source GSQ 128/259K new result, no full Relay. Keep forecast and quality floor.

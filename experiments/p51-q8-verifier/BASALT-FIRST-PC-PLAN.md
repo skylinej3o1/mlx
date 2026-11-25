@@ -1,3 +1,7 @@
+## Nov25 12:26 EST — same 5070 Ti NVFP4 paired community data and main fixes
+
+[Watch](./RESEARCH-WATCH-2026-11-25-1226.md). #721/#722 same GPU16GB but14600KF/184GiB Linux, NVFP4 INT8 drafted Inkling/QFN PP4942/4809@16K,4115/5047@64K, conv142.6/95.5TG, no matched quality. #696 prior self-converted GSQ mixed drafters merged, not frozen pack. #705/#706/#709/#713/#707/#714/#715 merged, source only. #724 wide prompt open, #723 changed placement/acceptance. Frozen FIRST historical official pristine ISTA GSQ-RCO IQ3_S .basalt v2 original experts/PLE, one5070Ti16/265F/64GB DDR5-4800 Linux physical32K one slot INT8 KV spec1 NO DRAFT and CPU-double parity/typed args/file hashes/correct tasks/hour UNRUN. No install/config.
+
 ## Nov25 06:40 EST — cache isolation and admission gates
 
 [Watch](./RESEARCH-WATCH-2026-11-25-0640.md). Basalt #709 immutable store identity prevents stale index neighbor restore/delete; #713 in-slot early exit unwind; #706 retain n-1 checkpoint, #708 older dualGPU RSS growth. All open/older-version reports, no owner incident. #715 incremental suffix hash, #714 tokenizer/#707 grammar proposed. #696 original GSQ self-converted mixed-drafter report unchanged. Frozen FIRST historical official original ISTA GSQ-RCO IQ3_S .basalt v2 exact experts/PLE, one5070Ti16/265F/64GB DDR5-4800 Linux physical32K one slot INT8 KV spec1 NO DRAFT, CPU-double parity/typed args/file hashes/completed tasks/hour UNRUN. No installation or config.

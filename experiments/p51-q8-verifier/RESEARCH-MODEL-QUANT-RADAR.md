@@ -1,3 +1,7 @@
+## Nov25 12:26 EST — NariQ RDNA4 and paired NVFP4 evidence
+
+[Watch](./RESEARCH-WATCH-2026-11-25-1226.md). Nari #8 RX9070XT16 3bit pp512897.7→1356.5/tg32 32.55→32.78, full small parity across3 quants vs scalar HIP; no owner AMD/M1 or matched coding. PolyStrata poly.5 RDNA2 dot4 release, #347 actual RDNA4 not owner. Inkling #851 experimental fixed LoopCD mostly cap rescues not quality superiority. Basalt same5070Ti NVFP4 #721/#722 not source GSQ. Qwen official HF and Chinese changelog no smaller weights/geometry. Original QFN GSQ XXS floor/IQ3S preferred.
+
 ## Nov25 06:40 EST — NariQ and shipped Inkling
 
 [Watch](./RESEARCH-WATCH-2026-11-25-0640.md). NariQ #7 open RDNA4 3bit PP700.6→828.3/TG19.9→29.6 short, #3 RDNA3 fused FWHT and55/55 across3 levels; #6 author corrected truncation attribution to own loader. No gfx1030/M1 result. Inkling #86 released 1.7.3-m1, #95 kernel PR split requested. Xylolabs Nov24 additions older, no matched quality. Qwen4-Max-preview retired Nov25 02Z, no authenticated Flash/27B weights. Pristine GSQ XXS floor/IQ3S preferred.

@@ -1,3 +1,7 @@
+# Nov25 12:26 EST — priority/discovery register
+
+[Watch](./RESEARCH-WATCH-2026-11-25-1226.md). Heuristic3F+2N+3E+2A+I: #98 3/3/3/3/0=30 actual old-Apple paired step, #721/#722 3/3/3/3/0=30 same GPU comparator not exact source, poly.5 #332 3/3/2/3/0=27 shipped architecture no RDNA2 test, #856 3/3/2/3/0=27 host headroom, #1368 ds4 3/3/2/3/2=29 independent stale ladder evidence, Nari #8 2/3/2/2/1=23. Independent web literature search no suitable fresh result, no invention/promotion. Preserve cold/warm branch-aware exact state gates and correct tasks/hour, no autonomous action.
+
 # Nov25 06:40 EST — discovery and priorities
 
 [Watch](./RESEARCH-WATCH-2026-11-25-0640.md). 3F+2N+3E+2A+I heuristic. Splash1.7.3-m1 F3N3E3A3I0=30 shipped exact hardware analogue; #95 split request F3N3E2A3I0=27; #5631 F3N3E3A3I0=30 actual100K cache; #709/#713 F3N3E2A3I0=27 P0 isolation; Nari #7 F2N3E2A2I1=23 actual RDNA4 not RDNA2. Independent older Context Has a Price 2611.22238 and Bursts 2611.13412 F3N2E2A3I2=27 cache-aware cost/task accounting and admission by resident working set, not implementation. No autonomous actions.
