@@ -1,3 +1,7 @@
+## Nov26 01:28 EST — native MX8 versus DFlash2, NariQ Vulkan
+
+[Watch](./RESEARCH-WATCH-2026-11-26-0128.md). Basalt main source official MX8 19.6GB native NVFP4/MXFP8+DSpark default, DQ8 19.7GB still loads, #763 DFlash2 experimental 18.246GiB same target bytes, no 16GB/INT8 evidence. Abenzerps GSQ-RCO Inkling IQ3XS10.6GB/IQ3M12.2GB/IQ4XS13.84GB uploader mixed precision, no matched task quality. Nari #9 OPEN native Vulkan + DFlash2 3bit RX9070 RDNA4 pp512994/TG28.1, separate chat draft~44, CPU ref 416/416, no gfx1030/M1. Original Nari card BF16-class only on reported tasks. ISTA pruned Coder 256/512 ~58.4GB, no new owner evidence or floor certification; no new validated MACaQ/Byteshape/UD quality delta. Qwen4 official HF + bilingual changelog still no smaller weights/geometry. Original QFN GSQ floor unchanged.
+
 ## Nov25 12:26 EST — NariQ RDNA4 and paired NVFP4 evidence
 
 [Watch](./RESEARCH-WATCH-2026-11-25-1226.md). Nari #8 RX9070XT16 3bit pp512897.7→1356.5/tg32 32.55→32.78, full small parity across3 quants vs scalar HIP; no owner AMD/M1 or matched coding. PolyStrata poly.5 RDNA2 dot4 release, #347 actual RDNA4 not owner. Inkling #851 experimental fixed LoopCD mostly cap rescues not quality superiority. Basalt same5070Ti NVFP4 #721/#722 not source GSQ. Qwen official HF and Chinese changelog no smaller weights/geometry. Original QFN GSQ XXS floor/IQ3S preferred.

@@ -1,3 +1,7 @@
+## Nov26 01:28 EST — merged old-M1 cached suffix and incremental register attention
+
+[Watch](./RESEARCH-WATCH-2026-11-26-0128.md). oMLX #5632 MERGED M1Pro16 3bit affine Inkling FP16 MTP off 11,976 reused prefix, ~75/150/262/522 suffix TTFT1.36→0.91/1.77→1.17/2.38→1.65/4.49→2.98s, identical last-row logits, no cold long QFN benefit. #99 OPEN M1Max32 DFlash2 UDQ4KM register relative attention with INT8 KV stacked #98, 4K fixed row1/4/8 41.22→37.06/59.48→55.74/71.78→66.57ms; 7234 prefill13.618→12.501s. #98 independent M1Pro14 one lane37→42TG. #4973 MLX split SDPA crossover OPEN M2 kernel not owner measurement. #5620 M5Pro 97K +14% fixed-depth TG, nonidentical to old main. #859 host pressure fix OPEN, #5662 PLE accounting MERGED. P0 cold/warm, exact state, typed calls and cache pressure; P1 native same-owner Inkling fixed rows vs real served cold/warm tasks; no QFN forecast change or authorization to tune. P69B12 and P69B13 profiling unchanged.
+
 ## Nov25 12:26 EST — #98 incremental old-Apple expert kernels
 
 [Watch](./RESEARCH-WATCH-2026-11-25-1226.md). Actual M1Max32-core UDQ4KM 4K DFlash2 fixed-step ABBA -7.9–8.5% time, expert layer -55–64%, unchanged PP. #95 closed, two tile improvements already1.7.3; remaining separate PRs. #856 host pressure tail fix gap, #7167 per-conversation Metal checkpoints rebased real model not run. #850/#855 synthetic newer Apple results not M1. No exact GSQ occupied128/259K or full Relay evidence; targets unchanged.

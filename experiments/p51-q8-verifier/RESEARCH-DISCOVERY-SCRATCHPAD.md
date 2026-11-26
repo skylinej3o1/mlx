@@ -1,3 +1,14 @@
+# Nov26 01:28 EST — ranked discovery and priorities
+
+[Watch](./RESEARCH-WATCH-2026-11-26-0128.md). Heuristic 3F+2N+3E+2A+I, scores are triage not likelihood.
+- #5632 oMLX merged 2/3/3/3/0=27 actual M1Pro short append exact; next M1Max resident same oQ3e 75–768 suffix, cold controls, draft off/on separately.
+- #99+#98 independent M1Pro 2/3/3/3/2=29 actual Apple7 Inkling steps; test same released baseline, independent component PRs, actual long context and draft acceptance, no QFN quant inference.
+- #862 structured history 2/3/3/3/1=28 P0 correctness; counterpass #1329 raw malformed JSON, repair/fail-closed, typed args, final task success.
+- #763→#349 2/3/2/3/2=26 native DFlash2 vs DSpark memory tradeoff, test 5070Ti MX8 under same KV/cache placement, no spill PRO5000 results not owner.
+- #1314→#209 1/3/2/3/1=22 Relay wire contract & golden compatibility; TB5 only, HTTP same runtime before cross-engine; validate per-visit recurrent state, PLE, MTP, QSA; no transport execution.
+- #289 actual RDNA2 2/3/3/3/1=28 smaller model and 32GB host; #9 Nari Vulkan 1/3/2/3/0=21 RDNA4 only. Owner gfx1030 16GB host preadmission + matched 3bit dense tasks.
+Next: agent correctness first, released Apple7 / merged old-M1 actual results at exact owner configuration, separate native MX8 draft A/B after frozen QFN. Continue bilingual Qwen4 and quant radar; no promotion or numeric target move. Prior entries below preserved.
+
 # Nov25 12:26 EST — priority/discovery register
 
 [Watch](./RESEARCH-WATCH-2026-11-25-1226.md). Heuristic3F+2N+3E+2A+I: #98 3/3/3/3/0=30 actual old-Apple paired step, #721/#722 3/3/3/3/0=30 same GPU comparator not exact source, poly.5 #332 3/3/2/3/0=27 shipped architecture no RDNA2 test, #856 3/3/2/3/0=27 host headroom, #1368 ds4 3/3/2/3/2=29 independent stale ladder evidence, Nari #8 2/3/2/2/1=23. Independent web literature search no suitable fresh result, no invention/promotion. Preserve cold/warm branch-aware exact state gates and correct tasks/hour, no autonomous action.
