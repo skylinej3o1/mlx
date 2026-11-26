@@ -1,3 +1,7 @@
+# Nov26 11:53 EST — discovery priority and counterpass
+
+[Watch](./RESEARCH-WATCH-2026-11-26-1153.md) · [focused note](./INKLING-ISTA-RELEASE-M1-AGENT-2026-11-26-1153.md). Heuristic 3F+2N+3E+2A+I. ISTA official S + #799 3/3/3/3/1=31 highest new Inkling candidate, counterpass #774 spill placement and reproducibility dispute. #5642 3/3/3/3/0=30 cache settings validated, #1432 3/3/2/3/1=28 SSD restart, #2996 3/3/3/3/1=31 strict restore refusal; #1291/#1329 main fixes 3/3/3/3/0=30. #102 old Apple IQ4_NL 3/3/3/3/0=30 only matching subformats, #10 5070Ti Nari 3/3/2/3/0=27, #7240 actual RDNA2 stage 3/3/3/2/0=28. SRFT Nov21 rediscovered, counterpass exact cache and physical bank dedup instead of lossy assumptions. Keep cold/warm, task completion gates, no autonomous action.
+
 # Nov26 01:28 EST — ranked discovery and priorities
 
 [Watch](./RESEARCH-WATCH-2026-11-26-0128.md). Heuristic 3F+2N+3E+2A+I, scores are triage not likelihood.
