@@ -1,3 +1,7 @@
+## Nov26 19:22 EST — hold QFN aspirations; separate Inkling evidence
+
+[Watch](./RESEARCH-WATCH-2026-11-26-1922.md) · [focused note](./M1-INKLING-AMX-RELAY-RDNA2-2026-11-26-1922.md). No new original QFN quality-floor occupied128K/259K M1 data. Preserve historical DS4 IQ3_XXS PP278/TG34.2 and PP258/TG31.7, 56.6–57GiB; IQ3_S aspirations425/40 and400/35, working spring450/42 and410/39 speculative. Inkling native custom Kapitsa reported84K PP325/TG39.3 vs oMLX0.8.4 264/21.9; not S, top10 parity and speculation isolation unresolved. Apple7 #103 independent profile gains not full served results. Prioritize exact source S no-draft occupied32/128/262K, native comparator, fidelity and correct tasks/hour; no multiply stacked throughput claims or promote QFN replacement. Relay checkpoint cut adds tail compute cost, improves potential durable warm reuse; no new owner break-even.
+
 ## Nov26 11:53 EST — targets HOLD, add Inkling challenger gate
 
 [Watch](./RESEARCH-WATCH-2026-11-26-1153.md) · [focused note](./INKLING-ISTA-RELEASE-M1-AGENT-2026-11-26-1153.md). No new matched source GSQ QFN 128K/259K M1 result; historical PP278/TG34.2 and PP258/TG31.7, 56.6–57GiB. Aspirations IQ3_S 425/40 &400/35, working spring450/42 &410/39 held speculative. New Inkling source IQ3_S author 99.2% native average, 11.43GB, candidate not comparative QFN quality. Add separate exact source/converted/native comparison actual occupied32K/128K/262K, no speculative draft first, correct tasks/hour, no promotions; no hardware changes.
